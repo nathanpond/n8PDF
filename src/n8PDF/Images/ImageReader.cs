@@ -5,20 +5,26 @@ namespace n8PDF.Images;
 /// </summary>
 /// <remarks>
 /// JPEG is handled by reading its header and passing the file through untouched: PDF's DCTDecode
-/// filter is JPEG, so decoding and re-encoding would cost quality for nothing. Everything else
-/// has to be unpacked to samples.
+/// filter is JPEG, so decoding and re-encoding would cost quality for nothing. Everything else —
+/// PNG, GIF, BMP and TIFF — has to be unpacked to samples, which is what the decoders beside this
+/// do.
 /// </remarks>
 public static class ImageReader
 {
-    public static bool IsSupported(byte[] data) => PngDecoder.IsPng(data) || IsJpeg(data);
+    public static bool IsSupported(byte[] data) =>
+        PngDecoder.IsPng(data) || IsJpeg(data) || GifDecoder.IsGif(data) ||
+        BmpDecoder.IsBmp(data) || TiffDecoder.IsTiff(data);
 
     public static ImageData Read(byte[] data)
     {
         if (PngDecoder.IsPng(data)) return PngDecoder.Decode(data);
         if (IsJpeg(data)) return ReadJpeg(data);
+        if (GifDecoder.IsGif(data)) return GifDecoder.Decode(data);
+        if (BmpDecoder.IsBmp(data)) return BmpDecoder.Decode(data);
+        if (TiffDecoder.IsTiff(data)) return TiffDecoder.Decode(data);
 
         throw new ImageFormatException(
-            "Unsupported image format. PNG and JPEG are handled; GIF, BMP, TIFF and EMF are not.");
+            "Unsupported image format. PNG, JPEG, GIF, BMP and TIFF are handled; EMF is not.");
     }
 
     /// <summary>Reads an image if the format is one we handle, and returns null otherwise.</summary>

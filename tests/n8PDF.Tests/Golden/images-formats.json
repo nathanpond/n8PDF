@@ -1,0 +1,59 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 143.936, "font": "Times New Roman", "size": 12, "text": "Paragraph before the pictures."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 133.799,
+          "height": 50.954,
+          "runs": [
+            {"x": 72, "width": 17.252, "font": "Calibri", "size": 11, "text": "GIF "}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 184.753,
+          "height": 50.954,
+          "runs": [
+            {"x": 72, "width": 23.558, "font": "Calibri", "size": 11, "text": "BMP "}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 235.707,
+          "height": 50.954,
+          "runs": [
+            {"x": 72, "width": 20.727, "font": "Calibri", "size": 11, "text": "TIFF "}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 286.661,
+          "height": 50.954,
+          "runs": [
+            {"x": 72, "width": 63.615, "font": "Calibri", "size": 11, "text": "Paletted BMP "}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 300.818,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 135.27, "font": "Times New Roman", "size": 12, "text": "Paragraph after the pictures."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1597,6 +1597,28 @@ public static class Fixtures
                 return builder;
             },
 
+            // The picture formats beyond PNG and JPEG, each holding the same picture: what is
+            // measured here is that Word places them where this places them, since a comparison
+            // of positions says nothing about the pixels inside.
+            ["images-formats"] = () =>
+            {
+                var pixels = ImageWriter.Sample(24, 24);
+
+                var builder = new DocxBuilder();
+                var gif = builder.AddImagePart(ImageWriter.Gif(24, 24, pixels), "gif");
+                var bmp = builder.AddImagePart(ImageWriter.Bmp(24, 24, pixels), "bmp");
+                var tiff = builder.AddImagePart(ImageWriter.Tiff(24, 24, pixels), "tiff");
+                var palette = builder.AddImagePart(ImageWriter.Bmp(24, 24, pixels, bits: 8), "bmp");
+
+                return builder
+                    .AddParagraph("Paragraph before the pictures.", ZeroSpacing, Times12)
+                    .AddImageParagraph(gif, 48, 48, ZeroSpacing, leadingText: "GIF ")
+                    .AddImageParagraph(bmp, 48, 48, ZeroSpacing, leadingText: "BMP ")
+                    .AddImageParagraph(tiff, 48, 48, ZeroSpacing, leadingText: "TIFF ")
+                    .AddImageParagraph(palette, 48, 48, ZeroSpacing, leadingText: "Paletted BMP ")
+                    .AddParagraph("Paragraph after the pictures.", ZeroSpacing, Times12);
+            },
+
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:
             // nothing else says whether a row that continues is closed off where it stops.

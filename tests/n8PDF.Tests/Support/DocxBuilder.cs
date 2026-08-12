@@ -887,6 +887,8 @@ public sealed class DocxBuilder
                 "png" => "image/png",
                 "jpg" or "jpeg" => "image/jpeg",
                 "gif" => "image/gif",
+                "bmp" => "image/bmp",
+                "tif" or "tiff" => "image/tiff",
                 _ => "application/octet-stream"
             };
 

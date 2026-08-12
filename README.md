@@ -272,7 +272,23 @@ what is not a number, so the same column averaged as `A1:A3` is 6.5 rather than 
 with no picture reads to two decimal places with the zeros at the end dropped: 10/3 is 3.33, 10/4
 stays 2.5.
 
-Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, splitting a note across pages, restarting note numbering per page or per section, notes
+Pictures come in as GIF, BMP, TIFF, PNG or JPEG. Only JPEG passes through untouched — PDF's own
+image filter is JPEG, so decoding and re-encoding it would cost quality for nothing — and the rest
+are unpacked to samples by decoders written here: a bitmap of one to thirty-two bits a pixel,
+written from the foot up or the top down and run-length packed or not; a GIF through its colour
+table, interlaced or not, with the colour it treats as transparent becoming the mask a PDF carries
+separately; a TIFF at either end, in grey, colour or a palette, its rows in strips packed with
+nothing, LZW, PackBits or Deflate.
+
+Reading a format is easy to do nearly right, so these are checked two ways. Files whose every pixel
+is known are built by the tests and read back — which is the only way to reach a bitmap written
+upside down or a GIF written in four passes — and then the same picture is turned into each format
+by macOS's own `sips`, and by `tiffutil` for each of the TIFF packings, and read back again: what
+comes out has to be what the PNG it was made from holds, to the sample. Both found real faults. A
+bitmap's height is at a different offset in the modern header than in the old one, and a TIFF
+written big end first keeps a small number in the *high* half of the four bytes its tag reserves.
+
+Not yet: EMF pictures, interlaced PNG, splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

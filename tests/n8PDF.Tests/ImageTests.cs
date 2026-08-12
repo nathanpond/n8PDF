@@ -67,12 +67,22 @@ public class ImageTests
         Assert.Equal(255, image.Alpha[7]);     // right half opaque
     }
 
+    /// <summary>
+    /// A format nothing here reads is reported as one rather than guessed at, and a file that only
+    /// begins like one it does read is not read past the point where it stops making sense.
+    /// </summary>
     [Fact]
     public void Unsupported_formats_are_reported_rather_than_guessed_at()
     {
-        Assert.False(ImageReader.IsSupported("GIF89a and then some"u8.ToArray()));
+        // A metafile, which is drawing commands rather than pixels and is not handled.
+        var metafile = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x6c, 0x00, 0x00, 0x00, 0x20, 0x45, 0x4d, 0x46 };
+
+        Assert.False(ImageReader.IsSupported(metafile));
+        Assert.Null(ImageReader.TryRead(metafile));
+        Assert.Throws<ImageFormatException>(() => ImageReader.Read(metafile));
+
+        // Enough of a GIF to be recognised as one and not enough to be read as a picture.
         Assert.Null(ImageReader.TryRead("GIF89a and then some"u8.ToArray()));
-        Assert.Throws<ImageFormatException>(() => ImageReader.Read("GIF89a"u8.ToArray()));
 
         // Truncated PNG data must fail as a format error, not as an index-out-of-range.
         var truncated = PngWriter.Solid(4, 4, 1, 2, 3)[..20];
