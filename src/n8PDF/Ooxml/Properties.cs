@@ -246,8 +246,60 @@ public sealed class SectionProperties
 
     public int GutterTwips { get; set; }
 
-    /// <summary>Number of text columns. Only single-column layout is implemented so far.</summary>
+    /// <summary>Number of text columns.</summary>
     public int ColumnCount { get; set; } = 1;
+
+    /// <summary>Gap between columns in twips, where they are evenly divided.</summary>
+    public int ColumnSpaceTwips { get; set; } = 720;
+
+    /// <summary>Whether a rule is drawn down the gap between columns.</summary>
+    public bool ColumnSeparator { get; set; }
+
+    /// <summary>
+    /// Individually stated column widths, in twips, each with the gap that follows it. Empty when
+    /// the columns are evenly divided, which is the usual case.
+    /// </summary>
+    public List<(int WidthTwips, int SpaceTwips)> ColumnWidths { get; } = [];
+
+    /// <summary>
+    /// Where each column starts, as an offset from the content box's left edge, and how wide it
+    /// is — both in points.
+    /// </summary>
+    /// <remarks>
+    /// Stated widths are used as they are. Otherwise the space left after the gaps is divided
+    /// evenly, which is what Word does and what nearly every document asks for.
+    /// </remarks>
+    public IReadOnlyList<(double Left, double Width)> GetColumns()
+    {
+        var total = ContentWidthPoints;
+
+        if (ColumnWidths.Count > 1)
+        {
+            var stated = new List<(double, double)>(ColumnWidths.Count);
+            var x = 0.0;
+
+            foreach (var (width, space) in ColumnWidths)
+            {
+                stated.Add((x, Units.TwipsToPoints(width)));
+                x += Units.TwipsToPoints(width + space);
+            }
+
+            return stated;
+        }
+
+        if (ColumnCount <= 1) return [(0, total)];
+
+        var gap = Units.TwipsToPoints(ColumnSpaceTwips);
+        var each = (total - gap * (ColumnCount - 1)) / ColumnCount;
+
+        // A gap wider than the page would leave columns with no width at all.
+        if (each <= 0) return [(0, total)];
+
+        var columns = new List<(double, double)>(ColumnCount);
+        for (var i = 0; i < ColumnCount; i++) columns.Add((i * (each + gap), each));
+
+        return columns;
+    }
 
     /// <summary>
     /// Header parts by type — "default", "first" or "even" — as relationship ids.

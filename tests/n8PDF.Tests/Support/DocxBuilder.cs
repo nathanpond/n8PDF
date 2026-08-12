@@ -130,7 +130,9 @@ public sealed class DocxBuilder
         string? type = null,
         int widthTwips = 12240, int heightTwips = 15840,
         int top = 1440, int right = 1440, int bottom = 1440, int left = 1440,
-        bool landscape = false, bool titlePage = false)
+        bool landscape = false, bool titlePage = false,
+        int columns = 1, int columnSpaceTwips = 720, bool columnSeparator = false,
+        IReadOnlyList<(int Width, int Space)>? columnWidths = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
         var orientation = landscape ? " w:orient=\"landscape\"" : string.Empty;
@@ -147,9 +149,36 @@ public sealed class DocxBuilder
             <w:sectPr>
               {references}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
               <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
-              <w:cols w:space="720"/>{(titlePage ? "<w:titlePg/>" : string.Empty)}
+              {Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(titlePage ? "<w:titlePg/>" : string.Empty)}
             </w:sectPr>
             """;
+    }
+
+    /// <summary>
+    /// A <c>w:cols</c> element. Unequal columns are stated one by one and need equalWidth off,
+    /// which is how Word writes them; the last column declares no space, having nothing after it.
+    /// </summary>
+    private static string Columns(
+        int count, int spaceTwips, bool separator, IReadOnlyList<(int Width, int Space)>? widths)
+    {
+        var sep = separator ? " w:sep=\"1\"" : string.Empty;
+
+        if (widths is null)
+        {
+            return count <= 1
+                ? $"<w:cols w:space=\"{spaceTwips}\"{sep}/>"
+                : $"<w:cols w:num=\"{count}\" w:space=\"{spaceTwips}\"{sep}/>";
+        }
+
+        var parts = new StringBuilder();
+        for (var i = 0; i < widths.Count; i++)
+        {
+            var space = i == widths.Count - 1 ? string.Empty : $" w:space=\"{widths[i].Space}\"";
+            parts.Append($"<w:col w:w=\"{widths[i].Width}\"{space}/>");
+        }
+
+        return $"<w:cols w:num=\"{widths.Count}\" w:space=\"{spaceTwips}\" w:equalWidth=\"0\"{sep}>" +
+               parts + "</w:cols>";
     }
 
     public DocxBuilder AddEmptyParagraph()

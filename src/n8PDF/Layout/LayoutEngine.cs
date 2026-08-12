@@ -119,13 +119,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             Section = section,
             Page = NewPage(result, section),
             Y = contentTop,
-            Left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips),
-            Width = section.ContentWidthPoints,
+            Left = 0,
+            Width = 0,
             ContentTop = contentTop,
             ContentLimit = contentTop + section.ContentHeightPoints,
             Paginate = true,
             OnPageComplete = FlushFootnotes
         };
+
+        ApplySection(cursor, section);
 
         for (var index = 0; index < sections.Count; index++)
         {
@@ -141,7 +143,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // it, which matters for how much content a page is considered to hold.
         cursor.Y += cursor.PendingSpaceAfter;
 
-        // The last page never breaks, so its footnotes are still waiting.
+        // The last page never breaks, so its footnotes are still waiting and its column rules
+        // have not been drawn.
+        DrawColumnSeparators(cursor);
         FlushFootnotes(cursor.Page);
 
         // Headers and footers are laid out last, once the page count is known — a footer saying
@@ -222,6 +226,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var samePage = samePaper &&
                        section.BreakType is SectionBreakType.Continuous or SectionBreakType.NextColumn;
 
+        // Pages are counted from the start of each section, and the count has to be reset before
+        // the section's first page is made rather than after it.
+        _pagesInSection = 0;
+
         // The outgoing section's last paragraph still occupies its space, and nothing across the
         // boundary collapses against it.
         cursor.Y += cursor.PendingSpaceAfter;
@@ -251,22 +259,65 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
     }
 
+    /// <summary>
+    /// Word draws the rule between columns a hundredth of an inch and a bit wide, measured from
+    /// its export of the <c>columns</c> fixture.
+    /// </summary>
+    private const double ColumnSeparatorWidthPoints = 0.96;
+
+    /// <summary>
+    /// Rules the gaps between the columns a page actually used.
+    /// </summary>
+    /// <remarks>
+    /// The rule runs from the top of the content down to the bottom of the fullest column, not to
+    /// the bottom margin: on a page whose columns are half empty Word stops the line where the
+    /// text does. Gaps beyond the last column reached get no rule at all, which is why a page
+    /// whose text never left the first column has none.
+    /// </remarks>
+    private static void DrawColumnSeparators(Cursor cursor)
+    {
+        if (!cursor.Section.ColumnSeparator || cursor.MaxColumnUsed < 1) return;
+
+        var bottom = Math.Max(cursor.PageMaxY, cursor.Y);
+        if (bottom <= cursor.ContentTop) return;
+
+        for (var i = 0; i < cursor.MaxColumnUsed && i + 1 < cursor.Columns.Count; i++)
+        {
+            var gapLeft = cursor.SectionLeft + cursor.Columns[i].Left + cursor.Columns[i].Width;
+            var gapRight = cursor.SectionLeft + cursor.Columns[i + 1].Left;
+            var centre = (gapLeft + gapRight) / 2;
+
+            cursor.Page.Rectangles.Add(new PositionedRectangle
+            {
+                X = centre - ColumnSeparatorWidthPoints / 2,
+                Y = cursor.ContentTop,
+                Width = ColumnSeparatorWidthPoints,
+                Height = bottom - cursor.ContentTop,
+                Color = (0, 0, 0)
+            });
+        }
+    }
+
     /// <summary>Points the cursor, and the footnote area, at a section's geometry.</summary>
     private void ApplySection(Cursor cursor, SectionProperties section)
     {
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
 
         cursor.Section = section;
-        cursor.Left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
-        cursor.Width = section.ContentWidthPoints;
+        cursor.SectionLeft = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
+        cursor.SectionWidth = section.ContentWidthPoints;
+        cursor.Columns = section.GetColumns();
+        cursor.ColumnIndex = 0;
+        cursor.MaxColumnUsed = 0;
+        cursor.ApplyColumn();
         cursor.ContentTop = contentTop;
         cursor.ContentLimit = contentTop + section.ContentHeightPoints;
 
-        _footnoteLeft = cursor.Left;
-        _footnoteWidth = cursor.Width;
+        // Footnotes sit under the whole measure rather than under the column that refers to them,
+        // which is not what Word does in a multi-column section.
+        _footnoteLeft = cursor.SectionLeft;
+        _footnoteWidth = cursor.SectionWidth;
         _footnoteBottom = cursor.ContentLimit;
-
-        _pagesInSection = 0;
     }
 
     /// <summary>
@@ -352,10 +403,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         while (composer.HasMore)
         {
+            // A break carried over from the previous line is applied before this one is composed,
+            // not after: a column break changes the measure, and a line broken against the width
+            // it was leaving would be wrapped in the wrong place.
+            if (composer.PendingPageBreak && cursor.CanBreak) cursor.BreakPage();
+            else if (composer.PendingColumnBreak && cursor.CanAdvance) cursor.AdvanceColumn();
+
             var band = ResolveBandForLine(cursor, composer.ProvisionalHeight);
             var line = composer.Next(band.Left, band.Width);
-
-            if (line.ForcePageBreak && cursor.CanBreak) cursor.BreakPage();
 
             // A footnote goes to the foot of the page its reference lands on, so its space has to
             // come out of the page before the line that refers to it is fitted into what is left.
@@ -366,11 +421,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 ? PrepareFootnotes(footnoteIds)
                 : ([], 0);
 
-            // A line that does not fit starts a new page. Widow and orphan control would
-            // move whole groups of lines here; it is not implemented yet.
-            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Height && cursor.CanBreak)
+            // A line that does not fit moves to the next column, or off the page when it was in
+            // the last of them. Widow and orphan control would move whole groups of lines here;
+            // it is not implemented yet.
+            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Height && cursor.CanAdvance)
             {
-                cursor.BreakPage();
+                cursor.AdvanceColumn();
 
                 // The new page carries no separator yet, so what the notes cost is not what they
                 // cost on the page just left behind.
@@ -931,9 +987,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 ? PrepareFootnotes(rowFootnoteIds)
                 : ([], 0);
 
-            if (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height && cursor.CanBreak)
+            if (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height && cursor.CanAdvance)
             {
-                cursor.BreakPage();
+                cursor.AdvanceColumn();
                 if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(rowFootnoteIds);
             }
 
@@ -1392,7 +1448,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             ContentTop = 0,
             ContentLimit = double.MaxValue,
             Paginate = false,
-            FootnoteSink = footnotes
+            FootnoteSink = footnotes,
+            SectionWidth = width,
+            Columns = [(0, width)]
         };
 
         LayoutBlocks(cursor, blocks);
@@ -1557,6 +1615,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         private int _index;
         private bool _isFirstLine = true;
         private bool _forceBreakOnNextLine;
+        private bool _forceColumnBreakOnNextLine;
+
+        /// <summary>
+        /// Whether the line about to be composed follows a break. Read before composing, because
+        /// where the line lands decides how wide it may be.
+        /// </summary>
+        public bool PendingPageBreak => _forceBreakOnNextLine;
+
+        public bool PendingColumnBreak => _forceColumnBreakOnNextLine;
         private bool _producedAny;
 
         /// <summary>An empty paragraph still gets one pass, so that it occupies a line.</summary>
@@ -1587,13 +1654,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var line = new ComposedLine
             {
-                ForcePageBreak = _forceBreakOnNextLine,
                 IndentLeft = left
             };
 
             _forceBreakOnNextLine = false;
+            _forceColumnBreakOnNextLine = false;
 
-            var consumed = FillLine(atoms, _index, available, line, out var hardBreak, out var pageBreak);
+            var consumed = FillLine(
+                atoms, _index, available, line, out var hardBreak, out var pageBreak, out var columnBreak);
             _index += consumed;
             _producedAny = true;
 
@@ -1601,6 +1669,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             FinishLine(line, format, left, available, isLastLine || hardBreak);
 
             if (pageBreak) _forceBreakOnNextLine = true;
+            if (columnBreak) _forceColumnBreakOnNextLine = true;
             _isFirstLine = false;
 
             // An empty paragraph has no atoms but still takes up a line, sized by its mark.
@@ -1618,10 +1687,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// which is what Word does — a line ending in a space does not wrap because of it.
     /// </summary>
     private static int FillLine(
-        List<Atom> atoms, int start, double available, ComposedLine line, out bool hardBreak, out bool pageBreak)
+        List<Atom> atoms, int start, double available, ComposedLine line,
+        out bool hardBreak, out bool pageBreak, out bool columnBreak)
     {
         hardBreak = false;
         pageBreak = false;
+        columnBreak = false;
 
         var x = 0.0;
         var index = start;
@@ -1636,6 +1707,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 index++;
                 hardBreak = true;
                 pageBreak = breakAtom.Kind == BreakKind.Page;
+                columnBreak = breakAtom.Kind == BreakKind.Column;
                 break;
             }
 
@@ -2216,9 +2288,26 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         public required double Y { get; set; }
 
+        /// <summary>The current column's left edge and measure.</summary>
         public required double Left { get; set; }
 
         public required double Width { get; set; }
+
+        /// <summary>The content box the columns divide up, which is the section's own measure.</summary>
+        public double SectionLeft { get; set; }
+
+        public double SectionWidth { get; set; }
+
+        /// <summary>Each column's offset from the content box and its width, in points.</summary>
+        public IReadOnlyList<(double Left, double Width)> Columns { get; set; } = [(0, 0)];
+
+        public int ColumnIndex { get; set; }
+
+        /// <summary>The last column reached on this page, for deciding which gaps get a rule.</summary>
+        public int MaxColumnUsed { get; set; }
+
+        /// <summary>How far down the fullest column of this page has reached.</summary>
+        public double PageMaxY { get; set; }
 
         public required double ContentTop { get; set; }
 
@@ -2326,13 +2415,55 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// </summary>
         public bool CanBreak => Paginate && (Page.Lines.Count > 0 || Page.Rectangles.Count > 0);
 
+        /// <summary>
+        /// True when moving on would achieve anything. An empty column is no more room than the
+        /// one just tried, so content too tall for a column overflows rather than marching across
+        /// the page looking for a column that could hold it.
+        /// </summary>
+        public bool CanAdvance => Paginate && Y > ContentTop + 0.001;
+
+        /// <summary>
+        /// Moves to the next column, or to the next page when this was the last of them.
+        /// </summary>
+        public void AdvanceColumn()
+        {
+            PageMaxY = Math.Max(PageMaxY, Y);
+
+            if (ColumnIndex + 1 >= Columns.Count)
+            {
+                BreakPage();
+                return;
+            }
+
+            ColumnIndex++;
+            MaxColumnUsed = Math.Max(MaxColumnUsed, ColumnIndex);
+            Y = ContentTop;
+            ApplyColumn();
+        }
+
+        /// <summary>Points the cursor at its current column within the content box.</summary>
+        public void ApplyColumn()
+        {
+            var index = Math.Clamp(ColumnIndex, 0, Columns.Count - 1);
+
+            Left = SectionLeft + Columns[index].Left;
+            Width = Columns[index].Width;
+        }
+
         public void BreakPage()
         {
+            PageMaxY = Math.Max(PageMaxY, Y);
+            DrawColumnSeparators(this);
             OnPageComplete?.Invoke(Page);
 
             Page = Engine.NewPage(Document, Section);
             Y = ContentTop;
             Reserved = 0;
+
+            ColumnIndex = 0;
+            MaxColumnUsed = 0;
+            PageMaxY = 0;
+            ApplyColumn();
 
             // A float belongs to the page its anchor landed on; it does not follow the text.
             Floats.Clear();
@@ -2541,6 +2672,5 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         public double IndentLeft { get; init; }
 
-        public bool ForcePageBreak { get; init; }
     }
 }

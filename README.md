@@ -118,7 +118,8 @@ match Word vertically.
 
 Implemented: section breaks (next-page, continuous, even- and odd-page, each section with its own
 page size, orientation and margins, running heads inherited per kind from the section before where
-one says nothing), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
+one says nothing), multiple text columns (evenly divided or individually stated, column breaks, and
+the rule down the gap where the document asks for one), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
 for endnotes unless the document says otherwise; a footnote goes to the foot of the page its
 reference lands on and takes that space out of the body above it, an endnote carries on after the
 body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
@@ -148,7 +149,9 @@ border, splitting a row across pages, fields other than PAGE and NUMPAGES (their
 shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
-scripts, multiple text columns, page numbering restarted per section, vertical page alignment,
+scripts, balancing the columns of a section's last page, footnotes under the column that refers to
+them rather than under the whole measure, page numbering restarted per section, vertical page
+alignment,
 font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab stops.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches

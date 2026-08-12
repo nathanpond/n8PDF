@@ -612,7 +612,22 @@ public static class DocumentParser
 
         var cols = sectPr.Element(W.Main + "cols");
         if (cols is not null)
+        {
             section.ColumnCount = Math.Max(1, cols.IntAttr("num") ?? 1);
+            section.ColumnSpaceTwips = cols.IntAttr("space") ?? section.ColumnSpaceTwips;
+            section.ColumnSeparator = ReadOnOff(cols.Attr("sep"));
+
+            // Stated widths only count when the document turns even division off, which is how
+            // Word writes unequal columns; a stray w:col otherwise is not what the layout uses.
+            if (!ReadOnOff(cols.Attr("equalWidth"), defaultValue: true))
+            {
+                foreach (var col in cols.Elements(W.Main + "col"))
+                {
+                    section.ColumnWidths.Add(
+                        (col.IntAttr("w") ?? 0, col.IntAttr("space") ?? section.ColumnSpaceTwips));
+                }
+            }
+        }
 
         // Word writes top and bottom margins as negative values when they mean "at least this
         // far", which would otherwise produce a text area taller than the page.
@@ -789,6 +804,17 @@ public static class DocumentParser
             element.IntAttr("sz") ?? 0,
             color is null or "auto" ? null : color);
     }
+
+    /// <summary>
+    /// Reads an ST_OnOff attribute. Its absence means the default, and "0", "false" and "off" all
+    /// mean off — an attribute present with any other value, or with none, means on.
+    /// </summary>
+    private static bool ReadOnOff(string? value, bool defaultValue = false) => value switch
+    {
+        null => defaultValue,
+        "0" or "false" or "off" => false,
+        _ => true
+    };
 
     private static Justification ParseJustification(string? value) => value switch
     {

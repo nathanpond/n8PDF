@@ -666,6 +666,48 @@ public static class Fixtures
                 return builder;
             },
 
+            // Two equal columns with a rule between them, holding more text than one column can
+            // take: where Word puts the overflow, and whether it evens the two out when the text
+            // runs out part-way down, are what the reference answers.
+            ["columns"] = () =>
+            {
+                var builder = new DocxBuilder().WithSection(
+                    DocxBuilder.Section(columns: 2, columnSeparator: true));
+
+                // One paragraph long enough to wrap, at the top of the first column where nothing
+                // else is going on, which is what proves the measure the text is broken against.
+                builder.AddParagraph(
+                    "An opening paragraph written long enough that it has to wrap inside the " +
+                    "column rather than fitting on one line of it.",
+                    ZeroSpacing, Times12);
+
+                // The rest are single lines. Word will not leave one line of a paragraph alone at
+                // the foot of a column, so a fixture built from paragraphs that wrap would be
+                // measuring widow control — which is not implemented — rather than the columns.
+                for (var i = 1; i <= 60; i++)
+                    builder.AddParagraph($"Column line number {i} of sixty.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
+            // Three columns of stated, unequal widths, with a column break part-way through the
+            // first one.
+            ["columns-uneven"] = () => new DocxBuilder()
+                .WithSection(DocxBuilder.Section(
+                    columns: 3,
+                    columnWidths: [(2880, 720), (2160, 720), (2880, 0)]))
+                .AddParagraph("First column, first line.", ZeroSpacing, Times12)
+                .AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>First column, second line.</w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:br w:type=\"column\"/></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Second column opens here.</w:t></w:r></w:p>")
+                .AddParagraph("Second column, another line.", ZeroSpacing, Times12)
+                .AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:br w:type=\"column\"/></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Third column opens here.</w:t></w:r></w:p>"),
+
             // Four sections on different paper with different margins, one of each break type the
             // engine treats differently: a next-page break onto landscape, a continuous break that
             // changes the margins part-way down a page, and an even-page break that has to leave a
