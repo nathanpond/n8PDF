@@ -101,6 +101,57 @@ public sealed class DocxBuilder
         return this;
     }
 
+    /// <summary>
+    /// Appends a paragraph that carries a section break.
+    /// </summary>
+    /// <remarks>
+    /// A break is not a paragraph of its own: the properties of the section being closed hang off
+    /// the last paragraph in it, which is how Word stores one. In CT_PPr the section properties
+    /// come last, after everything else the paragraph declares.
+    /// </remarks>
+    public DocxBuilder AddParagraphWithSectionBreak(
+        string text, string sectionPropertiesXml,
+        string? paragraphProperties = null, string? runProperties = null)
+    {
+        _body.Append("<w:p><w:pPr>");
+        _body.Append(paragraphProperties);
+        _body.Append(sectionPropertiesXml);
+        _body.Append("</w:pPr><w:r>");
+        if (runProperties is not null) _body.Append($"<w:rPr>{runProperties}</w:rPr>");
+        _body.Append($"<w:t xml:space=\"preserve\">{Escape(text)}</w:t>");
+        _body.Append("</w:r></w:p>");
+
+        return this;
+    }
+
+    /// <summary>Section properties for a break, in CT_SectPr order.</summary>
+    public static string Section(
+        IReadOnlyList<(string Kind, string Id)>? headerFooterReferences = null,
+        string? type = null,
+        int widthTwips = 12240, int heightTwips = 15840,
+        int top = 1440, int right = 1440, int bottom = 1440, int left = 1440,
+        bool landscape = false, bool titlePage = false)
+    {
+        var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
+        var orientation = landscape ? " w:orient=\"landscape\"" : string.Empty;
+
+        // References come before everything else in CT_SectPr, headers before footers.
+        var references = new StringBuilder();
+        foreach (var (kind, id) in headerFooterReferences ?? [])
+        {
+            var parts = kind.Split(':');
+            references.Append($"<w:{parts[0]}Reference w:type=\"{parts[1]}\" r:id=\"{id}\"/>");
+        }
+
+        return $"""
+            <w:sectPr>
+              {references}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
+              <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
+              <w:cols w:space="720"/>{(titlePage ? "<w:titlePg/>" : string.Empty)}
+            </w:sectPr>
+            """;
+    }
+
     public DocxBuilder AddEmptyParagraph()
     {
         _body.Append("<w:p/>");
@@ -109,6 +160,9 @@ public sealed class DocxBuilder
 
     private readonly List<(int Id, string Type, string Body)> _footnotes = [];
     private readonly List<(int Id, string Type, string Body)> _endnotes = [];
+    /// <summary>Header and footer parts the closing section deliberately does not point at.</summary>
+    private readonly HashSet<string> _unreferenced = [];
+
     private string? _separatorMarkProperties;
 
     /// <summary>
@@ -416,8 +470,13 @@ public sealed class DocxBuilder
     /// External addresses for the links in this part, by relationship id. A header owns its own
     /// relationship part, so these ids are independent of the body's and may repeat them.
     /// </param>
+    /// <param name="referenceFromFinalSection">
+    /// Whether the closing section should point at this part. Pass false to place the reference by
+    /// hand — on an earlier section's break, say, to test that a later one inherits it.
+    /// </param>
     public DocxBuilder WithHeaderFooter(bool header, string paragraphsXml, string kind = "default",
-        IReadOnlyList<(string Id, string Url)>? headerHyperlinks = null)
+        IReadOnlyList<(string Id, string Url)>? headerHyperlinks = null,
+        bool referenceFromFinalSection = true)
     {
         var index = _headersFooters.Count + 1;
         var id = $"rIdHF{index}";
@@ -426,6 +485,8 @@ public sealed class DocxBuilder
         // The part is called header1.xml but its root element is w:hdr, not w:header. Word
         // silently ignores a part whose root it does not recognise — no error, no header.
         var root = header ? "hdr" : "ftr";
+
+        if (!referenceFromFinalSection) _unreferenced.Add(id);
 
         _headersFooters.Add((id, $"word/{name}{index}.xml", $"{name}:{kind}",
             $"""
@@ -618,6 +679,8 @@ public sealed class DocxBuilder
         var references = new StringBuilder();
         foreach (var (id, _, kind, _, _) in _headersFooters)
         {
+            if (_unreferenced.Contains(id)) continue;
+
             var parts = kind.Split(':');
             references.Append($"<w:{parts[0]}Reference w:type=\"{parts[1]}\" r:id=\"{id}\"/>");
         }

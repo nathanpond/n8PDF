@@ -145,6 +145,19 @@ public sealed class LaidOutPage
 
     public required double HeightPoints { get; init; }
 
+    /// <summary>
+    /// The section this page belongs to, which is what decided its size and margins and which
+    /// running heads it takes. A document with section breaks has pages of more than one section,
+    /// so this cannot be asked of the document as a whole.
+    /// </summary>
+    public SectionProperties Section { get; init; } = new();
+
+    /// <summary>
+    /// Which page this is within its own section, counted from zero. A section's own first page is
+    /// what a title page means, not the document's.
+    /// </summary>
+    public int IndexInSection { get; init; }
+
     public List<LaidOutLine> Lines { get; } = [];
 
     /// <summary>Images, drawn after the shading and borders but before the text.</summary>
@@ -169,5 +182,9 @@ public sealed class LaidOutDocument
     /// <summary>Bookmark positions by name, for resolving internal links.</summary>
     public Dictionary<string, BookmarkDestination> Bookmarks { get; } = [];
 
+    /// <summary>
+    /// The document's final section. Page geometry comes from <see cref="LaidOutPage.Section"/>
+    /// instead, since a document with section breaks has pages belonging to several.
+    /// </summary>
     public required SectionProperties Section { get; init; }
 }

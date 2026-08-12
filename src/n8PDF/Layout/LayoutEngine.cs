@@ -71,6 +71,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // that opens it.
     private string? _currentNoteLabel;
 
+    // How many pages the section being laid out has produced, which is what a title page and a
+    // section's own numbering are counted against.
+    private int _pagesInSection;
+
     // Which page is being laid out, for fields that depend on it. Zero means the body, where a
     // page number is not yet known; headers and footers set it before they run.
     private int _currentPage;
@@ -94,9 +98,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _currentNoteLabel = null;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
-        var section = document.Section;
-        var result = new LaidOutDocument { Section = section };
+
+        var sections = SplitIntoSections(document);
+        var section = sections[0].Section;
+
+        var result = new LaidOutDocument { Section = document.Section };
         _result = result;
+        _pagesInSection = 0;
 
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
 
@@ -106,6 +114,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var cursor = new Cursor
         {
+            Engine = this,
             Document = result,
             Section = section,
             Page = NewPage(result, section),
@@ -118,7 +127,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             OnPageComplete = FlushFootnotes
         };
 
-        LayoutBlocks(cursor, document.Body);
+        for (var index = 0; index < sections.Count; index++)
+        {
+            if (index > 0) StartSection(cursor, sections[index].Section);
+            LayoutBlocks(cursor, sections[index].Blocks);
+        }
 
         // Endnotes follow the body in ordinary flow, so they are laid out through the same cursor
         // and paginate like anything else.
@@ -136,6 +149,124 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         LayoutHeadersAndFooters(document, result);
 
         return result;
+    }
+
+    /// <summary>
+    /// Splits the body into the runs of blocks each section owns.
+    /// </summary>
+    /// <remarks>
+    /// A section break is stored on the last paragraph <em>before</em> it, carrying the outgoing
+    /// section's properties — so the paragraph holding the break belongs to the section it
+    /// describes, not to the one that follows. Whatever trails the last break belongs to the
+    /// body-level <c>sectPr</c>, which is the final section; a document without any breaks is that
+    /// one section over the whole body.
+    ///
+    /// A section that states no running head of some kind inherits the previous section's, which
+    /// is what Word's "link to previous" means and what it relies on when it omits them.
+    /// </remarks>
+    private static List<(SectionProperties Section, List<BlockElement> Blocks)> SplitIntoSections(
+        WordDocument document)
+    {
+        var sections = new List<(SectionProperties Section, List<BlockElement> Blocks)>();
+        var current = new List<BlockElement>();
+
+        foreach (var block in document.Body)
+        {
+            current.Add(block);
+
+            if (block is not Paragraph { SectionBreak: { } properties }) continue;
+
+            sections.Add((properties, current));
+            current = [];
+        }
+
+        // The trailing blocks, and any document with no breaks at all, take the final section.
+        if (current.Count > 0 || sections.Count == 0) sections.Add((document.Section, current));
+
+        for (var i = 1; i < sections.Count; i++)
+        {
+            var previous = sections[i - 1].Section;
+            var section = sections[i].Section;
+
+            // Linking is per kind, not all or nothing: a section that gives its own first page a
+            // header and says nothing about the rest keeps the previous section's for the rest.
+            foreach (var (kind, id) in previous.HeaderReferences)
+                section.HeaderReferences.TryAdd(kind, id);
+
+            foreach (var (kind, id) in previous.FooterReferences)
+                section.FooterReferences.TryAdd(kind, id);
+        }
+
+        return sections;
+    }
+
+    /// <summary>
+    /// Moves the cursor into a new section, taking on its page geometry.
+    /// </summary>
+    /// <remarks>
+    /// A continuous break carries on down the same page under the new margins. Word only honours
+    /// that when the paper itself is unchanged: a section that alters the page size cannot share a
+    /// page with the one before it however it was declared, so it starts a new one regardless.
+    ///
+    /// An even or odd break may leave a blank page behind, which is the point of it — a chapter
+    /// that must open on a right-hand page does so whether or not the previous one ended on a
+    /// left-hand one.
+    /// </remarks>
+    private void StartSection(Cursor cursor, SectionProperties section)
+    {
+        var previous = cursor.Section;
+
+        var samePaper = section.PageWidthTwips == previous.PageWidthTwips &&
+                        section.PageHeightTwips == previous.PageHeightTwips;
+
+        var samePage = samePaper &&
+                       section.BreakType is SectionBreakType.Continuous or SectionBreakType.NextColumn;
+
+        // The outgoing section's last paragraph still occupies its space, and nothing across the
+        // boundary collapses against it.
+        cursor.Y += cursor.PendingSpaceAfter;
+        cursor.PendingSpaceAfter = 0;
+        cursor.PreviousFormat = null;
+
+        if (samePage)
+        {
+            ApplySection(cursor, section);
+            return;
+        }
+
+        // The footnotes of the page being left behind belong to the geometry it was laid out
+        // under, so they are written into it before the new section's takes over.
+        FlushFootnotes(cursor.Page);
+        ApplySection(cursor, section);
+        cursor.BreakPage();
+
+        // At most one blank page: each break flips the parity.
+        var wantsEven = section.BreakType == SectionBreakType.EvenPage;
+        var wantsOdd = section.BreakType == SectionBreakType.OddPage;
+
+        if ((wantsEven && cursor.Document.Pages.Count % 2 != 0) ||
+            (wantsOdd && cursor.Document.Pages.Count % 2 == 0))
+        {
+            cursor.BreakPage();
+        }
+    }
+
+    /// <summary>Points the cursor, and the footnote area, at a section's geometry.</summary>
+    private void ApplySection(Cursor cursor, SectionProperties section)
+    {
+        var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
+
+        cursor.Section = section;
+        cursor.Left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
+        cursor.Width = section.ContentWidthPoints;
+        cursor.ContentTop = contentTop;
+        cursor.ContentLimit = contentTop + section.ContentHeightPoints;
+
+        _footnoteLeft = cursor.Left;
+        _footnoteWidth = cursor.Width;
+        _footnoteBottom = cursor.ContentLimit;
+
+        _pagesInSection = 0;
     }
 
     /// <summary>
@@ -490,26 +621,31 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// Lays out the header and footer of every page into the margins.
     /// </summary>
     /// <remarks>
-    /// Each page gets its own pass, because the content can differ per page in two ways: a
-    /// document may give its first page or its even pages their own, and a field such as a page
-    /// number resolves differently on each.
+    /// Each page gets its own pass, because the content can differ per page in three ways: a
+    /// document may give its first page or its even pages their own, a field such as a page number
+    /// resolves differently on each, and pages of different sections take different parts
+    /// altogether — which is why the geometry here comes from the page rather than the document.
     /// </remarks>
     private void LayoutHeadersAndFooters(WordDocument document, LaidOutDocument result)
     {
-        var section = result.Section;
-        if (section.HeaderReferences.Count == 0 && section.FooterReferences.Count == 0) return;
+        if (result.Pages.All(p =>
+                p.Section.HeaderReferences.Count == 0 && p.Section.FooterReferences.Count == 0))
+        {
+            return;
+        }
 
         _totalPages = result.Pages.Count;
-
-        var left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
-        var width = section.ContentWidthPoints;
 
         for (var index = 0; index < result.Pages.Count; index++)
         {
             var page = result.Pages[index];
             _currentPage = index + 1;
 
-            var kind = SelectKind(section, document.EvenAndOddHeaders, index);
+            var section = page.Section;
+            var left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
+            var width = section.ContentWidthPoints;
+
+            var kind = SelectKind(section, document.EvenAndOddHeaders, page.IndexInSection, index);
 
             if (Resolve(document, section.HeaderReferences, kind) is { } header)
             {
@@ -697,11 +833,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>
     /// Chooses which of the three header and footer kinds applies to a page.
     /// </summary>
-    private static string SelectKind(SectionProperties section, bool evenAndOdd, int pageIndex)
+    private static string SelectKind(
+        SectionProperties section, bool evenAndOdd, int indexInSection, int pageIndex)
     {
-        if (section.TitlePage && pageIndex == 0) return "first";
+        // A title page is the first page of its own section, not of the document.
+        if (section.TitlePage && indexInSection == 0) return "first";
 
-        // Page numbers are one-based here: the second page is the first even one.
+        // Odd and even are the printed page numbers, which run through the whole document.
         return evenAndOdd && (pageIndex + 1) % 2 == 0 ? "even" : "default";
     }
 
@@ -1244,6 +1382,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var cursor = new Cursor
         {
+            Engine = this,
             Document = document,
             Section = section,
             Page = page,
@@ -1278,12 +1417,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
     }
 
-    private static LaidOutPage NewPage(LaidOutDocument document, SectionProperties section)
+    private LaidOutPage NewPage(LaidOutDocument document, SectionProperties section)
     {
         var page = new LaidOutPage
         {
             WidthPoints = section.PageWidthPoints,
-            HeightPoints = section.PageHeightPoints
+            HeightPoints = section.PageHeightPoints,
+            Section = section,
+            IndexInSection = _pagesInSection++
         };
 
         document.Pages.Add(page);
@@ -2061,22 +2202,28 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// </summary>
     private sealed class Cursor
     {
+        public required LayoutEngine Engine { get; init; }
+
         public required LaidOutDocument Document { get; init; }
 
-        public required SectionProperties Section { get; init; }
+        /// <summary>
+        /// The section being laid out. Settable because a section break changes the page geometry
+        /// part-way through a document without starting the layout over.
+        /// </summary>
+        public required SectionProperties Section { get; set; }
 
         public required LaidOutPage Page { get; set; }
 
         public required double Y { get; set; }
 
-        public required double Left { get; init; }
+        public required double Left { get; set; }
 
-        public required double Width { get; init; }
+        public required double Width { get; set; }
 
-        public required double ContentTop { get; init; }
+        public required double ContentTop { get; set; }
 
         /// <summary>The bottom margin: where content would stop with nothing reserved.</summary>
-        public required double ContentLimit { get; init; }
+        public required double ContentLimit { get; set; }
 
         /// <summary>
         /// Height reserved at the foot of the current page, which is the footnote area. It grows
@@ -2183,7 +2330,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             OnPageComplete?.Invoke(Page);
 
-            Page = NewPage(Document, Section);
+            Page = Engine.NewPage(Document, Section);
             Y = ContentTop;
             Reserved = 0;
 

@@ -572,6 +572,15 @@ public static class DocumentParser
             section.Landscape = string.Equals(pgSz.Attr("orient"), "landscape", StringComparison.OrdinalIgnoreCase);
         }
 
+        section.BreakType = sectPr.Element(W.Main + "type")?.Attr("val") switch
+        {
+            "continuous" => SectionBreakType.Continuous,
+            "evenPage" => SectionBreakType.EvenPage,
+            "oddPage" => SectionBreakType.OddPage,
+            "nextColumn" => SectionBreakType.NextColumn,
+            _ => SectionBreakType.NextPage
+        };
+
         section.FootnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Footnote);
         section.EndnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Endnote);
 

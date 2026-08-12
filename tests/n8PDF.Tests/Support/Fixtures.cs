@@ -666,6 +666,53 @@ public static class Fixtures
                 return builder;
             },
 
+            // Four sections on different paper with different margins, one of each break type the
+            // engine treats differently: a next-page break onto landscape, a continuous break that
+            // changes the margins part-way down a page, and an even-page break that has to leave a
+            // blank page behind.
+            ["sections"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                for (var i = 1; i <= 3; i++)
+                    builder.AddParagraph($"Portrait paragraph {i}.", ZeroSpacing, Times12);
+
+                builder.AddParagraphWithSectionBreak(
+                    "Last line of the portrait section.",
+                    DocxBuilder.Section(),
+                    ZeroSpacing, Times12);
+
+                for (var i = 1; i <= 3; i++)
+                    builder.AddParagraph($"Landscape paragraph {i}.", ZeroSpacing, Times12);
+
+                // Landscape US Letter with half-inch margins.
+                builder.AddParagraphWithSectionBreak(
+                    "Last line of the landscape section.",
+                    DocxBuilder.Section(
+                        widthTwips: 15840, heightTwips: 12240, landscape: true,
+                        top: 720, right: 720, bottom: 720, left: 720),
+                    ZeroSpacing, Times12);
+
+                for (var i = 1; i <= 3; i++)
+                    builder.AddParagraph($"Wide-margin paragraph {i}.", ZeroSpacing, Times12);
+
+                // Same paper, deeper left margin, carrying on down the same page.
+                builder.AddParagraphWithSectionBreak(
+                    "Last line of the indented section.",
+                    DocxBuilder.Section(
+                        type: "continuous",
+                        widthTwips: 15840, heightTwips: 12240, landscape: true,
+                        top: 720, right: 720, bottom: 720, left: 2880),
+                    ZeroSpacing, Times12);
+
+                for (var i = 1; i <= 3; i++)
+                    builder.AddParagraph($"Final paragraph {i}.", ZeroSpacing, Times12);
+
+                // Back to portrait, on the next even page — which is two away, so a blank one has
+                // to be left behind.
+                return builder.WithSection(DocxBuilder.Section(type: "evenPage"));
+            },
+
             // Both kinds of note on one page, with the body sized so that the footnote area at the
             // foot and the endnotes flowing after the text nearly meet: if the space reserved for
             // the footnotes were wrong by more than a line, this would paginate differently from

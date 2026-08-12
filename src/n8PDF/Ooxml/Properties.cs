@@ -192,8 +192,30 @@ public sealed class ParagraphProperties
 }
 
 /// <summary>Page geometry and section-level settings from a <c>w:sectPr</c>.</summary>
+/// <summary>Where the content of a new section starts.</summary>
+public enum SectionBreakType
+{
+    /// <summary>On the next page. Word's default, and what a section break usually means.</summary>
+    NextPage,
+
+    /// <summary>Straight after the previous section, on the same page.</summary>
+    Continuous,
+
+    /// <summary>On the next even-numbered page, leaving a blank one behind if need be.</summary>
+    EvenPage,
+
+    /// <summary>On the next odd-numbered page.</summary>
+    OddPage,
+
+    /// <summary>In the next column, which without column support behaves as continuous.</summary>
+    NextColumn
+}
+
 public sealed class SectionProperties
 {
+    /// <summary>Where this section's content begins relative to the one before it.</summary>
+    public SectionBreakType BreakType { get; set; } = SectionBreakType.NextPage;
+
     /// <summary>Page width in twips. Defaults to US Letter.</summary>
     public int PageWidthTwips { get; set; } = 12240;
 

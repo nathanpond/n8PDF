@@ -1,0 +1,149 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 98.965, "font": "Times New Roman", "size": 12, "text": "Portrait paragraph 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 98.965, "font": "Times New Roman", "size": 12, "text": "Portrait paragraph 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 98.965, "font": "Times New Roman", "size": 12, "text": "Portrait paragraph 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 150.621, "font": "Times New Roman", "size": 12, "text": "Last line of the portrait section."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 792,
+      "height": 612,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 47.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 36, "width": 114.275, "font": "Times New Roman", "size": 12, "text": "Landscape paragraph 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 61.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 36, "width": 114.275, "font": "Times New Roman", "size": 12, "text": "Landscape paragraph 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 74.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 36, "width": 114.275, "font": "Times New Roman", "size": 12, "text": "Landscape paragraph 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 88.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 36, "width": 162.609, "font": "Times New Roman", "size": 12, "text": "Last line of the landscape section."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 144, "width": 126.943, "font": "Times New Roman", "size": 12, "text": "Wide-margin paragraph 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 116.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 144, "width": 126.943, "font": "Times New Roman", "size": 12, "text": "Wide-margin paragraph 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 129.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 144, "width": 126.943, "font": "Times New Roman", "size": 12, "text": "Wide-margin paragraph 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 143.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 144, "width": 156.621, "font": "Times New Roman", "size": 12, "text": "Last line of the indented section."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 87.639, "font": "Times New Roman", "size": 12, "text": "Final paragraph 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 87.639, "font": "Times New Roman", "size": 12, "text": "Final paragraph 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 87.639, "font": "Times New Roman", "size": 12, "text": "Final paragraph 3."}
+          ]
+        }
+      ]
+    }
+  ]
+}
