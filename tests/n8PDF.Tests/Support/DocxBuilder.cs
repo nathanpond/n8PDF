@@ -107,6 +107,67 @@ public sealed class DocxBuilder
         return this;
     }
 
+    private readonly List<(string Id, string PartName, byte[] Data)> _images = [];
+
+    /// <summary>
+    /// Adds an image part and returns the relationship id a drawing refers to it by.
+    /// </summary>
+    public string AddImagePart(byte[] data, string extension = "png")
+    {
+        var id = $"rIdImg{_images.Count + 1}";
+        _images.Add((id, $"word/media/image{_images.Count + 1}.{extension}", data));
+        return id;
+    }
+
+    /// <summary>
+    /// Appends a paragraph holding one inline image, sized in points.
+    /// </summary>
+    /// <remarks>
+    /// The markup mirrors what Word emits for an inline picture: the display size lives in
+    /// <c>wp:extent</c> in EMUs, and the picture itself is reached through a relationship id, so
+    /// the drawing carries no image data of its own.
+    /// </remarks>
+    public DocxBuilder AddImageParagraph(
+        string relationshipId, double widthPoints, double heightPoints,
+        string? paragraphProperties = null, string? leadingText = null)
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+
+        _body.Append("<w:p>");
+        if (paragraphProperties is not null) _body.Append($"<w:pPr>{paragraphProperties}</w:pPr>");
+
+        if (leadingText is not null)
+            _body.Append($"<w:r><w:t xml:space=\"preserve\">{Escape(leadingText)}</w:t></w:r>");
+
+        _body.Append($"""
+            <w:r><w:drawing>
+              <wp:inline distT="0" distB="0" distL="0" distR="0">
+                <wp:extent cx="{cx}" cy="{cy}"/>
+                <wp:docPr id="{_images.Count}" name="Picture {_images.Count}"/>
+                <a:graphic>
+                  <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:nvPicPr><pic:cNvPr id="{_images.Count}" name="Picture"/><pic:cNvPicPr/></pic:nvPicPr>
+                      <pic:blipFill>
+                        <a:blip r:embed="{relationshipId}"/>
+                        <a:stretch><a:fillRect/></a:stretch>
+                      </pic:blipFill>
+                      <pic:spPr>
+                        <a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>
+                        <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                      </pic:spPr>
+                    </pic:pic>
+                  </a:graphicData>
+                </a:graphic>
+              </wp:inline>
+            </w:drawing></w:r>
+            """);
+
+        _body.Append("</w:p>");
+        return this;
+    }
+
     public byte[] Build()
     {
         var document = $"""
@@ -122,12 +183,20 @@ public sealed class DocxBuilder
         using var buffer = new MemoryStream();
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
         {
-            Write(archive, "[Content_Types].xml", ContentTypes);
+            Write(archive, "[Content_Types].xml", BuildContentTypes());
             Write(archive, "_rels/.rels", PackageRelationships);
             Write(archive, "word/document.xml", document);
-            Write(archive, "word/_rels/document.xml.rels", DocumentRelationships);
+            Write(archive, "word/_rels/document.xml.rels", BuildDocumentRelationships());
             Write(archive, "word/styles.xml", _styles);
             Write(archive, "word/theme/theme1.xml", _theme);
+
+            foreach (var (_, partName, data) in _images)
+            {
+                var entry = archive.CreateEntry(partName, CompressionLevel.Optimal);
+                entry.LastWriteTime = FixedTimestamp;
+                using var stream = entry.Open();
+                stream.Write(data, 0, data.Length);
+            }
         }
 
         return buffer.ToArray();
@@ -207,11 +276,50 @@ public sealed class DocxBuilder
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Content types, with a Default entry for each image extension in use. A part whose type is
+    /// undeclared makes the package invalid, so this has to track what was actually added.
+    /// </summary>
+    private string BuildContentTypes()
+    {
+        var defaults = new StringBuilder();
+        foreach (var extension in _images.Select(i => Path.GetExtension(i.PartName).TrimStart('.'))
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var type = extension.ToLowerInvariant() switch
+            {
+                "png" => "image/png",
+                "jpg" or "jpeg" => "image/jpeg",
+                "gif" => "image/gif",
+                _ => "application/octet-stream"
+            };
+
+            defaults.Append($"<Default Extension=\"{extension}\" ContentType=\"{type}\"/>");
+        }
+
+        return ContentTypes.Replace("<!--IMAGE_DEFAULTS-->", defaults.ToString());
+    }
+
+    private string BuildDocumentRelationships()
+    {
+        var extra = new StringBuilder();
+        foreach (var (id, partName, _) in _images)
+        {
+            extra.Append(
+                $"<Relationship Id=\"{id}\" " +
+                "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image\" " +
+                $"Target=\"{partName["word/".Length..]}\"/>");
+        }
+
+        return DocumentRelationships.Replace("<!--IMAGE_RELATIONSHIPS-->", extra.ToString());
+    }
+
     private const string ContentTypes = """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
           <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
           <Default Extension="xml" ContentType="application/xml"/>
+          <!--IMAGE_DEFAULTS-->
           <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
           <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
           <Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
@@ -230,6 +338,7 @@ public sealed class DocxBuilder
         <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
           <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
           <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
+          <!--IMAGE_RELATIONSHIPS-->
         </Relationships>
         """;
 

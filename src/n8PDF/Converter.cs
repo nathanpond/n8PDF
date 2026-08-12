@@ -92,6 +92,7 @@ public static class Converter
         var mainPartName = package.GetMainDocumentPartName();
 
         var document = DocumentParser.Parse(package.ReadPartAsXml(mainPartName));
+        LoadImages(package, mainPartName, document);
 
         var stylesPart = package.GetRelatedPartName(mainPartName, OpcPackage.StylesRelationship);
         var styles = StylesParser.Parse(stylesPart is null ? null : package.ReadPartAsXml(stylesPart));
@@ -100,9 +101,36 @@ public static class Converter
         var theme = StylesParser.ParseTheme(themePart is null ? null : package.ReadPartAsXml(themePart));
 
         var resolver = new StyleResolver(styles, theme, options.ApplyWordBuiltInStyleDefaults);
+
         var fonts = options.Fonts ?? new FontLibrary();
         var engine = new LayoutEngine(fonts, resolver, options.Layout);
 
         return engine.Layout(document);
+    }
+
+    /// <summary>
+    /// Reads the image parts the main document references, keyed by relationship id.
+    /// </summary>
+    /// <remarks>
+    /// Done here rather than during layout because the package is closed by the time layout runs,
+    /// and a drawing carries only the relationship id, not the picture. A part that is missing or
+    /// unreadable is skipped: a broken image should cost its own placement, not the conversion.
+    /// </remarks>
+    private static void LoadImages(OpcPackage package, string mainPartName, WordDocument document)
+    {
+        foreach (var relationship in package.GetRelationships(mainPartName))
+        {
+            if (relationship.Type != OpcPackage.ImageRelationship || relationship.IsExternal) continue;
+
+            try
+            {
+                var partName = package.ResolveTarget(mainPartName, relationship.Target);
+                if (package.HasPart(partName))
+                    document.Images[relationship.Id] = package.ReadPart(partName);
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+            {
+            }
+        }
     }
 }

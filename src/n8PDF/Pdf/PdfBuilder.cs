@@ -32,14 +32,17 @@ public sealed class PdfBuilder
 {
     private readonly PdfDocument _document = new();
     private readonly Dictionary<TrueTypeFont, PdfFont> _fonts = [];
+    private readonly Dictionary<Images.ImageData, PdfImage> _images = [];
     private readonly List<PdfPage> _pages = [];
     private readonly PdfDictionary _fontResources = new();
+    private readonly PdfDictionary _xObjectResources = new();
     private readonly PdfDictionary _sharedResources = new();
     private readonly PdfReference _sharedResourcesRef;
 
     public PdfBuilder()
     {
         _sharedResources.Set("Font", _fontResources);
+        _sharedResources.Set("XObject", _xObjectResources);
         _sharedResourcesRef = _document.Add(_sharedResources);
     }
 
@@ -81,12 +84,29 @@ public sealed class PdfBuilder
         return pdfFont;
     }
 
+    /// <summary>
+    /// Returns the PDF image for some decoded image data, registering it on first use. The same
+    /// picture used twice is embedded once.
+    /// </summary>
+    public PdfImage UseImage(Images.ImageData image)
+    {
+        if (_images.TryGetValue(image, out var existing)) return existing;
+
+        var name = "Im" + (_images.Count + 1).ToString(CultureInfo.InvariantCulture);
+        var pdfImage = new PdfImage(image, name);
+        _images[image] = pdfImage;
+        return pdfImage;
+    }
+
     public void Save(Stream stream)
     {
         // Font objects are built last: the width array and ToUnicode map depend on which glyphs
         // the content streams actually used.
         foreach (var font in _fonts.Values)
             _fontResources.Set(font.ResourceName, font.Build(_document));
+
+        foreach (var image in _images.Values)
+            _xObjectResources.Set(image.ResourceName, image.Build(_document));
 
         foreach (var page in _pages)
         {

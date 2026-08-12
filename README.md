@@ -25,6 +25,7 @@ src/n8PDF/
   Ooxml/         WordprocessingML model and parsers, plus Units
   Styling/       the formatting cascade, producing Resolved*Format
   Fonts/         SFNT parsing, metrics, font resolution
+  Images/        PNG decoding and JPEG header reading
   Layout/        measurement, line breaking, page composition
   Pdf/           object model, writer, content streams, Type0 font embedding
   Diagnostics/   LayoutTrace — the testing spine
@@ -32,7 +33,7 @@ src/n8PDF/
 tests/n8PDF.Tests/
   Fixtures/Minimal/     hand-authored .docx, one feature each (generated, committed)
   Fixtures/Real/        documents Word itself wrote (tools/make-real-fixtures.sh)
-  Fixtures/Reference/   Word-exported reference PDFs — drop yours here
+  Fixtures/Reference/   Word-exported reference PDFs (tools/make-reference-pdfs.sh)
   Golden/               committed layout traces
 ```
 
@@ -54,7 +55,7 @@ git-ignored.
 
 ## Validation
 
-Three tiers, cheapest and most diagnostic first.
+Four tiers, cheapest and most diagnostic first.
 
 1. **Layout goldens** (`Golden/*.json`) — every positioned run's coordinates, font and size,
    compared against a committed trace. A failure names the run that moved and by how much. These
@@ -108,10 +109,10 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: tables (fixed and autofit column sizing, horizontal spans, borders, shading, cell
-margins and vertical alignment, rows kept whole across page breaks), page size and margins from
-`sectPr`,
-paragraphs and runs, `xml:space` handling,
+Implemented: inline images (PNG decoded from scratch, JPEG passed through untouched, transparency
+via a soft mask), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
+cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
+from `sectPr`, paragraphs and runs, `xml:space` handling,
 line and page breaks, tabs (left-aligned stops), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, caps, super/subscript, character spacing and scaling,
 alignment including justification, indents including hanging, spacing before/after with
@@ -125,13 +126,14 @@ content-width columns when the table fits, and a table filling the text area exa
 not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not derived from the real
 algorithm the way the paragraph rules are.
 
-Not yet: vertical cell merges beyond suppressing the shared border, splitting a row across pages, images,
-lists and numbering, headers and footers, fields, hyperlinks, footnotes, floating objects, RTL and
-complex scripts, font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab
-stops.
+Not yet: floating and anchored images with text wrapping (only inline images are placed), GIF,
+BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
+border, splitting a row across pages, lists and numbering, headers and footers, fields,
+hyperlinks, footnotes, RTL and complex scripts, font subsetting, GPOS kerning, widow/orphan
+control, and centre/right/decimal tab stops.
 
-`ContentCoverageTests` asserts that every text run in a document reaches the PDF, so an
-unimplemented block construct fails loudly instead of vanishing from the output.
+`ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
+the PDF, so an unimplemented construct fails loudly instead of vanishing from the output.
 
 ### Real documents
 

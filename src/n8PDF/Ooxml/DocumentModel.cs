@@ -263,6 +263,15 @@ public sealed class WordDocument
     public List<BlockElement> Body { get; } = [];
 
     /// <summary>
+    /// Image parts by relationship id, as stored in the package.
+    /// </summary>
+    /// <remarks>
+    /// Loaded when the document is read, because the package is closed before layout runs and a
+    /// drawing only carries the relationship id, not the picture itself.
+    /// </remarks>
+    public Dictionary<string, byte[]> Images { get; } = [];
+
+    /// <summary>
     /// The section properties for the final section, taken from the <c>w:sectPr</c> at the end of
     /// the body. A single-section document has only this one.
     /// </summary>

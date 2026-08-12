@@ -518,6 +518,23 @@ public static class Fixtures
                 .AddRawParagraph(InsetTable("E", 240, 240, borders: true))
                 .AddParagraph("Trailing.", ZeroSpacing, Times12),
 
+            // Inline images: one on its own, one alongside text so that the line's height and the
+            // baseline it sits on can be checked, and one with transparency.
+            ["images"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var diagonal = builder.AddImagePart(PngWriter.Diagonal(48));
+                var solid = builder.AddImagePart(PngWriter.Solid(16, 16, 30, 120, 200));
+                var masked = builder.AddImagePart(PngWriter.HalfTransparent(32));
+
+                return builder
+                    .AddParagraph("Paragraph before the image.", ZeroSpacing, Times12)
+                    .AddImageParagraph(diagonal, 72, 72, ZeroSpacing)
+                    .AddImageParagraph(solid, 24, 24, ZeroSpacing, leadingText: "Inline with text ")
+                    .AddImageParagraph(masked, 48, 48, ZeroSpacing)
+                    .AddParagraph("Paragraph after the image.", ZeroSpacing, Times12);
+            },
+
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""

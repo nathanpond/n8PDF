@@ -36,6 +36,16 @@ internal static class PdfRenderer
                     .Restore();
             }
 
+            foreach (var image in page.Images)
+            {
+                // An image XObject is drawn into the unit square, so placing one means scaling by
+                // its display size and translating to its bottom-left corner.
+                content.Save()
+                    .Transform(image.Width, 0, 0, image.Height, image.X, Flip(page, image.Y) - image.Height)
+                    .DrawXObject(builder.UseImage(image.Image).ResourceName)
+                    .Restore();
+            }
+
             // Rules go down next so that text sits on top of any underline.
             foreach (var rule in page.Rules)
             {

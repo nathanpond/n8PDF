@@ -26,9 +26,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private readonly FontLibrary _fonts = fonts;
     private readonly StyleResolver _styles = styles;
     private readonly LayoutOptions _options = options ?? new LayoutOptions();
+    private IReadOnlyDictionary<string, byte[]> _images = new Dictionary<string, byte[]>();
+
+    // Decoded images, keyed by relationship id. A picture used several times is decoded once and
+    // yields the same instance every time, which is what lets the writer embed it once.
+    private readonly Dictionary<string, Images.ImageData?> _decodedImages = [];
 
     public LaidOutDocument Layout(WordDocument document)
     {
+        _images = document.Images;
+        _decodedImages.Clear();
         var section = document.Section;
         var result = new LaidOutDocument { Section = section };
 
@@ -603,6 +610,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                                 min = Math.Max(min, word.Width + indent);
                                 break;
 
+                            case ImageAtom image:
+                                line += pendingSpace + image.Width;
+                                pendingSpace = 0;
+                                min = Math.Max(min, image.Width + indent);
+                                break;
+
                             case TabAtom tab:
                                 line += pendingSpace + tab.DefaultIntervalPoints;
                                 pendingSpace = 0;
@@ -723,6 +736,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             laidOut.Texts.Add(text);
             AddDecorations(page, text);
+        }
+
+        foreach (var (image, x) in line.Images)
+        {
+            // The image rests on the baseline, so its top edge is its own height above it.
+            page.Images.Add(new PositionedImage
+            {
+                X = contentLeft + x,
+                Y = baselineY - image.Height,
+                Width = image.Width,
+                Height = image.Height,
+                Image = image.Image
+            });
         }
 
         page.Lines.Add(laidOut);
@@ -868,6 +894,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 continue;
             }
 
+            if (atom is ImageAtom image)
+            {
+                // An image behaves like a very wide word: it cannot be broken, and it wraps to
+                // the next line rather than overflowing unless it is alone on the line.
+                if (placedAnything && x + image.Width > available + 0.001) break;
+
+                line.Items.Add(new PlacedAtom(atom, x, image.Width));
+                x += image.Width;
+                index++;
+                placedAnything = true;
+                continue;
+            }
+
             var textAtom = (TextAtom)atom;
 
             // Spaces at the end of a line hang past the margin rather than forcing a wrap.
@@ -930,7 +969,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         // Merge runs of atoms that share a format into single segments.
         var maxAscent = 0.0;
-        var maxHeight = 0.0;
+        var maxDescent = 0.0;
 
         Segment? current = null;
         var pen = 0.0;
@@ -944,6 +983,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             {
                 current = null;
                 pen = item.X + item.Width;
+                continue;
+            }
+
+            if (item.Atom is ImageAtom image)
+            {
+                line.Images.Add((image, indentLeft + offset + pen));
+                pen += image.Width;
+                current = null;
+
+                maxAscent = Math.Max(maxAscent, image.Ascent);
+                maxDescent = Math.Max(maxDescent, image.Descent);
                 continue;
             }
 
@@ -978,10 +1028,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             pen += textAtom.Width + extra;
 
             maxAscent = Math.Max(maxAscent, textAtom.Ascent);
-            maxHeight = Math.Max(maxHeight, textAtom.NaturalHeight);
+            maxDescent = Math.Max(maxDescent, textAtom.Descent);
         }
 
-        ApplyLineMetrics(line, format, maxAscent, maxHeight);
+        ApplyLineMetrics(line, format, maxAscent, maxAscent + maxDescent);
     }
 
     private static void ApplyEmptyLineMetrics(ComposedLine line, ResolvedParagraphFormat format)
@@ -1064,6 +1114,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             var size = runFormat.EffectiveFontSizePoints;
             var ascent = TextMeasurer.GetAscent(selection.Font, size);
             var naturalHeight = TextMeasurer.GetNaturalLineHeight(selection.Font, size);
+            var descent = naturalHeight - ascent;
 
             foreach (var inline in run.Content)
             {
@@ -1071,7 +1122,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 {
                     case TextInline text:
                         AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(text.Text, runFormat),
-                            runFormat, selection, ascent, naturalHeight);
+                            runFormat, selection, ascent, naturalHeight, descent);
                         break;
 
                     case TabInline:
@@ -1080,7 +1131,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                             Stops = format.TabStops,
                             DefaultIntervalPoints = defaultTab,
                             Ascent = ascent,
-                            NaturalHeight = naturalHeight
+                            NaturalHeight = naturalHeight,
+                            Descent = descent
                         });
                         break;
 
@@ -1089,8 +1141,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         {
                             Kind = breakInline.Kind,
                             Ascent = ascent,
-                            NaturalHeight = naturalHeight
+                            NaturalHeight = naturalHeight,
+                            Descent = descent
                         });
+                        break;
+
+                    case DrawingInline drawing:
+                        AddImageAtom(atoms, drawing);
                         break;
                 }
             }
@@ -1100,11 +1157,54 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// Turns a drawing into an atom, if its picture is one we can decode.
+    /// </summary>
+    /// <remarks>
+    /// An image whose format is unsupported or whose part is missing is dropped rather than
+    /// failing the conversion, the way a word processor skips a picture it cannot render.
+    /// </remarks>
+    private void AddImageAtom(List<Atom> atoms, DrawingInline drawing)
+    {
+        if (drawing.RelationshipId is null) return;
+
+        if (!_decodedImages.TryGetValue(drawing.RelationshipId, out var image))
+        {
+            image = _images.TryGetValue(drawing.RelationshipId, out var bytes)
+                ? Images.ImageReader.TryRead(bytes)
+                : null;
+
+            // Cached even when it failed, so an unreadable picture is not retried per placement.
+            _decodedImages[drawing.RelationshipId] = image;
+        }
+
+        if (image is null) return;
+
+        var width = drawing.WidthPoints;
+        var height = drawing.HeightPoints;
+        if (width <= 0 || height <= 0) return;
+
+        atoms.Add(new ImageAtom
+        {
+            Image = image,
+            Width = width,
+            Height = height,
+            // An inline image sits on the baseline, so the whole of it is above and it sets the
+            // line's ascent.
+            Ascent = height,
+            // An image sits on the baseline with nothing below it. Any descent on the line comes
+            // from the text beside it, which is tracked separately.
+            NaturalHeight = height,
+            Descent = 0
+        });
+    }
+
+    /// <summary>
     /// Splits text into word and space atoms. Spaces are separate atoms because they are both
     /// the break opportunities and the things justification stretches.
     /// </summary>
     private void AddTextAtoms(
-        List<Atom> atoms, string text, ResolvedRunFormat format, FontSelection font, double ascent, double naturalHeight)
+        List<Atom> atoms, string text, ResolvedRunFormat format, FontSelection font,
+        double ascent, double naturalHeight, double descent)
     {
         var index = 0;
         while (index < text.Length)
@@ -1124,6 +1224,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Font = font,
                 Ascent = ascent,
                 NaturalHeight = naturalHeight,
+                Descent = descent,
                 Width = TextMeasurer.Measure(
                     font.Font, slice, format.EffectiveFontSizePoints,
                     format.CharacterSpacingPoints, _options.ApplyKerning) * format.ScaleFactor
@@ -1227,6 +1328,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 });
             }
 
+            foreach (var image in page.Images)
+            {
+                target.Images.Add(new PositionedImage
+                {
+                    X = image.X + dx,
+                    Y = image.Y + dy,
+                    Width = image.Width,
+                    Height = image.Height,
+                    Image = image.Image
+                });
+            }
+
             foreach (var rectangle in page.Rectangles)
             {
                 target.Rectangles.Add(new PositionedRectangle
@@ -1263,6 +1376,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public double Ascent { get; init; }
 
         public double NaturalHeight { get; init; }
+
+        /// <summary>
+        /// How far this atom reaches below the baseline. Tracked separately from the height
+        /// because a line mixing text with an image needs the image's ascent and the text's
+        /// descent — taking the tallest of the two whole boxes loses the descent entirely.
+        /// </summary>
+        public double Descent { get; init; }
     }
 
     private sealed class TextAtom : Atom
@@ -1290,6 +1410,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required BreakKind Kind { get; init; }
     }
 
+    /// <summary>
+    /// An inline image. It occupies a fixed box on the line and sits on the baseline, so its
+    /// height becomes the line's ascent.
+    /// </summary>
+    private sealed class ImageAtom : Atom
+    {
+        public required Images.ImageData Image { get; init; }
+
+        public required double Width { get; init; }
+
+        public required double Height { get; init; }
+    }
+
     private readonly record struct PlacedAtom(Atom Atom, double X, double Width);
 
     private sealed class Segment
@@ -1314,6 +1447,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public List<PlacedAtom> Items { get; } = [];
 
         public List<Segment> Segments { get; } = [];
+
+        public List<(ImageAtom Atom, double X)> Images { get; } = [];
 
         public double Height { get; set; }
 

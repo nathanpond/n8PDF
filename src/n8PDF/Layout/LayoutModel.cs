@@ -89,6 +89,22 @@ public sealed class PositionedRectangle
     public required (double Red, double Green, double Blue) Color { get; init; }
 }
 
+/// <summary>An image placed on a page.</summary>
+public sealed class PositionedImage
+{
+    public required double X { get; init; }
+
+    /// <summary>Distance from the top of the page down to the image's top edge.</summary>
+    public required double Y { get; init; }
+
+    /// <summary>Display width in points, which is the size the document asked for, not the pixel width.</summary>
+    public required double Width { get; init; }
+
+    public required double Height { get; init; }
+
+    public required Images.ImageData Image { get; init; }
+}
+
 public sealed class LaidOutPage
 {
     public required double WidthPoints { get; init; }
@@ -96,6 +112,9 @@ public sealed class LaidOutPage
     public required double HeightPoints { get; init; }
 
     public List<LaidOutLine> Lines { get; } = [];
+
+    /// <summary>Images, drawn after the shading and borders but before the text.</summary>
+    public List<PositionedImage> Images { get; } = [];
 
     public List<PositionedRule> Rules { get; } = [];
 

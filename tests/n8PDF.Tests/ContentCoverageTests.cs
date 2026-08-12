@@ -69,6 +69,68 @@ public class ContentCoverageTests(ITestOutputHelper output)
         }
     }
 
+    [Theory]
+    [MemberData(nameof(FixtureNames))]
+    public void Every_placeable_image_reaches_the_page(string name)
+    {
+        var docx = Fixtures.Build(name);
+
+        using var package = OpcPackage.Open(new MemoryStream(docx));
+        var mainPart = package.GetMainDocumentPartName();
+        var document = DocumentParser.Parse(package.ReadPartAsXml(mainPart));
+
+        // Only drawings whose picture is present and in a format we handle are expected on the
+        // page. An unsupported format is a documented gap; one that should have worked and did
+        // not is a silent loss, which is what this is for.
+        var expected = 0;
+        foreach (var drawing in AllDrawings(document))
+        {
+            if (drawing.RelationshipId is null) continue;
+
+            var target = package.GetRelationships(mainPart)
+                .FirstOrDefault(r => r.Id == drawing.RelationshipId && !r.IsExternal);
+            if (target is null) continue;
+
+            var partName = package.ResolveTarget(mainPart, target.Target);
+            if (!package.HasPart(partName)) continue;
+
+            if (n8PDF.Images.ImageReader.TryRead(package.ReadPart(partName)) is not null) expected++;
+        }
+
+        if (expected == 0) return;
+
+        using var stream = new MemoryStream(docx);
+        var laidOut = Converter.LayoutDocument(stream,
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        var placed = laidOut.Pages.Sum(page => page.Images.Count);
+
+        Assert.True(placed == expected,
+            $"'{name}' has {expected} placeable image(s) but only {placed} reached the page. " +
+            "An image dropped by layout leaves no trace in the output.");
+    }
+
+    private static IEnumerable<DrawingInline> AllDrawings(WordDocument document)
+    {
+        var blocks = new Queue<BlockElement>(document.Body);
+
+        while (blocks.Count > 0)
+        {
+            switch (blocks.Dequeue())
+            {
+                case Paragraph paragraph:
+                    foreach (var drawing in paragraph.Runs.SelectMany(r => r.Content).OfType<DrawingInline>())
+                        yield return drawing;
+                    break;
+
+                case Table table:
+                    foreach (var child in table.Rows.SelectMany(r => r.Cells).SelectMany(c => c.Content))
+                        blocks.Enqueue(child);
+                    break;
+            }
+        }
+    }
+
     private void AssertNothingDropped(string name, byte[] docx, byte[] pdf)
     {
         var expected = Normalize(ReadDocumentText(docx));
