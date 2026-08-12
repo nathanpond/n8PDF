@@ -1511,12 +1511,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var borders = ResolveCellBorders(table, cell, rowIndex, column, span, columns.Count);
 
-            // Content is inset by the border as well as the margin: a border occupies space
-            // inside the cell rather than being painted over its contents.
-            var marginLeft = Units.TwipsToPoints(cell.MarginLeftTwips ?? properties.CellMarginLeftTwips)
-                             + BorderWidth(borders.Left);
-            var marginRight = Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRightTwips)
-                              + BorderWidth(borders.Right);
+            // How far content sits inside a cell edge: whichever is the greater of the margin and
+            // the half of the border that falls inside the cell. The two do not add — a margin
+            // wide enough to clear the border swallows it — which is what
+            // table-inset-weights-probe shows at every weight from a quarter point to three.
+            var marginLeft = CellInset(
+                cell.MarginLeftTwips ?? properties.CellMarginLeftTwips, borders.Left);
+            var marginRight = CellInset(
+                cell.MarginRightTwips ?? properties.CellMarginRightTwips, borders.Right);
+            // The top is not the same: there Word puts the content a whole border below the
+            // edge rather than half of one, which the same probe shows at every weight.
             var marginTop = Units.TwipsToPoints(cell.MarginTopTwips ?? properties.CellMarginTopTwips)
                             + BorderWidth(borders.Top);
             // The bottom border is deliberately not counted here. Adjacent rows share an edge —
@@ -1617,12 +1621,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var span = Math.Min(Math.Max(1, first.GridSpan), Math.Max(1, columnCount));
         var borders = ResolveCellBorders(table, first, 0, 0, span, columnCount);
 
-        return Units.TwipsToPoints(first.MarginLeftTwips ?? table.Properties.CellMarginLeftTwips)
-               + BorderWidth(borders.Left);
+        return CellInset(first.MarginLeftTwips ?? table.Properties.CellMarginLeftTwips, borders.Left);
     }
 
     private static double BorderWidth(BorderEdge? edge) =>
         edge is not null && edge.IsVisible ? edge.WidthPoints : 0;
+
+    /// <summary>
+    /// How far inside a cell edge its content starts: the margin, or the half of the border that
+    /// falls inside the cell where that is further in.
+    /// </summary>
+    private static double CellInset(int marginTwips, BorderEdge? edge) =>
+        Math.Max(Units.TwipsToPoints(marginTwips), BorderWidth(edge) / 2);
 
     private static void AddEdge(
         LaidOutPage page, BorderEdge? edge, double x, double y, double length, bool horizontal)

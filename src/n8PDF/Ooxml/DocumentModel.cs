@@ -345,18 +345,23 @@ public sealed class TableProperties
     public BorderSet Borders { get; } = new();
 
     /// <summary>
-    /// Default cell padding in twips, zero on every side when nothing declares otherwise.
+    /// Default cell padding in twips: half a point at the sides, none above or below.
     /// </summary>
     /// <remarks>
     /// The familiar 108 twips (0.075 inch) of left and right padding comes from Word's built-in
     /// <c>TableNormal</c> style, not from the format itself — every table Word saves inherits it
-    /// from there. A table in a document with no table styles gets none, which is what Word does
-    /// and what the table-indent-probe fixture measures. Defaulting to 108 here put cell text
-    /// 5.4pt right of Word's.
+    /// from there. A table in a document with no table styles gets none of it, which is what
+    /// table-indent-probe measures; defaulting to 108 here put cell text 5.4pt right of Word's.
+    ///
+    /// It does not get nothing either. table-inset-weights-probe holds the same table twice, once
+    /// declaring a margin of zero and once declaring no margin at all, and Word sets the second
+    /// half a point further in — so an absent element is not the same as a zero one. Ten twips is
+    /// as close as the export can pin it: Word rounds every position to 1/300 inch, which puts the
+    /// true value somewhere between seven and twelve.
     /// </remarks>
-    public int CellMarginLeftTwips { get; set; }
+    public int CellMarginLeftTwips { get; set; } = 10;
 
-    public int CellMarginRightTwips { get; set; }
+    public int CellMarginRightTwips { get; set; } = 10;
 
     public int CellMarginTopTwips { get; set; }
 

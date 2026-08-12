@@ -29,6 +29,42 @@ public static class Fixtures
     private static readonly string Times12 = Times();
 
     /// <summary>
+    /// A one-cell table of the given border weight, in eighths of a point, and left cell margin
+    /// in twips. Everything else is pinned so that only those two can move the text. A margin of
+    /// null leaves the element out altogether, which is the case Word fills in for itself.
+    /// </summary>
+    private static string InsetProbeTable(string label, int eighths, int? marginTwips, bool pageBreak = false)
+    {
+        var opening = pageBreak
+            ? $"<w:p><w:pPr><w:pageBreakBefore/>{ZeroSpacing}</w:pPr></w:p>"
+            : string.Empty;
+
+        var borders = eighths == 0
+            ? string.Empty
+            : "<w:tblBorders>" +
+              $"<w:top w:val=\"single\" w:sz=\"{eighths}\" w:color=\"auto\"/>" +
+              $"<w:left w:val=\"single\" w:sz=\"{eighths}\" w:color=\"auto\"/>" +
+              $"<w:bottom w:val=\"single\" w:sz=\"{eighths}\" w:color=\"auto\"/>" +
+              $"<w:right w:val=\"single\" w:sz=\"{eighths}\" w:color=\"auto\"/>" +
+              "</w:tblBorders>";
+
+        return opening +
+               "<w:tbl><w:tblPr><w:tblW w:w=\"9360\" w:type=\"dxa\"/>" +
+               borders +
+               "<w:tblLayout w:type=\"fixed\"/>" +
+               (marginTwips is { } margin
+                   ? "<w:tblCellMar>" +
+                     $"<w:top w:w=\"0\" w:type=\"dxa\"/><w:left w:w=\"{margin}\" w:type=\"dxa\"/>" +
+                     $"<w:bottom w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"{margin}\" w:type=\"dxa\"/>" +
+                     "</w:tblCellMar>"
+                   : string.Empty) +
+               "</w:tblPr>" +
+               "<w:tblGrid><w:gridCol w:w=\"9360\"/></w:tblGrid>" +
+               $"<w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+               $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{label}</w:t></w:r></w:p></w:tc></w:tr></w:tbl>";
+    }
+
+    /// <summary>
     /// A bordered table of one row and two cells, the first holding as many lines as asked for.
     /// </summary>
     private static string SplittableTable(string label, int lines, bool cantSplit)
@@ -929,6 +965,43 @@ public static class Fixtures
                     $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:br w:type=\"column\"/></w:r>" +
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Third column opens here.</w:t></w:r></w:p>"),
+
+            // How far inside a table's edge Word starts a cell's text. The border weight is
+            // varied against a margin of nothing, and then the margin against a fixed border, so
+            // that whichever of the two the inset follows can be read straight off the export.
+            ["table-inset-weights-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                // Each on a page of its own: stacked, every table's height would carry into the
+                // next one's position and a difference of a fraction at the top would read as
+                // twenty points at the bottom.
+                void Add(string label, int eighths, int? margin)
+                {
+                    builder.AddRawParagraph(InsetProbeTable(label, eighths, margin, pageBreak: !first));
+                    first = false;
+                }
+
+                foreach (var eighths in new[] { 0, 2, 4, 8, 12, 16, 24, 48 })
+                    Add($"b{eighths}", eighths, 0);
+
+                foreach (var margin in new[] { 72, 108, 288 })
+                    Add($"m{margin}", 8, margin);
+
+                // And one with a margin and no border at all, which says what the margin does on
+                // its own.
+                Add("n108", 0, 108);
+
+                // Then the same again with no cell margin declared, which is not the same as
+                // declaring none: Word fills the element in itself, and the tables fixture — which
+                // says nothing about margins, as a document written by hand usually does not —
+                // sits a quarter point away from where a margin of zero would put it.
+                foreach (var eighths in new[] { 0, 4, 16 })
+                    Add($"d{eighths}", eighths, null);
+
+                return builder;
+            },
 
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:

@@ -162,11 +162,23 @@ content-width columns when the table fits, and a table filling the text area exa
 not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not derived from the real
 algorithm the way the paragraph rules are.
 
-One measurement is recorded here without an explanation to go with it. Word puts cell content
-0.48pt inside the table's edge whether its border is half a point or a whole one, where this insets
-by the border's own width — so the two agree at half a point and differ by that much at a whole
-one. The rule behind Word's number has not been worked out, and `table-split` uses a half-point
-border so that it measures what it is for rather than this.
+How far inside its edge a cell starts its text was settled by measuring rather than by reading, and
+is stranger than it sounds. `table-inset-weights-probe` holds the same one-cell table fifteen times
+over — border weights from nothing to six points against no margin, then margins against a fixed
+border, then no margin element at all — each on a page of its own so that no table's height carries
+into the next one's position. Word's export of it gives three rules, and none of them is the
+addition that would be guessed:
+
+- Across, the inset is the greater of the cell margin and half the border, not their sum. Half a
+  border falls inside the cell and half outside — Word's own border rectangles straddle the margin
+  at every weight — so text starts at the border's inner edge unless a margin reaches further in.
+- Down, the whole border is cleared rather than half of it. A six point border pushes the first
+  line six points down and three points across.
+- Declaring no cell margin is not the same as declaring one of zero: Word puts half a point in a
+  table that says nothing about the matter. The familiar 108 twips comes from the built-in
+  `TableNormal` style, which a hand-written document does not have, but what is left is not
+  nothing. Word rounds every position to 1/300 inch, so the true value is somewhere between seven
+  and twelve twips; ten is used.
 
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
 border, fields other than PAGE and NUMPAGES (their cached values are
