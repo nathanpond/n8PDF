@@ -246,6 +246,66 @@ public sealed class DocxBuilder
         return this;
     }
 
+    private string? _numbering;
+
+    /// <summary>
+    /// Adds a numbering part. Each entry is one abstract definition's levels; the resulting lists
+    /// are numbered from 1 in the order given, so the first is numId 1.
+    /// </summary>
+    public DocxBuilder WithNumbering(params string[] abstractDefinitions)
+    {
+        var body = new StringBuilder();
+
+        for (var i = 0; i < abstractDefinitions.Length; i++)
+            body.Append($"<w:abstractNum w:abstractNumId=\"{i}\">{abstractDefinitions[i]}</w:abstractNum>");
+
+        for (var i = 0; i < abstractDefinitions.Length; i++)
+            body.Append($"<w:num w:numId=\"{i + 1}\"><w:abstractNumId w:val=\"{i}\"/></w:num>");
+
+        _numbering = $"""
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+              {body}
+            </w:numbering>
+            """;
+
+        return this;
+    }
+
+    /// <summary>
+    /// One level of a list definition. Indents follow Word's own pattern: each level is half an
+    /// inch further in, with the label hanging back a quarter inch from the text.
+    /// </summary>
+    public static string NumberingLevel(
+        int level, string format, string levelText, int start = 1,
+        string? runProperties = null, string? suffix = null)
+    {
+        var indentLeft = 720 * (level + 1);
+        var suffixElement = suffix is null ? string.Empty : $"<w:suff w:val=\"{suffix}\"/>";
+
+        return $"""
+            <w:lvl w:ilvl="{level}">
+              <w:start w:val="{start}"/>
+              <w:numFmt w:val="{format}"/>
+              <w:lvlText w:val="{levelText}"/>
+              {suffixElement}
+              <w:lvlJc w:val="left"/>
+              <w:pPr><w:ind w:left="{indentLeft}" w:hanging="360"/></w:pPr>
+              {(runProperties is null ? string.Empty : $"<w:rPr>{runProperties}</w:rPr>")}
+            </w:lvl>
+            """;
+    }
+
+    /// <summary>Appends a paragraph belonging to a list.</summary>
+    public DocxBuilder AddListParagraph(
+        string text, int numId, int level = 0, string? runProperties = null)
+    {
+        // numPr precedes spacing and indent in CT_PPr.
+        return AddParagraph(text,
+            $"<w:numPr><w:ilvl w:val=\"{level}\"/><w:numId w:val=\"{numId}\"/></w:numPr>",
+            runProperties);
+    }
+
     public byte[] Build()
     {
         var document = $"""
@@ -267,6 +327,7 @@ public sealed class DocxBuilder
             Write(archive, "word/_rels/document.xml.rels", BuildDocumentRelationships());
             Write(archive, "word/styles.xml", _styles);
             Write(archive, "word/theme/theme1.xml", _theme);
+            if (_numbering is not null) Write(archive, "word/numbering.xml", _numbering);
 
             foreach (var (_, partName, data) in _images)
             {
@@ -375,7 +436,13 @@ public sealed class DocxBuilder
             defaults.Append($"<Default Extension=\"{extension}\" ContentType=\"{type}\"/>");
         }
 
-        return ContentTypes.Replace("<!--IMAGE_DEFAULTS-->", defaults.ToString());
+        var numberingType = _numbering is null
+            ? string.Empty
+            : "<Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>";
+
+        return ContentTypes
+            .Replace("<!--IMAGE_DEFAULTS-->", defaults.ToString())
+            .Replace("<!--NUMBERING_TYPE-->", numberingType);
     }
 
     private string BuildDocumentRelationships()
@@ -389,6 +456,14 @@ public sealed class DocxBuilder
                 $"Target=\"{partName["word/".Length..]}\"/>");
         }
 
+        if (_numbering is not null)
+        {
+            extra.Append(
+                "<Relationship Id=\"rIdNum\" " +
+                "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering\" " +
+                "Target=\"numbering.xml\"/>");
+        }
+
         return DocumentRelationships.Replace("<!--IMAGE_RELATIONSHIPS-->", extra.ToString());
     }
 
@@ -400,6 +475,7 @@ public sealed class DocxBuilder
           <!--IMAGE_DEFAULTS-->
           <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
           <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+          <!--NUMBERING_TYPE-->
           <Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
         </Types>
         """;

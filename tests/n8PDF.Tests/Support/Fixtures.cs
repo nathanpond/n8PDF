@@ -556,6 +556,24 @@ public static class Fixtures
                         paragraphProperties: ZeroSpacing, runProperties: Times12);
             },
 
+            // A numbered list with a nested level, then a bullet list, then ordinary text — so the
+            // labels, the hanging indents and the return to normal flow are all measurable.
+            ["numbering"] = () => new DocxBuilder()
+                .WithNumbering(
+                    DocxBuilder.NumberingLevel(0, "decimal", "%1.") +
+                    DocxBuilder.NumberingLevel(1, "lowerLetter", "%2)"),
+                    DocxBuilder.NumberingLevel(0, "bullet", "•"))
+                .AddParagraph("Steps to follow.", ZeroSpacing, Times12)
+                .AddListParagraph("Open the package and read the content types.", 1, runProperties: Times12)
+                .AddListParagraph("Follow the relationship to the main document part.", 1, runProperties: Times12)
+                .AddListParagraph("Resolve the style cascade before measuring anything.", 1, 1, Times12)
+                .AddListParagraph("Break the lines against real font metrics.", 1, 1, Times12)
+                .AddListParagraph("Write the pages out.", 1, runProperties: Times12)
+                .AddParagraph("Things to remember.", ZeroSpacing, Times12)
+                .AddListParagraph("Twips are twentieths of a point.", 2, runProperties: Times12)
+                .AddListParagraph("Half-points are for font sizes only.", 2, runProperties: Times12)
+                .AddParagraph("End of the list.", ZeroSpacing, Times12),
+
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""

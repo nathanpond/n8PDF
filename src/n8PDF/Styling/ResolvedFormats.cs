@@ -116,6 +116,12 @@ public sealed record ResolvedParagraphFormat
 
     public IReadOnlyList<TabStop> TabStops { get; init; } = [];
 
+    /// <summary>The list this paragraph belongs to, or null when it is not a list item.</summary>
+    public int? NumberingId { get; init; }
+
+    /// <summary>Depth within the list, zero being the outermost level.</summary>
+    public int NumberingLevel { get; init; }
+
     /// <summary>Formatting of the paragraph mark, which sets the height of an empty paragraph.</summary>
     public ResolvedRunFormat MarkFormat { get; init; } = new();
 

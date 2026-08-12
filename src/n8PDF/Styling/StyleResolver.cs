@@ -14,7 +14,8 @@ namespace n8PDF.Styling;
 public sealed class StyleResolver(
     StyleDefinitions styles,
     DocumentTheme? theme = null,
-    bool applyBuiltInStyleDefaults = true)
+    bool applyBuiltInStyleDefaults = true,
+    NumberingDefinitions? numbering = null)
 {
     /// <summary>
     /// Word's fallback when no style, default, or direct formatting names a font. Documents in
@@ -28,6 +29,10 @@ public sealed class StyleResolver(
     private readonly StyleDefinitions _styles = styles;
     private readonly DocumentTheme _theme = theme ?? new DocumentTheme();
     private readonly bool _applyBuiltInStyleDefaults = applyBuiltInStyleDefaults;
+    private readonly NumberingDefinitions _numbering = numbering ?? new NumberingDefinitions();
+
+    /// <summary>The list definitions, needed to resolve a paragraph's numbering level.</summary>
+    public NumberingDefinitions Numbering => _numbering;
 
     public StyleDefinitions Styles => _styles;
 
@@ -53,10 +58,23 @@ public sealed class StyleResolver(
             if (style.ParagraphProperties is not null) accumulator.Apply(style.ParagraphProperties);
         }
 
-        // 3. Direct formatting on the paragraph itself.
+        // 3. The numbering level, which is where a list item's indents come from. It sits below
+        //    direct formatting but above the styles, so a document can still move one item.
+        //    The list itself may be named by a style rather than by the paragraph, so which
+        //    level applies is only known after the style chain has been walked.
+        var numberingId = direct?.NumberingId ?? accumulator.NumberingId;
+        var numberingLevel = direct?.NumberingLevel ?? accumulator.NumberingLevel ?? 0;
+
+        if (numberingId is { } id && _numbering.GetLevel(id, numberingLevel)?.ParagraphProperties is { } levelProperties)
+            accumulator.Apply(levelProperties);
+
+        // 4. Direct formatting on the paragraph itself.
         if (direct is not null) accumulator.Apply(direct);
 
-        return accumulator.Build(ResolveRun(direct, direct?.MarkRunProperties), direct?.StyleId ?? styleId);
+        var format = accumulator.Build(
+            ResolveRun(direct, direct?.MarkRunProperties), direct?.StyleId ?? styleId);
+
+        return format with { NumberingId = numberingId, NumberingLevel = numberingLevel };
     }
 
     /// <summary>
@@ -205,6 +223,10 @@ public sealed class StyleResolver(
         private bool? _widowControl;
         private List<TabStop>? _tabStops;
 
+        public int? NumberingId { get; private set; }
+
+        public int? NumberingLevel { get; private set; }
+
         public void Apply(ParagraphProperties source)
         {
             if (source.Justification is { } justification) _justification = justification;
@@ -234,6 +256,8 @@ public sealed class StyleResolver(
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
             if (source.PageBreakBefore is { } pageBreak) _pageBreakBefore = pageBreak;
             if (source.WidowControl is { } widow) _widowControl = widow;
+            if (source.NumberingId is { } numberingId) NumberingId = numberingId;
+            if (source.NumberingLevel is { } numberingLevel) NumberingLevel = numberingLevel;
 
             // Tab stops replace rather than merge; a level that declares any declares them all.
             if (source.TabStops.Count > 0) _tabStops = [.. source.TabStops];

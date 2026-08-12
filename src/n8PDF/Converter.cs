@@ -100,7 +100,12 @@ public static class Converter
         var themePart = package.GetRelatedPartName(mainPartName, OpcPackage.ThemeRelationship);
         var theme = StylesParser.ParseTheme(themePart is null ? null : package.ReadPartAsXml(themePart));
 
-        var resolver = new StyleResolver(styles, theme, options.ApplyWordBuiltInStyleDefaults);
+        var numberingPart = package.GetRelatedPartName(mainPartName, OpcPackage.NumberingRelationship);
+        var numbering = NumberingParser.Parse(
+            numberingPart is null ? null : package.ReadPartAsXml(numberingPart));
+
+        var resolver = new StyleResolver(
+            styles, theme, options.ApplyWordBuiltInStyleDefaults, numbering);
 
         var fonts = options.Fonts ?? new FontLibrary();
         var engine = new LayoutEngine(fonts, resolver, options.Layout);

@@ -32,10 +32,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // yields the same instance every time, which is what lets the writer embed it once.
     private readonly Dictionary<string, Images.ImageData?> _decodedImages = [];
 
+    // List counters, which advance as paragraphs are laid out. A list item's number depends on
+    // every item before it, so this is per-document state rather than per-paragraph.
+    private NumberingCounter _numbering = new(new NumberingDefinitions());
+
     public LaidOutDocument Layout(WordDocument document)
     {
         _images = document.Images;
         _decodedImages.Clear();
+        _numbering = new NumberingCounter(_styles.Numbering);
         var section = document.Section;
         var result = new LaidOutDocument { Section = section };
 
@@ -1209,8 +1214,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         offset = Math.Max(offset, 0);
 
         // Merge runs of atoms that share a format into single segments.
-        var maxAscent = 0.0;
-        var maxDescent = 0.0;
+        // Text and images size a line differently. A text run brings its whole line box, so two
+        // fonts on one line give the taller of the two boxes rather than the tallest ascent bolted
+        // onto the deepest descent — mixing a label's font with the text's that way made every
+        // list item a quarter point too tall. An image has no line box: it rests on the baseline
+        // and the descent beneath it still comes from the text.
+        var maxTextNatural = 0.0;
+        var maxTextAscent = 0.0;
+        var maxTextDescent = 0.0;
+        var maxImageAscent = 0.0;
 
         Segment? current = null;
         var pen = 0.0;
@@ -1233,8 +1245,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 pen += image.Width;
                 current = null;
 
-                maxAscent = Math.Max(maxAscent, image.Ascent);
-                maxDescent = Math.Max(maxDescent, image.Descent);
+                maxImageAscent = Math.Max(maxImageAscent, image.Ascent);
                 continue;
             }
 
@@ -1268,11 +1279,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             pen += textAtom.Width + extra;
 
-            maxAscent = Math.Max(maxAscent, textAtom.Ascent);
-            maxDescent = Math.Max(maxDescent, textAtom.Descent);
+            maxTextAscent = Math.Max(maxTextAscent, textAtom.Ascent);
+            maxTextDescent = Math.Max(maxTextDescent, textAtom.Descent);
+            maxTextNatural = Math.Max(maxTextNatural, textAtom.NaturalHeight);
         }
 
-        ApplyLineMetrics(line, format, maxAscent, maxAscent + maxDescent);
+        var ascent = Math.Max(maxTextAscent, maxImageAscent);
+        var natural = Math.Max(maxTextNatural, maxImageAscent + maxTextDescent);
+
+        ApplyLineMetrics(line, format, ascent, natural);
     }
 
     private static void ApplyEmptyLineMetrics(ComposedLine line, ResolvedParagraphFormat format)
@@ -1345,6 +1360,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     {
         var atoms = new List<Atom>();
         var defaultTab = Units.TwipsToPoints(_options.DefaultTabStopTwips);
+
+        AddNumberingLabel(atoms, paragraph, format, defaultTab);
 
         foreach (var run in paragraph.Runs)
         {
@@ -1428,6 +1445,68 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             NaturalHeight = height,
             Descent = 0
         });
+    }
+
+    /// <summary>
+    /// Puts a list item's number or bullet at the front of its first line.
+    /// </summary>
+    /// <remarks>
+    /// The label is emitted as ordinary atoms rather than as a special case, so it takes part in
+    /// measurement and line breaking like anything else. A list item's hanging indent starts the
+    /// first line left of the rest, which is where the label goes; the tab that follows it then
+    /// carries the text to the paragraph's left indent, and that indent has to be offered as a
+    /// tab stop or the tab would land on the next default one instead.
+    /// </remarks>
+    private void AddNumberingLabel(
+        List<Atom> atoms, Paragraph paragraph, ResolvedParagraphFormat format, double defaultTab)
+    {
+        if (format.NumberingId is not { } numId) return;
+
+        var label = _numbering.Advance(numId, format.NumberingLevel);
+        if (string.IsNullOrEmpty(label)) return;
+
+        var definition = _styles.Numbering.GetLevel(numId, format.NumberingLevel);
+
+        // The label is styled by the level's own run properties over the paragraph mark's, which
+        // is how a bullet gets its symbol font without affecting the item's text.
+        var labelFormat = _styles.ResolveRun(paragraph.Properties, definition?.RunProperties);
+        var selection = _fonts.Resolve(labelFormat.FontFamily, labelFormat.Bold, labelFormat.Italic);
+        var size = labelFormat.EffectiveFontSizePoints;
+
+        var ascent = TextMeasurer.GetAscent(selection.Font, size);
+        var naturalHeight = TextMeasurer.GetNaturalLineHeight(selection.Font, size);
+        var descent = naturalHeight - ascent;
+
+        AddTextAtoms(atoms, label, labelFormat, selection, ascent, naturalHeight, descent);
+
+        switch (definition?.Suffix ?? NumberSuffix.Tab)
+        {
+            case NumberSuffix.Nothing:
+                break;
+
+            case NumberSuffix.Space:
+                AddTextAtoms(atoms, " ", labelFormat, selection, ascent, naturalHeight, descent);
+                break;
+
+            default:
+                // Tab stops are measured from the line's own left edge, and a hanging indent puts
+                // that edge left of the paragraph's indent by exactly the hanging amount — so the
+                // indent sits at that distance along the first line.
+                var toIndent = Math.Max(0, -format.IndentFirstLinePoints);
+
+                var stops = new List<TabStop>(format.TabStops);
+                if (toIndent > 0) stops.Add(new TabStop(Units.PointsToTwips(toIndent), TabAlignment.Left, TabLeader.None));
+
+                atoms.Add(new TabAtom
+                {
+                    Stops = stops,
+                    DefaultIntervalPoints = defaultTab,
+                    Ascent = ascent,
+                    NaturalHeight = naturalHeight,
+                    Descent = descent
+                });
+                break;
+        }
     }
 
     /// <summary>

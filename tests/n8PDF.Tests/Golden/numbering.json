@@ -1,0 +1,98 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.668, "font": "Times New Roman", "size": 12, "text": "Steps to follow."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 14.891,
+          "runs": [
+            {"x": 90, "width": 8.352, "font": "Calibri", "size": 11, "text": "1."},
+            {"x": 108, "width": 217.242, "font": "Times New Roman", "size": 12, "text": "Open the package and read the content types."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 119.893,
+          "height": 14.891,
+          "runs": [
+            {"x": 90, "width": 8.352, "font": "Calibri", "size": 11, "text": "2."},
+            {"x": 108, "width": 243.287, "font": "Times New Roman", "size": 12, "text": "Follow the relationship to the main document part."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 142.784,
+          "height": 14.891,
+          "runs": [
+            {"x": 126, "width": 8.604, "font": "Calibri", "size": 11, "text": "a)"},
+            {"x": 144, "width": 256.91, "font": "Times New Roman", "size": 12, "text": "Resolve the style cascade before measuring anything."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 165.676,
+          "height": 14.891,
+          "runs": [
+            {"x": 126, "width": 9.115, "font": "Calibri", "size": 11, "text": "b)"},
+            {"x": 144, "width": 193.6, "font": "Times New Roman", "size": 12, "text": "Break the lines against real font metrics."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 188.567,
+          "height": 14.891,
+          "runs": [
+            {"x": 90, "width": 8.352, "font": "Calibri", "size": 11, "text": "3."},
+            {"x": 108, "width": 96.633, "font": "Times New Roman", "size": 12, "text": "Write the pages out."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 211.458,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 100.307, "font": "Times New Roman", "size": 12, "text": "Things to remember."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 225.257,
+          "height": 14.891,
+          "runs": [
+            {"x": 90, "width": 5.479, "font": "Calibri", "size": 11, "text": "•"},
+            {"x": 108, "width": 151.963, "font": "Times New Roman", "size": 12, "text": "Twips are twentieths of a point."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 248.148,
+          "height": 14.891,
+          "runs": [
+            {"x": 90, "width": 5.479, "font": "Calibri", "size": 11, "text": "•"},
+            {"x": 108, "width": 165.287, "font": "Times New Roman", "size": 12, "text": "Half-points are for font sizes only."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 271.039,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 70.658, "font": "Times New Roman", "size": 12, "text": "End of the list."}
+          ]
+        }
+      ]
+    }
+  ]
+}

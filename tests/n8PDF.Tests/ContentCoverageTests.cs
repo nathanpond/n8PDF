@@ -136,23 +136,26 @@ public class ContentCoverageTests(ITestOutputHelper output)
         var expected = Normalize(ReadDocumentText(docx));
         var actual = Normalize(string.Concat(PdfTextExtractor.Extract(pdf).Select(r => r.Text)));
 
-        if (expected == actual)
+        // The document's characters must all appear, in order, but the PDF may hold more: list
+        // numbers and bullets are generated during layout rather than stored in the document, so
+        // requiring the two to match exactly would fail for every list.
+        var missingAt = FirstUnmatched(expected, actual);
+
+        if (missingAt < 0)
         {
-            _output.WriteLine($"{name}: {expected.Length} characters, all present");
+            _output.WriteLine($"{name}: {expected.Length} document character(s), all present");
             return;
         }
-
-        var common = CommonPrefixLength(expected, actual);
 
         Assert.Fail(
             $"""
              '{name}' lost content on the way to the PDF.
 
              {expected.Length} characters in the document, {actual.Length} in the PDF.
-             They agree for the first {common} character(s), then diverge:
+             The first {missingAt} were found, then the document's text ran ahead of the PDF's:
 
-               document: {Excerpt(expected, common)}
-               pdf:      {Excerpt(actual, common)}
+               document from there: {Excerpt(expected, missingAt)}
+               pdf:                 {Excerpt(actual, 0)}
 
              Text that appears in the parsed document but never in the PDF has been dropped by
              layout — usually a block construct the engine does not handle yet.
@@ -198,11 +201,22 @@ public class ContentCoverageTests(ITestOutputHelper output)
     private static string Normalize(string text) =>
         new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
 
-    private static int CommonPrefixLength(string a, string b)
+    /// <summary>
+    /// Index of the first character of <paramref name="expected"/> that does not appear, in
+    /// order, in <paramref name="actual"/>; -1 when all of them do.
+    /// </summary>
+    private static int FirstUnmatched(string expected, string actual)
     {
-        var i = 0;
-        while (i < a.Length && i < b.Length && a[i] == b[i]) i++;
-        return i;
+        var j = 0;
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            while (j < actual.Length && actual[j] != expected[i]) j++;
+            if (j >= actual.Length) return i;
+            j++;
+        }
+
+        return -1;
     }
 
     private static string Excerpt(string text, int from) =>

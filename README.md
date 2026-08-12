@@ -26,7 +26,7 @@ src/n8PDF/
   Styling/       the formatting cascade, producing Resolved*Format
   Fonts/         SFNT parsing, metrics, font resolution
   Images/        PNG decoding and JPEG header reading
-  Layout/        measurement, line breaking, page composition
+  Layout/        measurement, line breaking, page composition, list counters
   Pdf/           object model, writer, content streams, Type0 font embedding
   Diagnostics/   LayoutTrace — the testing spine
   Converter.cs   public API
@@ -116,7 +116,8 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: images, inline and floating (PNG decoded from scratch, JPEG passed through untouched,
+Implemented: lists and numbering (decimal, letters, roman and bullets, nested levels with
+independent counters and multi-level templates, hanging indents), images, inline and floating (PNG decoded from scratch, JPEG passed through untouched,
 transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
@@ -135,7 +136,7 @@ not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not d
 algorithm the way the paragraph rules are.
 
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
-border, splitting a row across pages, lists and numbering, headers and footers, fields,
+border, splitting a row across pages, headers and footers, fields,
 hyperlinks, footnotes, RTL and complex scripts, font subsetting, GPOS kerning, widow/orphan
 control, and centre/right/decimal tab stops.
 
