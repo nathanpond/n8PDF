@@ -162,10 +162,16 @@ shown), splitting a note across pages, restarting note numbering per page or per
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
-them rather than under the whole measure, page numbering restarted per section, vertical page
-alignment,
-and font hinting, which is carried through untouched rather than rebuilt for the
-glyphs that remain.
+them rather than under the whole measure, page numbering restarted per section,
+and vertical page alignment.
+
+Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
+subset they embed. It cannot be subset in any case — control values are reached by index and
+function numbers are worked out as the instructions run, so which of them a glyph needs is not a
+question that can be answered without running them. `ConversionOptions.DropFontHinting` takes all
+three tables out along with the instructions inside each glyph, which more than halves the file at
+no cost to the shapes; it is off because it is a departure from Word rather than a step towards
+it.
 
 CFF subsetting is the one thing here with no Word reference behind it: every PostScript-outline
 face on this machine is for a script the converter cannot shape, so there is no document Word

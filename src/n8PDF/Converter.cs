@@ -30,6 +30,23 @@ public sealed class ConversionOptions
     /// </remarks>
     public bool ApplyWordBuiltInStyleDefaults { get; set; } = true;
 
+    /// <summary>
+    /// Leave the hinting out of the fonts the PDF embeds.
+    /// </summary>
+    /// <remarks>
+    /// Off, because Word keeps it: its own exports carry <c>cvt</c>, <c>fpgm</c> and <c>prep</c>
+    /// in every subset they embed, and matching Word is the point of this converter.
+    ///
+    /// Turning it on takes out those three tables and the instructions inside each glyph, which
+    /// is about a quarter of what an embedded face weighs. Nothing about the shapes changes —
+    /// hinting nudges points onto the pixel grid at small sizes on a low-resolution screen, and
+    /// most PDF readers do their own rasterising and ignore it. It cannot be subset rather than
+    /// dropped: control values are reached by index and function numbers are worked out as the
+    /// instructions run, so which of them a glyph needs is not a question that can be answered
+    /// without running them.
+    /// </remarks>
+    public bool DropFontHinting { get; set; }
+
     /// <summary>Title recorded in the PDF's document information dictionary.</summary>
     public string? Title { get; set; }
 
@@ -57,7 +74,7 @@ public static class Converter
 
         var laidOut = LayoutDocument(docx, options);
 
-        var builder = new PdfBuilder { Title = options.Title };
+        var builder = new PdfBuilder { Title = options.Title, DropHinting = options.DropFontHinting };
         builder.Document.CreationDate = options.CreationDate;
 
         PdfRenderer.Render(laidOut, builder);

@@ -62,6 +62,9 @@ public sealed class PdfBuilder
         set => _document.Title = value;
     }
 
+    /// <summary>Leave the hinting out of the fonts this embeds. See <c>ConversionOptions</c>.</summary>
+    public bool DropHinting { get; set; }
+
     public PdfPage AddPage(double widthPoints, double heightPoints)
     {
         var dictionary = _document.AddPage(widthPoints, heightPoints, out _);
@@ -109,7 +112,7 @@ public sealed class PdfBuilder
         // Font objects are built last: the width array and ToUnicode map depend on which glyphs
         // the content streams actually used.
         foreach (var font in _fonts.Values)
-            _fontResources.Set(font.ResourceName, font.Build(_document));
+            _fontResources.Set(font.ResourceName, font.Build(_document, DropHinting));
 
         foreach (var image in _images.Values)
             _xObjectResources.Set(image.ResourceName, image.Build(_document));

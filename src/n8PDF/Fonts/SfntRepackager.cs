@@ -18,6 +18,16 @@ internal static class SfntRepackager
     private static readonly string[] TrueTypeTables =
         ["cmap", "cvt ", "fpgm", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post", "prep", "OS/2"];
 
+    /// <summary>
+    /// The tables that carry hinting, which are dropped together or not at all.
+    /// </summary>
+    /// <remarks>
+    /// A glyph's own instructions live inside its outline and go at the same time. They are all
+    /// one thing: the control values are reached by index from the programs, and the programs are
+    /// called from the glyphs.
+    /// </remarks>
+    private static readonly string[] HintingTables = ["cvt ", "fpgm", "prep"];
+
     /// <summary>Tables kept for CFF-outline (OpenType/PostScript) fonts.</summary>
     private static readonly string[] CffTables =
         ["CFF ", "cmap", "head", "hhea", "hmtx", "maxp", "name", "post", "OS/2"];
@@ -44,9 +54,10 @@ internal static class SfntRepackager
     }
 
     public static byte[] BuildStandalone(
-        TrueTypeFont font, IReadOnlyCollection<ushort>? usedGlyphs, out bool subsetted)
+        TrueTypeFont font, IReadOnlyCollection<ushort>? usedGlyphs, out bool subsetted,
+        bool dropHinting = false)
     {
-        var subset = usedGlyphs is { Count: > 0 } ? GlyphSubset.Build(font, usedGlyphs) : null;
+        var subset = usedGlyphs is { Count: > 0 } ? GlyphSubset.Build(font, usedGlyphs, dropHinting) : null;
         var charStrings = usedGlyphs is { Count: > 0 } ? BuildCffSubset(font, usedGlyphs) : null;
 
         // Whether anything was actually left out, which is what decides if the result may be
@@ -57,6 +68,7 @@ internal static class SfntRepackager
 
         // Table records must appear in ascending tag order in the directory.
         var included = wanted
+            .Where(tag => !dropHinting || !HintingTables.Contains(tag))
             .Where(font.Tables.ContainsKey)
             .OrderBy(tag => tag, StringComparer.Ordinal)
             .ToList();

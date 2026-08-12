@@ -11,6 +11,9 @@ public sealed record FontReport(int Glyphs, Dictionary<int, string> Drawn)
     public int Subroutines { get; init; }
 
     public int EmptySubroutines { get; init; }
+
+    /// <summary>Bytes of hinting: the programs, plus the instructions inside the glyphs.</summary>
+    public int Hinting { get; init; }
 }
 
 /// <summary>
@@ -62,6 +65,33 @@ public static class FontToolsCheck
                 font = TTFont(sys.argv[1])
                 order = font.getGlyphOrder()
                 glyphs = font.getGlyphSet()
+
+                hinting = 0
+                for tag in ("cvt ", "fpgm", "prep"):
+                    if tag in font:
+                        hinting += len(font.reader[tag])
+
+                if "glyf" in font:
+                    glyf = font["glyf"]
+                    for name in order:
+                        glyph = glyf[name]
+                        program = getattr(glyph, "program", None)
+                        if program is not None:
+                            hinting += len(program.getBytecode())
+
+                print("hinting\t%d" % hinting)
+
+                if "CFF " not in font:
+                    print("subrs\t0\t0")
+                    print("glyphs\t%d" % len(order))
+                    for index in [GLYPHS]:
+                        if index >= len(order):
+                            continue
+                        pen = RecordingPen()
+                        glyphs[order[index]].draw(pen)
+                        drawing = repr(pen.value).encode("utf-8")
+                        print("%d\t%d\t%s" % (index, len(pen.value), hashlib.sha256(drawing).hexdigest()))
+                    sys.exit(0)
 
                 cff = font["CFF "].cff
                 top = cff[cff.fontNames[0]]
@@ -115,6 +145,7 @@ public static class FontToolsCheck
         var count = 0;
         var subroutines = 0;
         var empty = 0;
+        var hinting = 0;
         var drawn = new Dictionary<int, string>();
 
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -124,6 +155,12 @@ public static class FontToolsCheck
             if (fields.Length == 2 && fields[0] == "glyphs")
             {
                 if (!int.TryParse(fields[1], out count)) return null;
+                continue;
+            }
+
+            if (fields.Length == 2 && fields[0] == "hinting")
+            {
+                int.TryParse(fields[1], out hinting);
                 continue;
             }
 
@@ -142,7 +179,10 @@ public static class FontToolsCheck
         }
 
         return count > 0
-            ? new FontReport(count, drawn) { Subroutines = subroutines, EmptySubroutines = empty }
+            ? new FontReport(count, drawn)
+            {
+                Subroutines = subroutines, EmptySubroutines = empty, Hinting = hinting
+            }
             : null;
     }
 

@@ -156,6 +156,113 @@ public class SubsettingTests
     }
 
     /// <summary>
+    /// Reads the subset back with fontTools, which has nothing in common with the code that wrote
+    /// it, and draws the glyphs that were kept.
+    /// </summary>
+    /// <remarks>
+    /// This is what caught a metrics table that our own parser was happy with: the format fixes
+    /// its length by the glyph count, and a shortened one that never gets read past the glyphs
+    /// that matter looks fine from here and is rejected by anything strict.
+    /// </remarks>
+    [Fact]
+    public void Another_reader_agrees_about_the_subset()
+    {
+        if (!FontToolsCheck.IsAvailable)
+        {
+            Assert.False(FontToolsCheck.IsRequired, FontToolsCheck.UnavailableMessage);
+            return;
+        }
+
+        var font = Times();
+        var glyphs = GlyphsOf(font, "The quick brown fox, 1234.");
+        var dropped = new[] { (int)font.GetGlyphIndex('Z'), font.GetGlyphIndex('q') }
+            .Where(g => !glyphs.Contains((ushort)g))
+            .ToList();
+
+        var asked = glyphs.Select(g => (int)g).Concat(dropped).ToList();
+
+        var whole = FontToolsCheck.Read(font.GetEmbeddableFontProgram(), asked);
+        var subset = FontToolsCheck.Read(font.GetEmbeddableFontProgram(glyphs), asked);
+
+        Assert.NotNull(whole);
+        Assert.NotNull(subset);
+        Assert.Equal(font.GlyphCount, subset.Glyphs);
+
+        foreach (var glyph in glyphs) Assert.Equal(whole.Drawn[glyph], subset.Drawn[glyph]);
+        foreach (var glyph in dropped) Assert.Equal("nothing", subset.Drawn[glyph]);
+    }
+
+    /// <summary>
+    /// Word keeps the hinting in the fonts it embeds — its own exports carry all three of its
+    /// tables — so this does too unless it is asked not to.
+    /// </summary>
+    [Fact]
+    public void Hinting_is_kept_unless_it_is_asked_to_go()
+    {
+        if (!FontToolsCheck.IsAvailable)
+        {
+            Assert.False(FontToolsCheck.IsRequired, FontToolsCheck.UnavailableMessage);
+            return;
+        }
+
+        var font = Times();
+        var glyphs = GlyphsOf(font, "A single line of text.");
+
+        var kept = FontToolsCheck.Read(font.GetEmbeddableFontProgram(glyphs), []);
+        var bare = FontToolsCheck.Read(font.GetEmbeddableFontProgram(glyphs, dropHinting: true), []);
+
+        Assert.NotNull(kept);
+        Assert.NotNull(bare);
+
+        Assert.True(kept.Hinting > 5_000, $"only {kept.Hinting:N0} bytes of hinting were kept");
+        Assert.Equal(0, bare.Hinting);
+    }
+
+    /// <summary>
+    /// Taking the hinting out leaves the shapes alone. It says where the points go on a pixel
+    /// grid, not where the curves go, so a glyph without it draws what it always drew.
+    /// </summary>
+    [Fact]
+    public void Dropping_the_hinting_leaves_the_outlines_alone()
+    {
+        if (!FontToolsCheck.IsAvailable)
+        {
+            Assert.False(FontToolsCheck.IsRequired, FontToolsCheck.UnavailableMessage);
+            return;
+        }
+
+        var font = Times();
+
+        // Accented letters as well, whose instructions hang off the last of their components.
+        var glyphs = GlyphsOf(font, "The quick brown fox, éàü 1234.");
+        var asked = glyphs.Select(g => (int)g).ToList();
+
+        var hinted = FontToolsCheck.Read(font.GetEmbeddableFontProgram(glyphs), asked);
+        var bare = FontToolsCheck.Read(font.GetEmbeddableFontProgram(glyphs, dropHinting: true), asked);
+
+        Assert.NotNull(hinted);
+        Assert.NotNull(bare);
+
+        foreach (var glyph in glyphs) Assert.Equal(hinted.Drawn[glyph], bare.Drawn[glyph]);
+    }
+
+    [Fact]
+    public void Dropping_the_hinting_makes_a_smaller_file()
+    {
+        var docx = Fixtures.Build("single-line");
+
+        var hinted = Converter.Convert(docx, Options());
+        var bare = Converter.Convert(docx, new ConversionOptions
+        {
+            Fonts = TestFonts.CreatePinnedLibrary(),
+            DropFontHinting = true
+        });
+
+        Assert.True(bare.Length * 2 < hinted.Length,
+            $"the file is {bare.Length:N0} bytes without hinting against {hinted.Length:N0} with it");
+    }
+
+    /// <summary>
     /// Asserts a glyph came through unchanged. Outlines are written on four-byte boundaries, so
     /// one may be followed by up to three bytes of padding that were not there before.
     /// </summary>

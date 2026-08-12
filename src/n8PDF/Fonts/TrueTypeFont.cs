@@ -125,15 +125,17 @@ public sealed class TrueTypeFont
     /// The font program to embed. Given the glyphs a document used, the outlines of everything
     /// else are left out.
     /// </summary>
-    public byte[] GetEmbeddableFontProgram(IReadOnlyCollection<ushort>? usedGlyphs = null) =>
-        SfntRepackager.BuildStandalone(this, usedGlyphs, out _);
+    public byte[] GetEmbeddableFontProgram(
+        IReadOnlyCollection<ushort>? usedGlyphs = null, bool dropHinting = false) =>
+        SfntRepackager.BuildStandalone(this, usedGlyphs, out _, dropHinting);
 
     /// <summary>
     /// The same, reporting whether anything was left out. A face this cannot rebuild is embedded
     /// whole, and a PDF may only give a subset tag to a font that really is one.
     /// </summary>
-    public byte[] GetEmbeddableFontProgram(IReadOnlyCollection<ushort> usedGlyphs, out bool subsetted) =>
-        SfntRepackager.BuildStandalone(this, usedGlyphs, out subsetted);
+    public byte[] GetEmbeddableFontProgram(
+        IReadOnlyCollection<ushort> usedGlyphs, out bool subsetted, bool dropHinting = false) =>
+        SfntRepackager.BuildStandalone(this, usedGlyphs, out subsetted, dropHinting);
 
     // ----- loading -----
 

@@ -111,10 +111,10 @@ public sealed class PdfFont
     }
 
     /// <summary>Writes the font's object graph into the document and returns the Type0 reference.</summary>
-    internal PdfReference Build(PdfDocument document)
+    internal PdfReference Build(PdfDocument document, bool dropHinting = false)
     {
         var glyphs = _glyphToUnicode.Keys.ToList();
-        var program = Font.GetEmbeddableFontProgram(glyphs, out var subsetted);
+        var program = Font.GetEmbeddableFontProgram(glyphs, out var subsetted, dropHinting);
 
         // A subset font is named with a six-letter tag so that two documents carrying different
         // parts of the same face are not mistaken for each other. The tag is derived from the

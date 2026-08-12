@@ -49,7 +49,7 @@ internal static class GlyphSubset
     /// Builds the outline tables for a set of glyphs, or returns null when the font is not one
     /// this can subset — a CFF face keeps its outlines somewhere else entirely.
     /// </summary>
-    public static Tables? Build(TrueTypeFont font, IReadOnlyCollection<ushort> glyphs)
+    public static Tables? Build(TrueTypeFont font, IReadOnlyCollection<ushort> glyphs, bool dropHinting = false)
     {
         if (font.HasCffOutlines) return null;
         if (!font.Tables.TryGetValue("glyf", out var glyf)) return null;
@@ -65,7 +65,7 @@ internal static class GlyphSubset
             if (offsets is null) return null;
 
             var wanted = Closure(source, glyf, offsets, glyphs, font.GlyphCount);
-            var tables = Rebuild(source, glyf, offsets, wanted, font.GlyphCount);
+            var tables = Rebuild(source, glyf, offsets, wanted, font.GlyphCount, dropHinting);
 
             return TrimMetrics(font, wanted, tables);
         }
@@ -160,11 +160,13 @@ internal static class GlyphSubset
     /// <remarks>
     /// The rebuilt locations are always in the long format, whatever the font used. A short one
     /// halves its offsets and so cannot describe a table whose length is odd, and settling on the
-    /// wider form costs two bytes a glyph and removes the question.
+    /// wider form costs two bytes a glyph and removes the question — including the question of
+    /// padding each outline out to an even boundary, which a reader otherwise reports as bytes it
+    /// was given and did not need.
     /// </remarks>
     private static Tables Rebuild(
         byte[] source, TrueTypeFont.TableRecord glyf, int[] offsets,
-        HashSet<ushort> wanted, int glyphCount)
+        HashSet<ushort> wanted, int glyphCount, bool dropHinting)
     {
         var outlines = new MemoryStream();
         var loca = new byte[(glyphCount + 1) * 4];
@@ -182,11 +184,11 @@ internal static class GlyphSubset
             var available = Math.Min(length, glyf.Length - start);
             if (available <= 0) continue;
 
-            outlines.Write(source, glyf.Offset + start, available);
+            var outline = new ReadOnlySpan<byte>(source, glyf.Offset + start, available);
 
-            // Each outline starts on a four-byte boundary, which is what the format asks for and
-            // what keeps the offsets of the glyphs after it aligned.
-            while (outlines.Length % 4 != 0) outlines.WriteByte(0);
+            if (dropHinting) outline = WithoutInstructions(outline);
+
+            outlines.Write(outline);
         }
 
         WriteUInt32(loca, glyphCount * 4, (uint)outlines.Length);
@@ -202,6 +204,10 @@ internal static class GlyphSubset
     /// last one's. The glyphs past the end here are the empty ones, so what they are said to be
     /// wide never shows — and in a face of three thousand glyphs used for a line of text, most of
     /// the table is describing glyphs that are no longer there.
+    ///
+    /// What every glyph does keep is a side bearing, two bytes of it, because the table's length
+    /// is fixed by the glyph count and a reader that knows this will say so. An empty glyph has
+    /// no side bearing to speak of, so theirs are zero.
     /// </remarks>
     private static Tables TrimMetrics(TrueTypeFont font, HashSet<ushort> wanted, Tables tables)
     {
@@ -217,13 +223,97 @@ internal static class GlyphSubset
         var keep = Math.Min(metricCount, highest + 1);
         if (keep <= 0 || keep >= metricCount) return tables;
 
-        var length = keep * 4;
-        if (hmtx.Offset + length > source.Length) return tables;
+        var metrics = keep * 4;
+        if (hmtx.Offset + metrics > source.Length) return tables;
 
-        var trimmed = new byte[length];
-        Array.Copy(source, hmtx.Offset, trimmed, 0, length);
+        // Full metrics as far as the last glyph kept, then a side bearing for each glyph after it.
+        var trimmed = new byte[metrics + (font.GlyphCount - keep) * 2];
+        if (trimmed.Length >= hmtx.Length) return tables;
+
+        Array.Copy(source, hmtx.Offset, trimmed, 0, metrics);
 
         return tables with { Hmtx = trimmed, MetricCount = keep };
+    }
+
+    /// <summary>
+    /// A glyph's outline with its hinting instructions taken out.
+    /// </summary>
+    /// <remarks>
+    /// The instructions of a simple glyph sit between the contour ends and the points, with their
+    /// own length before them; a composite says whether it has any in the flags of its last
+    /// component. Nothing else in the outline refers to them, so removing them is a matter of
+    /// finding where they start and saying there are none.
+    ///
+    /// Only the shapes are lost, never the outlines: hinting nudges points onto the pixel grid at
+    /// small sizes on a low-resolution screen, and says nothing about where the curves go.
+    /// </remarks>
+    private static ReadOnlySpan<byte> WithoutInstructions(ReadOnlySpan<byte> outline)
+    {
+        if (outline.Length < 10) return outline;
+
+        var contours = (short)((outline[0] << 8) | outline[1]);
+
+        return contours >= 0
+            ? SimpleWithoutInstructions(outline, contours)
+            : CompositeWithoutInstructions(outline);
+    }
+
+    private static ReadOnlySpan<byte> SimpleWithoutInstructions(ReadOnlySpan<byte> outline, int contours)
+    {
+        // Ten bytes of header, then two per contour end, then the instruction length.
+        var at = 10 + contours * 2;
+        if (at + 2 > outline.Length) return outline;
+
+        var length = (outline[at] << 8) | outline[at + 1];
+        if (length == 0 || at + 2 + length > outline.Length) return outline;
+
+        var result = new byte[outline.Length - length];
+
+        outline[..(at + 2)].CopyTo(result);
+        result[at] = 0;
+        result[at + 1] = 0;
+        outline[(at + 2 + length)..].CopyTo(result.AsSpan(at + 2));
+
+        return result;
+    }
+
+    private static ReadOnlySpan<byte> CompositeWithoutInstructions(ReadOnlySpan<byte> outline)
+    {
+        var at = 10;
+        var flagsAt = 0;
+
+        while (true)
+        {
+            if (at + 4 > outline.Length) return outline;
+
+            flagsAt = at;
+            var flags = (outline[at] << 8) | outline[at + 1];
+            at += 4; // the flags and the component
+
+            at += (flags & 0x0001) != 0 ? 4 : 2; // the placement arguments
+
+            if ((flags & 0x0008) != 0) at += 2;
+            else if ((flags & 0x0040) != 0) at += 4;
+            else if ((flags & 0x0080) != 0) at += 8;
+
+            if ((flags & 0x0020) == 0)
+            {
+                // The last component says whether instructions follow it.
+                if ((flags & 0x0100) == 0) return outline;
+                break;
+            }
+        }
+
+        if (at + 2 > outline.Length) return outline;
+
+        var result = outline[..(at + 2)].ToArray();
+
+        // Clearing the bit is what says there are none; the length that followed goes with them.
+        // The flags are a sixteen-bit value, and this one lives in the upper byte.
+        result[flagsAt] &= 0xfe;
+        Array.Resize(ref result, at);
+
+        return result;
     }
 
     private static void WriteUInt32(byte[] target, int offset, uint value)
