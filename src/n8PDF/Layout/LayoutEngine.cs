@@ -123,6 +123,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // document rather than the section, since a table gathers the whole of it.
     private IReadOnlyList<BlockElement> _body = [];
 
+    // Index entries met while building a paragraph's atoms, recorded with the page once the
+    // paragraph is placed — the same way its bookmarks are. An XE field draws nothing, so there is
+    // no line of its own to put it on.
+    private readonly List<FieldInline> _pendingMarks = [];
+    private readonly Dictionary<FieldInline, LaidOutPage> _markPages = [];
+
     /// <summary>What a field needs to know beyond its instruction.</summary>
     public FieldEnvironment Fields { get; set; } = new();
 
@@ -159,6 +165,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _sectionOrdinal = 1;
         _styledParagraphs.Clear();
         _headingPages.Clear();
+        _pendingMarks.Clear();
+        _markPages.Clear();
         _body = document.Body;
         _documentStyled = CollectStyledParagraphs(document.Body);
         Fields.StyleReference = StyleReference;
@@ -412,7 +420,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 // A table of contents is not content the document wrote but a field's answer to
                 // it, so it is worked out again rather than laid out — and what it produced last
                 // time, which is the paragraphs that follow, is passed over.
-                case Paragraph opening when TableOfContents(cursor, opening) is { } entries:
+                case Paragraph opening when Generated(cursor, opening) is { } entries:
                 {
                     LayoutBlocks(cursor, entries);
 
@@ -497,9 +505,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         PlaceAnchoredDrawings(cursor, paragraph);
 
         _pendingBookmarks.Clear();
+        _pendingMarks.Clear();
         var composer = new ParagraphComposer(
             BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format));
         var bookmarks = _pendingBookmarks.ToList();
+        var marks = _pendingMarks.ToList();
         var firstLine = true;
 
         var ordinal = _paragraphOrdinal++;
@@ -566,6 +576,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                     // A heading is where a table of contents points, so where it landed is worth
                     // knowing whether or not the document has a table in it yet.
                     if (format.OutlineLevel is not null) _headingPages[paragraph] = cursor.Page;
+
+                    foreach (var mark in marks) _markPages[mark] = cursor.Page;
                 }
 
                 firstLine = false;
@@ -1394,7 +1406,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // The field may run past this paragraph, holding its first entry, or it may be closed and
         // empty — a table of contents that has never been built is written the second way, and one
         // Word has built the first.
-        if (TableOfContentsField(paragraph) is not { } field) return null;
+        if (FieldIn(paragraph, "TOC") is not { } field) return null;
 
         var instruction = FieldInstruction.Parse(field.Instruction);
 
@@ -1436,17 +1448,96 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         return entries;
     }
 
+    /// <summary>
+    /// The paragraphs standing for a field this paragraph holds whose answer is paragraphs of its
+    /// own — a table of contents or an index. Null for anything else, which is laid out as it
+    /// stands.
+    /// </summary>
+    private List<BlockElement>? Generated(Cursor cursor, Paragraph paragraph) =>
+        TableOfContents(cursor, paragraph) ?? Index(paragraph);
+
+    /// <summary>
+    /// The paragraphs standing for an index, where this paragraph holds an INDEX field. Null for
+    /// anything else.
+    /// </summary>
+    /// <remarks>
+    /// The entries come from the XE fields the document carries, each with the page the paragraph
+    /// holding it landed on. Like a table of contents it is worked out again rather than read back
+    /// from what the field last produced, and for the same reason.
+    /// </remarks>
+    private List<BlockElement>? Index(Paragraph paragraph)
+    {
+        if (FieldIn(paragraph, "INDEX") is not { } field) return null;
+
+        var instruction = FieldInstruction.Parse(field.Instruction);
+        var marks = new List<(IndexBuilder.Mark Mark, int Page)>();
+
+        foreach (var (mark, source) in CollectIndexMarks(_body))
+        {
+            var page = Pagination?.PageOfMark(source) ??
+                       (_markPages.TryGetValue(source, out var placed) && _result is not null
+                           ? _result.Pages.IndexOf(placed) + 1
+                           : 0);
+
+            marks.Add((mark, page));
+        }
+
+        if (marks.Count == 0) return null;
+
+        var entries = IndexBuilder.Build(marks, instruction, _styles.Styles.ById.ContainsKey);
+        if (entries.Count == 0) return null;
+
+        // An entry marked after the index itself has no page until the document has been laid out
+        // once, and an index of any length moves the pages of everything after it.
+        if (Pagination is null) NeedsPagination = true;
+
+        return entries;
+    }
+
+    /// <summary>Every index entry the document marks, in the order it marks them.</summary>
+    private static List<(IndexBuilder.Mark Mark, FieldInline Field)> CollectIndexMarks(
+        IEnumerable<BlockElement> blocks)
+    {
+        var marks = new List<(IndexBuilder.Mark, FieldInline)>();
+
+        foreach (var block in blocks)
+        {
+            switch (block)
+            {
+                case Paragraph paragraph:
+                    foreach (var run in paragraph.Runs)
+                    foreach (var content in run.Content)
+                    {
+                        if (content is not FieldInline field) continue;
+                        if (IndexBuilder.Read(FieldInstruction.Parse(field.Instruction)) is { } mark)
+                            marks.Add((mark, field));
+                    }
+
+                    break;
+
+                case Table table:
+                    foreach (var row in table.Rows)
+                    foreach (var cell in row.Cells)
+                        marks.AddRange(CollectIndexMarks(cell.Content));
+
+                    break;
+            }
+        }
+
+        return marks;
+    }
+
     /// <summary>The TOC field a paragraph holds, if it holds one.</summary>
-    private static FieldInline? TableOfContentsField(Paragraph paragraph)
+    private static FieldInline? FieldIn(Paragraph paragraph, string keyword)
     {
         if (paragraph.OpensField is { } opened)
-            return FieldInstruction.Parse(opened.Instruction).Keyword == "TOC" ? opened : null;
+            return FieldInstruction.Parse(opened.Instruction).Keyword == keyword ? opened : null;
 
         foreach (var run in paragraph.Runs)
         foreach (var content in run.Content)
         {
             if (content is FieldInline field &&
-                FieldInstruction.Parse(field.Instruction).Keyword == "TOC")
+                FieldInstruction.Parse(field.Instruction).Keyword == keyword)
             {
                 return field;
             }
@@ -1692,7 +1783,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (index >= 0) headings[paragraph] = index + 1;
         }
 
-        return new FieldPagination(result.Pages.Count, pages, sections, counts, headings);
+        var marks = new Dictionary<FieldInline, int>();
+
+        foreach (var (mark, page) in _markPages)
+        {
+            var index = result.Pages.IndexOf(page);
+            if (index >= 0) marks[mark] = index + 1;
+        }
+
+        return new FieldPagination(result.Pages.Count, pages, sections, counts, headings, marks);
     }
 
     // ----- tables -----
@@ -3284,6 +3383,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                             NaturalHeight = naturalHeight,
                             Descent = descent
                         });
+                        break;
+
+                    case FieldInline field when FieldInstruction.Parse(field.Instruction).Keyword == "XE":
+                        // An entry marker: it draws nothing, and is recorded with the page once
+                        // the paragraph carrying it has been placed.
+                        _pendingMarks.Add(field);
                         break;
 
                     case FieldInline field:

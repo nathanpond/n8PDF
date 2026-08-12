@@ -95,17 +95,20 @@ public readonly record struct FieldInstruction(
     /// reads it as "the whole path" and takes nothing. There is no rule behind that, only the list
     /// of what each field means by it.
     /// </remarks>
-    private static bool SwitchTakesValue(char letter, string keyword) => letter switch
+    private static bool SwitchTakesValue(char letter, string keyword)
     {
-        // Formatting and pictures, which mean the same on every field that takes them.
-        '*' or '@' or '#' => true,
+        // Formatting and pictures mean the same on every field that takes them.
+        if (letter is '*' or '@' or '#') return true;
 
-        'o' or 'b' or 'a' or 'c' or 'p' or 'l' => keyword == "TOC",
-
-        't' or 'r' or 'f' or 's' or 'd' => true,
-
-        _ => false
-    };
+        return keyword switch
+        {
+            "TOC" => letter is 'o' or 't' or 'b' or 'c' or 'a' or 'f' or 'l' or 'p' or 's' or 'd' or 'z',
+            "INDEX" => letter is 'b' or 'c' or 'd' or 'e' or 'f' or 'g' or 'h' or 'k' or 'l' or 'p' or 's' or 'z',
+            "XE" => letter is 'f' or 'r' or 't' or 'y',
+            "SEQ" => letter is 'r' or 's',
+            _ => letter is 't' or 'r' or 'f' or 's' or 'd'
+        };
+    }
 
     private static List<(string Text, bool Quoted)> Tokenize(string instruction)
     {
@@ -120,9 +123,10 @@ public readonly record struct FieldInstruction(
 
             if (inQuotes)
             {
-                // Inside quotes a backslash escapes the character after it, which is how a quote
-                // gets into a quoted argument.
-                if (c == '\\' && i + 1 < instruction.Length)
+                // A backslash escapes a quote and nothing else. Everything else it is written
+                // before belongs to the field rather than to the quoting: an index entry writes
+                // "Ratio 3\:1" for a term holding a colon, and a file name is full of them.
+                if (c == '\\' && i + 1 < instruction.Length && instruction[i + 1] == '"')
                 {
                     current.Append(instruction[++i]);
                     continue;

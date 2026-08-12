@@ -237,8 +237,17 @@ in outlives it, empty: Word leaves the mark of it on a line of its own below the
 document's default rather than in a table-of-contents style, which is the extra line between a table
 of contents and the first heading under it.
 
+An index is written in two halves, and both are implemented. Where a term belongs, the document
+carries an `XE` field that draws nothing at all — it is there to be found, not read — and where the
+index goes, an `INDEX` field gathers every one of them, sorts them, and lists each term against the
+pages it was marked on. A term written `Engine:analytical` is a subentry and reads as `analytical`
+under a heading of `Engine`, indented by its `Index2` style; a page marked twice over is one page
+number; `\h` asks for a line holding the letter each group begins with, `\e` and `\l` say what goes
+between a term and its pages and between one page and the next, `\t` shows something else in place
+of the pages ("see Engine"), and `\f` keeps two indexes in one document apart.
+
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, fields that compute over the document
-(INDEX, IF, formulas and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
+(IF, formulas and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

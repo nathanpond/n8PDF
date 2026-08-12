@@ -1416,6 +1416,55 @@ public static class Fixtures
                 return builder;
             },
 
+            // An index: the entries are marked where they occur, with XE fields that show
+            // nothing, and the INDEX field gathers them into a list of terms and the pages they
+            // were marked on. The styles are the ones Word writes for one.
+            ["index"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithExtraStyles(
+                        Style("Index1", "index 1") +
+                        Style("Index2", "index 2", indent: "<w:ind w:left=\"220\"/>") +
+                        Style("IndexHeading", "index heading", bold: true));
+
+                // An entry marker, which draws nothing itself.
+                void Mark(string term) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">Marking {term}. </w:t></w:r>" +
+                        StyleRefRuns($" XE \"{term}\" ") + "</w:p>");
+
+                void Filler(string label, int count)
+                {
+                    for (var i = 1; i <= count; i++)
+                        builder.AddParagraph($"{label} {i}.", ZeroSpacing, Times12);
+                }
+
+                // The first page: two terms, one of which is marked again further on.
+                Mark("Analysis");
+                Mark("Babbage");
+                Mark("Engine:difference");
+                Filler("First page", 40);
+
+                // The second: the same term again, a subentry, and one that sorts before both.
+                Mark("Analysis");
+                Mark("Engine:analytical");
+                Mark("Arithmetic");
+                Filler("Second page", 42);
+
+                // The third: a term marked twice on the same page, which is one page number.
+                Mark("Zero");
+                Mark("Zero");
+                Filler("Third page", 20);
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    StyleRefRuns(" INDEX \\h \"A\" \\c \"1\" ") + "</w:p>");
+
+                return builder;
+            },
+
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:
             // nothing else says whether a row that continues is closed off where it stops.

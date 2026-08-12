@@ -18,15 +18,23 @@ namespace n8PDF.Layout;
 /// The page each heading landed on, counting from one — what a table of contents needs, and the
 /// reason a document holding one is laid out twice.
 /// </param>
+/// <param name="Marks">
+/// The page each index entry was marked on. An XE field draws nothing, so where it fell is only
+/// known from the paragraph that carried it.
+/// </param>
 public sealed record FieldPagination(
     int TotalPages,
     IReadOnlyDictionary<int, int> Pages,
     IReadOnlyList<int> Sections,
     IReadOnlyList<int> Counts,
-    IReadOnlyDictionary<Ooxml.Paragraph, int> Headings)
+    IReadOnlyDictionary<Ooxml.Paragraph, int> Headings,
+    IReadOnlyDictionary<Ooxml.FieldInline, int> Marks)
 {
     /// <summary>The page a heading landed on, or zero where it was not recorded.</summary>
     public int PageOfHeading(Ooxml.Paragraph paragraph) => Headings.GetValueOrDefault(paragraph);
+
+    /// <summary>The page an index entry was marked on, or zero where it was not recorded.</summary>
+    public int PageOfMark(Ooxml.FieldInline mark) => Marks.GetValueOrDefault(mark);
 
     /// <summary>The page a field landed on, or zero where it was not recorded.</summary>
     public int PageOfField(int occurrence) => Pages.GetValueOrDefault(occurrence);
