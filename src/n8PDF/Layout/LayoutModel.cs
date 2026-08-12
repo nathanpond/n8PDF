@@ -33,10 +33,44 @@ public sealed class PositionedText
     /// </summary>
     public double WordSpacing { get; init; }
 
+    /// <summary>
+    /// Where this run links to, if anywhere. Carried to the writer, which turns it into a link
+    /// annotation over the run's box.
+    /// </summary>
+    public ResolvedHyperlink? Link { get; init; }
+
     public double FontSizePoints => Format.EffectiveFontSizePoints;
+
+    /// <summary>
+    /// A copy of this run moved by the given offset.
+    /// </summary>
+    /// <remarks>
+    /// Layout composes some content — table cells, and lines displaced by a float — in one place
+    /// and moves it to another. Copying field by field at each of those sites made it easy to add
+    /// a property here and silently lose it in transit, so the copy lives with the type instead.
+    /// </remarks>
+    public PositionedText Translate(double dx, double dy) => new()
+    {
+        X = X + dx,
+        BaselineY = BaselineY + dy,
+        Text = Text,
+        Format = Format,
+        Font = Font,
+        Width = Width,
+        WordSpacing = WordSpacing,
+        Link = Link
+    };
 
     public override string ToString() => $"({X:0.##}, {BaselineY:0.##}) \"{Text}\"";
 }
+
+/// <summary>A hyperlink with its target already resolved.</summary>
+/// <param name="Url">An external address, or null for an internal link.</param>
+/// <param name="Anchor">A bookmark name within the document, or null for an external link.</param>
+public sealed record ResolvedHyperlink(string? Url, string? Anchor);
+
+/// <summary>A place in the document an internal link can point at.</summary>
+public sealed record BookmarkDestination(int PageIndex, double X, double Y);
 
 /// <summary>A horizontal rule drawn for an underline or strikethrough.</summary>
 public sealed class PositionedRule
@@ -131,6 +165,9 @@ public sealed class LaidOutPage
 public sealed class LaidOutDocument
 {
     public List<LaidOutPage> Pages { get; } = [];
+
+    /// <summary>Bookmark positions by name, for resolving internal links.</summary>
+    public Dictionary<string, BookmarkDestination> Bookmarks { get; } = [];
 
     public required SectionProperties Section { get; init; }
 }

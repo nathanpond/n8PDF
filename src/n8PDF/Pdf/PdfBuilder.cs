@@ -15,6 +15,12 @@ public sealed class PdfPage
 
     internal PdfDictionary Dictionary { get; }
 
+    /// <summary>
+    /// Link annotations for this page. Held separately from the content stream because an
+    /// annotation is not drawn: it is an interactive region layered over what was drawn.
+    /// </summary>
+    internal PdfArray Annotations { get; } = new();
+
     /// <summary>Page width in points.</summary>
     public double Width { get; }
 
@@ -112,6 +118,8 @@ public sealed class PdfBuilder
         {
             var content = new PdfStream(page.Content.ToArray());
             page.Dictionary.Set("Contents", _document.Add(content));
+
+            if (page.Annotations.Count > 0) page.Dictionary.Set("Annots", page.Annotations);
         }
 
         _document.Save(stream);

@@ -144,11 +144,43 @@ public static class DocumentParser
             return;
         }
 
-        if (element.Name == W.Main + "hyperlink" ||
-            element.Name == W.Main + "ins" ||
+        // A bookmark marks a place an internal link can reach. It has no content of its own, so
+        // it is recorded as a zero-width marker on a run of its own.
+        if (element.Name == W.Main + "bookmarkStart")
+        {
+            var name = element.Attr("name");
+
+            // Word brackets every document with a bookmark named _GoBack that means nothing here.
+            if (name is not null && name != "_GoBack")
+            {
+                var marker = new Run();
+                marker.Content.Add(new BookmarkInline(name));
+                paragraph.Runs.Add(marker);
+            }
+
+            return;
+        }
+
+        if (element.Name == W.Main + "hyperlink")
+        {
+            var target = new HyperlinkTarget(
+                element.Attribute(W.Relationships + "id")?.Value,
+                element.Attr("anchor"));
+
+            var first = paragraph.Runs.Count;
+            foreach (var child in element.Elements())
+                CollectRuns(child, paragraph);
+
+            // Everything the element contained belongs to the link.
+            for (var i = first; i < paragraph.Runs.Count; i++)
+                paragraph.Runs[i].Hyperlink = target;
+
+            return;
+        }
+
+        if (element.Name == W.Main + "ins" ||
             element.Name == W.Main + "smartTag" ||
-            element.Name == W.Main + "sdtContent" ||
-            element.Name == W.Main + "bookmarkStart")
+            element.Name == W.Main + "sdtContent")
         {
             foreach (var child in element.Elements())
                 CollectRuns(child, paragraph);

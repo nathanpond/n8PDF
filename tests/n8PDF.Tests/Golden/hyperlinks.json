@@ -1,0 +1,73 @@
+{
+  "pageCount": 2,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 103.307, "font": "Times New Roman", "size": 12, "text": "Links to other places."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 37.324, "font": "Times New Roman", "size": 12, "text": "Start at "},
+            {"x": 109.324, "width": 69.973, "font": "Times New Roman", "size": 12, "color": "0563C1", "text": "the home page"},
+            {"x": 179.297, "width": 88.295, "font": "Times New Roman", "size": 12, "text": " and then read the "},
+            {"x": 267.592, "width": 44.619, "font": "Times New Roman", "size": 12, "color": "0563C1", "text": "reference"},
+            {"x": 312.211, "width": 3, "font": "Times New Roman", "size": 12, "text": "."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 42.65, "font": "Times New Roman", "size": 12, "text": "Write to "},
+            {"x": 114.65, "width": 118.014, "font": "Times New Roman", "size": 12, "color": "0563C1", "text": "someone@example.com"},
+            {"x": 232.664, "width": 58.998, "font": "Times New Roman", "size": 12, "text": ", or jump to "},
+            {"x": 291.662, "width": 61.646, "font": "Times New Roman", "size": 12, "color": "0563C1", "text": "the appendix"},
+            {"x": 353.309, "width": 3, "font": "Times New Roman", "size": 12, "text": "."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 135.803,
+          "height": 27.598,
+          "runs": [
+            {"x": 72, "width": 114.633, "font": "Times New Roman", "size": 24, "color": "0563C1", "text": "A large link"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 94.406,
+          "height": 27.598,
+          "runs": [
+            {"x": 72, "width": 94.652, "font": "Times New Roman", "size": 24, "text": "Appendix"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 172.945, "font": "Times New Roman", "size": 12, "text": "The place the internal link points at."}
+          ]
+        }
+      ]
+    }
+  ]
+}

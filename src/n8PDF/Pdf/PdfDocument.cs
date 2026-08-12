@@ -59,6 +59,9 @@ public sealed class PdfDocument
     public void Assign(PdfReference reference, PdfObject value) =>
         _objects[reference.ObjectNumber - 1] = value;
 
+    /// <summary>A reference to the page at the given index, for links that point at it.</summary>
+    public PdfReference GetPageReference(int index) => (PdfReference)_pageRefs[index];
+
     /// <summary>Appends a page of the given size in points and returns its dictionary.</summary>
     public PdfDictionary AddPage(double widthPoints, double heightPoints, out PdfReference pageRef)
     {

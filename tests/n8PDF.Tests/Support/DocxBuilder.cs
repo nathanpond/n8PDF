@@ -107,6 +107,38 @@ public sealed class DocxBuilder
         return this;
     }
 
+    private readonly List<(string Id, string Url)> _hyperlinks = [];
+
+    /// <summary>
+    /// Registers an external address and returns the relationship id a <c>w:hyperlink</c> refers
+    /// to it by. Word never puts the address in the document body: it always goes through a
+    /// relationship marked <c>TargetMode="External"</c>.
+    /// </summary>
+    public string AddExternalHyperlink(string url)
+    {
+        var id = $"rIdLink{_hyperlinks.Count + 1}";
+        _hyperlinks.Add((id, url));
+        return id;
+    }
+
+    /// <summary>Markup for a hyperlink around one run, for use inside a paragraph.</summary>
+    public static string Hyperlink(string text, string? relationshipId = null, string? anchor = null,
+        string? runProperties = null)
+    {
+        var attributes = new StringBuilder();
+        if (relationshipId is not null) attributes.Append($" r:id=\"{relationshipId}\"");
+        if (anchor is not null) attributes.Append($" w:anchor=\"{Escape(anchor)}\"");
+
+        return $"<w:hyperlink{attributes}><w:r>" +
+               (runProperties is not null ? $"<w:rPr>{runProperties}</w:rPr>" : string.Empty) +
+               $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t>" +
+               "</w:r></w:hyperlink>";
+    }
+
+    /// <summary>Markup for a bookmark spanning nothing, which is how Word marks a link target.</summary>
+    public static string Bookmark(string name, int id = 1) =>
+        $"<w:bookmarkStart w:id=\"{id}\" w:name=\"{Escape(name)}\"/><w:bookmarkEnd w:id=\"{id}\"/>";
+
     private readonly List<(string Id, string PartName, byte[] Data)> _images = [];
 
     /// <summary>
@@ -246,7 +278,8 @@ public sealed class DocxBuilder
         return this;
     }
 
-    private readonly List<(string Id, string PartName, string Kind, string Body)> _headersFooters = [];
+    private readonly List<(string Id, string PartName, string Kind, string Body,
+        IReadOnlyList<(string Id, string Url)> Hyperlinks)> _headersFooters = [];
     private bool _titlePage;
     private bool _evenAndOddHeaders;
 
@@ -254,7 +287,12 @@ public sealed class DocxBuilder
     /// Adds a header or footer part and references it from the section.
     /// </summary>
     /// <param name="kind">"default", "first" or "even".</param>
-    public DocxBuilder WithHeaderFooter(bool header, string paragraphsXml, string kind = "default")
+    /// <param name="headerHyperlinks">
+    /// External addresses for the links in this part, by relationship id. A header owns its own
+    /// relationship part, so these ids are independent of the body's and may repeat them.
+    /// </param>
+    public DocxBuilder WithHeaderFooter(bool header, string paragraphsXml, string kind = "default",
+        IReadOnlyList<(string Id, string Url)>? headerHyperlinks = null)
     {
         var index = _headersFooters.Count + 1;
         var id = $"rIdHF{index}";
@@ -271,7 +309,8 @@ public sealed class DocxBuilder
                        xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
                {paragraphsXml}
              </w:{root}>
-             """));
+             """,
+            headerHyperlinks ?? []));
 
         return this;
     }
@@ -383,8 +422,30 @@ public sealed class DocxBuilder
             if (_numbering is not null) Write(archive, "word/numbering.xml", _numbering);
             if (_evenAndOddHeaders) Write(archive, "word/settings.xml", EvenOddSettings);
 
-            foreach (var (_, partName, _, body) in _headersFooters)
+            foreach (var (_, partName, _, body, hyperlinks) in _headersFooters)
+            {
                 Write(archive, partName, body);
+
+                // A part that references anything needs its own relationship part beside it, in a
+                // _rels folder next to the part itself.
+                if (hyperlinks.Count == 0) continue;
+
+                var relationships = new StringBuilder();
+                foreach (var (id, url) in hyperlinks)
+                {
+                    relationships.Append(
+                        $"<Relationship Id=\"{id}\" " +
+                        "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" " +
+                        $"Target=\"{Escape(url)}\" TargetMode=\"External\"/>");
+                }
+
+                var directory = Path.GetDirectoryName(partName)!.Replace('\\', '/');
+                Write(archive,
+                    $"{directory}/_rels/{Path.GetFileName(partName)}.rels",
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                    relationships + "</Relationships>");
+            }
 
             foreach (var (_, partName, data) in _images)
             {
@@ -427,7 +488,7 @@ public sealed class DocxBuilder
         if (_headersFooters.Count == 0 && !_titlePage) return _sectionProperties;
 
         var references = new StringBuilder();
-        foreach (var (id, _, kind, _) in _headersFooters)
+        foreach (var (id, _, kind, _, _) in _headersFooters)
         {
             var parts = kind.Split(':');
             references.Append($"<w:{parts[0]}Reference w:type=\"{parts[1]}\" r:id=\"{id}\"/>");
@@ -522,7 +583,7 @@ public sealed class DocxBuilder
             defaults.Append($"<Default Extension=\"{extension}\" ContentType=\"{type}\"/>");
         }
 
-        foreach (var (_, partName, kind, _) in _headersFooters)
+        foreach (var (_, partName, kind, _, _) in _headersFooters)
         {
             var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
             defaults.Append(
@@ -563,13 +624,21 @@ public sealed class DocxBuilder
                 "Target=\"numbering.xml\"/>");
         }
 
-        foreach (var (id, partName, kind, _) in _headersFooters)
+        foreach (var (id, partName, kind, _, _) in _headersFooters)
         {
             var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
             extra.Append(
                 $"<Relationship Id=\"{id}\" " +
                 $"Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{type}\" " +
                 $"Target=\"{partName["word/".Length..]}\"/>");
+        }
+
+        foreach (var (id, url) in _hyperlinks)
+        {
+            extra.Append(
+                $"<Relationship Id=\"{id}\" " +
+                "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" " +
+                $"Target=\"{Escape(url)}\" TargetMode=\"External\"/>");
         }
 
         if (_evenAndOddHeaders)

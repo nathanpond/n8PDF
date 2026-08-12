@@ -45,6 +45,25 @@ public sealed class FieldInline(string instruction, string cachedText) : InlineE
 /// <summary>A tab character from <c>w:tab</c>.</summary>
 public sealed class TabInline : InlineElement;
 
+/// <summary>
+/// The start of a bookmark, which an internal hyperlink can point at.
+/// </summary>
+/// <remarks>
+/// Zero-width: it marks a place rather than drawing anything.
+/// </remarks>
+public sealed class BookmarkInline(string name) : InlineElement
+{
+    public string Name { get; } = name;
+}
+
+/// <summary>Where a hyperlink leads.</summary>
+/// <param name="RelationshipId">
+/// The relationship naming an external target. Resolved to a URL when the package is read, since
+/// the run itself only carries the id.
+/// </param>
+/// <param name="Anchor">A bookmark within the document, for an internal link.</param>
+public sealed record HyperlinkTarget(string? RelationshipId, string? Anchor);
+
 /// <summary>The kind of break a <c>w:br</c> represents.</summary>
 public enum BreakKind
 {
@@ -164,6 +183,12 @@ public sealed class AnchoredDrawing : InlineElement
 public sealed class Run
 {
     public RunProperties Properties { get; set; } = new();
+
+    /// <summary>
+    /// The hyperlink this run belongs to, if any. Held on the run rather than as a wrapper
+    /// because a link's extent is exactly the runs inside it, and layout deals in runs.
+    /// </summary>
+    public HyperlinkTarget? Hyperlink { get; set; }
 
     public List<InlineElement> Content { get; } = [];
 
@@ -379,6 +404,9 @@ public sealed class HeaderFooter
 /// <summary>The parsed main document part.</summary>
 public sealed class WordDocument
 {
+    /// <summary>External hyperlink targets by relationship id.</summary>
+    public Dictionary<string, string> Hyperlinks { get; } = [];
+
     /// <summary>Header and footer parts by relationship id.</summary>
     public Dictionary<string, HeaderFooter> HeadersAndFooters { get; } = [];
 

@@ -27,6 +27,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private readonly StyleResolver _styles = styles;
     private readonly LayoutOptions _options = options ?? new LayoutOptions();
     private IReadOnlyDictionary<string, byte[]> _images = new Dictionary<string, byte[]>();
+    private IReadOnlyDictionary<string, string> _hyperlinks = new Dictionary<string, string>();
+    private LaidOutDocument? _result;
+
+    // Bookmarks seen while building a paragraph's atoms, recorded once the paragraph is placed.
+    private readonly List<string> _pendingBookmarks = [];
 
     // Decoded images, keyed by relationship id. A picture used several times is decoded once and
     // yields the same instance every time, which is what lets the writer embed it once.
@@ -44,10 +49,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     public LaidOutDocument Layout(WordDocument document)
     {
         _images = document.Images;
+        _hyperlinks = document.Hyperlinks;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
         var section = document.Section;
         var result = new LaidOutDocument { Section = section };
+        _result = result;
 
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
 
@@ -153,7 +160,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // very first line already flows around them.
         PlaceAnchoredDrawings(cursor, paragraph);
 
+        _pendingBookmarks.Clear();
         var composer = new ParagraphComposer(BuildAtoms(paragraph, format), format);
+        var bookmarks = _pendingBookmarks.ToList();
+        var firstLine = true;
 
         while (composer.HasMore)
         {
@@ -166,6 +176,22 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // move whole groups of lines here; it is not implemented yet.
             if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom && cursor.CanBreak)
                 cursor.BreakPage();
+
+            if (firstLine && bookmarks.Count > 0 && _result is not null)
+            {
+                // A detached flow composes onto a scratch page that is not part of the document
+                // yet, so its index is unknown here. Rather than record a destination that would
+                // point at the wrong place, the bookmark is left unrecorded and the link that
+                // wanted it simply does not become clickable.
+                var pageIndex = _result.Pages.IndexOf(cursor.Page);
+                if (pageIndex >= 0)
+                {
+                    foreach (var name in bookmarks)
+                        _result.Bookmarks[name] = new BookmarkDestination(pageIndex, cursor.Left, cursor.Y);
+                }
+
+                firstLine = false;
+            }
 
             EmitLine(cursor.Page, line, cursor.Left, cursor.Y, index);
             cursor.Y += line.Height;
@@ -333,18 +359,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         };
 
         foreach (var text in line.Texts)
-        {
-            moved.Texts.Add(new PositionedText
-            {
-                X = text.X,
-                BaselineY = text.BaselineY + delta,
-                Text = text.Text,
-                Format = text.Format,
-                Font = text.Font,
-                Width = text.Width,
-                WordSpacing = text.WordSpacing
-            });
-        }
+            moved.Texts.Add(text.Translate(0, delta));
 
         return moved;
     }
@@ -1053,7 +1068,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Format = segment.Format,
                 Font = segment.Font,
                 Width = segment.Width,
-                WordSpacing = segment.WordSpacing
+                WordSpacing = segment.WordSpacing,
+                Link = segment.Link
             };
 
             laidOut.Texts.Add(text);
@@ -1350,6 +1366,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (current is not null &&
                 ReferenceEquals(current.Format, textAtom.Format) &&
                 ReferenceEquals(current.Font, textAtom.Font) &&
+                Equals(current.Link, textAtom.Link) &&
                 Math.Abs(current.X + current.Width - (indentLeft + offset + pen)) < 0.001)
             {
                 current.Text += textAtom.Text;
@@ -1366,7 +1383,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                     Font = textAtom.Font,
                     Width = textAtom.Width + extra,
                     WordSpacing = wordSpacing,
-                    SpaceCount = textAtom.IsSpace ? 1 : 0
+                    SpaceCount = textAtom.IsSpace ? 1 : 0,
+                    Link = textAtom.Link
                 };
 
                 line.Segments.Add(current);
@@ -1463,6 +1481,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             var runFormat = _styles.ResolveRun(paragraph.Properties, run.Properties);
             if (runFormat.Hidden) continue;
 
+            var link = ResolveHyperlink(run.Hyperlink);
+
             var selection = _fonts.Resolve(runFormat.FontFamily, runFormat.Bold, runFormat.Italic);
             var size = runFormat.EffectiveFontSizePoints;
             var ascent = TextMeasurer.GetAscent(selection.Font, size);
@@ -1475,7 +1495,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 {
                     case TextInline text:
                         AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(text.Text, runFormat),
-                            runFormat, selection, ascent, naturalHeight, descent);
+                            runFormat, selection, ascent, naturalHeight, descent, link);
+                        break;
+
+                    case BookmarkInline bookmark:
+                        // Recorded where the paragraph has reached, which is the line the mark
+                        // appears on; a reader following the link lands on that line.
+                        _pendingBookmarks.Add(bookmark.Name);
                         break;
 
                     case TabInline:
@@ -1505,7 +1531,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
                     case FieldInline field:
                         AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(ResolveField(field), runFormat),
-                            runFormat, selection, ascent, naturalHeight, descent);
+                            runFormat, selection, ascent, naturalHeight, descent, link);
                         break;
                 }
             }
@@ -1610,6 +1636,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// Turns a hyperlink's stored reference into a resolved target, dropping one that leads
+    /// nowhere: a relationship id with no matching relationship is not a link.
+    /// </summary>
+    private ResolvedHyperlink? ResolveHyperlink(HyperlinkTarget? target)
+    {
+        if (target is null) return null;
+
+        if (target.RelationshipId is { } id && _hyperlinks.TryGetValue(id, out var url))
+            return new ResolvedHyperlink(url, null);
+
+        return string.IsNullOrEmpty(target.Anchor) ? null : new ResolvedHyperlink(null, target.Anchor);
+    }
+
+    /// <summary>
     /// Decodes the picture behind a relationship id, once per document.
     /// </summary>
     /// <remarks>
@@ -1635,7 +1675,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// </summary>
     private void AddTextAtoms(
         List<Atom> atoms, string text, ResolvedRunFormat format, FontSelection font,
-        double ascent, double naturalHeight, double descent)
+        double ascent, double naturalHeight, double descent, ResolvedHyperlink? link = null)
     {
         var index = 0;
         while (index < text.Length)
@@ -1656,6 +1696,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Ascent = ascent,
                 NaturalHeight = naturalHeight,
                 Descent = descent,
+                Link = link,
                 Width = TextMeasurer.Measure(
                     font.Font, slice, format.EffectiveFontSizePoints,
                     format.CharacterSpacingPoints, _options.ApplyKerning) * format.ScaleFactor
@@ -1801,18 +1842,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 };
 
                 foreach (var text in line.Texts)
-                {
-                    moved.Texts.Add(new PositionedText
-                    {
-                        X = text.X + dx,
-                        BaselineY = text.BaselineY + dy,
-                        Text = text.Text,
-                        Format = text.Format,
-                        Font = text.Font,
-                        Width = text.Width,
-                        WordSpacing = text.WordSpacing
-                    });
-                }
+                    moved.Texts.Add(text.Translate(dx, dy));
 
                 target.Lines.Add(moved);
             }
@@ -1900,6 +1930,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required FontSelection Font { get; init; }
 
         public required double Width { get; init; }
+
+        public ResolvedHyperlink? Link { get; init; }
     }
 
     private sealed class TabAtom : Atom
@@ -1944,6 +1976,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public double WordSpacing { get; init; }
 
         public int SpaceCount { get; set; }
+
+        public ResolvedHyperlink? Link { get; init; }
     }
 
     private sealed class ComposedLine

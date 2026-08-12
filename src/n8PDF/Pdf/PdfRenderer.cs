@@ -17,12 +17,24 @@ internal static class PdfRenderer
     /// <summary>Stroke width for synthetic bold, as a fraction of the font size.</summary>
     private const double SyntheticBoldStrokeRatio = 0.022;
 
+    /// <summary>
+    /// How far a link's clickable region extends past each end of its text, in points.
+    /// </summary>
+    /// <remarks>
+    /// Measured from Word's own exports: it pads by 0.03 inch, and by the same amount at 24pt as
+    /// at 12pt, so the padding is fixed rather than proportional to the type size.
+    /// </remarks>
+    private const double LinkPaddingPoints = 2.16;
+
     public static void Render(LaidOutDocument document, PdfBuilder builder)
     {
+        var pages = new List<(LaidOutPage Source, PdfPage Target)>();
+
         foreach (var page in document.Pages)
         {
             var target = builder.AddPage(page.WidthPoints, page.HeightPoints);
             var content = target.Content;
+            pages.Add((page, target));
 
             // Shading and table borders go down first, in the order layout added them: fills
             // before the borders that sit on top of them, and both before any text.
@@ -58,6 +70,108 @@ internal static class PdfRenderer
 
             foreach (var text in page.Texts)
                 RenderText(builder, content, page, text);
+        }
+
+        // Annotations are added after every page exists, because an internal link needs a
+        // reference to the page it points at and that page may come later in the document.
+        foreach (var (source, target) in pages)
+            AddLinkAnnotations(document, builder, source, target);
+    }
+
+    /// <summary>
+    /// Lays a clickable region over every run that carries a link.
+    /// </summary>
+    /// <remarks>
+    /// Runs are merged where they share a target, so a linked phrase broken into several runs by
+    /// formatting becomes one region rather than a row of adjacent ones. A link split across two
+    /// lines still gets one region per line, which is what a reader expects.
+    /// </remarks>
+    private static void AddLinkAnnotations(
+        LaidOutDocument document, PdfBuilder builder, LaidOutPage source, PdfPage target)
+    {
+        foreach (var line in source.Lines)
+        {
+            PositionedText? start = null;
+            PositionedText? end = null;
+
+            void Flush()
+            {
+                if (start is null || end is null) return;
+
+                var link = start.Link!;
+
+                // The clickable region is the run's line box rather than its glyph bounds, which
+                // is what Word does: a link is clickable a little above and below the letters, and
+                // measuring per run keeps a small link on a line of large text from swelling to
+                // the height of its neighbours.
+                var metrics = start.Font.Font.Metrics;
+                var size = start.FontSizePoints;
+                var ascent = metrics.ToPoints(metrics.DefaultAscent, size);
+                var height = metrics.ToPoints(metrics.DefaultLineHeight, size);
+
+                var top = start.BaselineY - ascent;
+                var bottom = top + height;
+
+                var annotation = new PdfDictionary()
+                    .Set("Type", "Annot")
+                    .Set("Subtype", "Link")
+                    .Set("Rect", new PdfArray()
+                        .Add(start.X - LinkPaddingPoints)
+                        .Add(Flip(source, bottom))
+                        .Add(end.X + end.Width + LinkPaddingPoints)
+                        .Add(Flip(source, top)))
+                    // Without this most viewers draw a black box around every link.
+                    .Set("Border", new PdfArray().Add(0).Add(0).Add(0));
+
+                if (link.Url is { } url)
+                {
+                    annotation.Set("A", new PdfDictionary()
+                        .Set("S", "URI")
+                        .Set("URI", PdfString.FromText(url)));
+                }
+                else if (link.Anchor is { } anchor &&
+                         document.Bookmarks.TryGetValue(anchor, out var destination) &&
+                         destination.PageIndex >= 0 && destination.PageIndex < document.Pages.Count)
+                {
+                    // XYZ with a null zoom means "go here and leave the magnification alone".
+                    var page = document.Pages[destination.PageIndex];
+                    annotation.Set("Dest", new PdfArray()
+                        .Add(builder.Document.GetPageReference(destination.PageIndex))
+                        .Add(new PdfName("XYZ"))
+                        .Add(destination.X)
+                        .Add(page.HeightPoints - destination.Y)
+                        .Add(PdfNull.Instance));
+                }
+                else
+                {
+                    // An anchor pointing at a bookmark that is not in the document leads nowhere,
+                    // so no region is created rather than one that does nothing when clicked.
+                    start = null;
+                    end = null;
+                    return;
+                }
+
+                target.Annotations.Add(builder.Document.Add(annotation));
+
+                start = null;
+                end = null;
+            }
+
+            foreach (var text in line.Texts)
+            {
+                if (text.Link is null)
+                {
+                    Flush();
+                    continue;
+                }
+
+                if (start is not null && !Equals(start.Link, text.Link)) Flush();
+
+                start ??= text;
+                end = text;
+            }
+
+            Flush();
         }
     }
 

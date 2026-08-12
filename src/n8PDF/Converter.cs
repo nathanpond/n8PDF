@@ -94,6 +94,7 @@ public static class Converter
         var document = DocumentParser.Parse(package.ReadPartAsXml(mainPartName));
         LoadImages(package, mainPartName, document);
         LoadHeadersAndFooters(package, mainPartName, document);
+        LoadHyperlinks(package, mainPartName, mainPartName, document.Body, document);
 
         var settingsPart = package.GetRelatedPartName(mainPartName, OpcPackage.SettingsRelationship);
         if (settingsPart is not null)
@@ -124,11 +125,6 @@ public static class Converter
     /// <summary>
     /// Reads the image parts the main document references, keyed by relationship id.
     /// </summary>
-    /// <remarks>
-    /// Done here rather than during layout because the package is closed by the time layout runs,
-    /// and a drawing carries only the relationship id, not the picture. A part that is missing or
-    /// unreadable is skipped: a broken image should cost its own placement, not the conversion.
-    /// </remarks>
     /// <summary>
     /// Reads the header and footer parts the section refers to.
     /// </summary>
@@ -163,6 +159,7 @@ public static class Converter
                 }
 
                 document.HeadersAndFooters[relationship.Id] = content;
+                LoadHyperlinks(package, partName, partName, content.Body, document);
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
             {
@@ -170,8 +167,66 @@ public static class Converter
         }
     }
 
+    /// <summary>
+    /// Resolves the external addresses of the hyperlinks in one part.
+    /// </summary>
+    /// <remarks>
+    /// Relationship ids are scoped to the part that declares them, so a header and the body can
+    /// each own an <c>rId1</c> pointing somewhere different. Ids are rewritten to include the part
+    /// name as they are collected, which lets the whole document share one address table without
+    /// two parts' links standing on each other.
+    ///
+    /// A link whose relationship is missing keeps its rewritten id and finds nothing in the table,
+    /// which is what layout treats as "not a link": the text still draws, it just isn't clickable.
+    /// </remarks>
+    private static void LoadHyperlinks(
+        OpcPackage package, string partName, string scope, List<BlockElement> blocks, WordDocument document)
+    {
+        Dictionary<string, string>? targets = null;
+
+        foreach (var run in EnumerateRuns(blocks))
+        {
+            if (run.Hyperlink is not { RelationshipId: { } id } link) continue;
+
+            targets ??= package.GetRelationships(partName)
+                .Where(r => r.Type == OpcPackage.HyperlinkRelationship)
+                .GroupBy(r => r.Id, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().Target, StringComparer.Ordinal);
+
+            var key = scope + "|" + id;
+            if (targets.TryGetValue(id, out var target)) document.Hyperlinks[key] = target;
+
+            run.Hyperlink = link with { RelationshipId = key };
+        }
+    }
+
+    /// <summary>Every run in a block list, descending through table cells.</summary>
+    private static IEnumerable<Run> EnumerateRuns(IEnumerable<BlockElement> blocks)
+    {
+        foreach (var block in blocks)
+        {
+            switch (block)
+            {
+                case Paragraph paragraph:
+                    foreach (var run in paragraph.Runs) yield return run;
+                    break;
+
+                case Table table:
+                    foreach (var row in table.Rows)
+                    foreach (var cell in row.Cells)
+                    foreach (var run in EnumerateRuns(cell.Content))
+                        yield return run;
+                    break;
+            }
+        }
+    }
+
     private static void LoadImages(OpcPackage package, string mainPartName, WordDocument document)
     {
+        // Done here rather than during layout because the package is closed by the time layout
+        // runs, and a drawing carries only the relationship id, not the picture. A part that is
+        // missing or unreadable is skipped: a broken image should cost its own placement, not the
+        // conversion.
         foreach (var relationship in package.GetRelationships(mainPartName))
         {
             if (relationship.Type != OpcPackage.ImageRelationship || relationship.IsExternal) continue;

@@ -596,6 +596,47 @@ public static class Fixtures
                 return builder;
             },
 
+            // External and internal links, the latter pointing across a page break at a bookmark.
+            // The links carry the blue underline directly rather than through the Hyperlink
+            // character style, because what is under test here is the target, not the cascade.
+            ["hyperlinks"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var home = builder.AddExternalHyperlink("https://example.com/");
+                var deep = builder.AddExternalHyperlink("https://example.com/docs/reference?page=2#top");
+                var mail = builder.AddExternalHyperlink("mailto:someone@example.com");
+
+                var linkStyle = Times(color: "0563C1", underline: "single");
+
+                builder
+                    .AddParagraph("Links to other places.", ZeroSpacing, Times12)
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Start at </w:t></w:r>" +
+                        DocxBuilder.Hyperlink("the home page", home, runProperties: linkStyle) +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> and then read the </w:t></w:r>" +
+                        DocxBuilder.Hyperlink("reference", deep, runProperties: linkStyle) +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>")
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Write to </w:t></w:r>" +
+                        DocxBuilder.Hyperlink("someone@example.com", mail, runProperties: linkStyle) +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">, or jump to </w:t></w:r>" +
+                        DocxBuilder.Hyperlink("the appendix", anchor: "appendix", runProperties: linkStyle) +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>")
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        DocxBuilder.Hyperlink("A large link", home,
+                            runProperties: Times(48, color: "0563C1", underline: "single")) +
+                        "</w:p>")
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>{DocxBuilder.Bookmark("appendix")}" +
+                        $"<w:r><w:rPr>{Times24}</w:rPr><w:t>Appendix</w:t></w:r></w:p>")
+                    .AddParagraph("The place the internal link points at.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""
