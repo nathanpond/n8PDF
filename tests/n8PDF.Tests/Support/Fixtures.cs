@@ -535,6 +535,27 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the image.", ZeroSpacing, Times12);
             },
 
+            // Floating images: text flowing around one on the left, one on the right, and one
+            // that takes the full measure so text goes above and below it.
+            ["images-floating"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var left = builder.AddImagePart(PngWriter.Diagonal(40));
+                var right = builder.AddImagePart(PngWriter.Solid(20, 20, 40, 150, 90));
+                var banner = builder.AddImagePart(PngWriter.Solid(60, 12, 200, 170, 40));
+
+                var body = string.Join(' ',
+                    Enumerable.Repeat("Text flows around the floating picture beside it.", 14));
+
+                return builder
+                    .AddAnchoredImageParagraph(left, 108, 90, body,
+                        paragraphProperties: ZeroSpacing, runProperties: Times12)
+                    .AddAnchoredImageParagraph(right, 108, 90, body, alignX: "right",
+                        paragraphProperties: ZeroSpacing, runProperties: Times12)
+                    .AddAnchoredImageParagraph(banner, 360, 36, body, wrap: "topAndBottom",
+                        paragraphProperties: ZeroSpacing, runProperties: Times12);
+            },
+
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""

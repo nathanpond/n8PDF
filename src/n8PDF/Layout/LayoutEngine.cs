@@ -135,8 +135,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             cursor.Y += Math.Max(cursor.PendingSpaceAfter, spaceBefore);
         }
 
-        foreach (var line in ComposeParagraph(paragraph, format, cursor.Width))
+        // Anchored drawings are placed before the paragraph's own text is composed, so that its
+        // very first line already flows around them.
+        PlaceAnchoredDrawings(cursor, paragraph);
+
+        var composer = new ParagraphComposer(BuildAtoms(paragraph, format), format);
+
+        while (composer.HasMore)
         {
+            var band = ResolveBandForLine(cursor, composer.ProvisionalHeight);
+            var line = composer.Next(band.Left, band.Width);
+
             if (line.ForcePageBreak && cursor.CanBreak) cursor.BreakPage();
 
             // A line that does not fit starts a new page. Widow and orphan control would
@@ -161,6 +170,219 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // space-before.
         cursor.PendingSpaceAfter = spaceAfter;
         cursor.PreviousFormat = format;
+    }
+
+    /// <summary>
+    /// Finds the free horizontal band for the next line, moving down past any float that blocks
+    /// the full measure.
+    /// </summary>
+    private static (double Left, double Width) ResolveBandForLine(Cursor cursor, double provisionalHeight)
+    {
+        var height = Math.Max(1, provisionalHeight);
+
+        // A wrapTopAndBottom float, or two floats meeting in the middle, can leave no usable
+        // width at all. The line then belongs below them.
+        for (var guard = 0; guard < 64; guard++)
+        {
+            var band = cursor.ResolveBand(cursor.Y, height);
+            if (band.Width > 1) return band;
+
+            var clear = cursor.NextClearY(cursor.Y, height);
+            if (clear is null || clear <= cursor.Y) return (0, cursor.Width);
+
+            cursor.Y = clear.Value;
+        }
+
+        return (0, cursor.Width);
+    }
+
+    /// <summary>
+    /// Positions the anchored drawings of a paragraph and registers the areas text must avoid.
+    /// </summary>
+    private void PlaceAnchoredDrawings(Cursor cursor, Paragraph paragraph)
+    {
+        foreach (var anchored in paragraph.Runs.SelectMany(run => run.Content).OfType<AnchoredDrawing>())
+        {
+            if (anchored.RelationshipId is null) continue;
+
+            var image = DecodeImage(anchored.RelationshipId);
+            if (image is null) continue;
+
+            var width = anchored.WidthPoints;
+            var height = anchored.HeightPoints;
+            if (width <= 0 || height <= 0) continue;
+
+            var x = ResolveHorizontalPosition(cursor, anchored, width);
+            var y = ResolveVerticalPosition(cursor, anchored, height);
+
+            cursor.Page.Images.Add(new PositionedImage
+            {
+                X = x,
+                Y = y,
+                Width = width,
+                Height = height,
+                Image = image
+            });
+
+            if (anchored.Wrap == TextWrapMode.None) continue;
+
+            // The distances are the clearance Word keeps between the picture and the text; they
+            // are part of the area text has to avoid, not part of the picture.
+            var left = x - Units.EmuToPoints(anchored.DistanceLeftEmu);
+            var right = x + width + Units.EmuToPoints(anchored.DistanceRightEmu);
+
+            if (anchored.Wrap == TextWrapMode.TopAndBottom)
+            {
+                // Nothing sits beside it, so the exclusion spans the whole measure.
+                left = cursor.Left;
+                right = cursor.Left + cursor.Width;
+            }
+
+            var region = new FloatRegion(
+                left,
+                y - Units.EmuToPoints(anchored.DistanceTopEmu),
+                right,
+                y + height + Units.EmuToPoints(anchored.DistanceBottomEmu));
+
+            cursor.Floats.Add(region);
+
+            // A float's clearance can reach back over text already on the page — the top
+            // clearance of a picture anchored to a paragraph overlaps the last line of the one
+            // before it. Word moves that text down; the picture stays where its anchor put it.
+            if (anchored.Wrap == TextWrapMode.TopAndBottom) DisplaceOverlappedLines(cursor, region);
+        }
+    }
+
+    /// <summary>
+    /// Moves lines already placed on the page out from under a float that reaches back over them.
+    /// </summary>
+    /// <remarks>
+    /// Only applied to floats spanning the whole measure. There the displaced line keeps the same
+    /// width, so its existing line breaks stay correct and moving it is enough. A float that
+    /// blocks only part of the measure would change the width available to the line and require
+    /// it to be broken again, which single-pass layout cannot do — see the note in the README.
+    /// </remarks>
+    private static void DisplaceOverlappedLines(Cursor cursor, FloatRegion region)
+    {
+        var lines = cursor.Page.Lines;
+
+        var first = -1;
+        var delta = 0.0;
+
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var top = lines[i].BaselineY - lines[i].Ascent;
+            var bottom = top + lines[i].Height;
+
+            if (bottom <= region.Top || top >= region.Bottom) continue;
+
+            first = i;
+            delta = region.Bottom - top;
+            break;
+        }
+
+        if (first < 0 || delta <= 0) return;
+
+        // Everything from the first overlapping line down moves by the same amount, which keeps
+        // the spacing between them intact.
+        for (var i = first; i < lines.Count; i++)
+            lines[i] = ShiftLine(lines[i], delta);
+
+        // Underlines and strikethroughs are held separately from the text they belong to, so
+        // they have to move with it or they stay behind under empty space.
+        var rules = cursor.Page.Rules;
+        for (var i = 0; i < rules.Count; i++)
+        {
+            if (rules[i].Y < region.Top) continue;
+
+            rules[i] = new PositionedRule
+            {
+                X = rules[i].X,
+                Y = rules[i].Y + delta,
+                Width = rules[i].Width,
+                Thickness = rules[i].Thickness,
+                Color = rules[i].Color
+            };
+        }
+
+        cursor.Y += delta;
+    }
+
+    private static LaidOutLine ShiftLine(LaidOutLine line, double delta)
+    {
+        var moved = new LaidOutLine
+        {
+            BaselineY = line.BaselineY + delta,
+            Height = line.Height,
+            Ascent = line.Ascent,
+            ParagraphIndex = line.ParagraphIndex
+        };
+
+        foreach (var text in line.Texts)
+        {
+            moved.Texts.Add(new PositionedText
+            {
+                X = text.X,
+                BaselineY = text.BaselineY + delta,
+                Text = text.Text,
+                Format = text.Format,
+                Font = text.Font,
+                Width = text.Width,
+                WordSpacing = text.WordSpacing
+            });
+        }
+
+        return moved;
+    }
+
+    private static double ResolveHorizontalPosition(Cursor cursor, AnchoredDrawing anchored, double width)
+    {
+        var pageWidth = cursor.Section.PageWidthPoints;
+
+        var (origin, available) = anchored.HorizontalFrom switch
+        {
+            HorizontalAnchor.Page => (0.0, pageWidth),
+            HorizontalAnchor.LeftMargin => (0.0, cursor.Left),
+            HorizontalAnchor.RightMargin => (cursor.Left + cursor.Width, pageWidth - cursor.Left - cursor.Width),
+            _ => (cursor.Left, cursor.Width)
+        };
+
+        if (anchored.HorizontalOffsetEmu is { } offset)
+            return origin + Units.EmuToPoints(offset);
+
+        return anchored.HorizontalAlign switch
+        {
+            "center" => origin + (available - width) / 2,
+            // "inside" and "outside" alternate with the page side in a bound document; without
+            // that concept they are the nearest equivalent fixed edge.
+            "right" or "outside" => origin + available - width,
+            _ => origin
+        };
+    }
+
+    private static double ResolveVerticalPosition(Cursor cursor, AnchoredDrawing anchored, double height)
+    {
+        var pageHeight = cursor.Section.PageHeightPoints;
+
+        var (origin, available) = anchored.VerticalFrom switch
+        {
+            VerticalAnchor.Page => (0.0, pageHeight),
+            VerticalAnchor.Margin or VerticalAnchor.TopMargin =>
+                (cursor.ContentTop, cursor.ContentBottom - cursor.ContentTop),
+            VerticalAnchor.BottomMargin => (cursor.ContentBottom, pageHeight - cursor.ContentBottom),
+            // Paragraph and line are both relative to where the text has reached.
+            _ => (cursor.Y, cursor.ContentBottom - cursor.Y)
+        };
+
+        if (anchored.VerticalOffsetEmu is { } offset)
+            return origin + Units.EmuToPoints(offset);
+
+        return anchored.VerticalAlign switch
+        {
+            "center" => origin + (available - height) / 2,
+            "bottom" or "outside" => origin + available - height,
+            _ => origin
+        };
     }
 
     // ----- tables -----
@@ -805,55 +1027,74 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     // ----- line composition -----
 
-    /// <summary>Breaks one paragraph into lines that fit the available width.</summary>
-    private List<ComposedLine> ComposeParagraph(Paragraph paragraph, ResolvedParagraphFormat format, double contentWidth)
+    /// <summary>
+    /// Breaks a paragraph into lines, one at a time.
+    /// </summary>
+    /// <remarks>
+    /// Incremental rather than all at once because the width available to a line depends on where
+    /// that line lands: a floating image excludes part of the measure, and which part depends on
+    /// the vertical position the line has reached. The caller therefore resolves the free band
+    /// for each line and hands it in.
+    /// </remarks>
+    private sealed class ParagraphComposer(List<Atom> atoms, ResolvedParagraphFormat format)
     {
-        var atoms = BuildAtoms(paragraph, format);
-        var lines = new List<ComposedLine>();
+        private int _index;
+        private bool _isFirstLine = true;
+        private bool _forceBreakOnNextLine;
+        private bool _producedAny;
 
-        var isFirstLine = true;
-        var index = 0;
-        var forceBreakOnNextLine = false;
+        /// <summary>An empty paragraph still gets one pass, so that it occupies a line.</summary>
+        public bool HasMore => _index < atoms.Count || !_producedAny;
 
-        while (index < atoms.Count || lines.Count == 0)
+        /// <summary>
+        /// A height to resolve the float band with, before the line's real height is known. The
+        /// tallest thing in the paragraph is a safe over-estimate: it can only make the band more
+        /// conservative, never place a line where it does not fit.
+        /// </summary>
+        public double ProvisionalHeight { get; } =
+            atoms.Count == 0 ? 0 : atoms.Max(atom => atom.NaturalHeight);
+
+        public ComposedLine Next(double bandLeft, double bandWidth)
         {
-            var indentLeft = format.IndentLeftPoints + (isFirstLine ? Math.Max(0, format.IndentFirstLinePoints) : 0);
+            var indentLeft = format.IndentLeftPoints +
+                             (_isFirstLine ? Math.Max(0, format.IndentFirstLinePoints) : 0);
 
             // A hanging indent pulls the first line left of the others, so it applies to the
             // first line as a negative offset rather than to the rest as a positive one.
-            if (isFirstLine && format.IndentFirstLinePoints < 0)
+            if (_isFirstLine && format.IndentFirstLinePoints < 0)
                 indentLeft = format.IndentLeftPoints + format.IndentFirstLinePoints;
 
-            var available = Math.Max(1, contentWidth - indentLeft - format.IndentRightPoints);
+            // The line sits in whichever is the tighter of the indents and the free band.
+            var left = Math.Max(indentLeft, bandLeft);
+            var right = Math.Min(bandLeft + bandWidth, bandLeft + bandWidth) - format.IndentRightPoints;
+            var available = Math.Max(1, right - left);
 
             var line = new ComposedLine
             {
-                ForcePageBreak = forceBreakOnNextLine,
-                IndentLeft = indentLeft
+                ForcePageBreak = _forceBreakOnNextLine,
+                IndentLeft = left
             };
-            forceBreakOnNextLine = false;
 
-            var consumed = FillLine(atoms, index, available, line, out var hardBreak, out var pageBreak);
-            index += consumed;
+            _forceBreakOnNextLine = false;
 
-            var isLastLine = index >= atoms.Count;
-            FinishLine(line, format, indentLeft, available, isLastLine || hardBreak);
-            lines.Add(line);
+            var consumed = FillLine(atoms, _index, available, line, out var hardBreak, out var pageBreak);
+            _index += consumed;
+            _producedAny = true;
 
-            if (pageBreak) forceBreakOnNextLine = true;
+            var isLastLine = _index >= atoms.Count;
+            FinishLine(line, format, left, available, isLastLine || hardBreak);
 
-            isFirstLine = false;
+            if (pageBreak) _forceBreakOnNextLine = true;
+            _isFirstLine = false;
 
-            // The loop condition allows an empty paragraph one pass so that it still occupies a
-            // line; break out once that pass is done.
-            if (consumed == 0 && index >= atoms.Count) break;
+            // An empty paragraph has no atoms but still takes up a line, sized by its mark.
+            if (line.Segments.Count == 0) ApplyEmptyLineMetrics(line, format);
+
+            // Nothing was consumed and nothing remains: the one pass an empty paragraph gets.
+            if (consumed == 0 && _index >= atoms.Count) _index = atoms.Count;
+
+            return line;
         }
-
-        // An empty paragraph has no atoms but still takes up a line, sized by its mark.
-        foreach (var line in lines.Where(l => l.Segments.Count == 0))
-            ApplyEmptyLineMetrics(line, format);
-
-        return lines;
     }
 
     /// <summary>
@@ -1167,16 +1408,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     {
         if (drawing.RelationshipId is null) return;
 
-        if (!_decodedImages.TryGetValue(drawing.RelationshipId, out var image))
-        {
-            image = _images.TryGetValue(drawing.RelationshipId, out var bytes)
-                ? Images.ImageReader.TryRead(bytes)
-                : null;
-
-            // Cached even when it failed, so an unreadable picture is not retried per placement.
-            _decodedImages[drawing.RelationshipId] = image;
-        }
-
+        var image = DecodeImage(drawing.RelationshipId);
         if (image is null) return;
 
         var width = drawing.WidthPoints;
@@ -1196,6 +1428,26 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             NaturalHeight = height,
             Descent = 0
         });
+    }
+
+    /// <summary>
+    /// Decodes the picture behind a relationship id, once per document.
+    /// </summary>
+    /// <remarks>
+    /// A failure is cached too, so an unreadable picture is not retried at every placement, and a
+    /// picture used several times yields the same instance — which is what lets the writer embed
+    /// it once.
+    /// </remarks>
+    private Images.ImageData? DecodeImage(string relationshipId)
+    {
+        if (_decodedImages.TryGetValue(relationshipId, out var cached)) return cached;
+
+        var image = _images.TryGetValue(relationshipId, out var bytes)
+            ? Images.ImageReader.TryRead(bytes)
+            : null;
+
+        _decodedImages[relationshipId] = image;
+        return image;
     }
 
     /// <summary>
@@ -1264,6 +1516,73 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public double PendingSpaceAfter { get; set; }
 
         /// <summary>
+        /// Rectangles on the current page that text must flow around, in page coordinates.
+        /// Cleared when a page breaks, since a float belongs to the page its anchor landed on.
+        /// </summary>
+        public List<FloatRegion> Floats { get; } = [];
+
+        /// <summary>
+        /// The widest run of free horizontal space across a vertical band, as an offset from the
+        /// content box's left edge and a width. Zero width means the band is fully blocked.
+        /// </summary>
+        public (double Left, double Width) ResolveBand(double top, double height)
+        {
+            if (Floats.Count == 0) return (0, Width);
+
+            var boxLeft = Left;
+            var boxRight = Left + Width;
+
+            var blocked = Floats
+                .Where(f => f.Top < top + height && f.Bottom > top)
+                .Select(f => (Left: Math.Max(boxLeft, f.Left), Right: Math.Min(boxRight, f.Right)))
+                .Where(interval => interval.Right > interval.Left)
+                .OrderBy(interval => interval.Left)
+                .ToList();
+
+            if (blocked.Count == 0) return (0, Width);
+
+            // Walk the gaps between blocked intervals and keep the widest.
+            var bestLeft = boxLeft;
+            var bestWidth = 0.0;
+            var x = boxLeft;
+
+            foreach (var interval in blocked)
+            {
+                if (interval.Left > x && interval.Left - x > bestWidth)
+                {
+                    bestLeft = x;
+                    bestWidth = interval.Left - x;
+                }
+
+                x = Math.Max(x, interval.Right);
+            }
+
+            if (boxRight - x > bestWidth)
+            {
+                bestLeft = x;
+                bestWidth = boxRight - x;
+            }
+
+            return (bestLeft - Left, Math.Max(0, bestWidth));
+        }
+
+        /// <summary>
+        /// The nearest y below which a blocked band opens up again, or null when nothing blocks it.
+        /// </summary>
+        public double? NextClearY(double top, double height)
+        {
+            double? clear = null;
+
+            foreach (var region in Floats)
+            {
+                if (region.Top >= top + height || region.Bottom <= top) continue;
+                if (clear is null || region.Bottom < clear) clear = region.Bottom;
+            }
+
+            return clear;
+        }
+
+        /// <summary>
         /// True when a page break would achieve anything. Breaking an empty page just produces
         /// another empty one, and inside a cell there are no pages to break at all.
         /// </summary>
@@ -1273,6 +1592,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             Page = NewPage(Document, Section);
             Y = ContentTop;
+
+            // A float belongs to the page its anchor landed on; it does not follow the text.
+            Floats.Clear();
         }
     }
 
@@ -1353,6 +1675,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             }
         }
     }
+
+    /// <summary>A rectangle on the page that text flows around, in page coordinates.</summary>
+    private readonly record struct FloatRegion(double Left, double Top, double Right, double Bottom);
 
     /// <summary>A cell with its resolved geometry and its measured contents.</summary>
     private sealed record PlacedCell(

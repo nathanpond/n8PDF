@@ -103,14 +103,22 @@ each with a fixture built so that only one candidate model survives:
   `ConversionOptions.ApplyWordBuiltInStyleDefaults = false` to render strictly what the document
   says.
 
+Text wrapping around a floating picture is single-pass: a float's exclusion applies to the text
+laid out from its anchor onwards, while Word lays out the whole page and reflows text above the
+anchor too. The one case where that shows — a float whose top clearance reaches back over the
+previous paragraph's last line — is handled by moving those lines down, which is correct because
+a full-width float does not change their width. A partial-width float reaching backwards would
+need the line broken again, and is not handled.
+
 Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented — our
 residuals are already smaller than one quantum — but it is the floor on how closely anything can
 match Word vertically.
 
 ## Current scope
 
-Implemented: inline images (PNG decoded from scratch, JPEG passed through untouched, transparency
-via a soft mask), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
+Implemented: images, inline and floating (PNG decoded from scratch, JPEG passed through untouched,
+transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
+pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
 from `sectPr`, paragraphs and runs, `xml:space` handling,
 line and page breaks, tabs (left-aligned stops), font family via theme resolution, size, bold,
@@ -126,8 +134,7 @@ content-width columns when the table fits, and a table filling the text area exa
 not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not derived from the real
 algorithm the way the paragraph rules are.
 
-Not yet: floating and anchored images with text wrapping (only inline images are placed), GIF,
-BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
+Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
 border, splitting a row across pages, lists and numbering, headers and footers, fields,
 hyperlinks, footnotes, RTL and complex scripts, font subsetting, GPOS kerning, widow/orphan
 control, and centre/right/decimal tab stops.

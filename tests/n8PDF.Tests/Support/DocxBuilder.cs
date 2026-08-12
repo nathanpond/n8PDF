@@ -168,6 +168,84 @@ public sealed class DocxBuilder
         return this;
     }
 
+    /// <summary>
+    /// Appends a paragraph whose first run carries an anchored (floating) image, followed by the
+    /// given text. The picture is positioned independently and the text flows around it.
+    /// </summary>
+    /// <param name="wrap">"square", "topAndBottom" or "none".</param>
+    /// <param name="offsetXPoints">Horizontal offset from <paramref name="relativeFromH"/>.</param>
+    /// <param name="alignX">Used instead of an offset when given: "left", "center" or "right".</param>
+    public DocxBuilder AddAnchoredImageParagraph(
+        string relationshipId, double widthPoints, double heightPoints, string text,
+        string wrap = "square",
+        double offsetXPoints = 0,
+        double offsetYPoints = 0,
+        string? alignX = null,
+        string relativeFromH = "column",
+        string relativeFromV = "paragraph",
+        double distancePoints = 6,
+        bool behindText = false,
+        string? paragraphProperties = null,
+        string? runProperties = null)
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+        var dist = (long)Math.Round(distancePoints * 12700);
+
+        var wrapElement = wrap switch
+        {
+            "none" => "<wp:wrapNone/>",
+            "topAndBottom" => "<wp:wrapTopAndBottom/>",
+            _ => "<wp:wrapSquare wrapText=\"bothSides\"/>"
+        };
+
+        var horizontal = alignX is not null
+            ? $"<wp:align>{alignX}</wp:align>"
+            : $"<wp:posOffset>{(long)Math.Round(offsetXPoints * 12700)}</wp:posOffset>";
+
+        _body.Append("<w:p>");
+        if (paragraphProperties is not null) _body.Append($"<w:pPr>{paragraphProperties}</w:pPr>");
+
+        _body.Append($"""
+            <w:r><w:drawing>
+              <wp:anchor distT="{dist}" distB="{dist}" distL="{dist}" distR="{dist}"
+                         simplePos="0" relativeHeight="251658240" behindDoc="{(behindText ? 1 : 0)}"
+                         locked="0" layoutInCell="1" allowOverlap="1">
+                <wp:simplePos x="0" y="0"/>
+                <wp:positionH relativeFrom="{relativeFromH}">{horizontal}</wp:positionH>
+                <wp:positionV relativeFrom="{relativeFromV}">
+                  <wp:posOffset>{(long)Math.Round(offsetYPoints * 12700)}</wp:posOffset>
+                </wp:positionV>
+                <wp:extent cx="{cx}" cy="{cy}"/>
+                {wrapElement}
+                <wp:docPr id="{_images.Count}" name="Floating {_images.Count}"/>
+                <a:graphic>
+                  <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:nvPicPr><pic:cNvPr id="{_images.Count}" name="Floating"/><pic:cNvPicPr/></pic:nvPicPr>
+                      <pic:blipFill>
+                        <a:blip r:embed="{relationshipId}"/>
+                        <a:stretch><a:fillRect/></a:stretch>
+                      </pic:blipFill>
+                      <pic:spPr>
+                        <a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>
+                        <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                      </pic:spPr>
+                    </pic:pic>
+                  </a:graphicData>
+                </a:graphic>
+              </wp:anchor>
+            </w:drawing></w:r>
+            """);
+
+        _body.Append("<w:r>");
+        if (runProperties is not null) _body.Append($"<w:rPr>{runProperties}</w:rPr>");
+        _body.Append($"<w:t xml:space=\"preserve\">{Escape(text)}</w:t>");
+        _body.Append("</w:r></w:p>");
+
+        return this;
+    }
+
     public byte[] Build()
     {
         var document = $"""

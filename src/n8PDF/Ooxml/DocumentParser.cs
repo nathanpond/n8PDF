@@ -114,8 +114,7 @@ public static class DocumentParser
             }
             else if (child.Name == W.Main + "drawing")
             {
-                var drawing = ParseDrawing(child);
-                if (drawing is not null) run.Content.Add(drawing);
+                if (ParseDrawing(child) is { } drawing) run.Content.Add(drawing);
             }
             else if (child.Name == W.Main + "noBreakHyphen")
             {
@@ -142,23 +141,100 @@ public static class DocumentParser
         return space == "preserve" ? text : text.Trim();
     }
 
-    private static DrawingInline? ParseDrawing(XElement element)
+    /// <summary>
+    /// Reads a <c>w:drawing</c>, which holds either an inline picture or an anchored one.
+    /// </summary>
+    private static InlineElement? ParseDrawing(XElement element)
     {
-        // Both inline and anchored drawings carry an a:ext with the display size.
-        var extent = element.Descendants(W.WordDrawing + "extent").FirstOrDefault()
-                     ?? element.Descendants(W.Drawing + "ext").FirstOrDefault();
-        if (extent is null) return null;
+        var anchor = element.Element(W.WordDrawing + "anchor");
+        if (anchor is not null) return ParseAnchoredDrawing(anchor);
 
-        var cx = extent.Attribute("cx")?.Value;
-        var cy = extent.Attribute("cy")?.Value;
-        if (!long.TryParse(cx, out var width) || !long.TryParse(cy, out var height))
-            return null;
+        var inline = element.Element(W.WordDrawing + "inline") ?? element;
 
-        var blip = element.Descendants(W.Drawing + "blip").FirstOrDefault();
-        var relationshipId = blip?.Attribute(W.Relationships + "embed")?.Value;
+        var (width, height) = ReadExtent(inline);
+        if (width <= 0 || height <= 0) return null;
 
-        return new DrawingInline(width, height, relationshipId);
+        return new DrawingInline(width, height, ReadEmbeddedRelationship(inline));
     }
+
+    private static AnchoredDrawing? ParseAnchoredDrawing(XElement anchor)
+    {
+        var (width, height) = ReadExtent(anchor);
+        if (width <= 0 || height <= 0) return null;
+
+        var positionH = anchor.Element(W.WordDrawing + "positionH");
+        var positionV = anchor.Element(W.WordDrawing + "positionV");
+
+        // Exactly one of wrapNone, wrapSquare, wrapTight, wrapThrough and wrapTopAndBottom is
+        // present. Tight and through follow a polygon; both are approximated by the bounding box,
+        // which is what wrapSquare does.
+        var wrap = TextWrapMode.Square;
+        if (anchor.Element(W.WordDrawing + "wrapNone") is not null) wrap = TextWrapMode.None;
+        else if (anchor.Element(W.WordDrawing + "wrapTopAndBottom") is not null) wrap = TextWrapMode.TopAndBottom;
+
+        return new AnchoredDrawing
+        {
+            WidthEmu = width,
+            HeightEmu = height,
+            RelationshipId = ReadEmbeddedRelationship(anchor),
+            Wrap = wrap,
+            BehindText = anchor.Attribute("behindDoc")?.Value is "1" or "true",
+
+            HorizontalFrom = positionH?.Attribute("relativeFrom")?.Value switch
+            {
+                "margin" => HorizontalAnchor.Margin,
+                "page" => HorizontalAnchor.Page,
+                "character" => HorizontalAnchor.Character,
+                "leftMargin" => HorizontalAnchor.LeftMargin,
+                "rightMargin" => HorizontalAnchor.RightMargin,
+                _ => HorizontalAnchor.Column
+            },
+            HorizontalOffsetEmu = ReadOffset(positionH),
+            HorizontalAlign = positionH?.Element(W.WordDrawing + "align")?.Value.Trim(),
+
+            VerticalFrom = positionV?.Attribute("relativeFrom")?.Value switch
+            {
+                "line" => VerticalAnchor.Line,
+                "margin" => VerticalAnchor.Margin,
+                "page" => VerticalAnchor.Page,
+                "topMargin" => VerticalAnchor.TopMargin,
+                "bottomMargin" => VerticalAnchor.BottomMargin,
+                _ => VerticalAnchor.Paragraph
+            },
+            VerticalOffsetEmu = ReadOffset(positionV),
+            VerticalAlign = positionV?.Element(W.WordDrawing + "align")?.Value.Trim(),
+
+            DistanceLeftEmu = ReadDistance(anchor, "distL"),
+            DistanceRightEmu = ReadDistance(anchor, "distR"),
+            DistanceTopEmu = ReadDistance(anchor, "distT"),
+            DistanceBottomEmu = ReadDistance(anchor, "distB")
+        };
+    }
+
+    private static (long Width, long Height) ReadExtent(XElement container)
+    {
+        var extent = container.Element(W.WordDrawing + "extent")
+                     ?? container.Descendants(W.WordDrawing + "extent").FirstOrDefault()
+                     ?? container.Descendants(W.Drawing + "ext").FirstOrDefault();
+        if (extent is null) return (0, 0);
+
+        long.TryParse(extent.Attribute("cx")?.Value, out var width);
+        long.TryParse(extent.Attribute("cy")?.Value, out var height);
+        return (width, height);
+    }
+
+    private static string? ReadEmbeddedRelationship(XElement container) =>
+        container.Descendants(W.Drawing + "blip").FirstOrDefault()
+            ?.Attribute(W.Relationships + "embed")?.Value;
+
+    private static long? ReadOffset(XElement? position)
+    {
+        var text = position?.Element(W.WordDrawing + "posOffset")?.Value;
+        return long.TryParse(text, out var value) ? value : null;
+    }
+
+    private static long ReadDistance(XElement anchor, string name) =>
+        long.TryParse(anchor.Attribute(name)?.Value, out var value) ? value : 0;
 
     public static RunProperties ParseRunProperties(XElement rPr)
     {

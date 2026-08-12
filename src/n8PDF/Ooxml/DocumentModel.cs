@@ -47,6 +47,91 @@ public sealed class DrawingInline(long widthEmu, long heightEmu, string? relatio
     public double HeightPoints => Units.EmuToPoints(HeightEmu);
 }
 
+/// <summary>How text behaves around a floating drawing.</summary>
+public enum TextWrapMode
+{
+    /// <summary>Text ignores the drawing entirely; the two overlap.</summary>
+    None,
+
+    /// <summary>Text flows beside the drawing, avoiding its rectangle.</summary>
+    Square,
+
+    /// <summary>Text is pushed above and below; nothing sits beside it.</summary>
+    TopAndBottom
+}
+
+/// <summary>What a floating drawing's horizontal position is measured from.</summary>
+public enum HorizontalAnchor
+{
+    Column,
+    Margin,
+    Page,
+    Character,
+    LeftMargin,
+    RightMargin
+}
+
+/// <summary>What a floating drawing's vertical position is measured from.</summary>
+public enum VerticalAnchor
+{
+    Paragraph,
+    Line,
+    Margin,
+    Page,
+    TopMargin,
+    BottomMargin
+}
+
+/// <summary>
+/// A drawing positioned independently of the text flow, from a <c>wp:anchor</c>.
+/// </summary>
+/// <remarks>
+/// It still lives inside a run, because that run is what it is anchored to, but it does not
+/// occupy space on the line the way an inline drawing does. Its rectangle is computed from the
+/// anchor point and the text then flows around it.
+/// </remarks>
+public sealed class AnchoredDrawing : InlineElement
+{
+    public required long WidthEmu { get; init; }
+
+    public required long HeightEmu { get; init; }
+
+    public string? RelationshipId { get; init; }
+
+    public TextWrapMode Wrap { get; init; } = TextWrapMode.Square;
+
+    /// <summary>Drawn behind the text rather than over it. Only meaningful without wrapping.</summary>
+    public bool BehindText { get; init; }
+
+    public HorizontalAnchor HorizontalFrom { get; init; } = HorizontalAnchor.Column;
+
+    /// <summary>Horizontal offset in EMUs, when the anchor gives one rather than an alignment.</summary>
+    public long? HorizontalOffsetEmu { get; init; }
+
+    /// <summary>"left", "center", "right", "inside" or "outside".</summary>
+    public string? HorizontalAlign { get; init; }
+
+    public VerticalAnchor VerticalFrom { get; init; } = VerticalAnchor.Paragraph;
+
+    public long? VerticalOffsetEmu { get; init; }
+
+    /// <summary>"top", "center", "bottom", "inside" or "outside".</summary>
+    public string? VerticalAlign { get; init; }
+
+    /// <summary>Clearance kept between the drawing and the text around it, in EMUs.</summary>
+    public long DistanceLeftEmu { get; init; }
+
+    public long DistanceRightEmu { get; init; }
+
+    public long DistanceTopEmu { get; init; }
+
+    public long DistanceBottomEmu { get; init; }
+
+    public double WidthPoints => Units.EmuToPoints(WidthEmu);
+
+    public double HeightPoints => Units.EmuToPoints(HeightEmu);
+}
+
 /// <summary>A run: a span of content sharing one set of character properties.</summary>
 public sealed class Run
 {
