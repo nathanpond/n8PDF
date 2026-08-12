@@ -19,10 +19,12 @@ public static class Fixtures
         bool italic = false,
         bool strike = false,
         string? color = null,
-        string? underline = null) =>
+        string? underline = null,
+        int? kerningHalfPoints = null) =>
         DocxBuilder.RunProperties(
             font: TimesNewRoman, halfPoints: halfPoints, bold: bold, italic: italic,
-            strike: strike, color: color, underline: underline);
+            strike: strike, color: color, underline: underline,
+            kerningHalfPoints: kerningHalfPoints);
 
     private static readonly string Times12 = Times();
 
@@ -357,6 +359,33 @@ public static class Fixtures
                     // An empty paragraph, which has a line box but nothing on it.
                     .AddRawParagraph($"<w:p><w:pPr>{oneBar}{ZeroSpacing}</w:pPr></w:p>")
                     .AddParagraph("A plain paragraph with no bar of its own.", ZeroSpacing, Times12);
+            },
+
+            // Kerning, which a document has to ask for and which Word only applies from the type
+            // size it names upwards. The same text is set four ways so that the pairs can be
+            // measured against each other as well as against Word.
+            ["kerning"] = () =>
+            {
+                const string pairs = "AV AW To Ta Wa Yo LT P. F, Yes, Watch AVATAR";
+
+                var builder = new DocxBuilder()
+                    // Asked for, from eight point up: kerned.
+                    .AddParagraph(pairs, ZeroSpacing, Times(kerningHalfPoints: 16))
+                    // Not asked for at all: not kerned, however many pairs it holds.
+                    .AddParagraph(pairs, ZeroSpacing, Times12)
+                    // Asked for from twenty-four point up, at twelve: too small to kern.
+                    .AddParagraph(pairs, ZeroSpacing, Times(kerningHalfPoints: 48))
+                    // The same threshold at twenty-four point: kerned.
+                    .AddParagraph(pairs, ZeroSpacing, Times(48, kerningHalfPoints: 48));
+
+                // Calibri carries no legacy kern table, so anything that moves here came out of
+                // GPOS and nowhere else.
+                var calibri = DocxBuilder.RunProperties(
+                    font: "Calibri", halfPoints: 24, kerningHalfPoints: 16);
+
+                return builder
+                    .AddParagraph(pairs, ZeroSpacing, calibri)
+                    .AddParagraph(pairs, ZeroSpacing, DocxBuilder.RunProperties(font: "Calibri", halfPoints: 24));
             },
 
             // Every kind of leader Word offers, on a right stop at the margin — which is what a

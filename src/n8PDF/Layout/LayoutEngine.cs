@@ -547,6 +547,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         cursor.Y += line.Height;
     }
 
+    /// <summary>
+    /// Whether a run's text is kerned. Word does not kern unless the document asks it to, with a
+    /// type size at or above which to do it, and the option here forces it on regardless.
+    /// </summary>
+    private bool Kerned(ResolvedRunFormat format) => _options.ApplyKerning || format.Kerned;
+
     /// <summary>What the tab stops in this document align against.</summary>
     private TabOptions TabSettings() => new(_options.ApplyKerning, _decimalSymbol);
 
@@ -1744,7 +1750,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Font = segment.Font,
                 Width = segment.Width,
                 WordSpacing = segment.WordSpacing,
-                Link = segment.Link
+                Link = segment.Link,
+                Kerned = segment.Kerned
             };
 
             laidOut.Texts.Add(text);
@@ -1817,8 +1824,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var size = leader.Format.EffectiveFontSizePoints;
 
         var width = TextMeasurer.Measure(
-            leader.Font.Font, text, size, leader.Format.CharacterSpacingPoints, tabs.ApplyKerning)
-            * leader.Format.ScaleFactor;
+            leader.Font.Font, text, size, leader.Format.CharacterSpacingPoints,
+            tabs.ApplyKerning || leader.Format.Kerned) * leader.Format.ScaleFactor;
 
         if (width <= 0.01) return;
 
@@ -2062,15 +2069,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var textAtom = (TextAtom)atom;
 
+            // An atom opening a line has nothing before it to be kerned against, so whatever was
+            // folded into its width for the atom that used to precede it comes back off.
+            var width = placedAnything ? textAtom.Width : textAtom.Width - textAtom.LeadingKern;
+
             // Spaces at the end of a line hang past the margin rather than forcing a wrap.
             if (!textAtom.IsSpace && placedAnything && !beyondMargin &&
-                x + textAtom.Width > available + 0.001)
+                x + width > available + 0.001)
             {
                 break;
             }
 
-            line.Items.Add(new PlacedAtom(atom, x, textAtom.Width));
-            x += textAtom.Width;
+            line.Items.Add(new PlacedAtom(atom, x, width));
+            x += width;
             index++;
             placedAnything = true;
 
@@ -2184,6 +2195,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             var textAtom = (TextAtom)item.Atom;
             var extra = textAtom.IsSpace ? wordSpacing : 0;
 
+            // The width the line settled on, which is the atom's own less any leading kern the
+            // line's first atom gave up.
+            var width = item.Width;
+
             if (current is not null &&
                 ReferenceEquals(current.Format, textAtom.Format) &&
                 ReferenceEquals(current.Font, textAtom.Font) &&
@@ -2191,7 +2206,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Math.Abs(current.X + current.Width - (indentLeft + offset + pen)) < 0.001)
             {
                 current.Text += textAtom.Text;
-                current.Width += textAtom.Width + extra;
+                current.Width += width + extra;
                 current.SpaceCount += textAtom.IsSpace ? 1 : 0;
             }
             else
@@ -2202,16 +2217,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                     Text = textAtom.Text,
                     Format = textAtom.Format,
                     Font = textAtom.Font,
-                    Width = textAtom.Width + extra,
+                    Width = width + extra,
                     WordSpacing = wordSpacing,
                     SpaceCount = textAtom.IsSpace ? 1 : 0,
-                    Link = textAtom.Link
+                    Link = textAtom.Link,
+                    Kerned = textAtom.Kerned
                 };
 
                 line.Segments.Add(current);
             }
 
-            pen += textAtom.Width + extra;
+            pen += width + extra;
 
             maxTextAscent = Math.Max(maxTextAscent, textAtom.Ascent);
             maxTextDescent = Math.Max(maxTextDescent, textAtom.Descent);
@@ -2401,7 +2417,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             return before + TextMeasurer.Measure(
                 text.Font.Font, text.Text[..at], text.Format.EffectiveFontSizePoints,
-                text.Format.CharacterSpacingPoints, options.ApplyKerning) * text.Format.ScaleFactor;
+                text.Format.CharacterSpacingPoints, options.ApplyKerning || text.Format.Kerned)
+                * text.Format.ScaleFactor;
         }
 
         return width;
@@ -2548,11 +2565,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             NaturalHeight = naturalHeight,
             Descent = descent,
             Link = link,
+            Kerned = Kerned(format),
             FootnoteId = footnote ? reference.Id : null,
             Width = TextMeasurer.Measure(
                 font.Font, text, format.EffectiveFontSizePoints,
-                format.CharacterSpacingPoints, _options.ApplyKerning) * format.ScaleFactor
+                format.CharacterSpacingPoints, Kerned(format)) * format.ScaleFactor
         });
+    }
+
+    /// <summary>
+    /// The kerning between two characters, in points, or zero when the pair is not kerned.
+    /// </summary>
+    private static double KerningBetween(FontSelection font, ResolvedRunFormat format, char left, char right)
+    {
+        if (left == '\0' || char.IsSurrogate(left) || char.IsSurrogate(right)) return 0;
+
+        var kerning = font.Font.GetKerning(font.Font.GetGlyphIndex(left), font.Font.GetGlyphIndex(right));
+        if (kerning == 0) return 0;
+
+        return font.Font.Metrics.ToPoints(kerning, format.EffectiveFontSizePoints) * format.ScaleFactor;
     }
 
     /// <summary>
@@ -2694,6 +2725,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         List<Atom> atoms, string text, ResolvedRunFormat format, FontSelection font,
         double ascent, double naturalHeight, double descent, ResolvedHyperlink? link = null)
     {
+        var kerned = Kerned(format);
+        var previous = '\0';
+
         var index = 0;
         while (index < text.Length)
         {
@@ -2704,6 +2738,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 index++;
 
             var slice = text[start..index];
+
+            // Splitting at spaces puts the pair straddling each split into neither atom, and Word
+            // kerns those like any other — a V before a space is drawn tighter to it. The pair is
+            // measured here and carried on the atom that follows it, which is also what lets it be
+            // taken off again when that atom turns out to open a line.
+            var leadingKern = kerned
+                ? KerningBetween(font, format, previous, slice[0])
+                : 0;
+
+            previous = slice[^1];
             atoms.Add(new TextAtom
             {
                 Text = slice,
@@ -2714,9 +2758,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 NaturalHeight = naturalHeight,
                 Descent = descent,
                 Link = link,
+                Kerned = kerned,
+                LeadingKern = leadingKern,
                 Width = TextMeasurer.Measure(
                     font.Font, slice, format.EffectiveFontSizePoints,
-                    format.CharacterSpacingPoints, _options.ApplyKerning) * format.ScaleFactor
+                    format.CharacterSpacingPoints, kerned) * format.ScaleFactor + leadingKern
             });
         }
     }
@@ -3060,6 +3106,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required double Width { get; init; }
 
         public ResolvedHyperlink? Link { get; init; }
+
+        /// <summary>Whether this atom's width was measured with kerning applied.</summary>
+        public bool Kerned { get; init; }
+
+        /// <summary>
+        /// How much of this atom's width is the kerning between it and the atom before it, which
+        /// is nothing when it opens a line.
+        /// </summary>
+        public double LeadingKern { get; init; }
     }
 
     /// <summary>
@@ -3129,6 +3184,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public int SpaceCount { get; set; }
 
         public ResolvedHyperlink? Link { get; init; }
+
+        public bool Kerned { get; init; }
     }
 
     private sealed class ComposedLine

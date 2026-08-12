@@ -42,6 +42,19 @@ public sealed record ResolvedRunFormat
     public double ScaleFactor { get; init; } = 1.0;
 
     /// <summary>
+    /// The type size, in half-points, at or above which the font's kerning applies. Zero means
+    /// never, which is what a document that says nothing gets.
+    /// </summary>
+    public int KerningMinimumHalfPoints { get; init; }
+
+    /// <summary>
+    /// Whether this run's text is kerned: the document has to ask for it, and the type has to be
+    /// at least as large as the size it named.
+    /// </summary>
+    public bool Kerned =>
+        KerningMinimumHalfPoints > 0 && EffectiveFontSizePoints * 2 >= KerningMinimumHalfPoints;
+
+    /// <summary>
     /// The size actually drawn at. Word renders superscripts and subscripts at a reduced size
     /// rather than merely shifting the baseline.
     /// </summary>

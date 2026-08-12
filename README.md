@@ -116,7 +116,9 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: tab stops of every alignment — left, centre, right and decimal, the last three
+Implemented: kerning, read from a font's GPOS table as well as the legacy one — Calibri has only
+the former and Times New Roman only the latter, so both are needed to kern either — applied where
+`w:kern` asks for it and from the type size it names upwards, tab stops of every alignment — left, centre, right and decimal, the last three
 resolved once the text after the tab has been measured, with a stop the line has already passed
 falling through to the next one, and leaders filling the gap a stop opens (dots, hyphens,
 underscores and middle dots, set on a grid measured from the edge of the page so that entries of
@@ -160,7 +162,7 @@ each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
 them rather than under the whole measure, page numbering restarted per section, vertical page
 alignment,
-font subsetting, and GPOS kerning.
+and font subsetting.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
 the PDF, so an unimplemented construct fails loudly instead of vanishing from the output.

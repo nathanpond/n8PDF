@@ -172,8 +172,8 @@ public static class PdfLineComparison
                 // trailing space rather than only by dropping whole runs.
                 var last = ordered[^1];
                 var trailing = last.Text.Length - last.Text.TrimEnd().Length;
-                var trailingWidth = trailing > 0 && last.Text.Length > 0
-                    ? last.Width * trailing / last.Text.Length
+                var trailingWidth = trailing > 0
+                    ? last.TrailingWhitespaceWidth
                     : 0;
 
                 // A line with nothing visible on it carries no information and is not always

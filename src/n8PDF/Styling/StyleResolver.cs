@@ -140,6 +140,7 @@ public sealed class StyleResolver(
         private string? _highlight;
         private VerticalTextAlignment? _verticalAlignment;
         private double? _characterSpacingPoints;
+        private int? _kerningMinimumHalfPoints;
         private double? _scale;
 
         public void Apply(RunProperties source, bool isDirect)
@@ -172,6 +173,10 @@ public sealed class StyleResolver(
             if (source.VerticalAlignment is { } vertical) _verticalAlignment = vertical;
             if (source.CharacterSpacingTwips is { } spacing)
                 _characterSpacingPoints = Units.TwipsToPoints(spacing);
+
+            if (source.KerningMinimumHalfPoints is { } kerning)
+                _kerningMinimumHalfPoints = kerning;
+
             if (source.ScalePercent is { } scale && scale > 0) _scale = scale / 100.0;
         }
 
@@ -196,6 +201,7 @@ public sealed class StyleResolver(
                 HighlightColor = _highlight,
                 VerticalAlignment = _verticalAlignment ?? VerticalTextAlignment.Baseline,
                 CharacterSpacingPoints = _characterSpacingPoints ?? 0,
+                KerningMinimumHalfPoints = _kerningMinimumHalfPoints ?? 0,
                 ScaleFactor = _scale ?? 1.0
             };
         }

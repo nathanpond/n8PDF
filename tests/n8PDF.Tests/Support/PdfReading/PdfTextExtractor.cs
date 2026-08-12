@@ -15,7 +15,18 @@ public sealed record ExtractedTextRun(
     string Text,
     string FontFamily,
     double FontSize,
-    double Width);
+    double Width)
+{
+    /// <summary>
+    /// How much of <see cref="Width"/> is whitespace at the end of the run.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the glyphs rather than apportioned by character count. A run ending in a
+    /// space is usually a wide letter followed by a narrow space, so sharing the width out evenly
+    /// between them overstates what the space took by several points.
+    /// </remarks>
+    public double TrailingWhitespaceWidth { get; init; }
+}
 
 /// <summary>
 /// Interprets page content streams and reports where the text actually landed.
@@ -270,10 +281,16 @@ public static class PdfTextExtractor
 
         var text = new System.Text.StringBuilder();
         var advance = 0.0;
+        var trailing = 0.0;
+
+        // What each code contributed, so that whitespace at the end of the run can be measured
+        // rather than estimated.
+        var glyphs = new List<(int Length, double Advance)>();
 
         foreach (var code in font.DecodeCodes(bytes))
         {
-            text.Append(font.GetText(code));
+            var decoded = font.GetText(code);
+            text.Append(decoded);
 
             var glyphWidth = font.GetWidth(code) / 1000.0 * fontSize;
             var extra = charSpacing;
@@ -282,10 +299,21 @@ public static class PdfTextExtractor
             // which is why n8PDF justifies through TJ adjustments instead.
             if (code == 32 && font.BytesPerCode == 1) extra += wordSpacing;
 
-            advance += (glyphWidth + extra) * horizontalScale;
+            var step = (glyphWidth + extra) * horizontalScale;
+
+            advance += step;
+            trailing = extra * horizontalScale;
+            glyphs.Add((decoded.Length, step));
         }
 
+        // The pen moves by the whole of that, letter-spacing after the last glyph included.
         textMatrix = Matrix.Translation(advance, 0).Multiply(textMatrix);
+
+        // What the run is reported as being wide, though, stops at its last glyph. The space
+        // after that one belongs to whatever follows, and Word kerns by setting the letter
+        // spacing rather than by adjusting between glyphs — so counting it would make every
+        // kerned run it wrote read one kern narrower than it is.
+        advance -= trailing;
 
         var body = text.ToString();
         if (body.Length == 0) return;
@@ -304,6 +332,21 @@ public static class PdfTextExtractor
         var verticalScale = Math.Sqrt(toDevice.C * toDevice.C + toDevice.D * toDevice.D);
         var effectiveSize = fontSize * (double.IsFinite(verticalScale) && verticalScale > 0 ? verticalScale : 1);
 
+        // Whitespace at the end, worked backwards through what each code put there.
+        var whitespace = 0.0;
+        var end = body.Length;
+
+        for (var i = glyphs.Count - 1; i >= 0; i--)
+        {
+            var start = end - glyphs[i].Length;
+            if (start < 0 || !body[start..end].All(char.IsWhiteSpace)) break;
+
+            whitespace += glyphs[i].Advance;
+            end = start;
+        }
+
+        var scale = advance != 0 ? deviceAdvance / advance : 1;
+
         runs.Add(new ExtractedTextRun(
             page.Index,
             Math.Round(originX, 4),
@@ -312,7 +355,10 @@ public static class PdfTextExtractor
             body,
             font.FamilyName,
             Math.Round(effectiveSize, 4),
-            Math.Round(deviceAdvance, 4)));
+            Math.Round(deviceAdvance, 4))
+        {
+            TrailingWhitespaceWidth = Math.Round(whitespace * scale, 4)
+        });
     }
 
     private static double Number(PdfValue value) => value is PdfNumberValue n ? n.Value : 0;

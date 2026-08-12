@@ -14,6 +14,7 @@ public sealed class TrueTypeFont
     private readonly CharacterMap _cmap;
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, short>? _kerning;
+    private readonly GlyphPositioning? _positioning;
 
     private TrueTypeFont(
         byte[] data,
@@ -21,6 +22,7 @@ public sealed class TrueTypeFont
         CharacterMap cmap,
         ushort[] advanceWidths,
         Dictionary<int, short>? kerning,
+        GlyphPositioning? positioning,
         FontMetrics metrics,
         int glyphCount,
         string familyName,
@@ -35,6 +37,7 @@ public sealed class TrueTypeFont
         _cmap = cmap;
         _advanceWidths = advanceWidths;
         _kerning = kerning;
+        _positioning = positioning;
         Metrics = metrics;
         GlyphCount = glyphCount;
         FamilyName = familyName;
@@ -84,12 +87,17 @@ public sealed class TrueTypeFont
     }
 
     /// <summary>
-    /// Kerning adjustment in design units for a glyph pair, from the legacy <c>kern</c> table.
-    /// Returns 0 when the font has no kern table or the pair is not listed. OpenType fonts that
-    /// kern through <c>GPOS</c> only will return 0 here until GPOS support lands.
+    /// Kerning adjustment in design units for a glyph pair.
+    /// </summary>
+    /// <remarks>
+    /// A font may say this in either of two places. <c>GPOS</c> is asked first, being where fonts
+    /// shipped this century put it — Calibri has no legacy table at all — and the old <c>kern</c>
+    /// table answers for the fonts that predate it. Zero either way when neither kerns the pair.
     /// </summary>
     public short GetKerning(ushort left, ushort right)
     {
+        if (_positioning?.GetAdjustment(left, right) is { } adjustment and not 0) return adjustment;
+
         if (_kerning is null) return 0;
         return _kerning.GetValueOrDefault((left << 16) | right, (short)0);
     }
@@ -221,6 +229,9 @@ public sealed class TrueTypeFont
         var names = ReadNames(data, tables);
         var cmap = CharacterMap.Parse(data, Require(tables, "cmap").Offset);
         var kerning = ReadKerning(data, tables);
+        var positioning = tables.TryGetValue("GPOS", out var gpos)
+            ? GlyphPositioning.Read(data, gpos.Offset, gpos.Length)
+            : null;
 
         // macStyle bit 0 is bold and bit 1 is italic; OS/2 fsSelection says the same thing and
         // the two disagree often enough in the wild that either asserting the style is enough.
@@ -255,7 +266,7 @@ public sealed class TrueTypeFont
         };
 
         return new TrueTypeFont(
-            data, tables, cmap, advanceWidths, kerning, metrics, glyphCount,
+            data, tables, cmap, advanceWidths, kerning, positioning, metrics, glyphCount,
             familyName, subfamilyName, postScriptName, isBold, isItalic, hasCff);
     }
 

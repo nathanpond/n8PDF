@@ -211,37 +211,69 @@ internal static class PdfRenderer
         else
             content.SetTextPosition(text.X, y);
 
-        if (text.WordSpacing > 0 && text.Text.Contains(' '))
-            ShowJustified(content, font, text, size);
-        else
-            content.ShowGlyphs(font.Encode(text.Text));
+        ShowText(content, font, text, size);
 
         content.EndText();
         content.Restore();
     }
 
     /// <summary>
-    /// Shows text with justification spacing applied after each space.
+    /// Shows a run, with the pen moved between characters where justification or kerning asks for
+    /// it.
     /// </summary>
     /// <remarks>
-    /// The <c>Tw</c> operator cannot do this for an Identity-H font, so the extra space is
-    /// emitted as an explicit <c>TJ</c> adjustment instead. Adjustments are in thousandths of an
-    /// em and are subtracted from the pen position, so widening a space needs a negative value.
+    /// The <c>Tw</c> operator cannot space an Identity-H font, and nothing in a PDF font can kern
+    /// at all, so both are emitted as explicit <c>TJ</c> adjustments. Adjustments are in
+    /// thousandths of an em and are subtracted from the pen, so widening a space takes a negative
+    /// value and tightening a kerned pair a positive one.
+    ///
+    /// Every adjacent pair is kerned, spaces included, because that is what was measured: layout
+    /// splits its text at spaces but folds the pair straddling each split back in, so a run's
+    /// width already accounts for them.
     /// </remarks>
-    private static void ShowJustified(ContentStreamBuilder content, PdfFont font, PositionedText text, double size)
+    private static void ShowText(ContentStreamBuilder content, PdfFont font, PositionedText text, double size)
     {
-        var adjustment = -text.WordSpacing * 1000.0 / size;
-        var segments = new List<(byte[] Encoded, double Adjustment)>();
+        var justifying = text.WordSpacing > 0 && text.Text.Contains(' ');
 
+        if (!justifying && !text.Kerned)
+        {
+            content.ShowGlyphs(font.Encode(text.Text));
+            return;
+        }
+
+        var spaceAdjustment = -text.WordSpacing * 1000.0 / size;
+        var units = text.Font.Font.Metrics.UnitsPerEm;
+
+        var segments = new List<(byte[] Encoded, double Adjustment)>();
         var start = 0;
+
         for (var i = 0; i < text.Text.Length; i++)
         {
-            if (text.Text[i] != ' ') continue;
+            var adjustment = 0.0;
 
-            // Include the space itself in the preceding chunk, then push the following text out
-            // by the justification amount.
+            if (justifying && text.Text[i] == ' ') adjustment += spaceAdjustment;
+
+            if (text.Kerned && i + 1 < text.Text.Length &&
+                !char.IsSurrogate(text.Text[i]) && !char.IsSurrogate(text.Text[i + 1]))
+            {
+                var kerning = text.Font.Font.GetKerning(
+                    text.Font.Font.GetGlyphIndex(text.Text[i]),
+                    text.Font.Font.GetGlyphIndex(text.Text[i + 1]));
+
+                if (kerning != 0 && units > 0) adjustment += -kerning * 1000.0 / units;
+            }
+
+            if (adjustment == 0) continue;
+
+            // The character the adjustment follows goes in the chunk before it.
             segments.Add((font.Encode(text.Text[start..(i + 1)]), adjustment));
             start = i + 1;
+        }
+
+        if (segments.Count == 0)
+        {
+            content.ShowGlyphs(font.Encode(text.Text));
+            return;
         }
 
         if (start < text.Text.Length)

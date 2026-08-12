@@ -126,6 +126,12 @@ public sealed class RunProperties
     /// <summary>Character scaling as a percentage; 100 is unscaled.</summary>
     public int? ScalePercent { get; set; }
 
+    /// <summary>
+    /// The type size, in half-points, at or above which the font's own kerning applies. Zero or
+    /// absent means the document does not want kerning at all, which is Word's default.
+    /// </summary>
+    public int? KerningMinimumHalfPoints { get; set; }
+
     /// <summary>Referenced character style id (<c>w:rStyle</c>).</summary>
     public string? StyleId { get; set; }
 

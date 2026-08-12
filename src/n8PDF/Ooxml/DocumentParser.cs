@@ -480,6 +480,9 @@ public static class DocumentParser
                 case "w":
                     properties.ScalePercent = element.IntVal();
                     break;
+                case "kern":
+                    properties.KerningMinimumHalfPoints = element.IntVal();
+                    break;
             }
         }
 

@@ -39,6 +39,12 @@ public sealed class PositionedText
     /// </summary>
     public ResolvedHyperlink? Link { get; init; }
 
+    /// <summary>
+    /// Whether this run's width was measured with the font's kerning applied. Carried to the
+    /// writer so that what is drawn is spaced the way it was measured.
+    /// </summary>
+    public bool Kerned { get; init; }
+
     public double FontSizePoints => Format.EffectiveFontSizePoints;
 
     /// <summary>
@@ -58,7 +64,8 @@ public sealed class PositionedText
         Font = Font,
         Width = Width,
         WordSpacing = WordSpacing,
-        Link = Link
+        Link = Link,
+        Kerned = Kerned
     };
 
     public override string ToString() => $"({X:0.##}, {BaselineY:0.##}) \"{Text}\"";
