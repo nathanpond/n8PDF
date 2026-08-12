@@ -1,0 +1,66 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 41.326, "font": "Times New Roman", "size": 12, "text": "Opening"},
+            {"x": 197.007, "width": 37.986, "font": "Times New Roman", "size": 12, "text": "Centred"},
+            {"x": 318, "width": 15, "font": "Times New Roman", "size": 12, "text": "1.5"},
+            {"x": 513.328, "width": 26.672, "font": "Times New Roman", "size": 12, "text": "Right"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 35.326, "font": "Times New Roman", "size": 12, "text": "Second"},
+            {"x": 185.511, "width": 60.979, "font": "Times New Roman", "size": 12, "text": "Also centred"},
+            {"x": 312, "width": 27, "font": "Times New Roman", "size": 12, "text": "22.75"},
+            {"x": 501.34, "width": 38.66, "font": "Times New Roman", "size": 12, "text": "Aligned"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 26.66, "font": "Times New Roman", "size": 12, "text": "Third"},
+            {"x": 153.023, "width": 125.953, "font": "Times New Roman", "size": 12, "text": "A much wider centred run"},
+            {"x": 306, "width": 39, "font": "Times New Roman", "size": 12, "text": "333.125"},
+            {"x": 520.67, "width": 19.33, "font": "Times New Roman", "size": 12, "text": "End"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.004, "font": "Times New Roman", "size": 12, "text": "Fourth"},
+            {"x": 198.668, "width": 34.664, "font": "Times New Roman", "size": 12, "text": "Middle"},
+            {"x": 298.676, "width": 25.324, "font": "Times New Roman", "size": 12, "text": "Total"},
+            {"x": 519.34, "width": 20.66, "font": "Times New Roman", "size": 12, "text": "Last"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 312.24, "font": "Times New Roman", "size": 12, "text": "A left run wide enough to overrun the centre stop it was aimed at"},
+            {"x": 502.014, "width": 37.986, "font": "Times New Roman", "size": 12, "text": "Centred"},
+            {"x": 576, "width": 15, "font": "Times New Roman", "size": 12, "text": "0.5"},
+            {"x": 612, "width": 23.988, "font": "Times New Roman", "size": 12, "text": "Over"}
+          ]
+        }
+      ]
+    }
+  ]
+}

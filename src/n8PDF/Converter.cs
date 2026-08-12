@@ -104,6 +104,9 @@ public static class Converter
             var settings = package.ReadPartAsXml(settingsPart).Root;
             document.EvenAndOddHeaders = settings?.Element(W.Main + "evenAndOddHeaders") is not null;
 
+            if (settings?.Element(W.Main + "decimalSymbol")?.Attr("val") is { Length: > 0 } symbol)
+                document.DecimalSymbol = symbol;
+
             // How notes are numbered is stated on the section if anywhere, and in the settings
             // otherwise; a document that says nothing gets Word's defaults.
             if (DocumentParser.ReadNoteNumberFormat(settings, NoteKind.Footnote) is { } footnoteFormat)

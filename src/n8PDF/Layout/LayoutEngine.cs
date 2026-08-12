@@ -4,6 +4,13 @@ using n8PDF.Styling;
 
 namespace n8PDF.Layout;
 
+/// <summary>What line filling needs to know to place a tab that aligns its text.</summary>
+/// <param name="DecimalSymbol">
+/// What counts as a decimal separator, from the document's settings. A comma in much of the
+/// world, so a decimal tab that assumed a full stop would leave those columns ragged.
+/// </param>
+internal readonly record struct TabOptions(bool ApplyKerning, string DecimalSymbol);
+
 /// <summary>Knobs that change how layout is performed.</summary>
 public sealed class LayoutOptions
 {
@@ -71,6 +78,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // that opens it.
     private string? _currentNoteLabel;
 
+    // What the document calls a decimal separator, which is what a decimal tab lines up.
+    private string _decimalSymbol = ".";
+
     // Counts the paragraphs laid out, so the lines in a column can say which one they came from.
     private int _paragraphOrdinal;
 
@@ -89,6 +99,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _hyperlinks = document.Hyperlinks;
         _footnotes = document.Footnotes;
         _endnotes = document.Endnotes;
+        _decimalSymbol = string.IsNullOrEmpty(document.DecimalSymbol) ? "." : document.DecimalSymbol;
         _footnoteFormat = document.FootnoteNumberFormat;
         _endnoteFormat = document.EndnoteNumberFormat;
         _footnoteLabels.Clear();
@@ -400,7 +411,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         PlaceAnchoredDrawings(cursor, paragraph);
 
         _pendingBookmarks.Clear();
-        var composer = new ParagraphComposer(BuildAtoms(paragraph, format), format);
+        var composer = new ParagraphComposer(BuildAtoms(paragraph, format), format, TabSettings());
         var bookmarks = _pendingBookmarks.ToList();
         var firstLine = true;
 
@@ -524,6 +535,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         CommitFootnotes(cursor, footnotes);
         cursor.Y += line.Height;
     }
+
+    /// <summary>What the tab stops in this document align against.</summary>
+    private TabOptions TabSettings() => new(_options.ApplyKerning, _decimalSymbol);
 
     /// <summary>How many of the column's trailing lines belong to one paragraph.</summary>
     private static int CountOwnedBy(Cursor cursor, int ordinal)
@@ -1799,10 +1813,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// the vertical position the line has reached. The caller therefore resolves the free band
     /// for each line and hands it in.
     /// </remarks>
-    private sealed class ParagraphComposer(List<Atom> atoms, ResolvedParagraphFormat format)
+    private sealed class ParagraphComposer(
+        List<Atom> atoms, ResolvedParagraphFormat format, TabOptions tabs)
     {
         private int _index;
         private bool _isFirstLine = true;
+        private readonly TabOptions _tabs = tabs;
         private bool _forceBreakOnNextLine;
         private bool _forceColumnBreakOnNextLine;
 
@@ -1850,7 +1866,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             _forceColumnBreakOnNextLine = false;
 
             var consumed = FillLine(
-                atoms, _index, available, line, out var hardBreak, out var pageBreak, out var columnBreak);
+                atoms, _index, available, line, _tabs,
+                out var hardBreak, out var pageBreak, out var columnBreak);
             _index += consumed;
             _producedAny = true;
 
@@ -1876,7 +1893,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// which is what Word does — a line ending in a space does not wrap because of it.
     /// </summary>
     private static int FillLine(
-        List<Atom> atoms, int start, double available, ComposedLine line,
+        List<Atom> atoms, int start, double available, ComposedLine line, TabOptions tabs,
         out bool hardBreak, out bool pageBreak, out bool columnBreak)
     {
         hardBreak = false;
@@ -1886,6 +1903,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var x = 0.0;
         var index = start;
         var placedAnything = false;
+        PendingTab? pending = null;
+
+        // Set once a tab has taken the pen past the measure. Word honours a stop that lies beyond
+        // the right margin and lets the rest of the line run into it — and off the page, if that
+        // is where the stops lead — rather than wrapping, so once that has happened nothing on
+        // this line wraps either.
+        var beyondMargin = false;
 
         while (index < atoms.Count)
         {
@@ -1902,11 +1926,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             if (atom is TabAtom tab)
             {
-                var next = NextTabStop(x, tab.Stops, tab.DefaultIntervalPoints);
-                if (next > available && placedAnything) break;
+                // Where the previous aligning tab put its text decides which stop this one takes.
+                x = ClosePendingTab(line, ref pending, x, tabs);
+                if (x >= available - 0.001) beyondMargin = true;
 
-                line.Items.Add(new PlacedAtom(atom, x, next - x));
-                x = next;
+                var (next, alignment) = NextTabStop(x, tab.Stops, tab.DefaultIntervalPoints);
+
+                if (alignment == TabAlignment.Left)
+                {
+                    line.Items.Add(new PlacedAtom(atom, x, next - x));
+                    x = next;
+                }
+                else
+                {
+                    line.Items.Add(new PlacedAtom(atom, x, 0));
+                    pending = new PendingTab(line.Items.Count - 1, next, alignment, x);
+                }
+
+                if (x >= available - 0.001) beyondMargin = true;
+
                 index++;
                 placedAnything = true;
                 continue;
@@ -1924,7 +1962,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             {
                 // An image behaves like a very wide word: it cannot be broken, and it wraps to
                 // the next line rather than overflowing unless it is alone on the line.
-                if (placedAnything && x + image.Width > available + 0.001) break;
+                if (placedAnything && !beyondMargin && x + image.Width > available + 0.001) break;
 
                 line.Items.Add(new PlacedAtom(atom, x, image.Width));
                 x += image.Width;
@@ -1936,8 +1974,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             var textAtom = (TextAtom)atom;
 
             // Spaces at the end of a line hang past the margin rather than forcing a wrap.
-            if (!textAtom.IsSpace && placedAnything && x + textAtom.Width > available + 0.001)
+            if (!textAtom.IsSpace && placedAnything && !beyondMargin &&
+                x + textAtom.Width > available + 0.001)
+            {
                 break;
+            }
 
             line.Items.Add(new PlacedAtom(atom, x, textAtom.Width));
             x += textAtom.Width;
@@ -1949,6 +1990,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (!textAtom.IsSpace && x > available && line.Items.Count == 1) break;
         }
 
+        ClosePendingTab(line, ref pending, x, tabs);
         return index - start;
     }
 
@@ -2127,22 +2169,118 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
     }
 
-    private static double NextTabStop(double x, IReadOnlyList<TabStop> stops, double defaultInterval)
+    /// <summary>
+    /// The next tab stop at or beyond the pen, and how it aligns what follows it.
+    /// </summary>
+    /// <remarks>
+    /// A cleared stop is one the paragraph removed from what it inherited. A bar stop is not a
+    /// stop at all — it asks for a vertical rule at that position and a tab passes straight
+    /// through it — so neither is a candidate. The rule itself is not drawn.
+    ///
+    /// Past the last stop a document declares, tabs fall on the document's default interval, and
+    /// those are always left-aligned.
+    /// </remarks>
+    private static (double Position, TabAlignment Alignment) NextTabStop(
+        double x, IReadOnlyList<TabStop> stops, double defaultInterval)
     {
         foreach (var stop in stops.OrderBy(s => s.PositionTwips))
         {
-            if (stop.Alignment == TabAlignment.Clear) continue;
+            if (stop.Alignment is TabAlignment.Clear or TabAlignment.Bar) continue;
 
             var position = Units.TwipsToPoints(stop.PositionTwips);
-            // Left-aligned stops are the only kind handled so far; centre, right and decimal
-            // stops need the following text measured before the position can be resolved.
-            if (position > x + 0.001) return position;
+            if (position > x + 0.001) return (position, stop.Alignment);
         }
 
-        if (defaultInterval <= 0) return x;
+        if (defaultInterval <= 0) return (x, TabAlignment.Left);
 
         var next = Math.Floor(x / defaultInterval + 1) * defaultInterval;
-        return next <= x ? x + defaultInterval : next;
+        return (next <= x ? x + defaultInterval : next, TabAlignment.Left);
+    }
+
+    /// <summary>
+    /// A tab whose stop aligns what comes after it, held while that text is being placed.
+    /// </summary>
+    /// <param name="PenBefore">Where the line had reached when the tab was met.</param>
+    private readonly record struct PendingTab(int Index, double Stop, TabAlignment Alignment, double PenBefore);
+
+    /// <summary>
+    /// Settles where the text after a centre, right or decimal tab starts, now that there is
+    /// enough of it to measure.
+    /// </summary>
+    /// <remarks>
+    /// The run is placed from the pen while it is being filled, because where it belongs is not
+    /// known until it ends: a right-aligned run at the margin would otherwise look like an
+    /// overflowing line and wrap. Once its width is known the whole run shifts right, and the tab
+    /// itself takes up the difference.
+    ///
+    /// Text never starts before the pen. A stop the line has already passed cannot pull text
+    /// backwards over what is already there, so the tab does nothing and the text simply follows
+    /// on — which is what Word does with a stop that has been overrun.
+    /// </remarks>
+    private static double ClosePendingTab(
+        ComposedLine line, ref PendingTab? pending, double x, TabOptions options)
+    {
+        if (pending is not { } tab) return x;
+        pending = null;
+
+        var start = tab.Index + 1;
+        var width = 0.0;
+        for (var i = start; i < line.Items.Count; i++) width += line.Items[i].Width;
+
+        var offset = tab.Alignment switch
+        {
+            TabAlignment.Center => width / 2,
+            TabAlignment.Decimal => DecimalOffset(line, start, width, options),
+            _ => width
+        };
+
+        var startX = Math.Max(tab.Stop - offset, tab.PenBefore);
+        var delta = startX - tab.PenBefore;
+
+        if (delta > 0.001)
+        {
+            line.Items[tab.Index] = line.Items[tab.Index] with { Width = delta };
+
+            for (var i = start; i < line.Items.Count; i++)
+                line.Items[i] = line.Items[i] with { X = line.Items[i].X + delta };
+        }
+
+        return startX + width;
+    }
+
+    /// <summary>
+    /// How far into a run its decimal separator sits, which is the part that lands on the stop.
+    /// </summary>
+    /// <remarks>
+    /// A run with no separator in it is aligned by its right edge instead, the way Word treats a
+    /// decimal stop with nothing to align — which is what makes a column of figures with a total
+    /// line reading "Total" line up at all.
+    /// </remarks>
+    private static double DecimalOffset(ComposedLine line, int start, double width, TabOptions options)
+    {
+        var before = 0.0;
+
+        for (var i = start; i < line.Items.Count; i++)
+        {
+            if (line.Items[i].Atom is not TextAtom text)
+            {
+                before += line.Items[i].Width;
+                continue;
+            }
+
+            var at = text.Text.IndexOf(options.DecimalSymbol, StringComparison.Ordinal);
+            if (at < 0)
+            {
+                before += line.Items[i].Width;
+                continue;
+            }
+
+            return before + TextMeasurer.Measure(
+                text.Font.Font, text.Text[..at], text.Format.EffectiveFontSizePoints,
+                text.Format.CharacterSpacingPoints, options.ApplyKerning) * text.Format.ScaleFactor;
+        }
+
+        return width;
     }
 
     // ----- atom construction -----

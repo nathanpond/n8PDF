@@ -483,6 +483,12 @@ public sealed class WordDocument
     /// and endnotes in lower-case roman ones. A document can say otherwise in its settings or on
     /// its section.
     /// </remarks>
+    /// <summary>
+    /// What the document uses as a decimal separator, from <c>w:decimalSymbol</c> in its settings.
+    /// A decimal tab stop lines this character up.
+    /// </summary>
+    public string DecimalSymbol { get; set; } = ".";
+
     public NumberFormat FootnoteNumberFormat { get; set; } = NumberFormat.Decimal;
 
     public NumberFormat EndnoteNumberFormat { get; set; } = NumberFormat.LowerRoman;

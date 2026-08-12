@@ -295,6 +295,40 @@ public static class Fixtures
                     </w:p>
                     """),
 
+            // Centre, right and decimal stops, which unlike a left stop cannot be resolved until
+            // the text after them has been measured. The last two rows are the awkward cases: a
+            // run with no separator for the decimal stop to line up, and one too wide to fit
+            // before the stop it was aimed at.
+            ["tabs-aligned"] = () =>
+            {
+                const string stops =
+                    "<w:tabs>" +
+                    "<w:tab w:val=\"center\" w:pos=\"2880\"/>" +
+                    "<w:tab w:val=\"decimal\" w:pos=\"5040\"/>" +
+                    "<w:tab w:val=\"right\" w:pos=\"9360\"/>" +
+                    "</w:tabs>";
+
+                var builder = new DocxBuilder();
+
+                foreach (var (left, centre, figure, right) in new[]
+                         {
+                             ("Opening", "Centred", "1.5", "Right"),
+                             ("Second", "Also centred", "22.75", "Aligned"),
+                             ("Third", "A much wider centred run", "333.125", "End"),
+                             ("Fourth", "Middle", "Total", "Last"),
+                             ("A left run wide enough to overrun the centre stop it was aimed at",
+                                 "Centred", "0.5", "Over")
+                         })
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{stops}{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{left}</w:t><w:tab/><w:t>{centre}</w:t>" +
+                        $"<w:tab/><w:t>{figure}</w:t><w:tab/><w:t>{right}</w:t></w:r></w:p>");
+                }
+
+                return builder;
+            },
+
             ["breaks"] = () => new DocxBuilder()
                 .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Line one</w:t><w:br/><w:t>Line two</w:t></w:r></w:p>")
                 .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Before the page break</w:t><w:br w:type=\"page\"/><w:t>After the page break</w:t></w:r></w:p>"),
