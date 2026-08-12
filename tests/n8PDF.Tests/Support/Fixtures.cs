@@ -29,6 +29,59 @@ public static class Fixtures
     private static readonly string Times12 = Times();
 
     /// <summary>
+    /// A cell of a vertical-merge table: the paragraphs given, or the merge marker instead.
+    /// </summary>
+    /// <param name="merge">
+    /// "restart" to begin a merge, "continue" to carry one on, or null for an ordinary cell. A
+    /// continuing cell is written empty, as Word writes it: whatever it held is not shown.
+    /// </param>
+    private static string MergeCell(
+        string? merge, string? shading = null, string? alignment = null, params string[] lines)
+    {
+        var properties = string.Concat(
+            merge is null ? string.Empty : $"<w:vMerge w:val=\"{merge}\"/>",
+            shading is null ? string.Empty : $"<w:shd w:val=\"clear\" w:fill=\"{shading}\"/>",
+            alignment is null ? string.Empty : $"<w:vAlign w:val=\"{alignment}\"/>");
+
+        var content = lines.Length == 0
+            ? $"<w:p><w:pPr>{ZeroSpacing}</w:pPr></w:p>"
+            : string.Concat(lines.Select(line =>
+                $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                $"<w:t>{line}</w:t></w:r></w:p>"));
+
+        return $"<w:tc>{(properties.Length == 0 ? string.Empty : $"<w:tcPr>{properties}</w:tcPr>")}" +
+               $"{content}</w:tc>";
+    }
+
+    /// <summary>
+    /// A bordered fixed-layout table of the given rows, each already written as cells, with no
+    /// cell margins so that a measured position is the geometry and nothing else.
+    /// </summary>
+    private static string MergeTable(int columns, bool pageBreak, params string[] rows)
+    {
+        var opening = pageBreak
+            ? $"<w:p><w:pPr><w:pageBreakBefore/>{ZeroSpacing}</w:pPr></w:p>"
+            : string.Empty;
+
+        var grid = string.Concat(Enumerable.Repeat($"<w:gridCol w:w=\"{9360 / columns}\"/>", columns));
+
+        return opening +
+               "<w:tbl><w:tblPr><w:tblW w:w=\"9360\" w:type=\"dxa\"/>" +
+               "<w:tblBorders>" +
+               "<w:top w:val=\"single\" w:sz=\"4\"/><w:left w:val=\"single\" w:sz=\"4\"/>" +
+               "<w:bottom w:val=\"single\" w:sz=\"4\"/><w:right w:val=\"single\" w:sz=\"4\"/>" +
+               "<w:insideH w:val=\"single\" w:sz=\"4\"/><w:insideV w:val=\"single\" w:sz=\"4\"/>" +
+               "</w:tblBorders><w:tblLayout w:type=\"fixed\"/>" +
+               "<w:tblCellMar>" +
+               "<w:top w:w=\"0\" w:type=\"dxa\"/><w:left w:w=\"0\" w:type=\"dxa\"/>" +
+               "<w:bottom w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"0\" w:type=\"dxa\"/>" +
+               "</w:tblCellMar></w:tblPr>" +
+               $"<w:tblGrid>{grid}</w:tblGrid>" +
+               string.Concat(rows.Select(cells => $"<w:tr>{cells}</w:tr>")) +
+               "</w:tbl>";
+    }
+
+    /// <summary>
     /// A one-cell table of the given border weight, in eighths of a point, and left cell margin
     /// in twips. Everything else is pinned so that only those two can move the text. A margin of
     /// null leaves the element out altogether, which is the case Word fills in for itself.
@@ -999,6 +1052,65 @@ public static class Fixtures
                 // sits a quarter point away from where a margin of zero would put it.
                 foreach (var eighths in new[] { 0, 4, 16 })
                     Add($"d{eighths}", eighths, null);
+
+                return builder;
+            },
+
+            // Cells merged down the page: a cell that says vMerge restart owns every continuing
+            // cell beneath it, and the text it holds belongs to all of them together. Each table
+            // is on a page of its own so that one's height cannot carry into the next one's
+            // position.
+            ["table-vertical-merge"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                // Three lines in a cell merged down three rows, against a column of one line each:
+                // this says whether the merged text runs on past its own row's foot, and where the
+                // rows below it begin.
+                builder.AddRawParagraph(MergeTable(2, pageBreak: false,
+                    MergeCell("restart", lines: ["Merged one", "Merged two", "Merged three"]) +
+                    MergeCell(null, lines: ["Right one"]),
+                    MergeCell("continue") + MergeCell(null, lines: ["Right two"]),
+                    MergeCell("continue") + MergeCell(null, lines: ["Right three"])));
+
+                // The same shape, with a single line placed by each vertical alignment in turn:
+                // top, centre and bottom of the whole merged run rather than of its first row.
+                foreach (var alignment in new[] { "top", "center", "bottom" })
+                    builder.AddRawParagraph(MergeTable(2, pageBreak: true,
+                        MergeCell("restart", alignment: alignment, lines: [$"Aligned {alignment}"]) +
+                        MergeCell(null, lines: ["First"]),
+                        MergeCell("continue") + MergeCell(null, lines: ["Second"]),
+                        MergeCell("continue") + MergeCell(null, lines: ["Third"])));
+
+                // More text than the rows it is merged across can hold, which has to push the
+                // merged run taller than its rows would otherwise be.
+                builder.AddRawParagraph(MergeTable(2, pageBreak: true,
+                    MergeCell("restart", lines: ["Tall one", "Tall two", "Tall three", "Tall four"]) +
+                    MergeCell(null, lines: ["Short one"]),
+                    MergeCell("continue") + MergeCell(null, lines: ["Short two"])));
+
+                // Two merged runs in the same column, one after the other, and a third overlapping
+                // both in the next column along: a merge belongs to a column rather than to the
+                // table, so neither of these can be read off the other.
+                builder.AddRawParagraph(MergeTable(3, pageBreak: true,
+                    MergeCell("restart", lines: ["First pair"]) +
+                    MergeCell(null, lines: ["Middle one"]) +
+                    MergeCell(null, lines: ["Last one"]),
+                    MergeCell("continue") +
+                    MergeCell("restart", lines: ["Straddling"]) +
+                    MergeCell(null, lines: ["Last two"]),
+                    MergeCell("restart", lines: ["Second pair"]) +
+                    MergeCell("continue") +
+                    MergeCell(null, lines: ["Last three"]),
+                    MergeCell("continue") +
+                    MergeCell(null, lines: ["Middle four"]) +
+                    MergeCell(null, lines: ["Last four"])));
+
+                // A merged cell that is shaded, which says how far its fill reaches.
+                builder.AddRawParagraph(MergeTable(2, pageBreak: true,
+                    MergeCell("restart", shading: "D9D9D9", lines: ["Shaded"]) +
+                    MergeCell(null, lines: ["Plain one"]),
+                    MergeCell("continue") + MergeCell(null, lines: ["Plain two"])));
 
                 return builder;
             },

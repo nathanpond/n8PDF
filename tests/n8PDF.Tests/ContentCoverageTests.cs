@@ -27,7 +27,7 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// Fixtures whose pages hold their text in a different order from the document, and where
     /// that is the point of the fixture rather than a fault.
     /// </summary>
-    private static readonly HashSet<string> Reorders = ["table-split"];
+    private static readonly HashSet<string> Reorders = ["table-split", "table-vertical-merge"];
 
     public static TheoryData<string> FixtureNames
     {
@@ -144,8 +144,10 @@ public class ContentCoverageTests(ITestOutputHelper output)
 
         // Where a table row is broken across a page, the order the document keeps its text in and
         // the order the pages hold it are genuinely different: the row's later cells sit on the
-        // page the row began on, while its first cell carries on over the page. Only the presence
-        // of the characters can be asked about there, not their order.
+        // page the row began on, while its first cell carries on over the page. A vertically
+        // merged cell is the same the other way about — it is drawn once the last row it covers
+        // has been, so it follows text the document holds before it. Only the presence of the
+        // characters can be asked about there, not their order.
         if (Reorders.Contains(name))
         {
             AssertNothingMissing(name, expected, actual);

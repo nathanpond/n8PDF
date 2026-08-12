@@ -116,7 +116,12 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: breaking a table row across a page, at a line boundary inside its cells, with both
+Implemented: cells merged down the page (`w:vMerge`), which behave as one tall cell — no rule is
+drawn across the run, its shading covers all of it, and its text is placed over the run as a whole,
+by its own vertical alignment. The rows a run covers keep the heights their own cells ask for and
+the merged text runs down through them, so three lines merged across three one-line rows leave
+those rows a line tall each; only what will not fit makes the run taller, and the last row of the
+run takes all of it. Breaking a table row across a page, at a line boundary inside its cells, with both
 halves closed off by a full border box the way Word draws them — and moving the row whole instead
 where it says `w:cantSplit` or where not even a line of it would fit. Vertical page alignment (top, centred, bottom, and justified — which spreads the
 spare height between the paragraphs rather than between the lines, so a paragraph that wraps stays
@@ -180,8 +185,9 @@ addition that would be guessed:
   nothing. Word rounds every position to 1/300 inch, so the true value is somewhere between seven
   and twelve twips; ten is used.
 
-Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
-border, fields other than PAGE and NUMPAGES (their cached values are
+Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, dividing a row that holds a vertically
+merged cell across a page (the row moves whole, though a run whose later rows fall on the next page
+does carry over), fields other than PAGE and NUMPAGES (their cached values are
 shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex

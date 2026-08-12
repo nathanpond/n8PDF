@@ -1344,13 +1344,21 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         cursor.PendingSpaceAfter = 0;
         cursor.PreviousFormat = null;
 
+        // Merged runs open here and close some rows further down, so they outlive any one row.
+        var merges = new Dictionary<int, OpenMerge>();
+
         for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
         {
             var row = table.Rows[rowIndex];
             var placed = MeasureRow(table, row, rowIndex, columns, tableLeft);
             if (placed.Count == 0) continue;
 
-            var rowHeight = ComputeRowHeight(row, placed);
+            // A row that ends a merged run has to be tall enough for whatever of that run's
+            // content the rows above it did not account for.
+            double HeightOf(List<PlacedCell> cells) =>
+                ComputeRowHeight(row, cells, PendingMergeHeight(merges, cells, cursor.Y));
+
+            var rowHeight = HeightOf(placed);
 
             // A cell's contents were composed on a page of their own, so any footnote they refer
             // to is still waiting to be given to the page the row lands on.
@@ -1370,7 +1378,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             while (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height)
             {
-                if (!row.CantSplit &&
+                // A row holding a cell merged with the row below is not divided. Splitting it
+                // would divide a run whose content belongs to rows that are not here yet, so it
+                // moves whole and the run carries over instead.
+                if (!row.CantSplit && !placed.Any(cell => cell.MergedBelow) &&
                     SplitRow(cursor, placed, rowFootnotes.Height, out var fitted, out var remaining,
                         out var fittedHeight))
                 {
@@ -1393,14 +1404,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
                 cursor.AdvanceColumn();
 
-                rowHeight = ComputeRowHeight(row, placed);
+                // Anything still merged began on the page just left behind. It is closed off
+                // there, with as much of its content as that page had room for, and opens again
+                // at the top of this one holding the rest.
+                foreach (var merge in merges.Values) merge.CarryOver(cursor);
+
+                rowHeight = HeightOf(placed);
                 if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(rowFootnoteIds);
             }
+
+            // Before the row is drawn, so that a merged cell's fill goes into the page underneath
+            // the borders of every row it runs through rather than over the top of them.
+            OpenMerges(cursor, merges, placed);
 
             if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight);
 
             CommitFootnotes(cursor, rowFootnotes);
             if (!placedEverything) cursor.Y += rowHeight;
+
+            CloseMerges(merges, placed, cursor.Y);
 
             // The final row's bottom edge is not shared with anything below it, so it is the one
             // border that adds to the table's overall height.
@@ -1419,9 +1441,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// </summary>
     private static void PlaceRow(Cursor cursor, List<PlacedCell> placed, double top, double height)
     {
+        // A cell merged with the row below has neither fill nor content of its own here: both
+        // belong to the run, and are drawn when it closes.
         foreach (var cell in placed)
         {
-            if (cell.Source.ShadingFill is not { } fill) continue;
+            if (cell.MergedBelow || cell.Source.ShadingFill is not { } fill) continue;
 
             cursor.Page.Rectangles.Add(new PositionedRectangle
             {
@@ -1435,18 +1459,75 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         foreach (var cell in placed)
         {
-            var available = height - cell.MarginTop - cell.MarginBottom;
-            var offset = cell.Source.VerticalAlignment switch
-            {
-                VerticalCellAlignment.Center => Math.Max(0, (available - cell.Content.Height) / 2),
-                VerticalCellAlignment.Bottom => Math.Max(0, available - cell.Content.Height),
-                _ => 0
-            };
+            if (cell.MergedBelow) continue;
+
+            var offset = VerticalOffset(cell, height - cell.MarginTop - cell.MarginBottom);
 
             cell.Content.PlaceOnto(cursor.Page, cell.Left + cell.MarginLeft, top + cell.MarginTop + offset);
         }
 
         DrawRowBorders(cursor.Page, placed, top, height);
+    }
+
+    /// <summary>
+    /// Where a cell's content sits in the height it has been given, by its vertical alignment.
+    /// </summary>
+    private static double VerticalOffset(PlacedCell cell, double available) =>
+        cell.Source.VerticalAlignment switch
+        {
+            VerticalCellAlignment.Center => Math.Max(0, (available - cell.Content.Height) / 2),
+            VerticalCellAlignment.Bottom => Math.Max(0, available - cell.Content.Height),
+            _ => 0
+        };
+
+    /// <summary>
+    /// What a merged run ending in this row still needs of it: the run's content, less the rows it
+    /// has already run through.
+    /// </summary>
+    private static double PendingMergeHeight(
+        Dictionary<int, OpenMerge> merges, List<PlacedCell> placed, double rowTop)
+    {
+        var needed = 0.0;
+
+        foreach (var cell in placed)
+        {
+            if (cell.MergedBelow || !merges.TryGetValue(cell.Column, out var merge)) continue;
+
+            needed = Math.Max(needed, merge.Outstanding(rowTop));
+        }
+
+        return needed;
+    }
+
+    /// <summary>Opens a run for each cell in this row that is merged with the row below it.</summary>
+    private static void OpenMerges(
+        Cursor cursor, Dictionary<int, OpenMerge> merges, List<PlacedCell> placed)
+    {
+        foreach (var cell in placed)
+        {
+            // A cell in the middle of a run is merged with the row below as well, and belongs to
+            // the run already open rather than starting another.
+            if (!cell.MergedBelow || merges.ContainsKey(cell.Column)) continue;
+
+            merges[cell.Column] = new OpenMerge(cell, cursor.Page, cursor.Y);
+        }
+    }
+
+    /// <summary>
+    /// Carries every open run down past this row, and draws the ones that end in it.
+    /// </summary>
+    private static void CloseMerges(
+        Dictionary<int, OpenMerge> merges, List<PlacedCell> placed, double rowBottom)
+    {
+        foreach (var merge in merges.Values) merge.Bottom = rowBottom;
+
+        foreach (var cell in placed)
+        {
+            if (cell.MergedBelow || !merges.TryGetValue(cell.Column, out var merge)) continue;
+
+            merge.Close(rowBottom);
+            merges.Remove(cell.Column);
+        }
     }
 
     /// <summary>
@@ -1536,7 +1617,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 : MeasureBlocks(cell.Content, Math.Max(1, width - marginLeft - marginRight));
 
             placed.Add(new PlacedCell(cell, x, width, column, span, content,
-                marginLeft, marginRight, marginTop, marginBottom, borders));
+                marginLeft, marginRight, marginTop, marginBottom, borders,
+                MergedBelow(table, rowIndex, column)));
 
             x += width;
             column += span;
@@ -1545,11 +1627,23 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         return placed;
     }
 
-    private static double ComputeRowHeight(TableRow row, List<PlacedCell> placed)
+    /// <summary>
+    /// How tall a row is: its tallest cell, or what a declared height asks for.
+    /// </summary>
+    /// <param name="pending">
+    /// What a merged run ending in this row still needs, over and above the rows it has already
+    /// run through. A merged cell's own content does not count towards the row it begins in — the
+    /// run's height belongs to its last row, which is where Word puts the overflow.
+    /// </param>
+    private static double ComputeRowHeight(TableRow row, List<PlacedCell> placed, double pending = 0)
     {
-        var natural = 0.0;
+        var natural = pending;
         foreach (var cell in placed)
+        {
+            if (cell.MergedBelow) continue;
+
             natural = Math.Max(natural, cell.Content.Height + cell.MarginTop + cell.MarginBottom);
+        }
 
         if (row.HeightTwips is not { } declared) return natural;
 
@@ -1598,15 +1692,47 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var top = cell.Borders.Top ?? (isFirstRow ? borders.Top : borders.InsideHorizontal);
 
-        // A cell continuing a vertical merge has no line above it, which is what makes the merge
-        // read as one tall cell.
+        // A cell continuing a vertical merge has no line above it, and one merged with the row
+        // below has none beneath it. Between them that is what makes a run of merged cells read as
+        // one tall cell: Word's own export draws the inside rule across every column but the
+        // merged one, and closes the run off only where it ends.
         if (cell.VerticalMerge == "continue") top = null;
+
+        var bottom = cell.Borders.Bottom ?? (isLastRow ? borders.Bottom : borders.InsideHorizontal);
+        if (MergedBelow(table, rowIndex, column)) bottom = null;
 
         return new CellBorders(
             cell.Borders.Left ?? (isFirstColumn ? borders.Left : borders.InsideVertical),
             cell.Borders.Right ?? (isLastColumn ? borders.Right : borders.InsideVertical),
             top,
-            cell.Borders.Bottom ?? (isLastRow ? borders.Bottom : borders.InsideHorizontal));
+            bottom);
+    }
+
+    /// <summary>
+    /// Whether the cell at this position is merged with the row below it: the next row down holds
+    /// a cell at the same column saying it continues a merge.
+    /// </summary>
+    private static bool MergedBelow(Table table, int rowIndex, int column)
+    {
+        if (rowIndex + 1 >= table.Rows.Count) return false;
+
+        return CellAt(table.Rows[rowIndex + 1], column)?.VerticalMerge == "continue";
+    }
+
+    /// <summary>The cell covering the given grid column of a row, allowing for horizontal spans.</summary>
+    private static TableCell? CellAt(TableRow row, int column)
+    {
+        var at = 0;
+
+        foreach (var cell in row.Cells)
+        {
+            var span = Math.Max(1, cell.GridSpan);
+            if (column < at + span) return cell;
+
+            at += span;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -3389,6 +3515,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private readonly record struct FloatRegion(double Left, double Top, double Right, double Bottom);
 
     /// <summary>A cell with its resolved geometry and its measured contents.</summary>
+    /// <param name="MergedBelow">
+    /// True where a cell is merged with the one below it, so that its content, its shading and its
+    /// bottom edge all belong to the run as a whole rather than to this row.
+    /// </param>
     private sealed record PlacedCell(
         TableCell Source,
         double Left,
@@ -3400,7 +3530,107 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         double MarginRight,
         double MarginTop,
         double MarginBottom,
-        CellBorders Borders);
+        CellBorders Borders,
+        bool MergedBelow = false);
+
+    /// <summary>
+    /// A run of vertically merged cells while it is still open: where it began, and the content of
+    /// the cell that started it, which belongs to the whole run rather than to any one row.
+    /// </summary>
+    /// <remarks>
+    /// Word gives the rows a merged run covers the heights their own cells ask for and lets the
+    /// merged content run down through them, so a three-line cell merged across three one-line
+    /// rows leaves those rows a line tall each. Only what will not fit in them makes the run
+    /// taller, and it makes the last row of the run taller rather than sharing itself out.
+    /// </remarks>
+    private sealed class OpenMerge
+    {
+        /// <summary>
+        /// Where in the page's rectangles the run's fill goes, recorded when the run opens: it has
+        /// to sit underneath the borders of every row it runs through, and those are drawn before
+        /// its height is known.
+        /// </summary>
+        private int _shadingAt = -1;
+
+        public OpenMerge(PlacedCell cell, LaidOutPage page, double top)
+        {
+            Cell = cell;
+            Page = page;
+            Top = top;
+            Bottom = top;
+
+            Reserve();
+        }
+
+        private PlacedCell Cell { get; set; }
+
+        private LaidOutPage Page { get; set; }
+
+        private double Top { get; set; }
+
+        /// <summary>The foot of the last row the run has been carried through.</summary>
+        public double Bottom { get; set; }
+
+        /// <summary>
+        /// How much height the run's content still wants of a row beginning here.
+        /// </summary>
+        public double Outstanding(double rowTop) =>
+            Cell.Content.Height + Cell.MarginTop + Cell.MarginBottom - (rowTop - Top);
+
+        /// <summary>Draws the run, now that the last of the rows it covers has been placed.</summary>
+        public void Close(double bottom)
+        {
+            Bottom = bottom;
+            Shade();
+
+            var offset = VerticalOffset(Cell, bottom - Top - Cell.MarginTop - Cell.MarginBottom);
+
+            Cell.Content.PlaceOnto(Page, Cell.Left + Cell.MarginLeft, Top + Cell.MarginTop + offset);
+        }
+
+        /// <summary>
+        /// Ends the run on the page it began on and opens it again at the top of the next, holding
+        /// whatever of its content that page had no room for.
+        /// </summary>
+        public void CarryOver(Cursor cursor)
+        {
+            Shade();
+
+            var (fitted, rest) = Cell.Content.SplitAt(Bottom - Top - Cell.MarginTop - Cell.MarginBottom);
+            fitted.PlaceOnto(Page, Cell.Left + Cell.MarginLeft, Top + Cell.MarginTop);
+
+            Cell = Cell with { Content = rest };
+            Page = cursor.Page;
+            Top = cursor.Y;
+            Bottom = cursor.Y;
+
+            Reserve();
+        }
+
+        /// <summary>Reserves the place in the page where the run's fill will go.</summary>
+        private void Reserve() =>
+            _shadingAt = Cell.Source.ShadingFill is null ? -1 : Page.Rectangles.Count;
+
+        /// <summary>
+        /// Fills the run in, at the place reserved for it when it opened — underneath the borders
+        /// of the rows it runs through rather than over the top of them.
+        /// </summary>
+        private void Shade()
+        {
+            if (_shadingAt < 0 || Cell.Source.ShadingFill is not { } fill) return;
+
+            Page.Rectangles.Insert(_shadingAt, new PositionedRectangle
+            {
+                X = Cell.Left,
+                Y = Top,
+                Width = Cell.Width,
+                Height = Bottom - Top,
+                Color = ParseHexColor(fill)
+            });
+
+            _shadingAt = -1;
+        }
+    }
 
     /// <summary>The border edges that actually apply to a cell, after resolution.</summary>
     private sealed record CellBorders(BorderEdge? Left, BorderEdge? Right, BorderEdge? Top, BorderEdge? Bottom);
