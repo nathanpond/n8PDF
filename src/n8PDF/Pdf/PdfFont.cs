@@ -114,15 +114,15 @@ public sealed class PdfFont
     internal PdfReference Build(PdfDocument document)
     {
         var glyphs = _glyphToUnicode.Keys.ToList();
-        var program = Font.GetEmbeddableFontProgram(glyphs);
+        var program = Font.GetEmbeddableFontProgram(glyphs, out var subsetted);
 
         // A subset font is named with a six-letter tag so that two documents carrying different
         // parts of the same face are not mistaken for each other. The tag is derived from the
         // glyphs themselves, which keeps it stable: converting a document twice gives the same
         // bytes, and that is what makes golden comparison possible at all.
-        var baseFont = Font.HasCffOutlines
-            ? SanitizeName(Font.PostScriptName)
-            : SubsetTag(glyphs) + "+" + SanitizeName(Font.PostScriptName);
+        var baseFont = subsetted
+            ? SubsetTag(glyphs) + "+" + SanitizeName(Font.PostScriptName)
+            : SanitizeName(Font.PostScriptName);
 
         var fontFile = new PdfStream(program);
         // Length1 is the uncompressed size, which consumers need to reconstruct the program.

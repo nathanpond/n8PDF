@@ -126,7 +126,14 @@ public sealed class TrueTypeFont
     /// else are left out.
     /// </summary>
     public byte[] GetEmbeddableFontProgram(IReadOnlyCollection<ushort>? usedGlyphs = null) =>
-        SfntRepackager.BuildStandalone(this, usedGlyphs);
+        SfntRepackager.BuildStandalone(this, usedGlyphs, out _);
+
+    /// <summary>
+    /// The same, reporting whether anything was left out. A face this cannot rebuild is embedded
+    /// whole, and a PDF may only give a subset tag to a font that really is one.
+    /// </summary>
+    public byte[] GetEmbeddableFontProgram(IReadOnlyCollection<ushort> usedGlyphs, out bool subsetted) =>
+        SfntRepackager.BuildStandalone(this, usedGlyphs, out subsetted);
 
     // ----- loading -----
 

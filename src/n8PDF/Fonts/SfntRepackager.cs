@@ -26,9 +26,33 @@ internal static class SfntRepackager
     /// Builds an embeddable font program, holding only the given glyphs where the format allows
     /// it. Passing no glyphs embeds the whole face.
     /// </summary>
-    public static byte[] BuildStandalone(TrueTypeFont font, IReadOnlyCollection<ushort>? usedGlyphs = null)
+    /// <summary>
+    /// Subsets a CFF table, keeping the result only if it is actually smaller — a font whose
+    /// outlines were nearly all used gains nothing, and a rebuild that came out larger would be
+    /// the wrong answer to the question this was asked.
+    /// </summary>
+    private static byte[]? BuildCffSubset(TrueTypeFont font, IReadOnlyCollection<ushort> usedGlyphs)
+    {
+        if (!font.HasCffOutlines || !font.Tables.TryGetValue("CFF ", out var cff)) return null;
+
+        var length = Math.Min(cff.Length, font.SourceData.Length - cff.Offset);
+        if (length <= 0) return null;
+
+        var subset = CffSubset.Build(font.SourceData, cff.Offset, length, usedGlyphs);
+
+        return subset is not null && subset.Length < length ? subset : null;
+    }
+
+    public static byte[] BuildStandalone(
+        TrueTypeFont font, IReadOnlyCollection<ushort>? usedGlyphs, out bool subsetted)
     {
         var subset = usedGlyphs is { Count: > 0 } ? GlyphSubset.Build(font, usedGlyphs) : null;
+        var charStrings = usedGlyphs is { Count: > 0 } ? BuildCffSubset(font, usedGlyphs) : null;
+
+        // Whether anything was actually left out, which is what decides if the result may be
+        // called a subset — a font this cannot rebuild is embedded whole and named plainly.
+        subsetted = subset is not null || charStrings is not null;
+
         var wanted = font.HasCffOutlines ? CffTables : TrueTypeTables;
 
         // Table records must appear in ascending tag order in the directory.
@@ -56,7 +80,11 @@ internal static class SfntRepackager
             var data = new byte[length];
             Array.Copy(source, record.Offset, data, 0, length);
 
-            if (subset is { } tables)
+            if (charStrings is not null && tag == "CFF ")
+            {
+                data = charStrings;
+            }
+            else if (subset is { } tables)
             {
                 if (tag == "glyf") data = tables.Glyf;
                 else if (tag == "loca") data = tables.Loca;
