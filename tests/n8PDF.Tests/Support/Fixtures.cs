@@ -134,6 +134,41 @@ public static class Fixtures
             """;
     }
 
+    /// <summary>
+    /// A single-cell fixed-layout table on its own page, varying only the three things that could
+    /// inset its content: the table indent, the cell margin, and the border.
+    /// </summary>
+    private static string InsetTable(string label, int? indentTwips, int marginTwips, bool borders)
+    {
+        // CT_TblPrBase is a sequence: tblW, tblInd, tblBorders, tblLayout, tblCellMar.
+        var indent = indentTwips is null ? string.Empty : $"<w:tblInd w:w=\"{indentTwips}\" w:type=\"dxa\"/>";
+        var border = borders
+            ? "<w:tblBorders>" +
+              "<w:top w:val=\"single\" w:sz=\"4\" w:color=\"auto\"/>" +
+              "<w:left w:val=\"single\" w:sz=\"4\" w:color=\"auto\"/>" +
+              "<w:bottom w:val=\"single\" w:sz=\"4\" w:color=\"auto\"/>" +
+              "<w:right w:val=\"single\" w:sz=\"4\" w:color=\"auto\"/>" +
+              "</w:tblBorders>"
+            : string.Empty;
+
+        return $"""
+            <w:tbl>
+              <w:tblPr>
+                <w:tblW w:w="4680" w:type="dxa"/>
+                {indent}{border}<w:tblLayout w:type="fixed"/>
+                <w:tblCellMar>
+                  <w:left w:w="{marginTwips}" w:type="dxa"/><w:right w:w="{marginTwips}" w:type="dxa"/>
+                  <w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/>
+                </w:tblCellMar>
+              </w:tblPr>
+              <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
+              <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr>
+                <w:r><w:rPr>{Times12}</w:rPr><w:t>{label}</w:t></w:r>
+              </w:p></w:tc></w:tr>
+            </w:tbl>
+            """;
+    }
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -460,6 +495,28 @@ public static class Fixtures
                     "This cell holds a great deal more text than the others do, far more than can fit on one line at this size.",
                     "Mid length here"
                 ])),
+
+            // Isolates how Word insets table cell content. Each page holds one single-cell table
+            // varying only the table indent, the cell margin and the border; the cell's text sits
+            // at the content edge, so its x reveals the total inset directly. 12pt values are used
+            // so the effects are far larger than Word's quantisation.
+            //
+            //   A  nothing            expect 72                additive and content-edge agree
+            //   B  border only        additive 72.5
+            //   C  indent only        additive 84
+            //   D  indent + margin    additive 96,  content-edge 84   <- the discriminator
+            //   E  all three          additive 96.5, content-edge 84
+            ["table-inset-probe"] = () => new DocxBuilder()
+                .AddRawParagraph(InsetTable("A", null, 0, borders: false))
+                .AddParagraph("-", ZeroSpacing, Times12)
+                .AddRawParagraph(InsetTable("B", null, 0, borders: true))
+                .AddParagraph("-", ZeroSpacing, Times12)
+                .AddRawParagraph(InsetTable("C", 240, 0, borders: false))
+                .AddParagraph("-", ZeroSpacing, Times12)
+                .AddRawParagraph(InsetTable("D", 240, 240, borders: false))
+                .AddParagraph("-", ZeroSpacing, Times12)
+                .AddRawParagraph(InsetTable("E", 240, 240, borders: true))
+                .AddParagraph("Trailing.", ZeroSpacing, Times12),
 
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()

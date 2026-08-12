@@ -1,0 +1,91 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "A"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.301,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.5, "width": 8.004, "font": "Times New Roman", "size": 12, "text": "B"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 125.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 139.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 84, "width": 8.004, "font": "Times New Roman", "size": 12, "text": "C"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 153.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 166.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 84, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "D"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 180.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 195.094,
+          "height": 13.799,
+          "runs": [
+            {"x": 84, "width": 7.33, "font": "Times New Roman", "size": 12, "text": "E"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 209.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 41.654, "font": "Times New Roman", "size": 12, "text": "Trailing."}
+          ]
+        }
+      ]
+    }
+  ]
+}

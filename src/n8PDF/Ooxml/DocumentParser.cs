@@ -382,7 +382,7 @@ public static class DocumentParser
             }
         }
 
-        properties.IndentTwips = tblPr.Element(W.Main + "tblInd")?.IntAttr("w") ?? 0;
+        properties.IndentTwips = tblPr.Element(W.Main + "tblInd")?.IntAttr("w");
         properties.FixedLayout = tblPr.Element(W.Main + "tblLayout")?.Attr("type") == "fixed";
         properties.Justification = tblPr.Element(W.Main + "jc") is { } jc
             ? ParseJustification(jc.Val())

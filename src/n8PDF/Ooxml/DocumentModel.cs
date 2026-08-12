@@ -152,8 +152,17 @@ public sealed class TableProperties
     /// <summary>Preferred width as a fraction of the available width, when declared as <c>pct</c>.</summary>
     public double? WidthFraction { get; set; }
 
-    /// <summary>Indent from the left text margin, in twips.</summary>
-    public int IndentTwips { get; set; }
+    /// <summary>
+    /// Indent from the left text margin, in twips, or null when the table declares none.
+    /// </summary>
+    /// <remarks>
+    /// Absent and zero are not the same thing. Measured against Word: when a table declares an
+    /// indent, the cell content edge sits exactly that far from the margin — the cell margin and
+    /// border are absorbed into it rather than added on top. When it declares none, the content
+    /// edge is the table edge plus the margin and border in the usual way. Word writes this
+    /// element on every table it saves, so real documents always take the first path.
+    /// </remarks>
+    public int? IndentTwips { get; set; }
 
     public BorderSet Borders { get; } = new();
 

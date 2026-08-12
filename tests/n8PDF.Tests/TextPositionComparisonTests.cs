@@ -192,21 +192,12 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// Real documents whose geometry is known to diverge, with why.
     /// </summary>
     /// <remarks>
-    /// Kept separate from the fixture list because a real document exercises many features at
-    /// once: one unresolved construct should not stop the rest of the document being compared.
+    /// Empty. The one entry it held — the report's table sitting 1.02pt right of Word's, enough
+    /// to wrap a cell Word fits on one line — was resolved by table-inset-probe: a declared
+    /// w:tblInd is measured to the cell content edge rather than the table edge, and our autofit
+    /// was sizing columns without allowing for the borders that layout later subtracted.
     /// </remarks>
-    private static readonly Dictionary<string, string> KnownRealDivergences = new()
-    {
-        ["report"] =
-            "Table cell content sits 1.02pt right of Word's, which is enough to wrap a cell that " +
-            "Word fits on one line and so changes the row count. Word wrote this table with " +
-            "w:tblInd=10 and w:tblCellMar left/right=10 twips, overriding TableNormal's 108, and " +
-            "then placed cell text at margin+0.48pt — one 0.5pt inset, where we apply three " +
-            "(indent, cell margin and border). Which of the three Word is collapsing is not yet " +
-            "established: the tables fixture needs the border inset to match, and this one needs " +
-            "it absent, so a probe varying w:tblInd against w:tblCellMar independently is what " +
-            "would settle it. Everything outside the table matches to 0.2pt."
-    };
+    private static readonly Dictionary<string, string> KnownRealDivergences = [];
 
     /// <summary>
     /// Writes the full per-fixture comparison to the artifacts directory and prints the summary.

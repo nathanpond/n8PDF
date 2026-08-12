@@ -178,7 +178,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var properties = table.Properties;
         var totalWidth = columns.Sum();
 
-        var tableLeft = cursor.Left + Units.TwipsToPoints(properties.IndentTwips);
+        // A declared indent is measured to the cell content edge, not to the table edge: the
+        // first column's margin and border are absorbed into it rather than added on top. Verified
+        // against Word with table-inset-probe, where a 12pt indent put content exactly 12pt from
+        // the margin whether the cell declared a 12pt margin, a border, both or neither. Word
+        // writes this element on every table it saves, so real documents always take this path.
+        var tableLeft = cursor.Left;
+        if (properties.IndentTwips is { } indent)
+            tableLeft += Units.TwipsToPoints(indent) - LeadingCellInset(table, columns.Count);
+
         tableLeft += properties.Justification switch
         {
             Justification.Center => Math.Max(0, cursor.Width - totalWidth) / 2,
@@ -364,6 +372,22 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             cell.Borders.Bottom ?? (isLastRow ? borders.Bottom : borders.InsideHorizontal));
     }
 
+    /// <summary>
+    /// How far the first column's content sits inside the table's left edge: its left cell margin
+    /// plus its left border.
+    /// </summary>
+    private static double LeadingCellInset(Table table, int columnCount)
+    {
+        var first = table.Rows.FirstOrDefault()?.Cells.FirstOrDefault();
+        if (first is null) return 0;
+
+        var span = Math.Min(Math.Max(1, first.GridSpan), Math.Max(1, columnCount));
+        var borders = ResolveCellBorders(table, first, 0, 0, span, columnCount);
+
+        return Units.TwipsToPoints(first.MarginLeftTwips ?? table.Properties.CellMarginLeftTwips)
+               + BorderWidth(borders.Left);
+    }
+
     private static double BorderWidth(BorderEdge? edge) =>
         edge is not null && edge.IsVisible ? edge.WidthPoints : 0;
 
@@ -473,10 +497,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 var span = Math.Min(Math.Max(1, cell.GridSpan), columnCount - column);
                 var (min, max) = MeasureBlockWidths(cell.Content);
 
-                // Padding is part of what the column has to accommodate.
+                // Padding is part of what the column has to accommodate, and it has to be the
+                // same padding layout will subtract later — margins and borders both. Counting
+                // only the margins here sized columns that could never fit their own contents,
+                // so a cell with borders wrapped text that was measured to fit.
+                var borders = ResolveCellBorders(table, cell, 0, column, span, columnCount);
                 var padding =
                     Units.TwipsToPoints(cell.MarginLeftTwips ?? properties.CellMarginLeftTwips) +
-                    Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRightTwips);
+                    Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRightTwips) +
+                    BorderWidth(borders.Left) + BorderWidth(borders.Right);
 
                 min += padding;
                 max += padding;
