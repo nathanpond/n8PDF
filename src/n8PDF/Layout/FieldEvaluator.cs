@@ -50,6 +50,12 @@ public sealed class FieldEnvironment
     /// formula has only the numbers written into it to work with.
     /// </summary>
     public IFormulaCells? Cells { get; set; }
+
+    /// <summary>
+    /// The record the merge fields are filled from, where the conversion was given one. Null
+    /// leaves each field showing its own name, which is what Word shows before a merge is run.
+    /// </summary>
+    public MailMergeRecord? Merge { get; set; }
 }
 
 /// <summary>
@@ -106,6 +112,18 @@ public static class FieldEvaluator
             "SEQ" => Sequence(instruction, environment),
             "IF" => Condition(instruction),
             "=" => Formula(instruction, environment),
+
+            "MERGEFIELD" => MergeField(instruction, environment),
+            "MERGEREC" => Placeholder(environment.Merge?.Number, "Merge Record #"),
+            "MERGESEQ" => Placeholder(environment.Merge?.Sequence, "Merge Sequence #"),
+
+            // The fields that move a merge from one record to the next show nothing where they
+            // stand, whether or not there is a merge to move: Word draws none of them.
+            "NEXT" or "NEXTIF" or "SKIPIF" => string.Empty,
+
+            // A question the merge asks whoever runs it. Nothing here can ask, so the answer it
+            // was given a default of is the best there is.
+            "FILLIN" or "ASK" => instruction.SwitchValue('d'),
             "STYLEREF" => environment.StyleReference(instruction),
 
             "AUTHOR" => properties.Creator,
@@ -129,6 +147,36 @@ public static class FieldEvaluator
             _ => null
         };
     }
+
+    /// <summary>
+    /// What a merge field shows: the value the record holds for it, or — where there is no record,
+    /// which is a document that has not been merged — the name of the field in guillemets, the way
+    /// Word shows it.
+    /// </summary>
+    /// <remarks>
+    /// The text <c>\b</c> and <c>\f</c> put before and after it are only printed where the field
+    /// has something to print. Word shows them around the placeholder of an unmerged field, so a
+    /// letter written "Dear «Title»," reads that way before it is merged and simply "Dear," is
+    /// never what it comes to.
+    /// </remarks>
+    private static string? MergeField(FieldInstruction instruction, FieldEnvironment environment)
+    {
+        if (instruction.Argument is not { Length: > 0 } name) return null;
+
+        var before = instruction.SwitchValue('b') ?? string.Empty;
+        var after = instruction.SwitchValue('f') ?? string.Empty;
+
+        if (environment.Merge?.Value(name) is not { } value) return $"{before}«{name}»{after}";
+
+        return value.Length == 0 ? string.Empty : before + value + after;
+    }
+
+    /// <summary>
+    /// A number the merge would have supplied, or the name of what it stands for in guillemets
+    /// where there is no merge to supply it.
+    /// </summary>
+    private static string Placeholder(int? value, string name) =>
+        value is { } number ? number.ToString(CultureInfo.InvariantCulture) : $"«{name}»";
 
     /// <summary>
     /// What a formula comes to, spelled the way its <c>\#</c> picture asks, or to two decimal

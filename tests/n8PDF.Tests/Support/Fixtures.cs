@@ -1569,6 +1569,34 @@ public static class Fixtures
                 return builder;
             },
 
+            // The merge fields, in a document with no data behind them — which is what a letter
+            // written for a merge looks like before it is merged, and what a converter is handed.
+            ["merge"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Field(string label, string instruction) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{label}: </w:t></w:r>" +
+                        StyleRefRuns(instruction) + "</w:p>");
+
+                Field("plain", " MERGEFIELD FirstName ");
+                Field("quoted", " MERGEFIELD \"Company Name\" ");
+                Field("mergeformat", " MERGEFIELD Surname \\* MERGEFORMAT ");
+                Field("upper", " MERGEFIELD Surname \\* Upper ");
+                Field("before-and-after", " MERGEFIELD Title \\b \"Dear \" \\f \",\" ");
+                Field("record", " MERGEREC ");
+                Field("sequence", " MERGESEQ ");
+                Field("next", " NEXT ");
+                Field("skip-if", " SKIPIF 1 = 2 ");
+
+                // FILLIN and ASK are deliberately absent: updating one asks the reader a question
+                // in a dialog, and a reference is made by updating every field there is.
+
+                return builder;
+            },
+
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:
             // nothing else says whether a row that continues is closed off where it stops.

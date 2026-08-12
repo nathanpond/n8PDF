@@ -246,6 +246,16 @@ number; `\h` asks for a line holding the letter each group begins with, `\e` and
 between a term and its pages and between one page and the next, `\t` shows something else in place
 of the pages ("see Engine"), and `\f` keeps two indexes in one document apart.
 
+A document written for a mail merge does not carry its own data: it names a source — a
+spreadsheet, an address book — that only the machine it was written on can reach. Converted as it
+stands, its fields show what Word shows for the same document, each field's own name in guillemets
+with whatever `\b` and `\f` ask to be printed around it, so a letter reading `Dear «Title»,` reads
+that way. Converted with a `MergeRecord` given to it, the same document reads as the letter itself
+— and the text around a field then prints only where the field has something to print, so an empty
+middle name takes its brackets with it. MERGEREC and MERGESEQ number the record, and the fields
+that carry a merge from one record to the next (NEXT, NEXTIF, SKIPIF) draw nothing, which is what
+Word draws for them.
+
 The two fields that work something out rather than look it up are the last of them. IF compares two
 things and chooses between two pieces of text — numbers as numbers, anything else as text without
 regard to case, and the text an equality is asked against may hold `*` and `?` wildcards. A formula
@@ -262,8 +272,7 @@ what is not a number, so the same column averaged as `A1:A3` is 6.5 rather than 
 with no picture reads to two decimal places with the zeros at the end dropped: 10/3 is 3.33, 10/4
 stays 2.5.
 
-Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, mail merge (whose cached results are
-shown), splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

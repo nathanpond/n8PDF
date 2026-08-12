@@ -1,0 +1,90 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 30.328, "font": "Times New Roman", "size": 12, "text": "plain: "},
+            {"x": 102.328, "width": 62.66, "font": "Times New Roman", "size": 12, "text": "«FirstName»"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.994, "font": "Times New Roman", "size": 12, "text": "quoted: "},
+            {"x": 110.994, "width": 90.316, "font": "Times New Roman", "size": 12, "text": "«Company Name»"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 68.303, "font": "Times New Roman", "size": 12, "text": "mergeformat: "},
+            {"x": 140.303, "width": 54.656, "font": "Times New Roman", "size": 12, "text": "«Surname»"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 33.656, "font": "Times New Roman", "size": 12, "text": "upper: "},
+            {"x": 105.656, "width": 70.676, "font": "Times New Roman", "size": 12, "text": "«SURNAME»"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 84.275, "font": "Times New Roman", "size": 12, "text": "before-and-after: "},
+            {"x": 156.275, "width": 63.973, "font": "Times New Roman", "size": 12, "text": "Dear «Title»,"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.979, "font": "Times New Roman", "size": 12, "text": "record: "},
+            {"x": 108.979, "width": 89.971, "font": "Times New Roman", "size": 12, "text": "«Merge Record #»"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.309, "font": "Times New Roman", "size": 12, "text": "sequence: "},
+            {"x": 122.309, "width": 101.297, "font": "Times New Roman", "size": 12, "text": "«Merge Sequence #»"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 23.994, "font": "Times New Roman", "size": 12, "text": "next:"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.664, "font": "Times New Roman", "size": 12, "text": "skip-if:"}
+          ]
+        }
+      ]
+    }
+  ]
+}

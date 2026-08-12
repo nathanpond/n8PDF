@@ -143,6 +143,7 @@ public readonly record struct FieldInstruction(
             "INDEX" => letter is 'b' or 'c' or 'd' or 'e' or 'f' or 'g' or 'h' or 'k' or 'l' or 'p' or 's' or 'z',
             "XE" => letter is 'f' or 'r' or 't' or 'y',
             "SEQ" => letter is 'r' or 's',
+            "MERGEFIELD" => letter is 'b' or 'f',
             _ => letter is 't' or 'r' or 'f' or 's' or 'd'
         };
     }

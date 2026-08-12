@@ -64,6 +64,13 @@ public sealed class ConversionOptions
     public DateTimeOffset? FieldsAsOf { get; set; }
 
     /// <summary>
+    /// The record to fill a document's merge fields from. A document written for a mail merge
+    /// names a data source this cannot reach, so converting one with no record given shows each
+    /// field's own name in guillemets — which is what Word shows for the same document.
+    /// </summary>
+    public MailMergeRecord? MergeRecord { get; set; }
+
+    /// <summary>
     /// Creation timestamp for the PDF. Left null so that converting the same document twice
     /// produces identical bytes, which is what makes golden comparison possible.
     /// </summary>
@@ -177,7 +184,8 @@ public static class Converter
                 package.TryReadPartAsXml("docProps/core.xml"),
                 package.TryReadPartAsXml("docProps/custom.xml")),
             FileName = options.FileName,
-            Now = options.FieldsAsOf ?? options.CreationDate ?? DateTimeOffset.Now
+            Now = options.FieldsAsOf ?? options.CreationDate ?? DateTimeOffset.Now,
+            Merge = options.MergeRecord
         };
 
         var bookmarks = BookmarkText.Collect(document);
