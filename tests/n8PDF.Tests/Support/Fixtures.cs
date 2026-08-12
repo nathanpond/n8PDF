@@ -25,6 +25,23 @@ public static class Fixtures
             strike: strike, color: color, underline: underline);
 
     private static readonly string Times12 = Times();
+
+    /// <summary>
+    /// A paragraph of exactly the given number of lines, separated by explicit breaks rather than
+    /// left to wrap — which is what makes where each line falls something a fixture can rely on.
+    /// </summary>
+    private static string BrokenParagraph(string label, int lines, string paragraphProperties)
+    {
+        var markup = $"<w:p><w:pPr>{paragraphProperties}</w:pPr>";
+
+        for (var i = 1; i <= lines; i++)
+        {
+            if (i > 1) markup += $"<w:r><w:rPr>{Times12}</w:rPr><w:br/></w:r>";
+            markup += $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{label} {i}.</w:t></w:r>";
+        }
+
+        return markup + "</w:p>";
+    }
     private static readonly string Times24 = Times(48);
 
     /// <summary>Ten point, which is the size Word's footnote text style uses.</summary>
@@ -662,6 +679,31 @@ public static class Fixtures
 
                 for (var i = 1; i <= 50; i++)
                     builder.AddParagraph($"Body paragraph number {i} of fifty.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
+            // A heading kept with the paragraph that follows it, and a paragraph whose lines are
+            // kept together, each placed so that a page boundary falls where it would separate
+            // them. The filler is single lines so the boundary lands where it is meant to.
+            ["keep-together"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                // Room for one more line, which the heading takes and the body cannot follow into.
+                for (var i = 1; i <= 44; i++)
+                    builder.AddParagraph($"Filler {i}.", ZeroSpacing, Times12);
+
+                builder.AddParagraph("A heading kept with what follows it", "<w:keepNext/>" + ZeroSpacing,
+                    Times(32, bold: true));
+                builder.AddRawParagraph(BrokenParagraph("Body line", 3, ZeroSpacing));
+
+                // Fills the second page to three lines short of the bottom, where a paragraph of
+                // four lines that may not be split has to move whole.
+                for (var i = 45; i <= 83; i++)
+                    builder.AddParagraph($"Filler {i}.", ZeroSpacing, Times12);
+
+                builder.AddRawParagraph(BrokenParagraph("Kept line", 4, "<w:keepLines/>" + ZeroSpacing));
 
                 return builder;
             },

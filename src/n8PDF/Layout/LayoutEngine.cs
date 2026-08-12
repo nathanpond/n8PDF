@@ -71,6 +71,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // that opens it.
     private string? _currentNoteLabel;
 
+    // Counts the paragraphs laid out, so the lines in a column can say which one they came from.
+    private int _paragraphOrdinal;
+
     // How many pages the section being laid out has produced, which is what a title page and a
     // section's own numbering are counted against.
     private int _pagesInSection;
@@ -401,9 +404,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var bookmarks = _pendingBookmarks.ToList();
         var firstLine = true;
 
-        // This paragraph's lines in the column being filled, so that widow and orphan control can
-        // take some of them back off it. Cleared whenever the cursor moves on.
-        var placed = new List<PlacedLine>();
+        var ordinal = _paragraphOrdinal++;
         var emitted = 0;
 
         while (composer.HasMore)
@@ -411,16 +412,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // A break carried over from the previous line is applied before this one is composed,
             // not after: a column break changes the measure, and a line broken against the width
             // it was leaving would be wrapped in the wrong place.
-            if (composer.PendingPageBreak && cursor.CanBreak)
-            {
-                cursor.BreakPage();
-                placed.Clear();
-            }
-            else if (composer.PendingColumnBreak && cursor.CanAdvance)
-            {
-                cursor.AdvanceColumn();
-                placed.Clear();
-            }
+            if (composer.PendingPageBreak && cursor.CanBreak) cursor.BreakPage();
+            else if (composer.PendingColumnBreak && cursor.CanAdvance) cursor.AdvanceColumn();
 
             var band = ResolveBandForLine(cursor, composer.ProvisionalHeight);
             var line = composer.Next(band.Left, band.Width);
@@ -439,16 +432,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // never split with only one of its lines on either side of the break.
             if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Height && cursor.CanAdvance)
             {
-                var pull = WidowOrphanPullBack(format, placed, isLastLine: !composer.HasMore, cursor);
-                var pulled = pull > 0 ? UnplaceLines(cursor, placed, pull) : [];
+                var pull = PullBackForBreak(format, cursor, ordinal, isLastLine: !composer.HasMore);
+
+                // Whether this paragraph's own first line is among the lines going with it.
+                var takesTheOpening = pull > 0 && emitted > 0 && CountOwnedBy(cursor, ordinal) >= emitted;
+
+                var pulled = pull > 0 ? UnplaceLines(cursor, pull) : [];
 
                 cursor.AdvanceColumn();
-                placed.Clear();
-
-                foreach (var moved in pulled) RePlaceLine(cursor, moved, index, placed);
+                RePlaceLines(cursor, pulled);
 
                 // A pulled-back first line takes its paragraph's bookmarks with it.
-                if (pull > 0 && emitted - pull == 0) firstLine = true;
+                if (takesTheOpening) firstLine = true;
 
                 // The new page carries no separator yet, so what the notes cost is not what they
                 // cost on the page just left behind.
@@ -471,7 +466,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 firstLine = false;
             }
 
-            placed.Add(Place(cursor, line, index, footnoteIds, footnotes));
+            Place(cursor, line, index, ordinal, format.KeepNext, footnoteIds, footnotes);
             emitted++;
         }
 
@@ -509,61 +504,107 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         int ImageIndex,
         IReadOnlyList<int> FootnoteIds,
         int FootnoteCount,
-        double FootnoteHeight);
+        double FootnoteHeight,
+        int ParagraphOrdinal,
+        int ParagraphIndex,
+        bool KeepNext);
 
     /// <summary>Puts a composed line on the page and records what that took.</summary>
-    private PlacedLine Place(
-        Cursor cursor, ComposedLine line, int paragraphIndex,
+    private void Place(
+        Cursor cursor, ComposedLine line, int paragraphIndex, int ordinal, bool keepNext,
         IReadOnlyList<int> footnoteIds, (List<DetachedFlow> Flows, double Height) footnotes)
     {
-        var placed = new PlacedLine(
+        cursor.ColumnLines.Add(new PlacedLine(
             line, cursor.Y,
             cursor.Page.Lines.Count, cursor.Page.Rules.Count, cursor.Page.Images.Count,
-            footnoteIds, footnotes.Flows.Count, footnotes.Height);
+            footnoteIds, footnotes.Flows.Count, footnotes.Height,
+            ordinal, paragraphIndex, keepNext));
 
         EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex);
         CommitFootnotes(cursor, footnotes);
         cursor.Y += line.Height;
+    }
 
-        return placed;
+    /// <summary>How many of the column's trailing lines belong to one paragraph.</summary>
+    private static int CountOwnedBy(Cursor cursor, int ordinal)
+    {
+        var lines = cursor.ColumnLines;
+        var count = 0;
+
+        while (count < lines.Count && lines[^(count + 1)].ParagraphOrdinal == ordinal) count++;
+
+        return count;
     }
 
     /// <summary>
-    /// How many of a paragraph's lines must follow the break rather than staying above it.
+    /// How many of the lines already in this column must follow the break rather than staying
+    /// above it.
     /// </summary>
     /// <remarks>
-    /// Word's rule is two lines on each side: one line of a paragraph left at the foot of a column
-    /// is an orphan, one carried alone to the next is a widow, and it will have neither. A
-    /// paragraph of three lines cannot satisfy both at once, so all of it moves.
+    /// Three rules meet here, all of them about what may not be separated.
     ///
-    /// Lines are never pushed off a column they already start. There would be nothing above them
-    /// to gain by it, and the next column would be no roomier than the one they were pushed out
-    /// of, so the paragraph would march across the page never fitting anywhere.
+    /// Widow and orphan control wants two lines of a paragraph on each side of a break: one left
+    /// at the foot of a column is an orphan, one carried alone to the next is a widow, and Word
+    /// will have neither. A paragraph of three lines cannot satisfy both at once, so all of it
+    /// moves. <c>w:keepLines</c> says the paragraph is never split at all.
+    ///
+    /// <c>w:keepNext</c> reaches further back: it keeps a paragraph with the one that follows, so
+    /// when a paragraph moves, anything kept with it moves too, and anything kept with that. It
+    /// only applies when the whole of the following paragraph is moving — a paragraph that keeps
+    /// some of its lines above the break is still next to the one before it.
+    ///
+    /// Nothing is ever pushed off a column it already starts. There would be nothing above it to
+    /// gain by moving, and the next column is no roomier, so the paragraph would march across the
+    /// page never fitting anywhere. Where the full chain cannot be moved for that reason, the
+    /// smaller move that satisfies the paragraph's own rules is tried instead.
     /// </remarks>
-    private static int WidowOrphanPullBack(
-        ResolvedParagraphFormat format, List<PlacedLine> placed, bool isLastLine, Cursor cursor)
+    private static int PullBackForBreak(
+        ResolvedParagraphFormat format, Cursor cursor, int ordinal, bool isLastLine)
     {
-        if (!format.WidowControl || placed.Count == 0) return 0;
+        var lines = cursor.ColumnLines;
+        if (lines.Count == 0) return 0;
 
-        var pull = placed.Count switch
+        // How many of the lines at the end of the column belong to the paragraph being laid out.
+        // None, when the break falls before its very first line.
+        var own = 0;
+        while (own < lines.Count && lines[^(own + 1)].ParagraphOrdinal == ordinal) own++;
+
+        var pull = own == 0 ? 0
+            : format.KeepLines ? own
+            : !format.WidowControl ? 0
+            : own switch
+            {
+                1 => 1,
+                2 when isLastLine => 2,
+                _ when isLastLine => 1,
+                _ => 0
+            };
+
+        var withoutChain = pull;
+
+        // Anything kept with what is moving comes along, and so does anything kept with that.
+        if (own == 0 || pull >= own)
         {
-            1 => 1,
-            2 when isLastLine => 2,
-            _ when isLastLine => 1,
-            _ => 0
-        };
+            while (pull < lines.Count && lines[^(pull + 1)].KeepNext)
+            {
+                var previous = lines[^(pull + 1)].ParagraphOrdinal;
+                while (pull < lines.Count && lines[^(pull + 1)].ParagraphOrdinal == previous) pull++;
+            }
+        }
 
-        if (pull == 0) return 0;
+        if (pull > 0 && lines[^pull].Top <= cursor.ContentTop + 0.001) pull = withoutChain;
+        if (pull == 0 || lines[^pull].Top <= cursor.ContentTop + 0.001) return 0;
 
-        return placed[^pull].Top > cursor.ContentTop + 0.001 ? pull : 0;
+        return pull;
     }
 
     /// <summary>
     /// Takes the last few lines back off the page, undoing everything placing them did, and
     /// returns them in the order they were placed so they can go down again elsewhere.
     /// </summary>
-    private List<PlacedLine> UnplaceLines(Cursor cursor, List<PlacedLine> placed, int count)
+    private List<PlacedLine> UnplaceLines(Cursor cursor, int count)
     {
+        var placed = cursor.ColumnLines;
         var pulled = placed.GetRange(placed.Count - count, count);
         var first = pulled[0];
         var page = cursor.Page;
@@ -592,14 +633,29 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         return pulled;
     }
 
-    /// <summary>Puts a pulled-back line down again where the cursor now stands.</summary>
-    private void RePlaceLine(Cursor cursor, PlacedLine line, int paragraphIndex, List<PlacedLine> placed)
+    /// <summary>
+    /// Puts pulled-back lines down again where the cursor now stands, keeping the gaps that were
+    /// between them — the spacing between two paragraphs that moved together is part of what
+    /// moved.
+    /// </summary>
+    private void RePlaceLines(Cursor cursor, List<PlacedLine> pulled)
     {
-        var footnotes = line.FootnoteIds.Count > 0 && cursor.FootnoteSink is null
-            ? PrepareFootnotes(line.FootnoteIds)
-            : ([], 0);
+        if (pulled.Count == 0) return;
 
-        placed.Add(Place(cursor, line.Line, paragraphIndex, line.FootnoteIds, footnotes));
+        var origin = pulled[0].Top;
+        var top = cursor.Y;
+
+        foreach (var line in pulled)
+        {
+            cursor.Y = top + (line.Top - origin);
+
+            var footnotes = line.FootnoteIds.Count > 0 && cursor.FootnoteSink is null
+                ? PrepareFootnotes(line.FootnoteIds)
+                : ([], 0);
+
+            Place(cursor, line.Line, line.ParagraphIndex, line.ParagraphOrdinal, line.KeepNext,
+                line.FootnoteIds, footnotes);
+        }
     }
 
     /// <summary>
@@ -2442,6 +2498,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// <summary>How far down the fullest column of this page has reached.</summary>
         public double PageMaxY { get; set; }
 
+        /// <summary>
+        /// The lines placed in the column being filled, in order. Kept so that the rules about
+        /// what may not be separated can take some of them back off it again, which is why the
+        /// list outlives the paragraph that put them there.
+        /// </summary>
+        public List<PlacedLine> ColumnLines { get; } = [];
+
         public required double ContentTop { get; set; }
 
         /// <summary>The bottom margin: where content would stop with nothing reserved.</summary>
@@ -2571,6 +2634,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             ColumnIndex++;
             MaxColumnUsed = Math.Max(MaxColumnUsed, ColumnIndex);
             Y = ContentTop;
+            ColumnLines.Clear();
             ApplyColumn();
         }
 
@@ -2596,6 +2660,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             ColumnIndex = 0;
             MaxColumnUsed = 0;
             PageMaxY = 0;
+            ColumnLines.Clear();
             ApplyColumn();
 
             // A float belongs to the page its anchor landed on; it does not follow the text.
