@@ -211,6 +211,89 @@ public class TableMergeTests
             "the fill is drawn over the borders it should sit under");
     }
 
+
+    /// <summary>
+    /// A row holding a merged cell divides like any other, and divides the run with it: what is
+    /// left of the merged cell's text carries on over the page rather than following the row.
+    /// </summary>
+    [Fact]
+    public void A_row_holding_a_merged_cell_divides()
+    {
+        var layout = LayoutOf(Fixtures.Build("table-merge-split"));
+
+        static List<string> On(LaidOutPage page, string prefix) =>
+            [.. page.Lines.SelectMany(l => l.Texts).Select(t => t.Text).Where(t => t.StartsWith(prefix))];
+
+        // The row is twelve lines tall and eight of them fit, so it divides there — and the merged
+        // cell divides at the same place, not at its own twentieth line.
+        Assert.Equal(8, On(layout.Pages[0], "Beside").Count);
+        Assert.Equal(8, On(layout.Pages[0], "Merged").Count);
+
+        Assert.Equal(4, On(layout.Pages[1], "Beside").Count);
+        Assert.Equal(12, On(layout.Pages[1], "Merged").Count);
+
+        // In order, with nothing repeated across the break.
+        Assert.Equal("Merged 8", On(layout.Pages[0], "Merged")[^1]);
+        Assert.Equal("Merged 9", On(layout.Pages[1], "Merged")[0]);
+    }
+
+    /// <summary>
+    /// The run's last row still takes what the rows above could not hold, and it takes it on the
+    /// page the run ends on: the three-line row after the break grows to hold the eight lines of
+    /// merged text that are left.
+    /// </summary>
+    [Fact]
+    public void The_run_still_ends_where_its_content_does()
+    {
+        var page = LayoutOf(Fixtures.Build("table-merge-split")).Pages[1];
+
+        var last = page.Lines
+            .Where(l => l.Texts.Any(t => t.Text.StartsWith("Merged")))
+            .Max(l => l.BaselineY);
+
+        var after = page.Lines
+            .Where(l => l.Texts.Any(t => t.Text.StartsWith("After")))
+            .Max(l => l.BaselineY);
+
+        // The merged text runs on past the last of the rows beside it.
+        Assert.True(last > after, "the merged text ends above the row it runs through");
+
+        // And the table closes below all of it.
+        var rules = page.Rectangles.Where(r => r.Height < 2).Select(r => r.Y).ToList();
+        Assert.True(rules.Max() > last, "the table closes above the last of the merged lines");
+    }
+
+    /// <summary>
+    /// Word rules a merged cell where a page ends even though it rules none between the rows of a
+    /// run, so both halves are closed boxes: the run is shut at the foot of the page it leaves and
+    /// opened again at the top of the one it lands on.
+    /// </summary>
+    [Fact]
+    public void A_run_is_ruled_where_the_page_divides_it()
+    {
+        var layout = LayoutOf(Fixtures.Build("table-merge-split"));
+
+        static List<double> RulesOverTheMergedColumn(LaidOutPage page) =>
+            [.. page.Rectangles
+                .Where(r => r.Height < 2 && r.Width > 100 && r.X < 100)
+                .Select(r => Math.Round(r.Y, 2))
+                .Distinct()
+                .Order()];
+
+        var first = RulesOverTheMergedColumn(layout.Pages[0]);
+        var second = RulesOverTheMergedColumn(layout.Pages[1]);
+
+        // Where the row divides: the table's own top, and the rule that closes the page.
+        Assert.Equal(2, first.Count);
+
+        // And on the next page the run opens again, with no rule between its rows until the table
+        // ends — the top of the page and the foot of the table, and nothing between them.
+        Assert.Equal(2, second.Count);
+
+        var lines = layout.Pages[1].Lines.Where(l => l.Texts.Count > 0).ToList();
+        Assert.True(second[0] < lines.Min(l => l.BaselineY - l.Ascent) + 0.5);
+        Assert.True(second[1] > lines.Max(l => l.BaselineY));
+    }
     /// <summary>
     /// A run whose rows do not all fit on one page is closed off where the page ends and opened
     /// again on the next, with the text carrying on there rather than being lost.

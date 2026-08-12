@@ -1360,6 +1360,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var rowHeight = HeightOf(placed);
 
+            // Opened before the row is drawn, so that a merged cell's fill goes into the page
+            // underneath the borders of every row it runs through rather than over the top of
+            // them — and before the row is divided, so that dividing it divides the run too.
+            OpenMerges(cursor, merges, placed);
+
             // A cell's contents were composed on a page of their own, so any footnote they refer
             // to is still waiting to be given to the page the row lands on.
             var rowFootnoteIds = placed.SelectMany(cell => cell.Content.Footnotes).ToList();
@@ -1378,19 +1383,22 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             while (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height)
             {
-                // A row holding a cell merged with the row below is not divided. Splitting it
-                // would divide a run whose content belongs to rows that are not here yet, so it
-                // moves whole and the run carries over instead.
-                if (!row.CantSplit && !placed.Any(cell => cell.MergedBelow) &&
+                if (!row.CantSplit &&
                     SplitRow(cursor, placed, rowFootnotes.Height, out var fitted, out var remaining,
                         out var fittedHeight))
                 {
                     PlaceRow(cursor, fitted, cursor.Y, fittedHeight);
                     cursor.Y += fittedHeight;
 
+                    // A merged run reaching down through this row has just been given as much of
+                    // the page as the part that stayed behind.
+                    foreach (var merge in merges.Values) merge.Bottom = cursor.Y;
+
                     placed = remaining;
 
-                    if (placed.All(cell => cell.Content.Height <= 0))
+                    // A merged cell's content is never used up by the row it is in: the run holds
+                    // it, and carries what is left over the page break.
+                    if (placed.All(cell => cell.MergedBelow || cell.Content.Height <= 0))
                     {
                         placedEverything = true;
                         break;
@@ -1412,10 +1420,6 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 rowHeight = HeightOf(placed);
                 if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(rowFootnoteIds);
             }
-
-            // Before the row is drawn, so that a merged cell's fill goes into the page underneath
-            // the borders of every row it runs through rather than over the top of them.
-            OpenMerges(cursor, merges, placed);
 
             if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight);
 
@@ -1556,6 +1560,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         foreach (var cell in placed)
         {
+            // A merged cell's content belongs to the run rather than to this row, and is divided
+            // with the run when the page ends rather than here.
+            if (cell.MergedBelow)
+            {
+                fitted.Add(cell);
+                remaining.Add(cell);
+                continue;
+            }
+
             var (top, rest) = cell.Content.SplitAt(available - cell.MarginTop - cell.MarginBottom);
 
             fitted.Add(cell with { Content = top });
@@ -1670,7 +1683,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         foreach (var cell in placed)
         {
             AddEdge(page, cell.Borders.Top, cell.Left, top, cell.Width, horizontal: true);
-            AddEdge(page, cell.Borders.Bottom, cell.Left, top + height, cell.Width, horizontal: true);
+
+            // No line between a merged cell and the one below it: that is what makes the run read
+            // as one tall cell. Word's own export draws the inside rule across every column but
+            // the merged one.
+            if (!cell.MergedBelow)
+                AddEdge(page, cell.Borders.Bottom, cell.Left, top + height, cell.Width, horizontal: true);
+
             AddEdge(page, cell.Borders.Left, cell.Left, top, height, horizontal: false);
             AddEdge(page, cell.Borders.Right, cell.Left + cell.Width, top, height, horizontal: false);
         }
@@ -1692,14 +1711,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var top = cell.Borders.Top ?? (isFirstRow ? borders.Top : borders.InsideHorizontal);
 
-        // A cell continuing a vertical merge has no line above it, and one merged with the row
-        // below has none beneath it. Between them that is what makes a run of merged cells read as
-        // one tall cell: Word's own export draws the inside rule across every column but the
-        // merged one, and closes the run off only where it ends.
+        // A cell continuing a vertical merge has no line above it, which is half of what makes a
+        // run of merged cells read as one tall cell. The other half is at the foot of a merged
+        // cell, and is left to the drawing: the edge is resolved here either way, because a run
+        // interrupted by the end of a page is closed off with it.
         if (cell.VerticalMerge == "continue") top = null;
 
         var bottom = cell.Borders.Bottom ?? (isLastRow ? borders.Bottom : borders.InsideHorizontal);
-        if (MergedBelow(table, rowIndex, column)) bottom = null;
 
         return new CellBorders(
             cell.Borders.Left ?? (isFirstColumn ? borders.Left : borders.InsideVertical),
@@ -3594,15 +3612,27 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// </summary>
         public void CarryOver(Cursor cursor)
         {
-            Shade();
+            // A run that had no room at all on the page it opened on — its first row moved whole
+            // rather than dividing — leaves nothing behind to close off.
+            if (Bottom > Top)
+            {
+                Shade();
 
-            var (fitted, rest) = Cell.Content.SplitAt(Bottom - Top - Cell.MarginTop - Cell.MarginBottom);
-            fitted.PlaceOnto(Page, Cell.Left + Cell.MarginLeft, Top + Cell.MarginTop);
+                var (fitted, rest) = Cell.Content.SplitAt(Bottom - Top - Cell.MarginTop - Cell.MarginBottom);
+                fitted.PlaceOnto(Page, Cell.Left + Cell.MarginLeft, Top + Cell.MarginTop);
+                Cell = Cell with { Content = rest };
 
-            Cell = Cell with { Content = rest };
+                // Word closes a run off where the page ends and opens it again at the top of the
+                // next, so the merged cell is ruled at both, unlike where a run passes from one
+                // row to the next within a page.
+                AddEdge(Page, Cell.Borders.Bottom, Cell.Left, Bottom, Cell.Width, horizontal: true);
+            }
+
             Page = cursor.Page;
             Top = cursor.Y;
             Bottom = cursor.Y;
+
+            AddEdge(Page, Cell.Borders.Top, Cell.Left, Top, Cell.Width, horizontal: true);
 
             Reserve();
         }

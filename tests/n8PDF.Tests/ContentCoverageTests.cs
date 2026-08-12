@@ -27,7 +27,7 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// Fixtures whose pages hold their text in a different order from the document, and where
     /// that is the point of the fixture rather than a fault.
     /// </summary>
-    private static readonly HashSet<string> Reorders = ["table-split", "table-vertical-merge"];
+    private static readonly HashSet<string> Reorders = ["table-split", "table-vertical-merge", "table-merge-split"];
 
     public static TheoryData<string> FixtureNames
     {

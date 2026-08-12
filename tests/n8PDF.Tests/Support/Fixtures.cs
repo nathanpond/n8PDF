@@ -28,6 +28,10 @@ public static class Fixtures
 
     private static readonly string Times12 = Times();
 
+    /// <summary>Numbered lines of text, for a cell that has to be taller than its neighbour.</summary>
+    private static IEnumerable<string> Lines(string label, int count) =>
+        Enumerable.Range(1, count).Select(i => $"{label} {i}");
+
     /// <summary>
     /// A cell of a vertical-merge table: the paragraphs given, or the merge marker instead.
     /// </summary>
@@ -1111,6 +1115,38 @@ public static class Fixtures
                     MergeCell("restart", shading: "D9D9D9", lines: ["Shaded"]) +
                     MergeCell(null, lines: ["Plain one"]),
                     MergeCell("continue") + MergeCell(null, lines: ["Plain two"])));
+
+                return builder;
+            },
+
+            // A merged run reaching the foot of the page: once inside the row it begins in, and
+            // once between two of the rows it covers. What the merged cell holds has to divide
+            // with it either way.
+            ["table-merge-split"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                // Eight lines short of the foot of the page, against a row twelve lines tall whose
+                // merged cell holds twenty: the break falls inside the row the run begins in.
+                for (var i = 1; i <= 38; i++)
+                    builder.AddParagraph($"Filler {i}.", ZeroSpacing, Times12);
+
+                builder.AddRawParagraph(MergeTable(2, pageBreak: false,
+                    MergeCell("restart", lines: [.. Lines("Merged", 20)]) +
+                    MergeCell(null, lines: [.. Lines("Beside", 12)]),
+                    MergeCell("continue") + MergeCell(null, lines: [.. Lines("After", 3)])));
+
+                // And again with the break between the run's rows rather than inside one: three
+                // rows of four lines each, begun with six lines of the page left.
+                for (var i = 1; i <= 40; i++)
+                    builder.AddParagraph($"Second filler {i}.",
+                        i == 1 ? ZeroSpacingNewPage : ZeroSpacing, Times12);
+
+                builder.AddRawParagraph(MergeTable(2, pageBreak: false,
+                    MergeCell("restart", lines: [.. Lines("Down", 12)]) +
+                    MergeCell(null, lines: [.. Lines("Row one", 4)]),
+                    MergeCell("continue") + MergeCell(null, lines: [.. Lines("Row two", 4)]),
+                    MergeCell("continue") + MergeCell(null, lines: [.. Lines("Row three", 4)])));
 
                 return builder;
             },
