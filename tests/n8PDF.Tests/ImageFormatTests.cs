@@ -305,6 +305,127 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.Equal(0, Difference(expected.Data, actual));
     }
 
+    // ----- interlaced PNG -----
+
+    /// <summary>
+    /// An interlaced PNG is the same picture written seven times over, each pass a coarser or
+    /// finer sieve of it, so the one thing that must be true is that it reads as the picture the
+    /// plain one holds — at every size, including the ones where whole passes catch nothing.
+    /// </summary>
+    [Theory]
+    [InlineData(9, 7)]
+    [InlineData(1, 1)]
+    [InlineData(3, 2)]
+    [InlineData(16, 16)]
+    [InlineData(5, 9)]
+    public void An_interlaced_png_reads_as_the_picture_the_plain_one_holds(int width, int height)
+    {
+        var pixels = ImageWriter.Pixels(width, height,
+            (x, y) => ((byte)(x * 17 + y), (byte)(y * 23), (byte)((x ^ y) * 8)));
+
+        var plain = ImageReader.Read(PngWriter.Write(width, height, pixels, hasAlpha: false));
+        var interlaced = ImageReader.Read(PngWriter.WriteInterlaced(width, height, pixels, hasAlpha: false));
+
+        Assert.Equal(plain.Width, interlaced.Width);
+        Assert.Equal(plain.Height, interlaced.Height);
+        Assert.Equal(0, Difference(plain.Data, interlaced));
+    }
+
+    /// <summary>Transparency comes through the passes with everything else.</summary>
+    [Fact]
+    public void An_interlaced_png_keeps_its_transparency()
+    {
+        const int size = 8;
+
+        var pixels = new byte[size * size * 4];
+        for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++)
+        {
+            var at = (y * size + x) * 4;
+
+            pixels[at] = (byte)(x * 30);
+            pixels[at + 1] = (byte)(y * 30);
+            pixels[at + 2] = 90;
+            pixels[at + 3] = (byte)(x < size / 2 ? 0 : 255);
+        }
+
+        var image = ImageReader.Read(PngWriter.WriteInterlaced(size, size, pixels, hasAlpha: true));
+
+        Assert.True(image.HasAlpha);
+
+        for (var y = 0; y < size; y++)
+        {
+            Assert.Equal(0, image.Alpha![y * size]);
+            Assert.Equal(255, image.Alpha[y * size + size - 1]);
+        }
+    }
+
+    /// <summary>
+    /// A pass of an interlaced PNG of four bits a pixel does not end on a byte, so its pixels have
+    /// to be put back a few bits at a time rather than copied.
+    /// </summary>
+    [Fact]
+    public void An_interlaced_png_of_four_bits_a_pixel_is_put_back_a_few_bits_at_a_time()
+    {
+        const int width = 11;
+        const int height = 6;
+
+        var palette = new byte[]
+        {
+            200, 30, 40,
+            30, 160, 70,
+            40, 70, 210,
+            240, 230, 10
+        };
+
+        var indexes = new byte[width * height];
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
+            indexes[y * width + x] = (byte)((x + y) % 4);
+
+        var image = ImageReader.Read(PngWriter.WriteInterlacedPalette(width, height, indexes, palette));
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
+        {
+            var entry = indexes[y * width + x] * 3;
+            var at = (y * width + x) * 3;
+
+            Assert.Equal(palette[entry], image.Data[at]);
+            Assert.Equal(palette[entry + 1], image.Data[at + 1]);
+            Assert.Equal(palette[entry + 2], image.Data[at + 2]);
+        }
+    }
+
+    /// <summary>
+    /// And a second opinion on the file itself: another reader is given the interlaced PNG and
+    /// asked what it holds, so that what is tested is the format rather than this pair of
+    /// routines agreeing with each other.
+    /// </summary>
+    [Fact]
+    public void Another_reader_makes_the_same_picture_of_an_interlaced_png()
+    {
+        var pixels = Sample();
+        var interlaced = PngWriter.WriteInterlaced(Width, Height, pixels, hasAlpha: false);
+
+        if (Convert("bmp", interlaced) is not { } path)
+        {
+            _output.WriteLine("sips did not read the interlaced PNG; nothing to compare.");
+            return;
+        }
+
+        var theirs = ImageReader.Read(File.ReadAllBytes(path));
+
+        _output.WriteLine($"interlaced: {interlaced.Length:N0} bytes, read back as {theirs.Width}x{theirs.Height}");
+
+        Assert.Equal(Width, theirs.Width);
+        Assert.Equal(Height, theirs.Height);
+        Assert.Equal(0, Difference(pixels, theirs));
+    }
+
     // ----- the whole way through -----
 
     [Fact]

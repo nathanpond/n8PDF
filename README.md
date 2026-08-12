@@ -159,7 +159,7 @@ its restart, repeat and format switches), references to a bookmark's text (REF),
 (QUOTE), and the clock (DATE, TIME) — each spelled the way its `\*` switch asks, in arabic, roman,
 letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or Caps, with a
 `\@` picture deciding how a date reads, lists and numbering (decimal, letters, roman and bullets, nested levels with
-independent counters and multi-level templates, hanging indents), images, inline and floating (PNG decoded from scratch, JPEG passed through untouched,
+independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP and TIFF all decoded from scratch, JPEG passed through untouched,
 transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
@@ -280,6 +280,12 @@ table, interlaced or not, with the colour it treats as transparent becoming the 
 separately; a TIFF at either end, in grey, colour or a palette, its rows in strips packed with
 nothing, LZW, PackBits or Deflate.
 
+An interlaced PNG is not one picture but seven, each a coarser or finer sieve of the whole — the
+first every eighth pixel of every eighth row, the last every pixel of every other row — and each is
+written as an image in its own right, with its own rows and its own filters over them. So each pass
+is unfiltered on its own and its pixels are then put where they belong, a few bits at a time where
+four of them share a byte.
+
 Reading a format is easy to do nearly right, so these are checked two ways. Files whose every pixel
 is known are built by the tests and read back — which is the only way to reach a bitmap written
 upside down or a GIF written in four passes — and then the same picture is turned into each format
@@ -288,7 +294,7 @@ comes out has to be what the PNG it was made from holds, to the sample. Both fou
 bitmap's height is at a different offset in the modern header than in the old one, and a TIFF
 written big end first keeps a small number in the *high* half of the four bytes its tag reserves.
 
-Not yet: EMF pictures, interlaced PNG, splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: EMF pictures, splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

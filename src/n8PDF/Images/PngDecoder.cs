@@ -39,6 +39,7 @@ public static class PngDecoder
         var colorType = 6;
         byte[]? palette = null;
         byte[]? paletteAlpha = null;
+        var interlaced = false;
         var compressed = new MemoryStream();
 
         while (position + 8 <= data.Length)
@@ -57,9 +58,7 @@ public static class PngDecoder
                     height = ReadInt32(data, body + 4);
                     bitDepth = data[body + 8];
                     colorType = data[body + 9];
-
-                    if (data[body + 12] != 0)
-                        throw new ImageFormatException("Interlaced PNG images are not supported.");
+                    interlaced = data[body + 12] != 0;
                     break;
 
                 case "PLTE":
@@ -96,7 +95,8 @@ public static class PngDecoder
             throw new ImageFormatException("PNG has no valid IHDR.");
 
         var samples = Inflate(compressed.ToArray());
-        return Unfilter(samples, width, height, bitDepth, colorType, palette, paletteAlpha);
+
+        return Unfilter(samples, width, height, bitDepth, colorType, palette, paletteAlpha, interlaced);
     }
 
     private static byte[] Inflate(byte[] compressed)
@@ -117,7 +117,7 @@ public static class PngDecoder
     /// </remarks>
     private static ImageData Unfilter(
         byte[] samples, int width, int height, int bitDepth, int colorType,
-        byte[]? palette, byte[]? paletteAlpha)
+        byte[]? palette, byte[]? paletteAlpha, bool interlaced)
     {
         var channels = colorType switch
         {
@@ -137,9 +137,95 @@ public static class PngDecoder
 
         var bitsPerPixel = channels * bitDepth;
         var rowBytes = (width * bitsPerPixel + 7) / 8;
+
+        var raw = interlaced
+            ? Weave(samples, width, height, bitsPerPixel)
+            : Rows(samples, 0, width, height, bitsPerPixel);
+
+        return Expand(raw, width, height, bitDepth, colorType, channels, rowBytes, palette, paletteAlpha);
+    }
+
+    /// <summary>
+    /// The seven passes an interlaced PNG is written in, each named by where in a block of eight
+    /// by eight pixels it starts and how far apart the pixels it carries are.
+    /// </summary>
+    private static readonly (int X, int Y, int StepX, int StepY)[] Passes =
+    [
+        (0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4),
+        (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2)
+    ];
+
+    /// <summary>
+    /// Puts an interlaced image back together.
+    /// </summary>
+    /// <remarks>
+    /// An interlaced PNG is not one picture but seven, each a coarser or finer sieve of the whole
+    /// — the first every eighth pixel of every eighth row, the last every pixel of every other
+    /// row. Each is written as an image in its own right, with its own rows and its own filters
+    /// over them, so each has to be unfiltered on its own before its pixels are put where they
+    /// belong. A pass whose sieve catches nothing of a small picture is not written at all.
+    /// </remarks>
+    private static byte[] Weave(byte[] samples, int width, int height, int bitsPerPixel)
+    {
+        var rowBytes = (width * bitsPerPixel + 7) / 8;
+        var raw = new byte[rowBytes * height];
+        var at = 0;
+
+        foreach (var (startX, startY, stepX, stepY) in Passes)
+        {
+            var passWidth = (width - startX + stepX - 1) / stepX;
+            var passHeight = (height - startY + stepY - 1) / stepY;
+
+            if (passWidth <= 0 || passHeight <= 0) continue;
+
+            var pass = Rows(samples, at, passWidth, passHeight, bitsPerPixel);
+            at += ((passWidth * bitsPerPixel + 7) / 8 + 1) * passHeight;
+
+            var passRowBytes = (passWidth * bitsPerPixel + 7) / 8;
+
+            for (var y = 0; y < passHeight; y++)
+            for (var x = 0; x < passWidth; x++)
+            {
+                CopyPixel(
+                    pass, y * passRowBytes, x,
+                    raw, (startY + y * stepY) * rowBytes, startX + x * stepX, bitsPerPixel);
+            }
+        }
+
+        return raw;
+    }
+
+    /// <summary>One pixel from one row to another, whether it is bytes or a few bits.</summary>
+    private static void CopyPixel(
+        byte[] source, int sourceRow, int sourceX, byte[] target, int targetRow, int targetX, int bitsPerPixel)
+    {
+        if (bitsPerPixel >= 8)
+        {
+            var size = bitsPerPixel / 8;
+            Array.Copy(source, sourceRow + sourceX * size, target, targetRow + targetX * size, size);
+
+            return;
+        }
+
+        var value = ReadPackedSample(source, sourceRow, sourceX, bitsPerPixel);
+
+        var perByte = 8 / bitsPerPixel;
+        var at = targetRow + targetX / perByte;
+        var shift = 8 - bitsPerPixel * (targetX % perByte + 1);
+
+        target[at] = (byte)((target[at] & ~(((1 << bitsPerPixel) - 1) << shift)) | (value << shift));
+    }
+
+    /// <summary>
+    /// Reverses the filters of one image's rows, which is every row prefixed by the filter it was
+    /// written with, over the row before it.
+    /// </summary>
+    private static byte[] Rows(byte[] samples, int offset, int width, int height, int bitsPerPixel)
+    {
+        var rowBytes = (width * bitsPerPixel + 7) / 8;
         var filterStride = Math.Max(1, bitsPerPixel / 8);
 
-        if (samples.Length < (rowBytes + 1) * height)
+        if (samples.Length - offset < (rowBytes + 1) * height)
             throw new ImageFormatException("PNG image data is shorter than its header describes.");
 
         var raw = new byte[rowBytes * height];
@@ -147,8 +233,8 @@ public static class PngDecoder
 
         for (var y = 0; y < height; y++)
         {
-            var filter = samples[y * (rowBytes + 1)];
-            var source = y * (rowBytes + 1) + 1;
+            var filter = samples[offset + y * (rowBytes + 1)];
+            var source = offset + y * (rowBytes + 1) + 1;
             var target = y * rowBytes;
 
             for (var i = 0; i < rowBytes; i++)
@@ -172,7 +258,7 @@ public static class PngDecoder
             Array.Copy(raw, target, previous, 0, rowBytes);
         }
 
-        return Expand(raw, width, height, bitDepth, colorType, channels, rowBytes, palette, paletteAlpha);
+        return raw;
     }
 
     private static ImageData Expand(
