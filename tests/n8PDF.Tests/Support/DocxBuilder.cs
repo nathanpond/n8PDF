@@ -17,6 +17,12 @@ public sealed class DocxBuilder
     private readonly StringBuilder _body = new();
     private string _sectionProperties = DefaultSection;
     private string _styles = DefaultStyles;
+
+    // The docProps parts, written only when a fixture asks for them: a document without them is
+    // what Word writes least often but what a hand-written fixture is by default.
+    private string? _coreProperties;
+    private string? _appProperties;
+    private string? _customProperties;
     private string _theme = DefaultTheme;
 
     private const string DefaultSection = """
@@ -48,6 +54,85 @@ public sealed class DocxBuilder
             """;
         return this;
     }
+
+    /// <summary>
+    /// Gives the document the properties Word keeps in its docProps parts, which is where the
+    /// fields naming a document's author, title or dates take their values from.
+    /// </summary>
+    /// <param name="custom">
+    /// Custom properties, which DOCPROPERTY reads by name. They live in a part of their own.
+    /// </param>
+    public DocxBuilder WithDocumentProperties(
+        string? title = null,
+        string? subject = null,
+        string? creator = null,
+        string? keywords = null,
+        string? description = null,
+        string? lastModifiedBy = null,
+        string? created = null,
+        string? modified = null,
+        string? lastPrinted = null,
+        string? company = null,
+        string? manager = null,
+        params (string Name, string Value)[] custom)
+    {
+        _coreProperties =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<cp:coreProperties " +
+            "xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" " +
+            "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " +
+            "xmlns:dcterms=\"http://purl.org/dc/terms/\" " +
+            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">" +
+            Element("dc:title", title) +
+            Element("dc:subject", subject) +
+            Element("dc:creator", creator) +
+            Element("cp:keywords", keywords) +
+            Element("dc:description", description) +
+            Element("cp:lastModifiedBy", lastModifiedBy) +
+            (created is null
+                ? string.Empty
+                : $"<dcterms:created xsi:type=\"dcterms:W3CDTF\">{Escape(created)}</dcterms:created>") +
+            (modified is null
+                ? string.Empty
+                : $"<dcterms:modified xsi:type=\"dcterms:W3CDTF\">{Escape(modified)}</dcterms:modified>") +
+            (lastPrinted is null
+                ? string.Empty
+                : $"<cp:lastPrinted>{Escape(lastPrinted)}</cp:lastPrinted>") +
+            "</cp:coreProperties>";
+
+        _appProperties =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\">" +
+            Element("Company", company) +
+            Element("Manager", manager) +
+            "</Properties>";
+
+        if (custom.Length > 0)
+        {
+            var properties = new StringBuilder();
+            var id = 1;
+
+            foreach (var (name, value) in custom)
+            {
+                // Custom properties are numbered from two: one is reserved by the format.
+                properties.Append(
+                    "<property fmtid=\"{D5CDD505-2E9C-101B-9397-08002B2CF9AE}\" " +
+                    $"pid=\"{++id}\" name=\"{Escape(name)}\">" +
+                    $"<vt:lpwstr>{Escape(value)}</vt:lpwstr></property>");
+            }
+
+            _customProperties =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/custom-properties\" " +
+                "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">" +
+                properties + "</Properties>";
+        }
+
+        return this;
+    }
+
+    private static string Element(string name, string? value) =>
+        value is null ? string.Empty : $"<{name}>{Escape(value)}</{name}>";
 
     public DocxBuilder WithStyles(string stylesXmlBody)
     {
@@ -629,12 +714,15 @@ public sealed class DocxBuilder
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
         {
             Write(archive, "[Content_Types].xml", BuildContentTypes());
-            Write(archive, "_rels/.rels", PackageRelationships);
+            Write(archive, "_rels/.rels", BuildPackageRelationships());
             Write(archive, "word/document.xml", document);
             Write(archive, "word/_rels/document.xml.rels", BuildDocumentRelationships());
             Write(archive, "word/styles.xml", _styles);
             Write(archive, "word/theme/theme1.xml", _theme);
             if (_numbering is not null) Write(archive, "word/numbering.xml", _numbering);
+            if (_coreProperties is not null) Write(archive, "docProps/core.xml", _coreProperties);
+            if (_appProperties is not null) Write(archive, "docProps/app.xml", _appProperties);
+            if (_customProperties is not null) Write(archive, "docProps/custom.xml", _customProperties);
             if (_evenAndOddHeaders) Write(archive, "word/settings.xml", EvenOddSettings);
 
             if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildNotes("footnote", _footnotes));
@@ -825,6 +913,27 @@ public sealed class DocxBuilder
                 "<Override PartName=\"/word/settings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>");
         }
 
+        if (_coreProperties is not null)
+        {
+            defaults.Append(
+                "<Override PartName=\"/docProps/core.xml\" " +
+                "ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>");
+        }
+
+        if (_appProperties is not null)
+        {
+            defaults.Append(
+                "<Override PartName=\"/docProps/app.xml\" " +
+                "ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>");
+        }
+
+        if (_customProperties is not null)
+        {
+            defaults.Append(
+                "<Override PartName=\"/docProps/custom.xml\" " +
+                "ContentType=\"application/vnd.openxmlformats-officedocument.custom-properties+xml\"/>");
+        }
+
         var numberingType = _numbering is null
             ? string.Empty
             : "<Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>";
@@ -923,6 +1032,34 @@ public sealed class DocxBuilder
           <Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
         </Types>
         """;
+
+    private string BuildPackageRelationships()
+    {
+        const string relationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+        const string metadata = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/";
+
+        // A document with no properties keeps the part it always had, byte for byte: every
+        // fixture is regenerated on every run and committed, and rewriting them all to say the
+        // same thing differently would be churn in the working tree for nothing.
+        if (_coreProperties is null && _appProperties is null && _customProperties is null)
+            return PackageRelationships;
+
+        var parts = new StringBuilder();
+        parts.Append($"<Relationship Id=\"rId1\" Type=\"{relationships}officeDocument\" Target=\"word/document.xml\"/>");
+
+        if (_coreProperties is not null)
+            parts.Append($"<Relationship Id=\"rId2\" Type=\"{metadata}core-properties\" Target=\"docProps/core.xml\"/>");
+
+        if (_appProperties is not null)
+            parts.Append($"<Relationship Id=\"rId3\" Type=\"{relationships}extended-properties\" Target=\"docProps/app.xml\"/>");
+
+        if (_customProperties is not null)
+            parts.Append($"<Relationship Id=\"rId4\" Type=\"{relationships}custom-properties\" Target=\"docProps/custom.xml\"/>");
+
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+               "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+               parts + "</Relationships>";
+    }
 
     private const string PackageRelationships = """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>

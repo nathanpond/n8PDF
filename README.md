@@ -151,7 +151,13 @@ reference lands on and takes that space out of the body above it, an endnote car
 body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
 anywhere in the document, with the regions placed and padded the way Word places them), headers
 and footers (per page, with separate first-page and even-page variants, and
-PAGE and NUMPAGES fields evaluated), lists and numbering (decimal, letters, roman and bullets, nested levels with
+fields evaluated), fields — page numbers (PAGE, NUMPAGES, SECTION,
+SECTIONPAGES, PAGEREF), what a document says about itself (AUTHOR, TITLE, SUBJECT, KEYWORDS,
+COMMENTS, LASTSAVEDBY, CREATEDATE, SAVEDATE, PRINTDATE, DOCPROPERTY, FILENAME), counters (SEQ, with
+its restart, repeat and format switches), references to a bookmark's text (REF), literal text
+(QUOTE), and the clock (DATE, TIME) — each spelled the way its `\*` switch asks, in arabic, roman,
+letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or Caps, with a
+`\@` picture deciding how a date reads, lists and numbering (decimal, letters, roman and bullets, nested levels with
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG decoded from scratch, JPEG passed through untouched,
 transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
@@ -188,8 +194,23 @@ addition that would be guessed:
   nothing. Word rounds every position to 1/300 inch, so the true value is somewhere between seven
   and twelve twips; ten is used.
 
-Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, fields other than PAGE and NUMPAGES (their cached values are
-shown), splitting a note across pages, restarting note numbering per page or per section, notes
+A field that depends on where it falls cannot be worked out while the page it is on is still being
+filled, so a document holding one is laid out twice: the first pass records the page each field
+landed on and how the pages divide between sections, and the second uses it. Word settles its own
+page numbers the same way, and like Word this converges rather than being exact — a field whose
+text changes length between the two passes could in principle move to another page and be a page
+out. The second pass is only run for a document that needs one.
+
+Word itself recalculates only these page-dependent fields when it exports, and leaves every other
+field showing whatever it last computed, which is what the fields fixture's reference had to work
+around: it is exported with its fields updated first, and `tools/make-reference-pdfs.sh` names the
+fixtures that are. Anything this converter cannot work out keeps its cached result, which is the
+honest answer — showing nothing would lose text the document has, and guessing would show something
+it never said. COMPANY and MANAGER are among those: the Word this was measured against does not
+evaluate them either.
+
+Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, fields that compute over the document
+(TOC, INDEX, IF, formulas, STYLEREF and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

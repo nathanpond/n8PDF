@@ -1,0 +1,444 @@
+{
+  "pageCount": 3,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "author: "},
+            {"x": 108.99, "width": 66.961, "font": "Times New Roman", "size": 12, "text": "Ada Lovelace"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 24.996, "font": "Times New Roman", "size": 12, "text": "title: "},
+            {"x": 96.996, "width": 86.971, "font": "Times New Roman", "size": 12, "text": "Analytical Engine"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 40.324, "font": "Times New Roman", "size": 12, "text": "subject: "},
+            {"x": 112.324, "width": 29.338, "font": "Times New Roman", "size": 12, "text": "Fields"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 52.992, "font": "Times New Roman", "size": 12, "text": "keywords: "},
+            {"x": 124.992, "width": 65.977, "font": "Times New Roman", "size": 12, "text": "engine, tables"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 55.658, "font": "Times New Roman", "size": 12, "text": "comments: "},
+            {"x": 127.658, "width": 102.973, "font": "Times New Roman", "size": 12, "text": "A note on the engine."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 62.32, "font": "Times New Roman", "size": 12, "text": "lastsavedby: "},
+            {"x": 134.32, "width": 81.639, "font": "Times New Roman", "size": 12, "text": "Charles Babbage"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "docproperty: "},
+            {"x": 136.312, "width": 48.627, "font": "Times New Roman", "size": 12, "text": "Reference"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 86.309, "font": "Times New Roman", "size": 12, "text": "docproperty-two: "},
+            {"x": 158.309, "width": 45.645, "font": "Times New Roman", "size": 12, "text": "A Reader"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.955, "font": "Times New Roman", "size": 12, "text": "createdate: "},
+            {"x": 126.955, "width": 55.992, "font": "Times New Roman", "size": 12, "text": "2019-03-04"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 47.643, "font": "Times New Roman", "size": 12, "text": "savedate: "},
+            {"x": 119.643, "width": 92.648, "font": "Times New Roman", "size": 12, "text": "30 November 2021"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.994, "font": "Times New Roman", "size": 12, "text": "quote: "},
+            {"x": 104.994, "width": 83.988, "font": "Times New Roman", "size": 12, "text": "Some quoted text"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 28.986, "font": "Times New Roman", "size": 12, "text": "page: "},
+            {"x": 100.986, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.639, "font": "Times New Roman", "size": 12, "text": "page-roman: "},
+            {"x": 135.639, "width": 3.334, "font": "Times New Roman", "size": 12, "text": "i"}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 77.654, "font": "Times New Roman", "size": 12, "text": "page-ROMAN: "},
+            {"x": 149.654, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "I"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.289, "font": "Times New Roman", "size": 12, "text": "page-alphabetic: "},
+            {"x": 154.289, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 107.648, "font": "Times New Roman", "size": 12, "text": "page-ALPHABETIC: "},
+            {"x": 179.648, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "A"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 66.973, "font": "Times New Roman", "size": 12, "text": "page-ordinal: "},
+            {"x": 138.973, "width": 14.004, "font": "Times New Roman", "size": 12, "text": "1st"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 71.625, "font": "Times New Roman", "size": 12, "text": "page-cardtext: "},
+            {"x": 143.625, "width": 17.326, "font": "Times New Roman", "size": 12, "text": "one"}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 331.582,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 66.973, "font": "Times New Roman", "size": 12, "text": "page-ordtext: "},
+            {"x": 138.973, "width": 19.33, "font": "Times New Roman", "size": 12, "text": "first"}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 345.381,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.309, "font": "Times New Roman", "size": 12, "text": "page-hex: "},
+            {"x": 122.309, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 359.18,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.967, "font": "Times New Roman", "size": 12, "text": "page-dollartext: "},
+            {"x": 150.967, "width": 73.986, "font": "Times New Roman", "size": 12, "text": "one and 00/100"}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 372.979,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 94.951, "font": "Times New Roman", "size": 12, "text": "page-mergeformat: "},
+            {"x": 166.951, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 386.777,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.99, "font": "Times New Roman", "size": 12, "text": "numpages: "},
+            {"x": 126.99, "width": 6, "font": "Times New Roman", "size": 12, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 400.576,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 43.652, "font": "Times New Roman", "size": 12, "text": "seq-one: "},
+            {"x": 115.652, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 24,
+          "baselineY": 414.375,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 44.326, "font": "Times New Roman", "size": 12, "text": "seq-two: "},
+            {"x": 116.326, "width": 6, "font": "Times New Roman", "size": 12, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 428.174,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 49.646, "font": "Times New Roman", "size": 12, "text": "seq-table: "},
+            {"x": 121.646, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 441.973,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.309, "font": "Times New Roman", "size": 12, "text": "seq-three: "},
+            {"x": 122.309, "width": 6, "font": "Times New Roman", "size": 12, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 455.771,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 55.635, "font": "Times New Roman", "size": 12, "text": "seq-repeat: "},
+            {"x": 127.635, "width": 6, "font": "Times New Roman", "size": 12, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 469.57,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 48.979, "font": "Times New Roman", "size": 12, "text": "seq-reset: "},
+            {"x": 120.979, "width": 6, "font": "Times New Roman", "size": 12, "text": "7"}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 483.369,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 74.953, "font": "Times New Roman", "size": 12, "text": "seq-after-reset: "},
+            {"x": 146.953, "width": 6, "font": "Times New Roman", "size": 12, "text": "8"}
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 497.168,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 56.982, "font": "Times New Roman", "size": 12, "text": "seq-roman: "},
+            {"x": 128.982, "width": 6.668, "font": "Times New Roman", "size": 12, "text": "ii"}
+          ]
+        },
+        {
+          "paragraph": 31,
+          "baselineY": 510.967,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 33.656, "font": "Times New Roman", "size": 12, "text": "upper: "},
+            {"x": 105.656, "width": 92.32, "font": "Times New Roman", "size": 12, "text": "ADA LOVELACE"}
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 524.766,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 33.656, "font": "Times New Roman", "size": 12, "text": "lower: "},
+            {"x": 105.656, "width": 59.625, "font": "Times New Roman", "size": 12, "text": "ada lovelace"}
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 538.564,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 42.316, "font": "Times New Roman", "size": 12, "text": "firstcap: "},
+            {"x": 114.316, "width": 67.98, "font": "Times New Roman", "size": 12, "text": "Engine, tables"}
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 552.363,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 27.656, "font": "Times New Roman", "size": 12, "text": "caps: "},
+            {"x": 99.656, "width": 71.977, "font": "Times New Roman", "size": 12, "text": "Engine, Tables"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 35,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 105.633, "font": "Times New Roman", "size": 12, "text": "The bookmarked text."}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 19.652, "font": "Times New Roman", "size": 12, "text": "ref: "},
+            {"x": 91.652, "width": 105.633, "font": "Times New Roman", "size": 12, "text": "The bookmarked text."}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 42.305, "font": "Times New Roman", "size": 12, "text": "pageref: "},
+            {"x": 114.305, "width": 6, "font": "Times New Roman", "size": 12, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 76.957, "font": "Times New Roman", "size": 12, "text": "pageref-roman: "},
+            {"x": 148.957, "width": 6.668, "font": "Times New Roman", "size": 12, "text": "ii"}
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.982, "font": "Times New Roman", "size": 12, "text": "page-two: "},
+            {"x": 122.982, "width": 6, "font": "Times New Roman", "size": 12, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 40.324, "font": "Times New Roman", "size": 12, "text": "section: "},
+            {"x": 112.324, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 67.646, "font": "Times New Roman", "size": 12, "text": "sectionpages: "},
+            {"x": 139.646, "width": 6, "font": "Times New Roman", "size": 12, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.316, "font": "Times New Roman", "size": 12, "text": "Second section."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 62.32, "font": "Times New Roman", "size": 12, "text": "section-two: "},
+            {"x": 134.32, "width": 6, "font": "Times New Roman", "size": 12, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 89.643, "font": "Times New Roman", "size": 12, "text": "sectionpages-two: "},
+            {"x": 161.643, "width": 6, "font": "Times New Roman", "size": 12, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 56.965, "font": "Times New Roman", "size": 12, "text": "page-three: "},
+            {"x": 128.965, "width": 6, "font": "Times New Roman", "size": 12, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 39.639, "font": "Times New Roman", "size": 12, "text": "cached: "},
+            {"x": 111.639, "width": 123.633, "font": "Times New Roman", "size": 12, "text": "what Word last computed"}
+          ]
+        }
+      ]
+    }
+  ]
+}

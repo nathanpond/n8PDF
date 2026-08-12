@@ -1,0 +1,186 @@
+using System.Globalization;
+using n8PDF.Ooxml;
+
+namespace n8PDF.Layout;
+
+/// <summary>
+/// What a field needs to know beyond its own instruction: where it is in the document, what the
+/// document says about itself, and the counters that run through it.
+/// </summary>
+public sealed class FieldEnvironment
+{
+    /// <summary>The page the field is on, counting from one. Zero where it is not yet known.</summary>
+    public int Page { get; set; }
+
+    public int TotalPages { get; set; }
+
+    /// <summary>The section the field is in, counting from one, and how many pages it has.</summary>
+    public int Section { get; set; }
+
+    public int SectionPages { get; set; }
+
+    public DocumentProperties Properties { get; set; } = new();
+
+    /// <summary>The name of the file being converted, where the caller knows it.</summary>
+    public string? FileName { get; set; }
+
+    /// <summary>The instant DATE and TIME report.</summary>
+    public DateTimeOffset Now { get; set; } = DateTimeOffset.Now;
+
+    /// <summary>The page a bookmark is on, counting from one, or zero where it is unknown.</summary>
+    public Func<string, int> PageOfBookmark { get; set; } = _ => 0;
+
+    /// <summary>The text a bookmark covers, or null where there is no such bookmark.</summary>
+    public Func<string, string?> TextOfBookmark { get; set; } = _ => null;
+
+    /// <summary>
+    /// The counters SEQ keeps, by name. They belong to the document rather than to any one field,
+    /// which is what makes a run of SEQ fields count.
+    /// </summary>
+    public Dictionary<string, int> Sequences { get; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+/// <summary>
+/// Works out what a field displays.
+/// </summary>
+/// <remarks>
+/// A field carries both an instruction and the result Word last computed for it. Anything this
+/// cannot work out is left to that cached result, which is the honest answer: showing nothing
+/// would lose text the document has, and guessing would show something the document never said.
+///
+/// Word itself recalculates only the fields that depend on where they fall — page numbers,
+/// sections, sequences — when it prints or exports, and leaves the rest showing their cached
+/// results until they are updated by hand. That is why the fields fixture's reference is made with
+/// its fields updated first: it is the only way to see Word's own answer for the others.
+/// </remarks>
+public static class FieldEvaluator
+{
+    /// <summary>
+    /// The fields whose value depends on where in the document they land, and which therefore
+    /// cannot be worked out until the whole document has been laid out once.
+    /// </summary>
+    public static bool DependsOnPagination(string keyword) =>
+        keyword is "PAGE" or "NUMPAGES" or "SECTION" or "SECTIONPAGES" or "PAGEREF";
+
+    /// <summary>
+    /// The text a field shows, or null where nothing here can work it out and the result Word last
+    /// computed should stand.
+    /// </summary>
+    public static string? Evaluate(FieldInstruction instruction, FieldEnvironment environment)
+    {
+        var value = Value(instruction, environment);
+        if (value is null) return null;
+
+        return FieldFormats.Case(value, instruction.SwitchValue('*'));
+    }
+
+    private static string? Value(FieldInstruction instruction, FieldEnvironment environment)
+    {
+        var properties = environment.Properties;
+
+        return instruction.Keyword switch
+        {
+            "PAGE" => Number(environment.Page, instruction),
+            "NUMPAGES" => Number(environment.TotalPages, instruction),
+            "SECTION" => Number(environment.Section, instruction),
+            "SECTIONPAGES" => Number(environment.SectionPages, instruction),
+
+            "PAGEREF" => instruction.Argument is { } bookmark
+                ? Number(environment.PageOfBookmark(bookmark), instruction)
+                : null,
+
+            "REF" => instruction.Argument is { } named ? environment.TextOfBookmark(named) : null,
+
+            "SEQ" => Sequence(instruction, environment),
+
+            "AUTHOR" => properties.Creator,
+            "TITLE" => properties.Title,
+            "SUBJECT" => properties.Subject,
+            "KEYWORDS" => properties.Keywords,
+            "COMMENTS" => properties.Description,
+            "LASTSAVEDBY" => properties.LastModifiedBy,
+            "FILENAME" => FileName(instruction, environment),
+
+            "DOCPROPERTY" => instruction.Argument is { } name ? Property(name, properties) : null,
+
+            "CREATEDATE" => Date(properties.Created, instruction),
+            "SAVEDATE" => Date(properties.Modified, instruction),
+            "PRINTDATE" => Date(properties.LastPrinted, instruction),
+            "DATE" or "TIME" => Date(environment.Now, instruction),
+
+            // QUOTE is its own argument, which is how a document says something a field cannot.
+            "QUOTE" => instruction.Argument,
+
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// A number, spelled the way the field's <c>\*</c> switch asks. Zero means the value is not
+    /// known — a bookmark nothing points at, or a page number before pagination — and leaves the
+    /// cached result standing rather than showing a nought.
+    /// </summary>
+    private static string? Number(int value, FieldInstruction instruction)
+    {
+        if (value <= 0) return null;
+
+        return FieldFormats.Number(value, instruction.SwitchValue('*'))
+               ?? value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string? Date(DateTimeOffset? value, FieldInstruction instruction) =>
+        value is { } instant ? FieldDate.Format(instant, instruction.SwitchValue('@')) : null;
+
+    private static string? Property(string name, DocumentProperties properties)
+    {
+        if (properties.Custom.TryGetValue(name, out var custom)) return custom;
+
+        // The standard properties can also be reached by name, which is how a document refers to
+        // one that has no field of its own.
+        return name.ToUpperInvariant() switch
+        {
+            "TITLE" => properties.Title,
+            "SUBJECT" => properties.Subject,
+            "AUTHOR" or "CREATOR" => properties.Creator,
+            "KEYWORDS" => properties.Keywords,
+            "COMMENTS" or "DESCRIPTION" => properties.Description,
+            "LASTSAVEDBY" => properties.LastModifiedBy,
+            _ => null
+        };
+    }
+
+    private static string? FileName(FieldInstruction instruction, FieldEnvironment environment)
+    {
+        if (environment.FileName is not { Length: > 0 } path) return null;
+
+        // The \p switch asks for the whole path rather than the name alone.
+        return instruction.HasSwitch('p') ? path : Path.GetFileName(path);
+    }
+
+    /// <summary>
+    /// The next value of a named counter. <c>\r</c> restarts it at a given number, <c>\c</c> shows
+    /// what it stands at without advancing it, and <c>\n</c> — the default — advances it.
+    /// </summary>
+    private static string? Sequence(FieldInstruction instruction, FieldEnvironment environment)
+    {
+        if (instruction.Argument is not { Length: > 0 } name) return null;
+
+        var counters = environment.Sequences;
+        var current = counters.GetValueOrDefault(name);
+
+        if (instruction.SwitchValue('r') is { } reset &&
+            int.TryParse(reset, NumberStyles.Integer, CultureInfo.InvariantCulture, out var at))
+        {
+            current = at;
+        }
+        else if (!instruction.HasSwitch('c'))
+        {
+            current++;
+        }
+
+        counters[name] = current;
+
+        return FieldFormats.Number(current, instruction.SwitchValue('*'))
+               ?? current.ToString(CultureInfo.InvariantCulture);
+    }
+}

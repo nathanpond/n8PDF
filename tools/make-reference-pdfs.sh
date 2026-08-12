@@ -97,6 +97,20 @@ echo
 # owner-lock file beside every open document and only removes it on close, so a run that dies
 # midway would otherwise leave lock files in the fixtures folder and make the next run fail with
 # "file in use".
+# Word recalculates only the page-dependent fields when it exports — PAGE, SECTION, SEQ and the
+# like — and leaves every other field showing whatever it last computed. A fixture written by hand
+# has no last computed value, so those fields would export blank. For the fixtures named here the
+# fields are updated first, which is the only way to get Word's own answer for them.
+UPDATES_FIELDS=("fields")
+
+updates_fields() {
+    local name="$1"
+    for candidate in "${UPDATES_FIELDS[@]}"; do
+        [[ "$candidate" == "$name" ]] && return 0
+    done
+    return 1
+}
+
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
@@ -125,11 +139,15 @@ for name in "${missing[@]}"; do
     # explicit timeout covers that. Opening is also not synchronous — Word returns before the
     # document is in its collection — so the document is polled for rather than assumed present,
     # which is what caused a cascade of "did not open" failures once the first export was slow.
+    update_fields=0
+    updates_fields "$name" && update_fields=1
+
     error=$(osascript \
         -e 'on run argv' \
         -e '  set inFile to POSIX file (item 1 of argv)' \
         -e '  set outPath to (item 2 of argv)' \
         -e '  set wanted to (item 3 of argv)' \
+        -e '  set updateFields to (item 4 of argv) is "1"' \
         -e '  with timeout of 300 seconds' \
         -e '    tell application "Microsoft Word"' \
         -e '      open inFile' \
@@ -142,6 +160,11 @@ for name in "${missing[@]}"; do
         -e '        delay 0.5' \
         -e '      end repeat' \
         -e '      if theDoc is missing value then error "Word did not open a document named " & wanted' \
+        -e '      if updateFields then' \
+        -e '        repeat with i from 1 to (count of fields of theDoc)' \
+        -e '          update field (field i of theDoc)' \
+        -e '        end repeat' \
+        -e '      end if' \
         -e '      save as theDoc file name outPath file format format PDF' \
         -e '      repeat with i from (count of documents) to 1 by -1' \
         -e '        if name of document i is wanted then close document i saving no' \
@@ -149,7 +172,7 @@ for name in "${missing[@]}"; do
         -e '    end tell' \
         -e '  end timeout' \
         -e 'end run' \
-        "$WORKDIR/$name.docx" "$work_pdf" "$name.docx" 2>&1) && [[ -s "$work_pdf" ]]
+        "$WORKDIR/$name.docx" "$work_pdf" "$name.docx" "$update_fields" 2>&1) && [[ -s "$work_pdf" ]]
 
     if [[ -s "$work_pdf" ]]; then
         mv "$work_pdf" "$pdf"

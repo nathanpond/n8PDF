@@ -51,6 +51,19 @@ public sealed class ConversionOptions
     public string? Title { get; set; }
 
     /// <summary>
+    /// The name of the file being converted, which is what a FILENAME field shows. Set for you by
+    /// <see cref="Converter.ConvertFile"/>; a conversion from a stream has no name to go on unless
+    /// one is given here.
+    /// </summary>
+    public string? FileName { get; set; }
+
+    /// <summary>
+    /// The instant the DATE and TIME fields report, for a conversion that has to come out the same
+    /// twice. Defaults to the creation date if one is given, and to now otherwise.
+    /// </summary>
+    public DateTimeOffset? FieldsAsOf { get; set; }
+
+    /// <summary>
     /// Creation timestamp for the PDF. Left null so that converting the same document twice
     /// produces identical bytes, which is what makes golden comparison possible.
     /// </summary>
@@ -91,6 +104,10 @@ public static class Converter
 
     public static void ConvertFile(string docxPath, string pdfPath, ConversionOptions? options = null)
     {
+        // The name is what a FILENAME field shows, and this is the one entry point that knows it.
+        options ??= new ConversionOptions();
+        options.FileName ??= docxPath;
+
         using var input = File.OpenRead(docxPath);
         using var output = File.Create(pdfPath);
         Convert(input, output, options);
@@ -153,9 +170,39 @@ public static class Converter
             styles, theme, options.ApplyWordBuiltInStyleDefaults, numbering);
 
         var fonts = options.Fonts ?? new FontLibrary();
-        var engine = new LayoutEngine(fonts, resolver, options.Layout);
 
-        return engine.Layout(document);
+        var environment = new FieldEnvironment
+        {
+            Properties = DocumentProperties.Parse(
+                package.TryReadPartAsXml("docProps/core.xml"),
+                package.TryReadPartAsXml("docProps/custom.xml")),
+            FileName = options.FileName,
+            Now = options.FieldsAsOf ?? options.CreationDate ?? DateTimeOffset.Now
+        };
+
+        var bookmarks = BookmarkText.Collect(document);
+        environment.TextOfBookmark = name => bookmarks.GetValueOrDefault(name);
+
+        var engine = new LayoutEngine(fonts, resolver, options.Layout) { Fields = environment };
+        var laidOut = engine.Layout(document);
+
+        // A page number cannot be known while the page it is on is still being filled, so a
+        // document holding one is laid out again knowing where everything fell the first time.
+        if (!engine.NeedsPagination) return laidOut;
+
+        var pagination = engine.CollectPagination(laidOut);
+
+        environment.PageOfBookmark = name => laidOut.Bookmarks.TryGetValue(name, out var found)
+            ? found.PageIndex + 1
+            : 0;
+
+        var second = new LayoutEngine(fonts, resolver, options.Layout)
+        {
+            Fields = environment,
+            Pagination = pagination
+        };
+
+        return second.Layout(document);
     }
 
     /// <summary>

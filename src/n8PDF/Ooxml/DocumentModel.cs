@@ -51,9 +51,23 @@ public sealed class TabInline : InlineElement;
 /// <remarks>
 /// Zero-width: it marks a place rather than drawing anything.
 /// </remarks>
-public sealed class BookmarkInline(string name) : InlineElement
+public sealed class BookmarkInline(string name, int id = 0) : InlineElement
 {
     public string Name { get; } = name;
+
+    /// <summary>
+    /// The number the document gives the bookmark, which is how its end is found: the end marker
+    /// carries the same number and no name.
+    /// </summary>
+    public int Id { get; } = id;
+}
+
+/// <summary>
+/// The end of a bookmark, which says how far the text it covers reaches. REF shows that text.
+/// </summary>
+public sealed class BookmarkEndInline(int id) : InlineElement
+{
+    public int Id { get; } = id;
 }
 
 /// <summary>

@@ -154,12 +154,23 @@ public static class DocumentParser
             if (name is not null && name != "_GoBack")
             {
                 var marker = new Run();
-                marker.Content.Add(new BookmarkInline(name));
+                marker.Content.Add(new BookmarkInline(name, element.IntAttr("id") ?? 0));
                 paragraph.Runs.Add(marker);
             }
 
             return;
         }
+
+        // The end of a bookmark, which names no bookmark of its own: it is matched to its start
+        // by number. What lies between the two is the text a REF field shows.
+        if (element.Name == W.Main + "bookmarkEnd")
+        {
+            var marker = new Run();
+            marker.Content.Add(new BookmarkEndInline(element.IntAttr("id") ?? 0));
+            paragraph.Runs.Add(marker);
+            return;
+        }
+
 
         if (element.Name == W.Main + "hyperlink")
         {

@@ -88,10 +88,34 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // section's own numbering are counted against.
     private int _pagesInSection;
 
-    // Which page is being laid out, for fields that depend on it. Zero means the body, where a
-    // page number is not yet known; headers and footers set it before they run.
+    // Which section is being laid out, counting from one. Only a first pass needs it: after that
+    // the sections are read off the pages the last pass produced.
+    private int _sectionOrdinal = 1;
+
+    // Which page is being laid out, for fields that depend on it. Zero means the body, where the
+    // page a field lands on is only known once the line holding it has been placed; headers and
+    // footers set it before they run.
     private int _currentPage;
     private int _totalPages;
+
+    // Fields are numbered as they are met, in document order, and the page each landed on is
+    // recorded when its line is placed. That is what a second pass reads: a page number cannot be
+    // known while the page it is on is still being filled, and Word settles it the same way, by
+    // laying the document out and then again.
+    private int _fieldOccurrence;
+    private readonly Dictionary<int, LaidOutPage> _fieldPages = [];
+
+    /// <summary>What a field needs to know beyond its instruction.</summary>
+    public FieldEnvironment Fields { get; set; } = new();
+
+    /// <summary>What an earlier pass learned about where the fields fell, if there was one.</summary>
+    public FieldPagination? Pagination { get; set; }
+
+    /// <summary>
+    /// True where a field was met whose value depends on pagination and was not yet known, so
+    /// that laying the document out again would say more than this pass could.
+    /// </summary>
+    public bool NeedsPagination { get; private set; }
 
     public LaidOutDocument Layout(WordDocument document)
     {
@@ -112,6 +136,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _currentNoteLabel = null;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
+        _fieldOccurrence = 0;
+        _fieldPages.Clear();
+        _sectionOrdinal = 1;
+        Fields.Sequences.Clear();
+        NeedsPagination = false;
 
         var sections = SplitIntoSections(document);
         var section = sections[0].Section;
@@ -241,6 +270,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // Pages are counted from the start of each section, and the count has to be reset before
         // the section's first page is made rather than after it.
         _pagesInSection = 0;
+        _sectionOrdinal++;
 
         // The outgoing section's last paragraph still occupies its space, and nothing across the
         // boundary collapses against it.
@@ -540,6 +570,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             footnoteIds, footnotes.Flows.Count, footnotes.Height,
             ordinal, paragraphIndex, keepNext));
 
+        RecordFieldPages(cursor.Page, line);
         EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
         CommitFootnotes(cursor, footnotes);
         cursor.Y += line.Height;
@@ -1290,15 +1321,96 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
-    /// Produces the text a field should display, evaluating the ones that depend on the page and
-    /// falling back to whatever Word last computed for the rest.
+    /// Produces the text a field should display, falling back to whatever Word last computed for
+    /// the ones nothing here can work out.
     /// </summary>
-    private string ResolveField(FieldInline field) => field.Keyword switch
+    /// <remarks>
+    /// Every field is numbered as it is met so that a second pass can tell them apart: their order
+    /// is the same both times, since what changes between passes is what the fields say rather
+    /// than which of them there are.
+    /// </remarks>
+    private string ResolveField(FieldInline field, out int occurrence)
     {
-        "PAGE" when _currentPage > 0 => _currentPage.ToString(System.Globalization.CultureInfo.InvariantCulture),
-        "NUMPAGES" when _totalPages > 0 => _totalPages.ToString(System.Globalization.CultureInfo.InvariantCulture),
-        _ => field.CachedText
-    };
+        occurrence = ++_fieldOccurrence;
+
+        var instruction = FieldInstruction.Parse(field.Instruction);
+        var page = PageOfField(occurrence);
+
+        var section = Pagination?.SectionOfPage(page) ?? 0;
+
+        // On a first pass none of this is settled, and a field left empty would leave nothing on
+        // the line to say which page it landed on. It is given the page being filled instead,
+        // which is right unless the paragraph moves — and the pass after this one, which is what
+        // these values are being collected for, corrects it either way.
+        Fields.Page = page > 0 ? page : _result?.Pages.Count ?? 0;
+        Fields.TotalPages = _totalPages > 0 ? _totalPages : Pagination?.TotalPages ?? 0;
+        Fields.Section = section > 0 ? section : _sectionOrdinal;
+        Fields.SectionPages = section > 0
+            ? Pagination!.PagesInSection(section)
+            : Math.Max(1, _pagesInSection);
+
+        var value = FieldEvaluator.Evaluate(instruction, Fields);
+
+        // Whether laying the document out again would say more than this pass could. A header
+        // knows its page already; the body does not until it has been paginated once.
+        if (_currentPage == 0 && Pagination is null &&
+            FieldEvaluator.DependsOnPagination(instruction.Keyword))
+        {
+            NeedsPagination = true;
+        }
+
+        return value ?? field.CachedText;
+    }
+
+    /// <summary>
+    /// The page a field is on, counting from one. A header or footer is laid out for a page that
+    /// is already known; a field in the body has to be told by an earlier pass.
+    /// </summary>
+    private int PageOfField(int occurrence) =>
+        _currentPage > 0 ? _currentPage : Pagination?.PageOfField(occurrence) ?? 0;
+
+    /// <summary>
+    /// Notes which page a line's fields landed on, for the next pass to read. Only the body is
+    /// recorded: a header knows its page already, and content composed away from the page it will
+    /// end up on — a table cell, a footnote — has none to record yet.
+    /// </summary>
+    private void RecordFieldPages(LaidOutPage page, ComposedLine line)
+    {
+        if (_currentPage > 0) return;
+
+        foreach (var item in line.Items)
+        {
+            if (item.Atom is TextAtom { FieldOccurrence: { } occurrence })
+                _fieldPages[occurrence] = page;
+        }
+    }
+
+    /// <summary>What this pass learned about where the fields fell.</summary>
+    public FieldPagination CollectPagination(LaidOutDocument result)
+    {
+        var pages = new Dictionary<int, int>();
+
+        foreach (var (occurrence, page) in _fieldPages)
+        {
+            var index = result.Pages.IndexOf(page);
+            if (index >= 0) pages[occurrence] = index + 1;
+        }
+
+        var sections = new List<int>(result.Pages.Count);
+        var counts = new List<int>();
+
+        foreach (var page in result.Pages)
+        {
+            // A page whose section index is zero begins the document; a new section begins wherever
+            // the page's own section is not the one before it.
+            if (counts.Count == 0 || page.IndexInSection == 0) counts.Add(0);
+
+            counts[^1]++;
+            sections.Add(counts.Count);
+        }
+
+        return new FieldPagination(result.Pages.Count, pages, sections, counts);
+    }
 
     // ----- tables -----
 
@@ -2885,9 +2997,22 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         break;
 
                     case FieldInline field:
-                        AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(ResolveField(field), runFormat),
+                    {
+                        var text = ResolveField(field, out var occurrence);
+                        var first = atoms.Count;
+
+                        AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(text, runFormat),
                             runFormat, selection, ascent, naturalHeight, descent, link);
+
+                        // Tagged so that the line these end up on says which page the field is on,
+                        // the way a footnote mark says which page its note belongs to.
+                        for (var i = first; i < atoms.Count; i++)
+                        {
+                            if (atoms[i] is TextAtom atom) atom.FieldOccurrence = occurrence;
+                        }
+
                         break;
+                    }
                 }
             }
         }
@@ -3688,6 +3813,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// that the line a mark lands on is known, which is the page the footnote belongs on.
         /// </summary>
         public int? FootnoteId { get; init; }
+
+        /// <summary>
+        /// The field this atom came from, numbered in the order the fields were met. Carried for
+        /// the same reason as a footnote's id: it is the line that says which page it is on.
+        /// </summary>
+        public int? FieldOccurrence { get; set; }
 
         public required bool IsSpace { get; init; }
 

@@ -1151,6 +1151,134 @@ public static class Fixtures
                 return builder;
             },
 
+            // Every field this converter evaluates, against Word's own answer for each. Word only
+            // recalculates the page-dependent ones when it exports, so the reference for this one
+            // is made with its fields updated first — see tools/make-reference-pdfs.sh.
+            //
+            // DATE and TIME are deliberately absent: they are whatever the clock says, so Word's
+            // answer would be the day the reference was made and ours the day the test runs.
+            // Their formatting is covered by FieldTests instead, against a pinned instant.
+            ["fields"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithDocumentProperties(
+                        title: "Analytical Engine",
+                        subject: "Fields",
+                        creator: "Ada Lovelace",
+                        keywords: "engine, tables",
+                        description: "A note on the engine.",
+                        lastModifiedBy: "Charles Babbage",
+                        // Word's dates start in 1900: earlier ones come back as its zero date,
+                        // which is what the engine's own century did when it was tried here.
+                        // Word reads these as UTC and shows them in the local zone, so they are
+                        // written at noon: a date at noon is the same date either side of every
+                        // offset a reader is likely to be in.
+                        created: "2019-03-04T12:00:00Z",
+                        modified: "2021-11-30T12:00:00Z",
+                        company: "Difference Ltd",
+                        manager: "Luigi Menabrea",
+                        custom: [("Category", "Reference"), ("Reviewer", "A Reader")]);
+
+                // Every run of the field carries the same formatting, the opening one included:
+                // Word throws the old result away when it updates a field and sets the new one in
+                // whatever the field began in, so a field that opens unstyled comes back in the
+                // document's default font rather than the one its result was written in.
+                void Field(string label, string instruction) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{label}: </w:t></w:r>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"begin\"/></w:r>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:instrText xml:space=\"preserve\">{instruction}</w:instrText></w:r>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t/></w:r>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
+
+                // What the document says about itself.
+                Field("author", " AUTHOR ");
+                Field("title", " TITLE ");
+                Field("subject", " SUBJECT ");
+                Field("keywords", " KEYWORDS ");
+                Field("comments", " COMMENTS ");
+                Field("lastsavedby", " LASTSAVEDBY ");
+                Field("docproperty", " DOCPROPERTY \"Category\" ");
+                Field("docproperty-two", " DOCPROPERTY Reviewer ");
+
+                // Dates the document carries rather than the clock. The time of day is left to
+                // FieldTests: Word shows it in the reader's own zone, which is not the same in
+                // two places at once.
+                Field("createdate", " CREATEDATE \\@ \"yyyy-MM-dd\" ");
+                Field("savedate", " SAVEDATE \\@ \"d MMMM yyyy\" ");
+
+                // Text of its own.
+                Field("quote", " QUOTE \"Some quoted text\" ");
+
+                // Numbers, and the switches that spell them.
+                Field("page", " PAGE ");
+                Field("page-roman", " PAGE \\* roman ");
+                Field("page-ROMAN", " PAGE \\* ROMAN ");
+                Field("page-alphabetic", " PAGE \\* alphabetic ");
+                Field("page-ALPHABETIC", " PAGE \\* ALPHABETIC ");
+                Field("page-ordinal", " PAGE \\* Ordinal ");
+                Field("page-cardtext", " PAGE \\* CardText ");
+                Field("page-ordtext", " PAGE \\* OrdText ");
+                Field("page-hex", " PAGE \\* Hex ");
+                Field("page-dollartext", " PAGE \\* DollarText ");
+                Field("page-mergeformat", " PAGE \\* MERGEFORMAT ");
+                Field("numpages", " NUMPAGES ");
+
+                // Counters, which run on through the document by name.
+                Field("seq-one", " SEQ Figure ");
+                Field("seq-two", " SEQ Figure ");
+                Field("seq-table", " SEQ Table ");
+                Field("seq-three", " SEQ Figure ");
+                Field("seq-repeat", " SEQ Figure \\c ");
+                Field("seq-reset", " SEQ Figure \\r 7 ");
+                Field("seq-after-reset", " SEQ Figure ");
+                Field("seq-roman", " SEQ Table \\* roman ");
+
+                // Case, which applies to whatever the field produced.
+                Field("upper", " AUTHOR \\* Upper ");
+                Field("lower", " AUTHOR \\* Lower ");
+                Field("firstcap", " KEYWORDS \\* FirstCap ");
+                Field("caps", " KEYWORDS \\* Caps ");
+
+                // A place in the document, referred to from elsewhere in it.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:pageBreakBefore/>{ZeroSpacing}</w:pPr>" +
+                    "<w:bookmarkStart w:id=\"1\" w:name=\"target\"/>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>The bookmarked text.</w:t></w:r>" +
+                    "<w:bookmarkEnd w:id=\"1\"/></w:p>");
+
+                Field("ref", " REF target ");
+                Field("pageref", " PAGEREF target ");
+                Field("pageref-roman", " PAGEREF target \\* roman ");
+                Field("page-two", " PAGE ");
+                Field("section", " SECTION ");
+                Field("sectionpages", " SECTIONPAGES ");
+
+                // A second section, which starts the section counters again.
+                builder.AddParagraphWithSectionBreak(
+                    "Second section.", DocxBuilder.Section(), ZeroSpacing, Times12);
+
+                Field("section-two", " SECTION ");
+                Field("sectionpages-two", " SECTIONPAGES ");
+                Field("page-three", " PAGE ");
+
+                // And one nobody evaluates, which has to keep showing what Word last computed.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">cached: </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"begin\"/></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                    "<w:instrText xml:space=\"preserve\"> ADDIN SOMETHING </w:instrText></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>what Word last computed</w:t></w:r>" +
+                    "<w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
+
+                return builder;
+            },
+
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:
             // nothing else says whether a row that continues is closed off where it stops.
