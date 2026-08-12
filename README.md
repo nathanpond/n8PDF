@@ -120,7 +120,8 @@ Implemented: tab stops of every alignment — left, centre, right and decimal, t
 resolved once the text after the tab has been measured, with a stop the line has already passed
 falling through to the next one, and leaders filling the gap a stop opens (dots, hyphens,
 underscores and middle dots, set on a grid measured from the edge of the page so that entries of
-different lengths line up with each other) — widow and orphan control (two lines of a paragraph on each side of a page or column
+different lengths line up with each other), and the vertical rule a bar stop asks for, down every
+line of its paragraph — widow and orphan control (two lines of a paragraph on each side of a page or column
 break, or none — a three-line paragraph moves whole, since it cannot give two to both), keeping a
 paragraph with the next one and keeping its own lines together (`w:keepNext` and `w:keepLines`,
 including chains of headings that move as one), section breaks (next-page, continuous, even- and odd-page, each section with its own
@@ -159,7 +160,7 @@ each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
 them rather than under the whole measure, page numbering restarted per section, vertical page
 alignment,
-font subsetting, GPOS kerning, and the vertical rule a bar tab stop asks for.
+font subsetting, and GPOS kerning.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
 the PDF, so an unimplemented construct fails loudly instead of vanishing from the output.

@@ -274,6 +274,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// How wide the rule of a bar tab stop is.
+    /// </summary>
+    /// <remarks>
+    /// Word strokes it with the default pen rather than setting a width, which under the scale it
+    /// draws at comes to this — a hairline. The stroke straddles its path and Word offsets the
+    /// path by half of it, so the rule covers exactly the stop and the sliver to the right of it.
+    /// </remarks>
+    private const double BarTabWidthPoints = 0.24;
+
+    /// <summary>
     /// Word draws the rule between columns a hundredth of an inch and a bit wide, measured from
     /// its export of the <c>columns</c> fixture.
     /// </summary>
@@ -411,7 +421,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         PlaceAnchoredDrawings(cursor, paragraph);
 
         _pendingBookmarks.Clear();
-        var composer = new ParagraphComposer(BuildAtoms(paragraph, format), format, TabSettings());
+        var composer = new ParagraphComposer(
+            BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format));
         var bookmarks = _pendingBookmarks.ToList();
         var firstLine = true;
 
@@ -538,6 +549,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     /// <summary>What the tab stops in this document align against.</summary>
     private TabOptions TabSettings() => new(_options.ApplyKerning, _decimalSymbol);
+
+    /// <summary>
+    /// The line box of a paragraph's own mark, which is what sizes a line with nothing on it.
+    /// </summary>
+    private (double Ascent, double Height) MarkMetrics(ResolvedParagraphFormat format)
+    {
+        var mark = format.MarkFormat;
+        var selection = _fonts.Resolve(mark.FontFamily, mark.Bold, mark.Italic);
+        var size = mark.EffectiveFontSizePoints;
+
+        return (TextMeasurer.GetAscent(selection.Font, size),
+            TextMeasurer.GetNaturalLineHeight(selection.Font, size));
+    }
 
     /// <summary>How many of the column's trailing lines belong to one paragraph.</summary>
     private static int CountOwnedBy(Cursor cursor, int ordinal)
@@ -1727,6 +1751,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             AddDecorations(page, text);
         }
 
+        foreach (var bar in line.Bars)
+        {
+            page.Rectangles.Add(new PositionedRectangle
+            {
+                X = contentLeft + bar,
+                Y = top,
+                Width = BarTabWidthPoints,
+                Height = line.Height,
+                Color = (0, 0, 0)
+            });
+        }
+
         foreach (var leader in line.Leaders)
             EmitLeader(laidOut, leader, contentLeft, baselineY, tabs);
 
@@ -1865,11 +1901,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// for each line and hands it in.
     /// </remarks>
     private sealed class ParagraphComposer(
-        List<Atom> atoms, ResolvedParagraphFormat format, TabOptions tabs)
+        List<Atom> atoms, ResolvedParagraphFormat format, TabOptions tabs,
+        (double Ascent, double Height) markMetrics)
     {
         private int _index;
         private bool _isFirstLine = true;
         private readonly TabOptions _tabs = tabs;
+        private readonly (double Ascent, double Height) _markMetrics = markMetrics;
         private bool _forceBreakOnNextLine;
         private bool _forceColumnBreakOnNextLine;
 
@@ -1930,7 +1968,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             _isFirstLine = false;
 
             // An empty paragraph has no atoms but still takes up a line, sized by its mark.
-            if (line.Segments.Count == 0) ApplyEmptyLineMetrics(line, format);
+            if (line.Segments.Count == 0) ApplyEmptyLineMetrics(line, format, _markMetrics);
 
             // Nothing was consumed and nothing remains: the one pass an empty paragraph gets.
             if (consumed == 0 && _index >= atoms.Count) _index = atoms.Count;
@@ -2180,19 +2218,35 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             maxTextNatural = Math.Max(maxTextNatural, textAtom.NaturalHeight);
         }
 
+        // A bar stop is not somewhere text lands: it asks for a rule down every line of the
+        // paragraph, whether or not the line holds a tab at all.
+        foreach (var stop in format.TabStops)
+        {
+            if (stop.Alignment == TabAlignment.Bar)
+                line.Bars.Add(Units.TwipsToPoints(stop.PositionTwips));
+        }
+
         var ascent = Math.Max(maxTextAscent, maxImageAscent);
         var natural = Math.Max(maxTextNatural, maxImageAscent + maxTextDescent);
 
         ApplyLineMetrics(line, format, ascent, natural);
     }
 
-    private static void ApplyEmptyLineMetrics(ComposedLine line, ResolvedParagraphFormat format)
+    /// <summary>
+    /// Sizes a line that nothing was placed on, from the paragraph mark's own font.
+    /// </summary>
+    /// <remarks>
+    /// The metrics are measured from that font like any other line's rather than estimated from
+    /// the type size. The estimate this replaced left an empty paragraph 0.8pt short of Word at
+    /// eleven point, which the rule of a bar tab stop — drawn down the whole line box, empty or
+    /// not — made plain to see.
+    /// </remarks>
+    private static void ApplyEmptyLineMetrics(
+        ComposedLine line, ResolvedParagraphFormat format, (double Ascent, double Height) mark)
     {
-        // Nothing was placed, so the paragraph mark's own formatting sets the height.
         if (line.Height > 0) return;
 
-        var size = format.MarkFormat.FontSizePoints;
-        ApplyLineMetrics(line, format, size * 0.9, size * 1.15);
+        ApplyLineMetrics(line, format, mark.Ascent, mark.Height);
     }
 
     private static void ApplyLineMetrics(
@@ -3090,6 +3144,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         /// <summary>Gaps this line's tabs asked to have filled with a leader.</summary>
         public List<LeaderRun> Leaders { get; } = [];
+
+        /// <summary>
+        /// Where this line's paragraph asked for a vertical rule, as offsets from the text margin.
+        /// </summary>
+        public List<double> Bars { get; } = [];
 
         public double Height { get; set; }
 

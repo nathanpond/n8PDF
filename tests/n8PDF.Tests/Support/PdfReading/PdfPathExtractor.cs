@@ -25,6 +25,10 @@ public sealed record ExtractedRectangle(int PageIndex, double Left, double Top, 
 /// Both ways of writing a rectangle are handled, because the two documents under comparison use
 /// different ones: n8PDF emits <c>re</c>, while Word builds the same shape out of a move and three
 /// lines. A path that is not an axis-aligned rectangle is ignored rather than approximated.
+///
+/// A stroked straight line counts too, reported as the rectangle its width covers. Word draws some
+/// of its rules that way rather than by filling — the bar tab stop's, for one — and a reader that
+/// only looked at fills would report the page as having no rule on it at all.
 /// </remarks>
 public static class PdfPathExtractor
 {
@@ -49,8 +53,9 @@ public static class PdfPathExtractor
         var parser = new PdfParser(content);
         var operands = new List<PdfValue>();
 
-        var stack = new Stack<PdfTextExtractor.Matrix>();
+        var stack = new Stack<(PdfTextExtractor.Matrix Ctm, double LineWidth)>();
         var ctm = PdfTextExtractor.Matrix.Identity;
+        var lineWidth = 1.0;
 
         // Points of the subpath being built, and the rectangles the whole path has produced.
         var points = new List<(double X, double Y)>();
@@ -68,11 +73,15 @@ public static class PdfPathExtractor
             switch (op.Operator)
             {
                 case "q":
-                    stack.Push(ctm);
+                    stack.Push((ctm, lineWidth));
                     break;
 
                 case "Q":
-                    if (stack.Count > 0) ctm = stack.Pop();
+                    if (stack.Count > 0) (ctm, lineWidth) = stack.Pop();
+                    break;
+
+                case "w" when operands.Count >= 1:
+                    lineWidth = Number(operands[^1]);
                     break;
 
                 case "cm":
@@ -117,8 +126,16 @@ public static class PdfPathExtractor
                     pending.Clear();
                     break;
 
-                case "S" or "s" or "n":
-                    // Stroked or discarded: not a filled rectangle.
+                case "S" or "s":
+                    // A straight stroke covers a rectangle as wide as the pen that drew it.
+                    if (points.Count == 2) AddStroke(result, page, ctm, points, lineWidth);
+
+                    points.Clear();
+                    pending.Clear();
+                    break;
+
+                case "n":
+                    // Discarded, most often after being used as a clipping path.
                     points.Clear();
                     pending.Clear();
                     break;
@@ -171,6 +188,39 @@ public static class PdfPathExtractor
 
         pending.Add(new ExtractedRectangle(
             page.Index, left, page.Height - top, right - left, top - bottom));
+    }
+
+    /// <summary>
+    /// Reports an axis-aligned stroke as the rectangle its width covers. A stroke straddles its
+    /// path, so the rectangle reaches half the pen's width to either side of it.
+    /// </summary>
+    private static void AddStroke(
+        List<ExtractedRectangle> result, PdfPageInfo page, PdfTextExtractor.Matrix ctm,
+        List<(double X, double Y)> points, double lineWidth)
+    {
+        var from = Apply(ctm, points[0]);
+        var to = Apply(ctm, points[1]);
+
+        // The pen is round in user space, so it scales with the matrix rather than with either axis.
+        var scale = Math.Sqrt(Math.Abs(ctm.A * ctm.D - ctm.B * ctm.C));
+        var width = Math.Max(lineWidth * scale, 0.01) / 2;
+
+        if (Math.Abs(from.X - to.X) < 0.01)
+        {
+            var top = Math.Min(from.Y, to.Y);
+            var bottom = Math.Max(from.Y, to.Y);
+
+            result.Add(new ExtractedRectangle(
+                page.Index, from.X - width, page.Height - bottom, width * 2, bottom - top));
+        }
+        else if (Math.Abs(from.Y - to.Y) < 0.01)
+        {
+            var left = Math.Min(from.X, to.X);
+            var right = Math.Max(from.X, to.X);
+
+            result.Add(new ExtractedRectangle(
+                page.Index, left, page.Height - (from.Y + width), right - left, width * 2));
+        }
     }
 
     private static bool Close((double X, double Y) a, (double X, double Y) b) =>

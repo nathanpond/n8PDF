@@ -329,6 +329,36 @@ public static class Fixtures
                 return builder;
             },
 
+            // Bar stops, which ask for a vertical rule rather than a place for text to land.
+            // Whether the rule appears on every line of a paragraph, on one with no tab character
+            // in it at all, and on an empty one, and how tall it is against the type, are all read
+            // back from Word's export.
+            ["tab-bars"] = () =>
+            {
+                const string oneBar = "<w:tabs><w:tab w:val=\"bar\" w:pos=\"2880\"/></w:tabs>";
+                const string twoBars =
+                    "<w:tabs><w:tab w:val=\"bar\" w:pos=\"1440\"/><w:tab w:val=\"bar\" w:pos=\"5760\"/></w:tabs>";
+
+                return new DocxBuilder()
+                    // No tab character anywhere in it, and long enough to run to three lines.
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{oneBar}{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t>A paragraph with a bar stop declared on it and no tab character of " +
+                        "its own, written long enough to run to three lines so that what happens " +
+                        "on each of them can be seen.</w:t></w:r></w:p>")
+                    // Twice the type size, to see what the rule is measured against.
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{oneBar}{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times24}</w:rPr>" +
+                        "<w:t>Larger type</w:t></w:r></w:p>")
+                    // Two of them, with a tab that has to pass through both.
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{twoBars}{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t>Two bars</w:t><w:tab/><w:t>after the tab</w:t></w:r></w:p>")
+                    // An empty paragraph, which has a line box but nothing on it.
+                    .AddRawParagraph($"<w:p><w:pPr>{oneBar}{ZeroSpacing}</w:pPr></w:p>")
+                    .AddParagraph("A plain paragraph with no bar of its own.", ZeroSpacing, Times12);
+            },
+
             // Every kind of leader Word offers, on a right stop at the margin — which is what a
             // table of contents is made of — plus one on a centre stop and one on a left stop.
             ["tab-leaders"] = () =>
