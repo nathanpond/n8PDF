@@ -124,6 +124,51 @@ public class CffSubsettingTests(ITestOutputHelper output)
             $"{kept.Count} glyphs kept and unchanged, {dropped.Count} emptied, of {subset.Glyphs:N0}");
     }
 
+    /// <summary>
+    /// The subroutines nothing reaches are emptied along with the glyphs.
+    /// </summary>
+    /// <remarks>
+    /// This is only worth asserting beside the check that the kept glyphs still draw what they
+    /// drew: emptying subroutines is easy, and emptying one that a glyph still calls would show
+    /// there rather than here.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(Faces))]
+    public void The_subroutines_nothing_reaches_are_emptied(string path, bool cidKeyed)
+    {
+        if (Load(path) is not { } font)
+        {
+            _output.WriteLine($"No usable CFF face at {path}; nothing to subset.");
+            return;
+        }
+
+        if (!FontToolsCheck.IsAvailable)
+        {
+            Assert.False(FontToolsCheck.IsRequired, FontToolsCheck.UnavailableMessage);
+            _output.WriteLine(FontToolsCheck.UnavailableMessage);
+            return;
+        }
+
+        var whole = FontToolsCheck.Read(font.GetEmbeddableFontProgram(), []);
+        var subset = FontToolsCheck.Read(font.GetEmbeddableFontProgram(Sample(font)), []);
+
+        Assert.NotNull(whole);
+        Assert.NotNull(subset);
+
+        // The count cannot change either: a call names a subroutine by its position.
+        Assert.Equal(whole.Subroutines, subset.Subroutines);
+        Assert.True(subset.Subroutines > 0, "the face declares no subroutines to prune");
+
+        _output.WriteLine(
+            $"{(cidKeyed ? "CID-keyed" : "plain")} {font.FamilyName}: " +
+            $"{subset.EmptySubroutines:N0} of {subset.Subroutines:N0} subroutines emptied, " +
+            $"against {whole.EmptySubroutines:N0} in the whole face");
+
+        // Five glyphs of a text face reach a handful of them at most.
+        Assert.True(subset.EmptySubroutines > subset.Subroutines * 0.9,
+            $"only {subset.EmptySubroutines:N0} of {subset.Subroutines:N0} were emptied");
+    }
+
     /// <summary>A few glyphs that were not asked for and that draw something in the whole face.</summary>
     private static List<int> Dropped(TrueTypeFont font, List<ushort> kept) =>
         [.. new[] { font.GlyphCount / 3, font.GlyphCount / 5, font.GlyphCount - 2 }
@@ -164,11 +209,10 @@ public class CffSubsettingTests(ITestOutputHelper output)
         _output.WriteLine(
             $"{font.FamilyName}: {program.Length:N0} bytes embedded, {font.GlyphCount:N0} glyphs in the face");
 
-        // A fifth of the face at most. What is left is mostly its subroutines, which are kept
-        // whole — see the note on CffSubset — and in a Chinese face those are substantial.
+        // A twentieth of the face at most, now that its subroutines go with its outlines.
         var whole = font.GetEmbeddableFontProgram().Length;
 
-        Assert.True(program.Length * 5 < whole,
+        Assert.True(program.Length * 20 < whole,
             $"the embedded program is {program.Length:N0} bytes of the face's {whole:N0}");
 
         if (!QpdfTool.IsAvailable)

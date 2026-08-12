@@ -5,7 +5,13 @@ namespace n8PDF.Tests.Support;
 /// <summary>What an independent reader made of a font program.</summary>
 /// <param name="Glyphs">How many glyphs it found.</param>
 /// <param name="Drawn">The drawing operations of each glyph asked about, by glyph index.</param>
-public sealed record FontReport(int Glyphs, Dictionary<int, string> Drawn);
+public sealed record FontReport(int Glyphs, Dictionary<int, string> Drawn)
+{
+    /// <summary>How many subroutines the font declares, and how many of them do nothing.</summary>
+    public int Subroutines { get; init; }
+
+    public int EmptySubroutines { get; init; }
+}
 
 /// <summary>
 /// Reads a font program back with fontTools, as a second opinion on the ones we write.
@@ -57,6 +63,22 @@ public static class FontToolsCheck
                 order = font.getGlyphOrder()
                 glyphs = font.getGlyphSet()
 
+                cff = font["CFF "].cff
+                top = cff[cff.fontNames[0]]
+
+                # A subroutine that does nothing is a single return, which is what this writes in
+                # place of the ones no glyph reaches.
+                subrs = list(top.GlobalSubrs)
+                privates = [top.Private] if hasattr(top, "Private") else []
+                if hasattr(top, "FDArray"):
+                    privates = [fd.Private for fd in top.FDArray]
+
+                for private in privates:
+                    subrs += list(getattr(private, "Subrs", []))
+
+                empty = sum(1 for s in subrs if s.bytecode == b"\x0b")
+
+                print("subrs\t%d\t%d" % (len(subrs), empty))
                 print("glyphs\t%d" % len(order))
                 for index in [GLYPHS]:
                     if index >= len(order):
@@ -91,6 +113,8 @@ public static class FontToolsCheck
     private static FontReport? Parse(string output)
     {
         var count = 0;
+        var subroutines = 0;
+        var empty = 0;
         var drawn = new Dictionary<int, string>();
 
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -103,6 +127,13 @@ public static class FontToolsCheck
                 continue;
             }
 
+            if (fields.Length == 3 && fields[0] == "subrs")
+            {
+                int.TryParse(fields[1], out subroutines);
+                int.TryParse(fields[2], out empty);
+                continue;
+            }
+
             if (fields.Length != 3 || !int.TryParse(fields[0], out var glyph)) continue;
 
             // The operation count is what says a glyph drew nothing; the digest is what says two
@@ -110,7 +141,9 @@ public static class FontToolsCheck
             drawn[glyph] = fields[1] == "0" ? "nothing" : fields[2];
         }
 
-        return count > 0 ? new FontReport(count, drawn) : null;
+        return count > 0
+            ? new FontReport(count, drawn) { Subroutines = subroutines, EmptySubroutines = empty }
+            : null;
     }
 
     private static string? Locate()

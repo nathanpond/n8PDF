@@ -10,20 +10,23 @@ namespace n8PDF.Fonts;
 /// rewritten — but the format is a nest of offsets rather than a table of them, and every offset
 /// that moves has to be rewritten.
 ///
-/// What is kept whole: the name, string and subroutine indexes, the charset, the encoding, and
-/// the private dictionaries with their local subroutines.
+/// The subroutines go the same way as the glyphs. A subroutine is a piece of charstring pulled
+/// out because several glyphs share it, and finding which ones survive means running the
+/// charstrings that survive: which subroutine a call reaches depends on a bias worked out from
+/// how many there are, and stepping over a hint mask means having counted the stems before it. In
+/// a CID-keyed font that is done against each font dictionary's own set, which is what FDSelect
+/// is for. They are most of what a Chinese subset would otherwise weigh.
 ///
-/// Pruning the subroutines as well would need a charstring interpreter — which subroutine a call
-/// reaches depends on a bias computed from how many there are, and stepping over a hint mask
-/// means having counted the stems before it — and for a CID-keyed font it would have to be done
-/// per font dictionary, which is what FDSelect is for. In a Latin face the subroutines are a
-/// small part of the whole and this is not worth it. In a Chinese one they are most of what a
-/// subset still weighs, which is where it would pay.
+/// What is kept whole: the name and string indexes, the charset, the encoding, and the private
+/// dictionaries themselves.
 /// </remarks>
 internal static class CffSubset
 {
     /// <summary>A charstring that draws nothing: the endchar operator by itself.</summary>
     private static readonly byte[] Empty = [14];
+
+    /// <summary>A subroutine that does nothing: the return operator by itself.</summary>
+    private static readonly byte[] Return = [11];
 
     /// <summary>
     /// Builds a subset of a CFF table, or returns null when it is not one this understands — in
@@ -83,10 +86,48 @@ internal static class CffSubset
         var privateBlock = PrivateBlock(cff, top);
         var fdArray = FontDictionaries(cff, top);
 
+        // Which subroutines the glyphs being kept actually reach. Everything else in those
+        // indexes can be emptied along with the glyphs.
+        MarkSubroutines(cff, top, charStrings, globalSubrs, wanted, privateBlock, fdArray, out var globalUsed);
+
         var outlines = BuildCharStrings(cff, charStrings, wanted);
 
-        return Write(cff, headerSize, names, topDicts, strings, globalSubrs, top,
+        return Write(cff, headerSize, names, topDicts, strings, globalSubrs, globalUsed, top,
             outlines, charset, encoding, fdSelect, privateBlock, fdArray);
+    }
+
+    /// <summary>
+    /// Runs every charstring being kept, marking the subroutines it and they reach.
+    /// </summary>
+    /// <remarks>
+    /// In a CID-keyed font the local subroutines a glyph may call are those of its own font
+    /// dictionary, which is what FDSelect says — so the glyphs are scanned against the right set
+    /// rather than against all of them at once.
+    /// </remarks>
+    private static void MarkSubroutines(
+        byte[] cff, Dictionary<int, List<double>> top, CffIndex charStrings, CffIndex globalSubrs,
+        HashSet<ushort> wanted, PrivateInfo? privateBlock,
+        List<(byte[] Dict, PrivateInfo Private)>? fdArray, out HashSet<int> globalUsed)
+    {
+        var scanner = new SubroutineScanner(cff, globalSubrs);
+        var fdSelect = fdArray is { Count: > 0 } ? ReadFdSelect(cff, top, charStrings.Count) : null;
+
+        foreach (var glyph in wanted)
+        {
+            var owner = privateBlock;
+
+            if (fdArray is { Count: > 0 })
+            {
+                var fd = fdSelect is not null && glyph < fdSelect.Length ? fdSelect[glyph] : 0;
+                if (fd < 0 || fd >= fdArray.Count) continue;
+
+                owner = fdArray[fd].Private;
+            }
+
+            scanner.Scan(charStrings.Start(glyph), charStrings.End(glyph), owner?.Subrs, owner?.Used ?? []);
+        }
+
+        globalUsed = scanner.GlobalUsed;
     }
 
     /// <summary>Copies the retained charstrings, replacing the rest with one that draws nothing.</summary>
@@ -206,13 +247,56 @@ internal static class CffSubset
     }
 
     /// <summary>
-    /// A private dictionary together with the local subroutines that follow it.
+    /// A private dictionary and the local subroutines it points at.
+    /// </summary>
+    /// <param name="Size">What the dictionary's own length is said to be, which does not change.</param>
+    /// <param name="SubrsOffset">
+    /// Where the subroutines sit, measured from the dictionary's start — which is how the
+    /// dictionary refers to them, so the distance has to survive the move.
+    /// </param>
+    private sealed record PrivateInfo(int Size, byte[] Dict, int SubrsOffset, CffIndex? Subrs)
+    {
+        /// <summary>Which of the subroutines are reached from a charstring that was kept.</summary>
+        public HashSet<int> Used { get; } = [];
+
+        /// <summary>The dictionary and its subroutines, the unused ones emptied.</summary>
+        public byte[] Build(byte[] cff)
+        {
+            if (Subrs is not { } subrs) return Dict;
+
+            var output = new MemoryStream();
+            output.Write(Dict);
+
+            // The dictionary states where its subroutines are; anything between the two is
+            // padding, and keeping it keeps that statement true.
+            while (output.Length < SubrsOffset) output.WriteByte(0);
+
+            output.Write(Prune(cff, subrs, Used));
+            return output.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds a subroutine index, replacing the ones nothing reaches with a bare return.
     /// </summary>
     /// <remarks>
-    /// The dictionary points at its subroutines by a distance from its own start, so the two move
-    /// as one block and that distance stays true.
+    /// Emptying rather than removing, for the same reason the glyphs are emptied: a call names a
+    /// subroutine by its position, offset by a bias that is itself worked out from how many there
+    /// are. Take one out and every call after it points at the wrong one.
     /// </remarks>
-    private static (int Size, byte[] Data)? PrivateBlock(byte[] cff, Dictionary<int, List<double>> top)
+    private static byte[] Prune(byte[] cff, CffIndex subrs, HashSet<int> used)
+    {
+        var entries = new List<byte[]>(subrs.Count);
+
+        for (var i = 0; i < subrs.Count; i++)
+        {
+            entries.Add(used.Contains(i) ? cff[subrs.Start(i)..subrs.End(i)] : Return);
+        }
+
+        return WriteIndex(entries);
+    }
+
+    private static PrivateInfo? PrivateBlock(byte[] cff, Dictionary<int, List<double>> top)
     {
         if (!top.TryGetValue(18, out var operands) || operands.Count < 2) return null;
 
@@ -221,46 +305,85 @@ internal static class CffSubset
 
         if (size <= 0 || offset <= 0 || offset + size > cff.Length) return null;
 
-        var length = size;
-
-        // The subroutine index, if there is one, sits at a distance from the dictionary's start.
         var dict = ParseDict(cff, offset, offset + size);
-        if (dict.TryGetValue(19, out var subrs) && subrs.Count >= 1)
-        {
-            var subrsOffset = offset + (int)subrs[^1];
-            if (subrsOffset > offset && subrsOffset < cff.Length)
-                length = ReadIndex(cff, subrsOffset).Limit - offset;
-        }
+        var block = cff[offset..(offset + size)];
 
-        if (offset + length > cff.Length) return null;
+        if (!dict.TryGetValue(19, out var subrs) || subrs.Count < 1)
+            return new PrivateInfo(size, block, 0, null);
 
-        return (size, cff[offset..(offset + length)]);
+        var relative = (int)subrs[^1];
+        if (relative <= 0 || offset + relative >= cff.Length)
+            return new PrivateInfo(size, block, 0, null);
+
+        return new PrivateInfo(size, block, relative, ReadIndex(cff, offset + relative));
     }
 
     /// <summary>
     /// The font dictionaries of a CID-keyed font, each with its own private block.
     /// </summary>
-    private static List<(byte[] Dict, int PrivateSize, byte[] Private)>? FontDictionaries(
+    private static List<(byte[] Dict, PrivateInfo Private)>? FontDictionaries(
         byte[] cff, Dictionary<int, List<double>> top)
     {
         if (!top.TryGetValue(0xc24, out var operands) || operands.Count < 1) return null;
 
         var index = ReadIndex(cff, (int)operands[^1]);
-        var result = new List<(byte[], int, byte[])>(index.Count);
+        var result = new List<(byte[], PrivateInfo)>(index.Count);
 
         for (var i = 0; i < index.Count; i++)
         {
             var dict = ParseDict(cff, index.Start(i), index.End(i));
-            var block = PrivateBlock(cff, dict);
-            if (block is not { } privateBlock) return null;
+            if (PrivateBlock(cff, dict) is not { } block) return null;
 
-            result.Add((cff[index.Start(i)..index.End(i)], privateBlock.Size, privateBlock.Data));
+            result.Add((cff[index.Start(i)..index.End(i)], block));
         }
 
         return result;
     }
 
-    // ----- writing -----
+    /// <summary>
+    /// Which font dictionary each glyph belongs to, from FDSelect. A font without one puts every
+    /// glyph in the first.
+    /// </summary>
+    private static int[] ReadFdSelect(byte[] cff, Dictionary<int, List<double>> top, int glyphCount)
+    {
+        var map = new int[glyphCount];
+
+        if (!top.TryGetValue(0xc25, out var operands) || operands.Count < 1) return map;
+
+        var offset = (int)operands[^1];
+        if (offset <= 0 || offset >= cff.Length) return map;
+
+        switch (cff[offset])
+        {
+            case 0:
+                for (var glyph = 0; glyph < glyphCount && offset + 1 + glyph < cff.Length; glyph++)
+                    map[glyph] = cff[offset + 1 + glyph];
+
+                break;
+
+            case 3:
+            {
+                var ranges = (cff[offset + 1] << 8) | cff[offset + 2];
+                var position = offset + 3;
+
+                for (var i = 0; i < ranges && position + 5 <= cff.Length; i++, position += 3)
+                {
+                    var first = (cff[position] << 8) | cff[position + 1];
+                    var fd = cff[position + 2];
+                    var next = (cff[position + 3] << 8) | cff[position + 4];
+
+                    for (var glyph = first; glyph < next && glyph < glyphCount; glyph++)
+                        map[glyph] = fd;
+                }
+
+                break;
+            }
+        }
+
+        return map;
+    }
+
+    // ----- writing -----    // ----- writing -----
 
     /// <summary>
     /// Lays the font out again, with every offset in the top dictionary pointing at where its
@@ -273,14 +396,17 @@ internal static class CffSubset
     /// </remarks>
     private static byte[] Write(
         byte[] cff, int headerSize, CffIndex names, CffIndex topDicts, CffIndex strings, CffIndex globalSubrs,
-        Dictionary<int, List<double>> top, byte[] charStrings,
+        HashSet<int> globalUsed, Dictionary<int, List<double>> top, byte[] charStrings,
         (int Offset, byte[] Data)? charset, (int Offset, byte[] Data)? encoding, (int Offset, byte[] Data)? fdSelect,
-        (int Size, byte[] Data)? privateBlock, List<(byte[] Dict, int PrivateSize, byte[] Private)>? fdArray)
+        PrivateInfo? privateBlock, List<(byte[] Dict, PrivateInfo Private)>? fdArray)
     {
         var header = cff[..headerSize];
         var nameIndex = cff[names.Offset..names.Limit];
         var stringIndex = cff[strings.Offset..strings.Limit];
-        var subrIndex = cff[globalSubrs.Offset..globalSubrs.Limit];
+        var subrIndex = Prune(cff, globalSubrs, globalUsed);
+
+        var privateData = privateBlock?.Build(cff);
+        var fdPrivateData = (fdArray ?? []).Select(entry => entry.Private.Build(cff)).ToList();
 
         // The top dictionary is written twice: once to learn its length, and again once the
         // offsets that go in it are known. Both come out the same size.
@@ -301,17 +427,17 @@ internal static class CffSubset
         var fdDicts = new List<byte[]>();
         var fdPrivateOffsets = new List<int>();
 
-        foreach (var (_, _, data) in fdArray ?? [])
+        foreach (var data in fdPrivateData)
         {
             fdPrivateOffsets.Add(position);
             position += data.Length;
         }
 
         var privateOffset = 0;
-        if (privateBlock is { } block)
+        if (privateData is not null)
         {
             privateOffset = position;
-            position += block.Data.Length;
+            position += privateData.Length;
         }
 
         var fdArrayOffset = 0;
@@ -320,7 +446,7 @@ internal static class CffSubset
             for (var i = 0; i < fdArray.Count; i++)
             {
                 var dict = ParseDict(fdArray[i].Dict, 0, fdArray[i].Dict.Length);
-                fdDicts.Add(WriteFontDict(dict, fdArray[i].PrivateSize, fdPrivateOffsets[i]));
+                fdDicts.Add(WriteFontDict(dict, fdArray[i].Private.Size, fdPrivateOffsets[i]));
             }
 
             fdArrayOffset = position;
@@ -344,8 +470,8 @@ internal static class CffSubset
 
         output.Write(charStrings);
 
-        foreach (var (_, _, data) in fdArray ?? []) output.Write(data);
-        if (privateBlock is { } p) output.Write(p.Data);
+        foreach (var data in fdPrivateData) output.Write(data);
+        if (privateData is not null) output.Write(privateData);
         if (fdDicts.Count > 0) output.Write(WriteIndex(fdDicts));
 
         return output.ToArray();
@@ -499,6 +625,169 @@ internal static class CffSubset
         output.WriteByte(30);
         for (var i = 0; i < nibbles.Count; i += 2)
             output.WriteByte((byte)((nibbles[i] << 4) | nibbles[i + 1]));
+    }
+
+    // ----- finding what a charstring reaches -----
+
+    /// <summary>
+    /// Walks the charstrings that were kept and marks every subroutine they call.
+    /// </summary>
+    /// <remarks>
+    /// A subroutine is a piece of a charstring pulled out because several glyphs share it, and it
+    /// may call others in turn, so this follows them down. What it is really doing is running the
+    /// charstring far enough to know which numbers were on the stack when a call was made — the
+    /// number is the subroutine, offset by a bias — which is why it has to understand the
+    /// operators well enough to keep the stack straight.
+    /// </remarks>
+    private sealed class SubroutineScanner(byte[] cff, CffIndex global)
+    {
+        private readonly List<int> _stack = [];
+        private CffIndex? _local;
+        private HashSet<int> _localUsed = [];
+        private int _stems;
+
+        public HashSet<int> GlobalUsed { get; } = [];
+
+        /// <summary>Runs one glyph's charstring, against the local subroutines it may call.</summary>
+        public void Scan(int start, int end, CffIndex? local, HashSet<int> localUsed)
+        {
+            _local = local;
+            _localUsed = localUsed;
+            _stack.Clear();
+            _stems = 0;
+
+            Run(start, end, 0);
+        }
+
+        private void Run(int start, int end, int depth)
+        {
+            // The format allows ten levels of call; beyond that the font is malformed or is
+            // trying to make this loop.
+            if (depth > 10) return;
+
+            var position = start;
+
+            while (position < end && position < cff.Length)
+            {
+                var b0 = cff[position];
+
+                if (b0 >= 32 || b0 == 28)
+                {
+                    position = ReadOperand(position);
+                    continue;
+                }
+
+                position++;
+
+                switch (b0)
+                {
+                    // The stem operators take pairs of numbers, and how many stems have been
+                    // declared is what says how long a hint mask is.
+                    case 1 or 3 or 18 or 23:
+                        _stems += _stack.Count / 2;
+                        _stack.Clear();
+                        break;
+
+                    // A mask may be preceded by the numbers of an implied vstem.
+                    case 19 or 20:
+                        _stems += _stack.Count / 2;
+                        _stack.Clear();
+                        position += (_stems + 7) / 8;
+                        break;
+
+                    case 10:
+                        Call(_local, _localUsed, ref position, depth);
+                        break;
+
+                    case 29:
+                        Call(global, GlobalUsed, ref position, depth);
+                        break;
+
+                    // A return hands back to the caller with the stack as it stands; an endchar
+                    // finishes the glyph outright.
+                    case 11:
+                        return;
+
+                    case 14:
+                        return;
+
+                    case 12:
+                        position++;
+                        _stack.Clear();
+                        break;
+
+                    default:
+                        _stack.Clear();
+                        break;
+                }
+            }
+        }
+
+        private void Call(CffIndex? subrs, HashSet<int> used, ref int position, int depth)
+        {
+            if (subrs is not { } index || index.Count == 0 || _stack.Count == 0) return;
+
+            var number = _stack[^1];
+            _stack.RemoveAt(_stack.Count - 1);
+
+            var target = number + Bias(index.Count);
+            if (target < 0 || target >= index.Count) return;
+
+            // Already followed, and following it again would only mark what is marked; the stack
+            // it would leave behind is the price of not doing so.
+            if (!used.Add(target)) return;
+
+            Run(index.Start(target), index.End(target), depth + 1);
+        }
+
+        /// <summary>Reads a number onto the stack and returns where it ended.</summary>
+        private int ReadOperand(int position)
+        {
+            var b0 = cff[position];
+
+            switch (b0)
+            {
+                case 28:
+                    Push((short)((cff[position + 1] << 8) | cff[position + 2]));
+                    return position + 3;
+
+                case 255:
+                    // A number with a fractional part, of which only the whole part can be a
+                    // subroutine number.
+                    Push((cff[position + 1] << 8) | cff[position + 2]);
+                    return position + 5;
+
+                case <= 246:
+                    Push(b0 - 139);
+                    return position + 1;
+
+                case <= 250:
+                    Push((b0 - 247) * 256 + cff[position + 1] + 108);
+                    return position + 2;
+
+                default:
+                    Push(-(b0 - 251) * 256 - cff[position + 1] - 108);
+                    return position + 2;
+            }
+        }
+
+        private void Push(int value)
+        {
+            // The stack holds at most forty-eight numbers, and a malformed charstring that keeps
+            // pushing should not keep growing this.
+            if (_stack.Count < 48) _stack.Add(value);
+        }
+
+        /// <summary>
+        /// What a subroutine number is offset by, which the format works out from how many there
+        /// are so that the commonest ones take the fewest bytes to name.
+        /// </summary>
+        private static int Bias(int count) => count switch
+        {
+            < 1240 => 107,
+            < 33900 => 1131,
+            _ => 32768
+        };
     }
 
     // ----- reading -----
