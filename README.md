@@ -246,8 +246,24 @@ number; `\h` asks for a line holding the letter each group begins with, `\e` and
 between a term and its pages and between one page and the next, `\t` shows something else in place
 of the pages ("see Engine"), and `\f` keeps two indexes in one document apart.
 
-Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, fields that compute over the document
-(IF, formulas and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
+The two fields that work something out rather than look it up are the last of them. IF compares two
+things and chooses between two pieces of text — numbers as numbers, anything else as text without
+regard to case, and the text an equality is asked against may hold `*` and `?` wildcards. A formula
+field is an equals sign and an expression: the five operators and their precedence, brackets,
+comparisons, percentages, and the functions Word knows (SUM, PRODUCT, AVERAGE, COUNT, MIN, MAX,
+ABS, INT, ROUND, SIGN, MOD, AND, OR, NOT, IF, TRUE, FALSE, DEFINED). In a table it reads the cells
+around it, by direction or by name.
+
+Three of its answers were measured rather than reasoned about, and none is what would be guessed. A
+picture's `#` reserves a *space* where it has no digit to show, so five against `$#,##0.00` comes
+out as `$   5.00`. A direction reads only as far as the numbers go — a column of 10, "n/a" and 3
+sums to 3 from below it, not to 13 — while a range named outright reads all of it and passes over
+what is not a number, so the same column averaged as `A1:A3` is 6.5 rather than 4.33. And a formula
+with no picture reads to two decimal places with the zeros at the end dropped: 10/3 is 3.33, 10/4
+stays 2.5.
+
+Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, mail merge (whose cached results are
+shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

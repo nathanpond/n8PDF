@@ -2117,11 +2117,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // The last row's bottom border is added once, after the loop.
             var marginBottom = Units.TwipsToPoints(cell.MarginBottomTwips ?? properties.CellMarginBottomTwips);
 
+            // A formula in a cell reads the table around it, so which cell it is in has to be
+            // known while its content is being laid out.
+            var outer = Fields.Cells;
+            Fields.Cells = new TableCells(table, rowIndex, column);
+
             // A cell continuing a vertical merge draws no content of its own; the cell that
             // started the merge owns it.
             var content = cell.VerticalMerge == "continue"
                 ? DetachedFlow.Empty
                 : MeasureBlocks(cell.Content, Math.Max(1, width - marginLeft - marginRight));
+
+            Fields.Cells = outer;
 
             placed.Add(new PlacedCell(cell, x, width, column, span, content,
                 marginLeft, marginRight, marginTop, marginBottom, borders,

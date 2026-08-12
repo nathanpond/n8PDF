@@ -45,20 +45,57 @@ public readonly record struct FieldInstruction(
 
     public static FieldInstruction Parse(string instruction)
     {
+        // A formula is not written like the other fields: it is an equals sign and an expression,
+        // with no keyword and no spaces to divide it. Everything up to its first switch belongs to
+        // the expression, brackets, commas and all.
+        var trimmed = instruction.TrimStart();
+        if (trimmed.StartsWith('='))
+        {
+            var cut = SwitchAt(trimmed);
+            var expression = (cut < 0 ? trimmed : trimmed[..cut])[1..].Trim();
+
+            return new FieldInstruction(
+                "=", [expression], ReadSwitches(cut < 0 ? [] : Tokenize(trimmed[cut..]), 0, "="));
+        }
+
         var tokens = Tokenize(instruction);
         if (tokens.Count == 0) return None;
 
         var keyword = tokens[0].Text.ToUpperInvariant();
         var arguments = new List<string>();
+        var switches = ReadSwitches(tokens, 1, keyword, arguments);
+
+        return new FieldInstruction(keyword, arguments, switches);
+    }
+
+    /// <summary>Where a formula's switches begin, or -1 where it has none.</summary>
+    private static int SwitchAt(string instruction)
+    {
+        for (var i = 0; i < instruction.Length - 1; i++)
+        {
+            if (instruction[i] == '\\' && (char.IsLetter(instruction[i + 1]) || instruction[i + 1] is '#' or '*' or '@'))
+                return i;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Reads the switches from a token onwards, putting anything that is not one — and nothing a
+    /// switch has taken for itself — into the arguments.
+    /// </summary>
+    private static List<(char Letter, string? Value)> ReadSwitches(
+        List<(string Text, bool Quoted)> tokens, int from, string keyword, List<string>? arguments = null)
+    {
         var switches = new List<(char, string?)>();
 
-        for (var i = 1; i < tokens.Count; i++)
+        for (var i = from; i < tokens.Count; i++)
         {
             var token = tokens[i];
 
             if (token.Quoted || token.Text.Length < 2 || token.Text[0] != '\\')
             {
-                arguments.Add(token.Text);
+                arguments?.Add(token.Text);
                 continue;
             }
 
@@ -82,7 +119,7 @@ public readonly record struct FieldInstruction(
             if (takesValue) i++;
         }
 
-        return new FieldInstruction(keyword, arguments, switches);
+        return switches;
     }
 
     /// <summary>

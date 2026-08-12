@@ -101,7 +101,7 @@ echo
 # like — and leaves every other field showing whatever it last computed. A fixture written by hand
 # has no last computed value, so those fields would export blank. For the fixtures named here the
 # fields are updated first, which is the only way to get Word's own answer for them.
-UPDATES_FIELDS=("fields" "styleref" "toc" "index")
+UPDATES_FIELDS=("fields" "styleref" "toc" "index" "formulas")
 
 updates_fields() {
     local name="$1"

@@ -46,11 +46,52 @@ public static class Fixtures
     private const string TocTab =
         "<w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9360\"/></w:tabs>";
 
-    /// <summary>The runs of one field: the instruction, and an empty result for Word to fill in.</summary>
+    /// <summary>
+    /// A table whose last row and last column work themselves out: the formulas read the cells
+    /// above and to the left of them, and one reads two cells named outright.
+    /// </summary>
+    private static string FormulaTable()
+    {
+        static string Cell(string content) =>
+            $"<w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr>{content}</w:p></w:tc>";
+
+        static string Text(string text) =>
+            Cell($"<w:r><w:rPr>{Times12}</w:rPr><w:t>{text}</w:t></w:r>");
+
+        static string Formula(string instruction) => Cell(StyleRefRuns(instruction));
+
+        return "<w:tbl><w:tblPr><w:tblW w:w=\"9360\" w:type=\"dxa\"/>" +
+               "<w:tblBorders>" +
+               "<w:top w:val=\"single\" w:sz=\"4\"/><w:left w:val=\"single\" w:sz=\"4\"/>" +
+               "<w:bottom w:val=\"single\" w:sz=\"4\"/><w:right w:val=\"single\" w:sz=\"4\"/>" +
+               "<w:insideH w:val=\"single\" w:sz=\"4\"/><w:insideV w:val=\"single\" w:sz=\"4\"/>" +
+               "</w:tblBorders><w:tblLayout w:type=\"fixed\"/></w:tblPr>" +
+               "<w:tblGrid><w:gridCol w:w=\"3120\"/><w:gridCol w:w=\"3120\"/><w:gridCol w:w=\"3120\"/></w:tblGrid>" +
+               $"<w:tr>{Text("10")}{Text("20")}{Formula(" =SUM(LEFT) ")}</w:tr>" +
+
+               // A cell holding text rather than a number, which says what the ones around it
+               // make of it: whether it counts as nothing or stops the reading altogether.
+               $"<w:tr>{Text("n/a")}{Text("4.5")}{Formula(" =A1*B2 ")}</w:tr>" +
+               $"<w:tr>{Text("3")}{Text("6")}{Formula(" =SUM(A1:B3) ")}</w:tr>" +
+               $"<w:tr>{Formula(" =SUM(ABOVE) ")}{Formula(" =COUNT(ABOVE) ")}" +
+               $"{Formula(" =AVERAGE(A1:A3) ")}</w:tr></w:tbl>";
+    }
+
+    /// <summary>Text as it goes into an XML element.</summary>
+    private static string Escape(string text) =>
+        text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    /// <summary>
+    /// The runs of one field: the instruction, and an empty result for Word to fill in.
+    /// </summary>
+    /// <remarks>
+    /// The instruction is escaped, because an instruction is text like any other: the less-than of
+    /// a comparison is not markup, and writing it as one leaves a document Word cannot open.
+    /// </remarks>
     private static string StyleRefRuns(string instruction) =>
         $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"begin\"/></w:r>" +
         $"<w:r><w:rPr>{Times12}</w:rPr>" +
-        $"<w:instrText xml:space=\"preserve\">{instruction}</w:instrText></w:r>" +
+        $"<w:instrText xml:space=\"preserve\">{Escape(instruction)}</w:instrText></w:r>" +
         $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r>" +
         $"<w:r><w:rPr>{Times12}</w:rPr><w:t/></w:r>" +
         $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r>";
@@ -1461,6 +1502,69 @@ public static class Fixtures
                 builder.AddRawParagraph(
                     $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                     StyleRefRuns(" INDEX \\h \"A\" \\c \"1\" ") + "</w:p>");
+
+                return builder;
+            },
+
+            // The two fields that work something out rather than look it up: IF, which chooses
+            // between two pieces of text, and the formula field, which is arithmetic — over
+            // numbers written into it, or over the cells of the table it stands in.
+            ["formulas"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Field(string label, string instruction) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{label}: </w:t></w:r>" +
+                        StyleRefRuns(instruction) + "</w:p>");
+
+                // Choosing between two pieces of text.
+                Field("if-equal", " IF 1 = 1 \"yes\" \"no\" ");
+                Field("if-greater", " IF 2 > 3 \"yes\" \"no\" ");
+                Field("if-at-least", " IF 5 >= 5 \"yes\" \"no\" ");
+                Field("if-text", " IF \"abc\" = \"abc\" \"yes\" \"no\" ");
+                Field("if-unequal-text", " IF \"abc\" <> \"abd\" \"yes\" \"no\" ");
+                Field("if-wildcard", " IF \"abcdef\" = \"abc*\" \"yes\" \"no\" ");
+                Field("if-no-else", " IF 1 = 2 \"yes\" ");
+
+                // Arithmetic written into the field.
+                Field("sum-of-terms", " =2+3*4 ");
+                Field("brackets", " =(2+3)*4 ");
+                Field("division", " =10/4 ");
+                Field("power", " =2^10 ");
+                Field("negative", " =7-9 ");
+                Field("percent", " =50%*8 ");
+                Field("recurring", " =10/3 ");
+                Field("eighth", " =1/8 ");
+
+                // The functions it knows.
+                Field("sum", " =SUM(1,2,3) ");
+                Field("average", " =AVERAGE(2,4,9) ");
+                Field("product", " =PRODUCT(2,3,4) ");
+                Field("count", " =COUNT(2,9,4) ");
+                Field("max", " =MAX(2,9,4) ");
+                Field("min", " =MIN(2,9,4) ");
+                Field("round", " =ROUND(3.14159,2) ");
+                Field("abs", " =ABS(-7) ");
+                Field("int", " =INT(7.9) ");
+                Field("mod", " =MOD(7,3) ");
+                Field("sign", " =SIGN(-3) ");
+                Field("if-function", " =IF(2>1,10,20) ");
+                Field("and", " =AND(1,1) ");
+                Field("or", " =OR(0,1) ");
+                Field("not", " =NOT(0) ");
+
+                // How a number is spelled, which the \# switch says.
+                Field("picture-decimals", " =10/4 \\# \"0.00\" ");
+                Field("picture-thousands", " =1234567 \\# \"#,##0\" ");
+                Field("picture-money", " =5 \\# \"$#,##0.00\" ");
+                Field("picture-negative", " =0-5 \\# \"0.00;(0.00)\" ");
+                Field("picture-hash", " =7 \\# \"##\" ");
+
+                // And the same over the cells of a table: the directions name the cells around
+                // the one the formula is in, and a cell can be named outright.
+                builder.AddRawParagraph(FormulaTable());
 
                 return builder;
             },

@@ -44,6 +44,12 @@ public sealed class FieldEnvironment
     /// out, since which paragraph that is depends on where the pages fall.
     /// </summary>
     public Func<FieldInstruction, string?> StyleReference { get; set; } = _ => null;
+
+    /// <summary>
+    /// The cells a formula can read, which is the table it stands in. Null outside one, where a
+    /// formula has only the numbers written into it to work with.
+    /// </summary>
+    public IFormulaCells? Cells { get; set; }
 }
 
 /// <summary>
@@ -98,6 +104,8 @@ public static class FieldEvaluator
             "REF" => instruction.Argument is { } named ? environment.TextOfBookmark(named) : null,
 
             "SEQ" => Sequence(instruction, environment),
+            "IF" => Condition(instruction),
+            "=" => Formula(instruction, environment),
             "STYLEREF" => environment.StyleReference(instruction),
 
             "AUTHOR" => properties.Creator,
@@ -120,6 +128,110 @@ public static class FieldEvaluator
 
             _ => null
         };
+    }
+
+    /// <summary>
+    /// What a formula comes to, spelled the way its <c>\#</c> picture asks, or to two decimal
+    /// places with the zeros at the end dropped where it names none.
+    /// </summary>
+    private static string? Formula(FieldInstruction instruction, FieldEnvironment environment)
+    {
+        if (instruction.Argument is not { Length: > 0 } expression) return null;
+        if (FieldFormula.Evaluate(expression, environment.Cells) is not { } value) return null;
+
+        return instruction.SwitchValue('#') is { Length: > 0 } picture
+            ? NumericPicture.Format(value, picture)
+            : FieldFormula.Format(value);
+    }
+
+    /// <summary>
+    /// The text an IF field chooses: two things compared, and one of two answers.
+    /// </summary>
+    /// <remarks>
+    /// Numbers are compared as numbers and anything else as text, without regard to case. The
+    /// text on the right of an equality may hold wildcards — <c>*</c> for any run of characters
+    /// and <c>?</c> for one — which is how a field asks whether something begins with a word.
+    /// </remarks>
+    private static string? Condition(FieldInstruction instruction)
+    {
+        var arguments = instruction.Arguments;
+        if (arguments.Count < 3) return null;
+
+        // The operator is the argument written out of the comparison's own characters.
+        var at = -1;
+        for (var i = 1; i < arguments.Count - 1 && at < 0; i++)
+        {
+            if (arguments[i].Length > 0 && arguments[i].All(c => c is '=' or '<' or '>')) at = i;
+        }
+
+        if (at < 0) return null;
+
+        var left = string.Join(' ', arguments.Take(at));
+        var right = arguments[at + 1];
+
+        var holds = Compare(left, right, arguments[at]);
+        if (holds is null) return null;
+
+        var answer = holds.Value ? at + 2 : at + 3;
+
+        // A field that names no answer for the case it landed in shows nothing, which is an
+        // answer of its own rather than something that could not be worked out.
+        return answer < arguments.Count ? arguments[answer] : string.Empty;
+    }
+
+    private static bool? Compare(string left, string right, string op)
+    {
+        if (double.TryParse(left, NumberStyles.Float, CultureInfo.InvariantCulture, out var first) &&
+            double.TryParse(right, NumberStyles.Float, CultureInfo.InvariantCulture, out var second))
+        {
+            return op switch
+            {
+                "=" => first == second,
+                "<>" => first != second,
+                "<" => first < second,
+                ">" => first > second,
+                "<=" => first <= second,
+                ">=" => first >= second,
+                _ => null
+            };
+        }
+
+        var same = Matches(left, right);
+
+        return op switch
+        {
+            "=" => same,
+            "<>" => !same,
+            "<" => string.Compare(left, right, StringComparison.OrdinalIgnoreCase) < 0,
+            ">" => string.Compare(left, right, StringComparison.OrdinalIgnoreCase) > 0,
+            "<=" => string.Compare(left, right, StringComparison.OrdinalIgnoreCase) <= 0,
+            ">=" => string.Compare(left, right, StringComparison.OrdinalIgnoreCase) >= 0,
+            _ => null
+        };
+    }
+
+    /// <summary>Whether text answers a pattern, in which * stands for any run and ? for one.</summary>
+    private static bool Matches(string text, string pattern)
+    {
+        if (!pattern.Contains('*') && !pattern.Contains('?'))
+            return string.Equals(text, pattern, StringComparison.OrdinalIgnoreCase);
+
+        var expression = new System.Text.StringBuilder("^");
+
+        foreach (var c in pattern)
+        {
+            expression.Append(c switch
+            {
+                '*' => ".*",
+                '?' => ".",
+                _ => System.Text.RegularExpressions.Regex.Escape(c.ToString())
+            });
+        }
+
+        expression.Append('$');
+
+        return System.Text.RegularExpressions.Regex.IsMatch(
+            text, expression.ToString(), System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
 
     /// <summary>
