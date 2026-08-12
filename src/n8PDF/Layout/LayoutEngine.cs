@@ -1361,47 +1361,46 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 ? PrepareFootnotes(rowFootnoteIds)
                 : ([], 0);
 
-            if (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height && cursor.CanAdvance)
+            // A row too tall for what is left of the page is broken across the two unless it says
+            // it may not be, and what will not fit follows on the next page as a row of its own —
+            // bordered like one, which is how Word draws it. A row taller than a whole page is
+            // broken again and again, which is why splitting counts as progress on a fresh page
+            // where moving the row would not.
+            var placedEverything = false;
+
+            while (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height)
             {
+                if (!row.CantSplit &&
+                    SplitRow(cursor, placed, rowFootnotes.Height, out var fitted, out var remaining,
+                        out var fittedHeight))
+                {
+                    PlaceRow(cursor, fitted, cursor.Y, fittedHeight);
+                    cursor.Y += fittedHeight;
+
+                    placed = remaining;
+
+                    if (placed.All(cell => cell.Content.Height <= 0))
+                    {
+                        placedEverything = true;
+                        break;
+                    }
+                }
+                else if (!cursor.CanAdvance)
+                {
+                    // Nowhere better to put it: the row is placed where it stands and runs over.
+                    break;
+                }
+
                 cursor.AdvanceColumn();
+
+                rowHeight = ComputeRowHeight(row, placed);
                 if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(rowFootnoteIds);
             }
 
-            var top = cursor.Y;
-
-            // Shading first, then content, then borders on top: a border sits on the cell edge
-            // and would otherwise be half-covered by the neighbouring cell's fill.
-            foreach (var cell in placed)
-            {
-                if (cell.Source.ShadingFill is not { } fill) continue;
-
-                cursor.Page.Rectangles.Add(new PositionedRectangle
-                {
-                    X = cell.Left,
-                    Y = top,
-                    Width = cell.Width,
-                    Height = rowHeight,
-                    Color = ParseHexColor(fill)
-                });
-            }
-
-            foreach (var cell in placed)
-            {
-                var available = rowHeight - cell.MarginTop - cell.MarginBottom;
-                var offset = cell.Source.VerticalAlignment switch
-                {
-                    VerticalCellAlignment.Center => Math.Max(0, (available - cell.Content.Height) / 2),
-                    VerticalCellAlignment.Bottom => Math.Max(0, available - cell.Content.Height),
-                    _ => 0
-                };
-
-                cell.Content.PlaceOnto(cursor.Page, cell.Left + cell.MarginLeft, top + cell.MarginTop + offset);
-            }
-
-            DrawRowBorders(cursor.Page, placed, top, rowHeight);
+            if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight);
 
             CommitFootnotes(cursor, rowFootnotes);
-            cursor.Y += rowHeight;
+            if (!placedEverything) cursor.Y += rowHeight;
 
             // The final row's bottom edge is not shared with anything below it, so it is the one
             // border that adds to the table's overall height.
@@ -1412,6 +1411,83 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 cursor.Y += bottom;
             }
         }
+    }
+
+    /// <summary>
+    /// Draws a row: its shading, then its cells' contents, then its borders on top — a border
+    /// sits on the cell edge and would otherwise be half-covered by the neighbouring cell's fill.
+    /// </summary>
+    private static void PlaceRow(Cursor cursor, List<PlacedCell> placed, double top, double height)
+    {
+        foreach (var cell in placed)
+        {
+            if (cell.Source.ShadingFill is not { } fill) continue;
+
+            cursor.Page.Rectangles.Add(new PositionedRectangle
+            {
+                X = cell.Left,
+                Y = top,
+                Width = cell.Width,
+                Height = height,
+                Color = ParseHexColor(fill)
+            });
+        }
+
+        foreach (var cell in placed)
+        {
+            var available = height - cell.MarginTop - cell.MarginBottom;
+            var offset = cell.Source.VerticalAlignment switch
+            {
+                VerticalCellAlignment.Center => Math.Max(0, (available - cell.Content.Height) / 2),
+                VerticalCellAlignment.Bottom => Math.Max(0, available - cell.Content.Height),
+                _ => 0
+            };
+
+            cell.Content.PlaceOnto(cursor.Page, cell.Left + cell.MarginLeft, top + cell.MarginTop + offset);
+        }
+
+        DrawRowBorders(cursor.Page, placed, top, height);
+    }
+
+    /// <summary>
+    /// Divides a row between the page it is on and the next, at a line boundary inside its cells.
+    /// </summary>
+    /// <remarks>
+    /// Word breaks a row rather than moving it whole unless it is told not to, and what stays
+    /// behind is closed off with a full border box as though the row ended there — which is what
+    /// its own export shows, and what falls out of drawing each part as a row.
+    ///
+    /// Nothing is split unless a line of it actually fits. A row that would leave an empty box at
+    /// the foot of the page moves whole instead.
+    /// </remarks>
+    private static bool SplitRow(
+        Cursor cursor, List<PlacedCell> placed, double reserved,
+        out List<PlacedCell> fitted, out List<PlacedCell> remaining, out double fittedHeight)
+    {
+        fitted = [];
+        remaining = [];
+        fittedHeight = 0;
+
+        var available = cursor.ContentBottom - reserved - cursor.Y;
+        if (available <= 0) return false;
+
+        var anything = false;
+
+        foreach (var cell in placed)
+        {
+            var (top, rest) = cell.Content.SplitAt(available - cell.MarginTop - cell.MarginBottom);
+
+            fitted.Add(cell with { Content = top });
+            remaining.Add(cell with { Content = rest });
+
+            if (top.Height > 0)
+            {
+                anything = true;
+                fittedHeight = Math.Max(fittedHeight, top.Height + cell.MarginTop + cell.MarginBottom);
+            }
+        }
+
+        return anything && fittedHeight > 0;
     }
 
     /// <summary>Lays out each cell of a row into its own detached page and records its geometry.</summary>
@@ -3157,6 +3233,90 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// than to the detached page it was composed on.
         /// </summary>
         public IReadOnlyList<int> Footnotes { get; } = footnotes ?? [];
+
+        /// <summary>
+        /// Divides this flow at the last line boundary that fits within the given height.
+        /// </summary>
+        /// <remarks>
+        /// Cutting between lines rather than at the height asked for is what keeps a line whole
+        /// where a cell runs over a page boundary. Nothing fits until a whole line does, so a
+        /// cell with one very tall line in it moves rather than splits.
+        ///
+        /// Whatever the content referred to goes with the part that stays, which is where the
+        /// reference usually is.
+        /// </remarks>
+        public (DetachedFlow Fitted, DetachedFlow Remaining) SplitAt(double limit)
+        {
+            var cut = 0.0;
+
+            foreach (var line in page.Lines)
+            {
+                var bottom = line.BaselineY - line.Ascent + line.Height;
+                if (bottom <= limit + 0.001) cut = Math.Max(cut, bottom);
+            }
+
+            if (cut <= 0) return (Empty, this);
+            if (cut >= Height - 0.001) return (this, Empty);
+
+            var fitted = new LaidOutPage { WidthPoints = page.WidthPoints, HeightPoints = page.HeightPoints };
+            var remaining = new LaidOutPage { WidthPoints = page.WidthPoints, HeightPoints = page.HeightPoints };
+
+            foreach (var line in page.Lines)
+            {
+                var bottom = line.BaselineY - line.Ascent + line.Height;
+
+                if (bottom <= cut + 0.001)
+                {
+                    fitted.Lines.Add(line);
+                    continue;
+                }
+
+                var moved = new LaidOutLine
+                {
+                    BaselineY = line.BaselineY - cut,
+                    Height = line.Height,
+                    Ascent = line.Ascent,
+                    ParagraphIndex = line.ParagraphIndex
+                };
+
+                foreach (var text in line.Texts) moved.Texts.Add(text.Translate(0, -cut));
+
+                remaining.Lines.Add(moved);
+            }
+
+            foreach (var rule in page.Rules)
+            {
+                if (rule.Y < cut) fitted.Rules.Add(rule);
+                else remaining.Rules.Add(new PositionedRule
+                {
+                    X = rule.X, Y = rule.Y - cut, Width = rule.Width,
+                    Thickness = rule.Thickness, Color = rule.Color
+                });
+            }
+
+            foreach (var rectangle in page.Rectangles)
+            {
+                if (rectangle.Y < cut) fitted.Rectangles.Add(rectangle);
+                else remaining.Rectangles.Add(new PositionedRectangle
+                {
+                    X = rectangle.X, Y = rectangle.Y - cut, Width = rectangle.Width,
+                    Height = rectangle.Height, Color = rectangle.Color
+                });
+            }
+
+            foreach (var image in page.Images)
+            {
+                if (image.Y + image.Height <= cut + 0.001) fitted.Images.Add(image);
+                else remaining.Images.Add(new PositionedImage
+                {
+                    X = image.X, Y = image.Y - cut, Width = image.Width,
+                    Height = image.Height, Image = image.Image
+                });
+            }
+
+            return (new DetachedFlow(fitted, cut, [.. Footnotes]),
+                new DetachedFlow(remaining, Height - cut));
+        }
 
         /// <summary>Copies this flow's content onto a real page, offset by the given origin.</summary>
         public void PlaceOnto(LaidOutPage target, double dx, double dy)

@@ -29,6 +29,44 @@ public static class Fixtures
     private static readonly string Times12 = Times();
 
     /// <summary>
+    /// A bordered table of one row and two cells, the first holding as many lines as asked for.
+    /// </summary>
+    private static string SplittableTable(string label, int lines, bool cantSplit)
+    {
+        var content = string.Concat(Enumerable.Range(1, lines).Select(i =>
+            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+            $"<w:t>{label} line {i}.</w:t></w:r></w:p>"));
+
+        var properties = cantSplit ? "<w:trPr><w:cantSplit/></w:trPr>" : string.Empty;
+
+        return $"""
+            <w:tbl>
+              <w:tblPr>
+                <w:tblW w:w="9360" w:type="dxa"/>
+                <!-- Half a point, which is what the other bordered fixtures use: a heavier
+                     border makes this one measure how far Word insets cell content, which is a
+                     question of its own and not what a split row is here to show. -->
+                <w:tblBorders>
+                  <w:top w:val="single" w:sz="4" w:color="auto"/>
+                  <w:left w:val="single" w:sz="4" w:color="auto"/>
+                  <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                  <w:right w:val="single" w:sz="4" w:color="auto"/>
+                  <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                  <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                </w:tblBorders>
+                <w:tblLayout w:type="fixed"/>
+              </w:tblPr>
+              <w:tblGrid><w:gridCol w:w="6480"/><w:gridCol w:w="2880"/></w:tblGrid>
+              <w:tr>{properties}
+                <w:tc>{content}</w:tc>
+                <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>
+                  <w:t>{label} second cell.</w:t></w:r></w:p></w:tc>
+              </w:tr>
+            </w:tbl>
+            """;
+    }
+
+    /// <summary>
     /// A paragraph of exactly the given number of lines, separated by explicit breaks rather than
     /// left to wrap — which is what makes where each line falls something a fixture can rely on.
     /// </summary>
@@ -891,6 +929,25 @@ public static class Fixtures
                     $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:br w:type=\"column\"/></w:r>" +
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Third column opens here.</w:t></w:r></w:p>"),
+
+            // A table row taller than what is left of the page, which Word breaks across the two
+            // unless it is told not to. The borders at the break are what this really asks about:
+            // nothing else says whether a row that continues is closed off where it stops.
+            ["table-split"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                for (var i = 1; i <= 38; i++)
+                    builder.AddParagraph($"Filler {i}.", ZeroSpacing, Times12);
+
+                builder.AddRawParagraph(SplittableTable("Splitting", 20, cantSplit: false));
+
+                // And the same again on the next page, told to stay whole.
+                for (var i = 39; i <= 70; i++)
+                    builder.AddParagraph($"Filler {i}.", ZeroSpacing, Times12);
+
+                return builder.AddRawParagraph(SplittableTable("Whole", 12, cantSplit: true));
+            },
 
             // The four ways a section can sit its text on the page. Each is its own section so
             // that one export answers all of them, and the last has several paragraphs because

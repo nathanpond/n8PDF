@@ -116,7 +116,9 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: vertical page alignment (top, centred, bottom, and justified — which spreads the
+Implemented: breaking a table row across a page, at a line boundary inside its cells, with both
+halves closed off by a full border box the way Word draws them — and moving the row whole instead
+where it says `w:cantSplit` or where not even a line of it would fit. Vertical page alignment (top, centred, bottom, and justified — which spreads the
 spare height between the paragraphs rather than between the lines, so a paragraph that wraps stays
 whole), font subsetting for both kinds of outline. A TrueType face is numbered again from
 nothing, so a document that used thirty glyphs embeds thirty rather than the three thousand the
@@ -160,8 +162,14 @@ content-width columns when the table fits, and a table filling the text area exa
 not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not derived from the real
 algorithm the way the paragraph rules are.
 
+One measurement is recorded here without an explanation to go with it. Word puts cell content
+0.48pt inside the table's edge whether its border is half a point or a whole one, where this insets
+by the border's own width — so the two agree at half a point and differ by that much at a whole
+one. The rule behind Word's number has not been worked out, and `table-split` uses a half-point
+border so that it measures what it is for rather than this.
+
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
-border, splitting a row across pages, fields other than PAGE and NUMPAGES (their cached values are
+border, fields other than PAGE and NUMPAGES (their cached values are
 shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
