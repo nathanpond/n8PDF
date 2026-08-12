@@ -22,8 +22,13 @@ internal static class SfntRepackager
     private static readonly string[] CffTables =
         ["CFF ", "cmap", "head", "hhea", "hmtx", "maxp", "name", "post", "OS/2"];
 
-    public static byte[] BuildStandalone(TrueTypeFont font)
+    /// <summary>
+    /// Builds an embeddable font program, holding only the given glyphs where the format allows
+    /// it. Passing no glyphs embeds the whole face.
+    /// </summary>
+    public static byte[] BuildStandalone(TrueTypeFont font, IReadOnlyCollection<ushort>? usedGlyphs = null)
     {
+        var subset = usedGlyphs is { Count: > 0 } ? GlyphSubset.Build(font, usedGlyphs) : null;
         var wanted = font.HasCffOutlines ? CffTables : TrueTypeTables;
 
         // Table records must appear in ascending tag order in the directory.
@@ -51,8 +56,25 @@ internal static class SfntRepackager
             var data = new byte[length];
             Array.Copy(source, record.Offset, data, 0, length);
 
+            if (subset is { } tables)
+            {
+                if (tag == "glyf") data = tables.Glyf;
+                else if (tag == "loca") data = tables.Loca;
+                else if (tag == "post") data = GlyphSubset.NamelessPost(source, record);
+                else if (tag == "hmtx" && tables.Hmtx is { } metrics) data = metrics;
+
+                // The rebuilt locations are in the long format whatever the original used, and
+                // head is where a reader is told which to expect.
+                else if (tag == "head" && data.Length >= 52) WriteUInt16(data, 50, 1);
+
+                // hhea says how many glyphs carry their own advance, so it has to agree with a
+                // metrics table that was cut short.
+                else if (tag == "hhea" && tables.Hmtx is not null && data.Length >= 36)
+                    WriteUInt16(data, 34, (ushort)tables.MetricCount);
+            }
+
             payloads.Add((tag, data, offset));
-            offset += Align4(length);
+            offset += Align4(data.Length);
         }
 
         var output = new byte[offset];

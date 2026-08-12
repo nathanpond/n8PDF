@@ -113,8 +113,16 @@ public sealed class PdfFont
     /// <summary>Writes the font's object graph into the document and returns the Type0 reference.</summary>
     internal PdfReference Build(PdfDocument document)
     {
-        var program = Font.GetEmbeddableFontProgram();
-        var baseFont = SanitizeName(Font.PostScriptName);
+        var glyphs = _glyphToUnicode.Keys.ToList();
+        var program = Font.GetEmbeddableFontProgram(glyphs);
+
+        // A subset font is named with a six-letter tag so that two documents carrying different
+        // parts of the same face are not mistaken for each other. The tag is derived from the
+        // glyphs themselves, which keeps it stable: converting a document twice gives the same
+        // bytes, and that is what makes golden comparison possible at all.
+        var baseFont = Font.HasCffOutlines
+            ? SanitizeName(Font.PostScriptName)
+            : SubsetTag(glyphs) + "+" + SanitizeName(Font.PostScriptName);
 
         var fontFile = new PdfStream(program);
         // Length1 is the uncompressed size, which consumers need to reconstruct the program.
@@ -301,6 +309,34 @@ public sealed class PdfFont
         Math.Round(designUnits * 1000.0 / Font.UnitsPerEm);
 
     /// <summary>Strips characters that are awkward in a PDF name object.</summary>
+    /// <summary>
+    /// Six upper-case letters standing for which glyphs this subset holds.
+    /// </summary>
+    /// <remarks>
+    /// The tag only has to differ between subsets, so it is a hash of the glyph set rather than a
+    /// counter — a counter would make the tag depend on the order fonts happened to be used in,
+    /// and two conversions of the same document would stop matching byte for byte.
+    /// </remarks>
+    private static string SubsetTag(List<ushort> glyphs)
+    {
+        // FNV-1a over the glyph indices in order, which is why they are sorted first.
+        var hash = 2166136261u;
+        foreach (var glyph in glyphs.Order())
+        {
+            hash = (hash ^ glyph) * 16777619;
+            hash = (hash ^ (uint)(glyph >> 8)) * 16777619;
+        }
+
+        var tag = new char[6];
+        for (var i = 0; i < tag.Length; i++)
+        {
+            tag[i] = (char)('A' + hash % 26);
+            hash /= 26;
+        }
+
+        return new string(tag);
+    }
+
     private static string SanitizeName(string name)
     {
         var sb = new StringBuilder(name.Length);

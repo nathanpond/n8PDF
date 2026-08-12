@@ -121,7 +121,12 @@ public sealed class TrueTypeFont
     /// Produces a standalone single-font SFNT suitable for embedding. Collections cannot be
     /// embedded directly, so their tables are repackaged into a fresh container.
     /// </summary>
-    public byte[] GetEmbeddableFontProgram() => SfntRepackager.BuildStandalone(this);
+    /// <summary>
+    /// The font program to embed. Given the glyphs a document used, the outlines of everything
+    /// else are left out.
+    /// </summary>
+    public byte[] GetEmbeddableFontProgram(IReadOnlyCollection<ushort>? usedGlyphs = null) =>
+        SfntRepackager.BuildStandalone(this, usedGlyphs);
 
     // ----- loading -----
 

@@ -116,7 +116,8 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: kerning, read from a font's GPOS table as well as the legacy one — Calibri has only
+Implemented: font subsetting — the outlines a document draws are embedded and the rest left out,
+which takes a text face from 676KB to 43KB — kerning, read from a font's GPOS table as well as the legacy one — Calibri has only
 the former and Times New Roman only the latter, so both are needed to kern either — applied where
 `w:kern` asks for it and from the type size it names upwards, tab stops of every alignment — left, centre, right and decimal, the last three
 resolved once the text after the tab has been measured, with a stop the line has already passed
@@ -162,7 +163,8 @@ each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
 them rather than under the whole measure, page numbering restarted per section, vertical page
 alignment,
-and font subsetting.
+and subsetting the outlines of a CFF face, which keeps them somewhere a
+TrueType subsetter cannot reach.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
 the PDF, so an unimplemented construct fails loudly instead of vanishing from the output.
