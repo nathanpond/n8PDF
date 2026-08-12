@@ -393,8 +393,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// widths are used, and failing that the available width is divided evenly. A grid wider than
     /// the text area is scaled down rather than allowed to run off the page.
     /// </remarks>
-    private static List<double> ComputeColumnWidths(Table table, double availableWidth)
+    private List<double> ComputeColumnWidths(Table table, double availableWidth)
     {
+        // Word ignores the declared grid entirely when a table is left on autofit, which is its
+        // default. Measured: a table given an equal-width grid produced exactly the same columns
+        // as the same table with no grid at all.
+        if (!table.Properties.FixedLayout && table.Rows.Count > 0)
+            return ComputeAutofitColumnWidths(table, availableWidth);
+
         var widths = table.Grid.Select(twips => Units.TwipsToPoints(twips)).Where(w => w > 0).ToList();
 
         if (widths.Count == 0 && table.Rows.Count > 0)
@@ -423,6 +429,181 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         return widths;
+    }
+
+    /// <summary>
+    /// Sizes columns from their contents, the way Word does when a table is left on autofit.
+    /// </summary>
+    /// <remarks>
+    /// Each column is measured for the width it needs at minimum — its widest unbreakable word —
+    /// and the width it would like, which is its content unwrapped. If every column can have what
+    /// it wants the table is only as wide as its contents; otherwise the columns start at their
+    /// minimums and share out what is left in proportion to how much more each one asked for.
+    ///
+    /// This is an approximation. It reproduces the two behaviours that were measured directly —
+    /// content-width columns when the table fits, and a table filling the text area exactly when
+    /// it does not — but Word's own algorithm is undocumented and this does not match it to the
+    /// fraction of a point that the paragraph-level rules do. See the table-autofit-probe fixture
+    /// for how far apart they are.
+    /// </remarks>
+    private List<double> ComputeAutofitColumnWidths(Table table, double availableWidth)
+    {
+        var columnCount = 0;
+        foreach (var row in table.Rows)
+        {
+            var count = row.Cells.Sum(cell => Math.Max(1, cell.GridSpan));
+            columnCount = Math.Max(columnCount, count);
+        }
+
+        columnCount = Math.Max(columnCount, table.Grid.Count);
+        if (columnCount == 0) return [availableWidth];
+
+        var minimums = new double[columnCount];
+        var maximums = new double[columnCount];
+        var properties = table.Properties;
+
+        foreach (var row in table.Rows)
+        {
+            var column = 0;
+
+            foreach (var cell in row.Cells)
+            {
+                if (column >= columnCount) break;
+
+                var span = Math.Min(Math.Max(1, cell.GridSpan), columnCount - column);
+                var (min, max) = MeasureBlockWidths(cell.Content);
+
+                // Padding is part of what the column has to accommodate.
+                var padding =
+                    Units.TwipsToPoints(cell.MarginLeftTwips ?? properties.CellMarginLeftTwips) +
+                    Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRightTwips);
+
+                min += padding;
+                max += padding;
+
+                if (span == 1)
+                {
+                    minimums[column] = Math.Max(minimums[column], min);
+                    maximums[column] = Math.Max(maximums[column], max);
+                }
+                else
+                {
+                    // A spanning cell constrains its columns only as a group: it is satisfied as
+                    // long as they add up, so it is spread evenly and only where they fall short.
+                    SpreadAcrossSpan(minimums, column, span, min);
+                    SpreadAcrossSpan(maximums, column, span, max);
+                }
+
+                column += span;
+            }
+        }
+
+        for (var i = 0; i < columnCount; i++)
+            maximums[i] = Math.Max(maximums[i], minimums[i]);
+
+        var totalMax = maximums.Sum();
+
+        // Everything fits: each column is exactly as wide as its content.
+        if (totalMax <= availableWidth) return [.. maximums];
+
+        var totalMin = minimums.Sum();
+
+        // Not even the minimums fit; scale them down together rather than overflow the page.
+        if (totalMin >= availableWidth)
+        {
+            var scale = totalMin > 0 ? availableWidth / totalMin : 0;
+            return [.. minimums.Select(m => m * scale)];
+        }
+
+        // Start from the minimums and share the remainder in proportion to what each column
+        // still wants.
+        var slack = availableWidth - totalMin;
+        var demand = totalMax - totalMin;
+
+        return [.. Enumerable.Range(0, columnCount)
+            .Select(i => minimums[i] + slack * (maximums[i] - minimums[i]) / demand)];
+    }
+
+    private static void SpreadAcrossSpan(double[] widths, int start, int span, double required)
+    {
+        var current = 0.0;
+        for (var i = 0; i < span; i++) current += widths[start + i];
+        if (current >= required) return;
+
+        var extra = (required - current) / span;
+        for (var i = 0; i < span; i++) widths[start + i] += extra;
+    }
+
+    /// <summary>
+    /// Measures how narrow a cell's contents can be squeezed and how wide they would like to be.
+    /// </summary>
+    /// <remarks>
+    /// The minimum is the widest single word, since that is the narrowest a column can be without
+    /// the text overflowing. The maximum is the whole paragraph on one line. Trailing spaces are
+    /// excluded from both — they hang past the edge rather than demanding room.
+    /// </remarks>
+    private (double Min, double Max) MeasureBlockWidths(IReadOnlyList<BlockElement> blocks)
+    {
+        var min = 0.0;
+        var max = 0.0;
+
+        foreach (var block in blocks)
+        {
+            switch (block)
+            {
+                case Paragraph paragraph:
+                {
+                    var format = _styles.ResolveParagraph(paragraph.Properties);
+                    var indent = Math.Max(0, format.IndentLeftPoints) + Math.Max(0, format.IndentRightPoints);
+
+                    var line = 0.0;
+                    var pendingSpace = 0.0;
+
+                    foreach (var atom in BuildAtoms(paragraph, format))
+                    {
+                        switch (atom)
+                        {
+                            case TextAtom { IsSpace: true } space:
+                                // Held back: it only counts if more text follows it.
+                                pendingSpace += space.Width;
+                                break;
+
+                            case TextAtom word:
+                                line += pendingSpace + word.Width;
+                                pendingSpace = 0;
+                                min = Math.Max(min, word.Width + indent);
+                                break;
+
+                            case TabAtom tab:
+                                line += pendingSpace + tab.DefaultIntervalPoints;
+                                pendingSpace = 0;
+                                break;
+
+                            case BreakAtom:
+                                max = Math.Max(max, line + indent);
+                                line = 0;
+                                pendingSpace = 0;
+                                break;
+                        }
+                    }
+
+                    max = Math.Max(max, line + indent);
+                    break;
+                }
+
+                case Table nested:
+                {
+                    // A nested table needs at least the sum of its own columns.
+                    var widths = ComputeAutofitColumnWidths(nested, double.MaxValue / 4);
+                    var total = widths.Sum();
+                    min = Math.Max(min, total);
+                    max = Math.Max(max, total);
+                    break;
+                }
+            }
+        }
+
+        return (min, max);
     }
 
     /// <summary>

@@ -108,8 +108,9 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: tables (fixed layout, grid columns, horizontal spans, borders, shading, cell margins
-and vertical alignment, rows kept whole across page breaks), page size and margins from `sectPr`,
+Implemented: tables (fixed and autofit column sizing, horizontal spans, borders, shading, cell
+margins and vertical alignment, rows kept whole across page breaks), page size and margins from
+`sectPr`,
 paragraphs and runs, `xml:space` handling,
 line and page breaks, tabs (left-aligned stops), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, caps, super/subscript, character spacing and scaling,
@@ -117,8 +118,14 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-Not yet: table autofit (Word's default column sizing — declared grid widths are used instead),
-vertical cell merges beyond suppressing the shared border, splitting a row across pages, images,
+Table autofit is the one piece here that approximates rather than reproduces. Word's algorithm is
+undocumented; ours measures each column's minimum (widest word) and maximum (unwrapped) width and
+shares out the available space between them. It reproduces both behaviours that were measured —
+content-width columns when the table fits, and a table filling the text area exactly when it does
+not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not derived from the real
+algorithm the way the paragraph rules are.
+
+Not yet: vertical cell merges beyond suppressing the shared border, splitting a row across pages, images,
 lists and numbering, headers and footers, fields, hyperlinks, footnotes, floating objects, RTL and
 complex scripts, font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab
 stops.

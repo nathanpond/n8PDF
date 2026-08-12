@@ -24,11 +24,18 @@ public sealed record LineDelta(int Index, TextLine? Ours, TextLine? Theirs)
         string.Equals(Normalize(Ours!.Text), Normalize(Theirs!.Text), StringComparison.Ordinal);
 
     /// <summary>
-    /// Whitespace is normalised before comparison. Producers split runs differently and encode
-    /// spacing in different ways, so exact whitespace is not a meaningful difference.
+    /// Whitespace is removed before comparison, not merely collapsed.
     /// </summary>
-    public static string Normalize(string text) => string.Join(' ',
-        text.Split((char[])[' ', '\t', '\n', '\r', ' '], StringSplitOptions.RemoveEmptyEntries));
+    /// <remarks>
+    /// Producers split runs differently and encode spacing in different ways. Across a table row
+    /// in particular each cell is a separately positioned run, and whether the gap between two of
+    /// them reads as a space depends on sub-point positioning — the same row can reconstruct as
+    /// "A B" from one file and "AB" from another with no difference in what is drawn. Nothing is
+    /// lost by ignoring it: horizontal positions are compared numerically alongside this, and
+    /// missing text still shows up as a difference in the characters themselves.
+    /// </remarks>
+    public static string Normalize(string text) =>
+        new(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
 }
 
 /// <summary>The full comparison of two documents.</summary>

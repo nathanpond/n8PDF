@@ -101,6 +101,39 @@ public static class Fixtures
         </w:styles>
         """;
 
+    /// <summary>
+    /// A borderless, margin-free table left in Word's default autofit mode, with a left-aligned
+    /// content row and a right-aligned marker row so that both edges of every column can be read
+    /// straight off the rendered page.
+    /// </summary>
+    private static string AutofitTable(int[]? grid, string[] cells)
+    {
+        var gridXml = grid is null
+            ? string.Empty
+            : "<w:tblGrid>" + string.Concat(grid.Select(w => $"<w:gridCol w:w=\"{w}\"/>")) + "</w:tblGrid>";
+
+        var left = string.Concat(cells.Select(text =>
+            $"<w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>{text}</w:t></w:r></w:p></w:tc>"));
+
+        var right = string.Concat(cells.Select((_, i) =>
+            $"<w:tc><w:p><w:pPr>{ZeroSpacing}<w:jc w:val=\"right\"/></w:pPr>" +
+            $"<w:r><w:rPr>{Times12}</w:rPr><w:t>e{i}</w:t></w:r></w:p></w:tc>"));
+
+        return $"""
+            <w:tbl>
+              <w:tblPr>
+                <w:tblCellMar>
+                  <w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
+                  <w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/>
+                </w:tblCellMar>
+              </w:tblPr>
+              {gridXml}
+              <w:tr>{left}</w:tr>
+              <w:tr>{right}</w:tr>
+            </w:tbl>
+            """;
+    }
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -406,6 +439,27 @@ public static class Fixtures
                       <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Wide left cell margin</w:t></w:r></w:p></w:tc></w:tr>
                     </w:tbl>
                     """),
+
+            // Measures Word's autofit column sizing. No borders and no cell margins, so cell text
+            // begins exactly at its column's left edge; the second row of each table is
+            // right-aligned so its text ends exactly at the right edge. Between them the two rows
+            // give every column boundary directly.
+            //   page 1  three very different content widths, no grid   -> is sizing content-based?
+            //   page 2  the same content with an equal-width grid      -> is the grid honoured?
+            //   page 3  content too wide to fit                        -> how is the excess shared?
+            ["table-autofit-probe"] = () => new DocxBuilder()
+                .AddRawParagraph(AutofitTable(grid: null,
+                    ["A", "BBBBBBBBBB", "CCCCCCCCCCCCCCCCCCCC"]))
+                .AddParagraph("Reference paragraph.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(AutofitTable(grid: [3120, 3120, 3120],
+                    ["A", "BBBBBBBBBB", "CCCCCCCCCCCCCCCCCCCC"]))
+                .AddParagraph("Reference paragraph.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(AutofitTable(grid: null,
+                [
+                    "Short",
+                    "This cell holds a great deal more text than the others do, far more than can fit on one line at this size.",
+                    "Mid length here"
+                ])),
 
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
