@@ -31,68 +31,35 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     private const double WidthTolerance = 2.5;
 
     /// <summary>
-    /// Vertical tolerance for a baseline. There is a systematic offset of roughly half a point
-    /// against Word on every fixture — the first baseline sits slightly low — so this admits that
-    /// but nothing more.
+    /// Vertical tolerance for a baseline. The worst measured difference across every fixture is
+    /// 0.282pt, which is close to Word's own vertical quantum of 1/300 inch (0.24pt) — so this
+    /// admits roughly one quantum of disagreement and nothing more.
     /// </summary>
     private const double BaselineTolerance = 1.0;
 
     /// <summary>
-    /// Fixtures whose vertical geometry is known to diverge, with the tolerance each currently
+    /// Fixtures whose vertical geometry is allowed to diverge from Word, with the tolerance each
     /// needs and why.
     /// </summary>
     /// <remarks>
-    /// Listed individually rather than folded into one permissive global tolerance. A single
-    /// number large enough to cover the worst case here would be 14pt, which is more than a whole
-    /// line at 12pt — it would let any vertical regression through unnoticed. Each entry is a
-    /// known bug to be driven to zero, and shrinking one of these numbers is the measure of
-    /// progress.
+    /// Currently empty, and worth keeping that way. Every fixture agrees with Word vertically to
+    /// within 0.29pt and horizontally to the last decimal place, so an entry here would record a
+    /// regression rather than a known gap.
+    ///
+    /// Entries were listed individually rather than folded into one permissive global tolerance,
+    /// so that each stayed a specific bug to drive to zero. All have now been retired, each after
+    /// the cause was measured rather than assumed:
+    ///
+    ///   paragraph-spacing, paragraph-spacing-asymmetric — adjacent paragraph spacing collapses
+    ///     to the larger of the two values instead of summing them.
+    ///   line-spacing, line-spacing-multiples, font-sizes — a line-spacing multiple's extra
+    ///     leading goes below the baseline, and the font's line gap belongs above the ascent.
+    ///   space-after-interaction-probe — across a page break the collapse still applies, but the
+    ///     previous paragraph's space-after is absorbed by the page it ended on.
+    ///   styles, heading-spacing-probe — Word fills in what a document's styles leave unstated
+    ///     from its own built-in definitions. See WordBuiltInStyles.
     /// </remarks>
-    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences = new()
-    {
-        // Retired, each after the underlying bug was found and fixed:
-        //   paragraph-spacing (13pt) and paragraph-spacing-asymmetric (25pt) — adjacent paragraph
-        //     spacing collapses to the maximum rather than summing.
-        //   line-spacing (14pt) and line-spacing-multiples (14pt) — a multiple's extra leading
-        //     goes below the baseline, and the line gap sits above the ascent.
-        //   font-sizes (1.3pt) — fixed by the same line-gap change.
-
-        // Everything remaining traces to one cause, and it is not a layout rule of ours.
-        //
-        // Word merges its own built-in style definitions into a document's. Our probe styles
-        // declare Normal with no pPr at all, and Word supplies its template's values for what is
-        // missing — w:line=259 (a 1.079 multiple) and w:after=160 (8pt). Both then apply to every
-        // paragraph that inherits from Normal without saying otherwise.
-        //
-        // The evidence is a clean contrast between two probes measuring the same geometry. A 20pt
-        // paragraph followed by a 12pt one, nothing between them:
-        //     line-box-probe, which declares w:line=240 explicitly -> Word 15.36, ours 15.53
-        //     space-after-interaction-probe, which declares no line -> Word 18.96, ours 15.53
-        // The only difference is whether the paragraph states its own line spacing. Where it does,
-        // we agree with Word; where it does not, Word substitutes its template's value and we use
-        // the document's stated default.
-        //
-        // Replicating this means shipping Word's built-in style table — its template defaults
-        // rather than the document's content — which is a decision about what n8PDF should be,
-        // not a bug to fix quietly. Left as-is deliberately.
-        //
-        // Ruled out along the way, each now covered by a permanent fixture:
-        //   Line box geometry — line-box-probe agrees to 0.28pt across three size pairings.
-        //   Built-in style names — heading-spacing-probe shows "heading 2" behaving like a custom
-        //     style, so Word is not keying off the name.
-        //   Space-before at the top of a page — page-break-spacing-probe agrees to 0.048pt.
-
-        ["styles"] = (6.0,
-            "Body text inheriting Normal, which our styles.xml leaves empty and Word fills in " +
-            "from its template. See above."),
-
-        ["heading-spacing-probe"] = (8.0,
-            "Same cause. Its headings match to 0.05pt; the divergence is in the body paragraphs."),
-
-        ["space-after-interaction-probe"] = (3.6,
-            "Same cause, and the probe that isolated it. Its four headings match to 0.05pt after " +
-            "the page-break collapsing fix; only the body paragraphs still differ.")
-    };
+    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences = [];
 
     public static TheoryData<string> FixtureNames
     {

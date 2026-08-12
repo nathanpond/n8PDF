@@ -19,6 +19,17 @@ public sealed class ConversionOptions
 
     public LayoutOptions Layout { get; set; } = new();
 
+    /// <summary>
+    /// Fill in properties a document's styles leave unstated from Word's built-in style
+    /// definitions, as Word itself does. On by default, because matching Word is the point.
+    /// </summary>
+    /// <remarks>
+    /// Turn this off to render strictly what the document says. The two differ only for documents
+    /// with a sparse <c>styles.xml</c>; anything Word saved states its own values and is
+    /// unaffected either way. See <see cref="Styling.WordBuiltInStyles"/>.
+    /// </remarks>
+    public bool ApplyWordBuiltInStyleDefaults { get; set; } = true;
+
     /// <summary>Title recorded in the PDF's document information dictionary.</summary>
     public string? Title { get; set; }
 
@@ -88,7 +99,7 @@ public static class Converter
         var themePart = package.GetRelatedPartName(mainPartName, OpcPackage.ThemeRelationship);
         var theme = StylesParser.ParseTheme(themePart is null ? null : package.ReadPartAsXml(themePart));
 
-        var resolver = new StyleResolver(styles, theme);
+        var resolver = new StyleResolver(styles, theme, options.ApplyWordBuiltInStyleDefaults);
         var fonts = options.Fonts ?? new FontLibrary();
         var engine = new LayoutEngine(fonts, resolver, options.Layout);
 

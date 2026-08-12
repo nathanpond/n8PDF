@@ -11,7 +11,10 @@ namespace n8PDF.Styling;
 /// general ancestor down, then the character style's chain, then formatting applied directly to
 /// the element. Toggle properties do not simply override — see <see cref="ApplyToggle"/>.
 /// </remarks>
-public sealed class StyleResolver(StyleDefinitions styles, DocumentTheme? theme = null)
+public sealed class StyleResolver(
+    StyleDefinitions styles,
+    DocumentTheme? theme = null,
+    bool applyBuiltInStyleDefaults = true)
 {
     /// <summary>
     /// Word's fallback when no style, default, or direct formatting names a font. Documents in
@@ -24,6 +27,7 @@ public sealed class StyleResolver(StyleDefinitions styles, DocumentTheme? theme 
 
     private readonly StyleDefinitions _styles = styles;
     private readonly DocumentTheme _theme = theme ?? new DocumentTheme();
+    private readonly bool _applyBuiltInStyleDefaults = applyBuiltInStyleDefaults;
 
     public StyleDefinitions Styles => _styles;
 
@@ -33,6 +37,11 @@ public sealed class StyleResolver(StyleDefinitions styles, DocumentTheme? theme 
     public ResolvedParagraphFormat ResolveParagraph(ParagraphProperties? direct)
     {
         var accumulator = new ParagraphAccumulator();
+
+        // 0. Word's built-in defaults, beneath everything the document says. A document that
+        //    declares its Normal style as an empty element still gets Word's spacing for it.
+        if (_applyBuiltInStyleDefaults)
+            accumulator.Apply(WordBuiltInStyles.NormalParagraphProperties);
 
         // 1. Document defaults.
         accumulator.Apply(_styles.DefaultParagraphProperties);

@@ -29,6 +29,84 @@ public class StyleCascadeTests
     }
 
     [Fact]
+    public void Word_built_in_normal_supplies_what_the_document_leaves_unstated()
+    {
+        // A document defining Normal as an empty element still gets Word's spacing for it.
+        // Measured against Word with the builtin-normal-* fixtures, not taken from documentation.
+        var format = Resolver("""
+            <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+            """).ResolveParagraph(null);
+
+        Assert.Equal(WordBuiltInStyles.NormalLine, format.Line);
+        Assert.Equal(Units.TwipsToPoints(WordBuiltInStyles.NormalSpacingAfterTwips), format.SpaceAfterPoints);
+    }
+
+    [Fact]
+    public void Built_in_defaults_sit_below_the_documents_own_defaults()
+    {
+        // This is the part that is easy to get backwards. Word's built-in values are a fallback
+        // for what nothing states, not an override: a document that states line spacing in
+        // docDefaults gets the value it stated. Verified against Word, whose output for such a
+        // document matches the document's docDefaults rather than its own template.
+        var format = Resolver("""
+            <w:docDefaults>
+              <w:pPrDefault><w:pPr><w:spacing w:after="240" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault>
+            </w:docDefaults>
+            <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+            """).ResolveParagraph(null);
+
+        Assert.Equal(259, format.Line);
+        Assert.Equal(12, format.SpaceAfterPoints);
+    }
+
+    [Fact]
+    public void A_style_overrides_the_built_in_defaults()
+    {
+        var format = Resolver("""
+            <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+              <w:name w:val="Normal"/>
+              <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+            </w:style>
+            """).ResolveParagraph(null);
+
+        Assert.Equal(240, format.Line);
+        Assert.Equal(0, format.SpaceAfterPoints);
+    }
+
+    [Fact]
+    public void Spacing_attributes_are_filled_in_independently()
+    {
+        // w:spacing attributes merge one by one, so stating the line leaves space-after open for
+        // Word's value to apply — which is how the two were told apart in the first place.
+        var format = Resolver("""
+            <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+              <w:name w:val="Normal"/>
+              <w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr>
+            </w:style>
+            """).ResolveParagraph(null);
+
+        Assert.Equal(240, format.Line);
+        Assert.Equal(Units.TwipsToPoints(WordBuiltInStyles.NormalSpacingAfterTwips), format.SpaceAfterPoints);
+    }
+
+    [Fact]
+    public void Built_in_defaults_can_be_turned_off()
+    {
+        // Rendering strictly what the document says is a legitimate choice, so it stays reachable.
+        var styles = StylesParser.Parse(XDocument.Parse("""
+            <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+              <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+            </w:styles>
+            """));
+
+        var format = new StyleResolver(styles, theme: null, applyBuiltInStyleDefaults: false)
+            .ResolveParagraph(null);
+
+        Assert.Equal(240, format.Line);
+        Assert.Equal(0, format.SpaceAfterPoints);
+    }
+
+    [Fact]
     public void Falls_back_to_the_spec_defaults_when_the_document_says_nothing()
     {
         var resolver = Resolver(string.Empty);
@@ -203,7 +281,9 @@ public class StyleCascadeTests
     {
         var resolver = Resolver(string.Empty);
 
-        var single = resolver.ResolveParagraph(new ParagraphProperties());
+        // Stated explicitly: with nothing stated the value comes from Word's built-in Normal,
+        // which is covered by its own tests rather than conflated with this one.
+        var single = resolver.ResolveParagraph(new ParagraphProperties { Line = 240, LineRule = LineSpacingRule.Auto });
         Assert.Equal(LineSpacingRule.Auto, single.LineRule);
         Assert.Equal(1.0, single.LineSpacingMultiple);
 

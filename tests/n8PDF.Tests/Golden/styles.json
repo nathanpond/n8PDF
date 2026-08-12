@@ -8,23 +8,23 @@
         {
           "paragraph": 0,
           "baselineY": 102.672,
-          "height": 22.998,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 178.311, "font": "Times New Roman", "size": 20, "bold": true, "text": "Heading from a style"}
           ]
         },
         {
           "paragraph": 1,
-          "baselineY": 124.201,
-          "height": 13.799,
+          "baselineY": 127.843,
+          "height": 15.984,
           "runs": [
             {"x": 72, "width": 208.623, "font": "Times New Roman", "size": 12, "text": "Body text inheriting the document defaults."}
           ]
         },
         {
           "paragraph": 2,
-          "baselineY": 157.469,
-          "height": 22.998,
+          "baselineY": 163.295,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 403.223, "font": "Times New Roman", "size": 20, "text": "Bold style inside a bold heading cancels to regular"}
           ]

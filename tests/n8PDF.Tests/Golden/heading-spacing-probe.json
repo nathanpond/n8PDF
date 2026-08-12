@@ -8,15 +8,15 @@
         {
           "paragraph": 0,
           "baselineY": 102.672,
-          "height": 22.998,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 225.596, "font": "Times New Roman", "size": 20, "bold": true, "text": "Heading one built in name"}
           ]
         },
         {
           "paragraph": 1,
-          "baselineY": 124.201,
-          "height": 13.799,
+          "baselineY": 127.843,
+          "height": 15.984,
           "runs": [
             {"x": 72, "width": 115.295, "font": "Times New Roman", "size": 12, "text": "Body after heading one."}
           ]
@@ -29,16 +29,16 @@
       "lines": [
         {
           "paragraph": 2,
-          "baselineY": 102.672,
-          "height": 22.998,
+          "baselineY": 94.672,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 226.699, "font": "Times New Roman", "size": 20, "bold": true, "text": "Heading two built in name"}
           ]
         },
         {
           "paragraph": 3,
-          "baselineY": 124.201,
-          "height": 13.799,
+          "baselineY": 119.843,
+          "height": 15.984,
           "runs": [
             {"x": 72, "width": 115.969, "font": "Times New Roman", "size": 12, "text": "Body after heading two."}
           ]
@@ -51,16 +51,16 @@
       "lines": [
         {
           "paragraph": 4,
-          "baselineY": 102.672,
-          "height": 22.998,
+          "baselineY": 94.672,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 251.621, "font": "Times New Roman", "size": 20, "bold": true, "text": "Custom style same properties"}
           ]
         },
         {
           "paragraph": 5,
-          "baselineY": 124.201,
-          "height": 13.799,
+          "baselineY": 119.843,
+          "height": 15.984,
           "runs": [
             {"x": 72, "width": 134.971, "font": "Times New Roman", "size": 12, "text": "Body after the custom style."}
           ]
@@ -73,16 +73,16 @@
       "lines": [
         {
           "paragraph": 6,
-          "baselineY": 102.672,
-          "height": 22.998,
+          "baselineY": 94.672,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 220.488, "font": "Times New Roman", "size": 20, "bold": true, "text": "Direct formatting no style"}
           ]
         },
         {
           "paragraph": 7,
-          "baselineY": 124.201,
-          "height": 13.799,
+          "baselineY": 119.843,
+          "height": 15.984,
           "runs": [
             {"x": 72, "width": 155.613, "font": "Times New Roman", "size": 12, "text": "Body after the direct formatting."}
           ]

@@ -22,7 +22,7 @@
         {
           "paragraph": 1,
           "baselineY": 102.672,
-          "height": 22.998,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 152.705, "font": "Times New Roman", "size": 20, "bold": true, "text": "A after zero alone"}
           ]
@@ -36,7 +36,7 @@
         {
           "paragraph": 2,
           "baselineY": 102.672,
-          "height": 22.998,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 169.385, "font": "Times New Roman", "size": 20, "bold": true, "text": "B after twelve alone"}
           ]
@@ -50,14 +50,14 @@
         {
           "paragraph": 3,
           "baselineY": 90.672,
-          "height": 22.998,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 256.055, "font": "Times New Roman", "size": 20, "bold": true, "text": "C after zero then a paragraph"}
           ]
         },
         {
           "paragraph": 4,
-          "baselineY": 106.201,
+          "baselineY": 109.843,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 89.672, "font": "Times New Roman", "size": 12, "text": "Body following C."}
@@ -72,14 +72,14 @@
         {
           "paragraph": 5,
           "baselineY": 102.672,
-          "height": 22.998,
+          "height": 26.639,
           "runs": [
             {"x": 72, "width": 273.838, "font": "Times New Roman", "size": 20, "bold": true, "text": "D after twelve then a paragraph"}
           ]
         },
         {
           "paragraph": 6,
-          "baselineY": 130.201,
+          "baselineY": 133.843,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 90.334, "font": "Times New Roman", "size": 12, "text": "Body following D."}

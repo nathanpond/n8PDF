@@ -168,6 +168,10 @@ if [[ ${#failed[@]} -gt 0 ]]; then
     echo >&2
     echo "If Word showed a dialog, answer it and re-run. Word is sandboxed, so the first export" >&2
     echo "from a new folder usually needs a one-time 'Grant Access' click." >&2
+    echo >&2
+    echo "If every fixture failed with 'Word did not open a document named ...', Word is wedged:" >&2
+    echo "it accepts the open command and silently does nothing. Quit Word and re-run. Dismiss" >&2
+    echo "any dialog it shows on the way out." >&2
     echo "You can also export by hand: open the .docx in Word and save as PDF into" >&2
     echo "  $REFERENCES" >&2
     exit 1

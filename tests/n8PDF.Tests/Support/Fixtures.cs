@@ -82,6 +82,25 @@ public static class Fixtures
         </w:styles>
         """;
 
+    /// <summary>
+    /// Styles for the built-in-Normal probe pair: everything fixed except whether the Normal
+    /// style states its own spacing.
+    /// </summary>
+    private static string BuiltInNormalProbeStyles(string? normalSpacing) => $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:docDefaults>
+            <w:rPrDefault>
+              <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
+            </w:rPrDefault>
+          </w:docDefaults>
+          <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+            <w:name w:val="Normal"/>
+            {(normalSpacing is null ? string.Empty : $"<w:pPr>{normalSpacing}</w:pPr>")}
+          </w:style>
+        </w:styles>
+        """;
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -272,6 +291,43 @@ public static class Fixtures
                 .AddParagraph("D after twelve then a paragraph",
                     "<w:pageBreakBefore/><w:spacing w:before=\"240\" w:after=\"240\"/>", Times(40, bold: true))
                 .AddParagraph("Body following D.", ZeroSpacing, Times12),
+
+            // Tests directly whether Word substitutes its own built-in definition for properties a
+            // document's style leaves unstated. The two fixtures are identical apart from one
+            // thing: whether Normal declares its spacing. Our engine treats "unstated" and
+            // "explicitly zero" the same, so if Word does too the pair will measure identically.
+            // If instead the empty one spreads out, Word is supplying its template's values and
+            // the difference is exactly what it supplies.
+            ["builtin-normal-empty"] = () => new DocxBuilder()
+                .WithStyles(BuiltInNormalProbeStyles(normalSpacing: null))
+                .AddParagraph("First paragraph with nothing stated.")
+                .AddParagraph("Second paragraph with nothing stated.")
+                .AddParagraph("Third paragraph with nothing stated."),
+
+            ["builtin-normal-explicit"] = () => new DocxBuilder()
+                .WithStyles(BuiltInNormalProbeStyles(
+                    normalSpacing: "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>"))
+                .AddParagraph("First paragraph with nothing stated.")
+                .AddParagraph("Second paragraph with nothing stated.")
+                .AddParagraph("Third paragraph with nothing stated."),
+
+            // Separates the two values Word supplies. The attributes of w:spacing are merged
+            // independently, so stating one leaves the other open for Word to fill in.
+            //   line stated, spacing left open -> the gap reveals Word's space-after
+            //   spacing stated, line left open -> the gap reveals Word's line multiple
+            ["builtin-normal-line-only"] = () => new DocxBuilder()
+                .WithStyles(BuiltInNormalProbeStyles(
+                    normalSpacing: "<w:spacing w:line=\"240\" w:lineRule=\"auto\"/>"))
+                .AddParagraph("First paragraph with nothing stated.")
+                .AddParagraph("Second paragraph with nothing stated.")
+                .AddParagraph("Third paragraph with nothing stated."),
+
+            ["builtin-normal-spacing-only"] = () => new DocxBuilder()
+                .WithStyles(BuiltInNormalProbeStyles(
+                    normalSpacing: "<w:spacing w:before=\"0\" w:after=\"0\"/>"))
+                .AddParagraph("First paragraph with nothing stated.")
+                .AddParagraph("Second paragraph with nothing stated.")
+                .AddParagraph("Third paragraph with nothing stated."),
 
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()

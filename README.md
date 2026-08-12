@@ -67,9 +67,10 @@ Three tiers, cheapest and most diagnostic first.
    to have one: a missing reference fails rather than skips, because a skipped comparison is
    indistinguishable from a passing one. Generate them with `tools/make-reference-pdfs.sh`.
 
-   It currently compares pagination and page geometry. Per-run text-position comparison needs a
-   content-stream parser and is the next piece of the harness — until then, green here does not
-   mean the lines are in the same places Word put them.
+   Both PDFs are read through one content-stream parser and compared line by line in points.
+   Across the fixtures, line start positions match Word exactly and every baseline agrees to
+   within 0.29pt — close to Word's own vertical quantum of 1/300 inch. `Fidelity_report` writes
+   the full per-line table to `artifacts/test-output/fidelity-report.txt`.
 
 4. **Structural validation** — `qpdf --check` over every converted fixture, verifying the
    cross-reference table, stream lengths and object graph we hand-rolled. A tolerant viewer will
@@ -83,6 +84,27 @@ agreeing is decent evidence a file is well formed; they are not a substitute for
 glyph *positions* come from the content stream, so all conforming viewers agree on geometry; what
 differs between them is rasterisation, and the one feature of ours genuinely sensitive to that is
 synthetic bold (text render mode 2).
+
+## Matching Word
+
+Several layout rules here were derived by measuring Word's own output rather than from the spec,
+each with a fixture built so that only one candidate model survives:
+
+- Adjacent paragraph spacing **collapses to the larger** of space-after and space-before, it does
+  not sum. Across a page break the collapse still applies, but the previous paragraph's
+  space-after is absorbed by the page it ended on.
+- A line-spacing multiple's **extra leading goes below** the baseline, so the first line of a
+  paragraph sits at its natural ascent whatever the multiple.
+- The font's **line gap belongs above the ascent**, not below the descent.
+- Word **fills in what a document's styles leave unstated** from its own built-in definitions —
+  see `WordBuiltInStyles`. These sit *below* the document's `docDefaults` in precedence: they are
+  a fallback for what nothing states, not an override. Set
+  `ConversionOptions.ApplyWordBuiltInStyleDefaults = false` to render strictly what the document
+  says.
+
+Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented — our
+residuals are already smaller than one quantum — but it is the floor on how closely anything can
+match Word vertically.
 
 ## Current scope
 

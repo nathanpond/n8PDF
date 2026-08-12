@@ -1,0 +1,35 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 15.984,
+          "runs": [
+            {"x": 72, "width": 170.971, "font": "Times New Roman", "size": 12, "text": "First paragraph with nothing stated."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 99.187,
+          "height": 15.984,
+          "runs": [
+            {"x": 72, "width": 184.289, "font": "Times New Roman", "size": 12, "text": "Second paragraph with nothing stated."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 115.17,
+          "height": 15.984,
+          "runs": [
+            {"x": 72, "width": 175.623, "font": "Times New Roman", "size": 12, "text": "Third paragraph with nothing stated."}
+          ]
+        }
+      ]
+    }
+  ]
+}
