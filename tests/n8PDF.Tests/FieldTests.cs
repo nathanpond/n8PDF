@@ -39,6 +39,12 @@ public class FieldTests
         return Converter.LayoutDocument(stream, options ?? Options());
     }
 
+    private static LaidOutDocument LayoutOf(byte[] docx, ConversionOptions? options = null)
+    {
+        using var stream = new MemoryStream(docx);
+        return Converter.LayoutDocument(stream, options ?? Options());
+    }
+
     /// <summary>A paragraph holding one field, written as Word writes them.</summary>
     private static string Field(string instruction, string cached = "")
     {
@@ -344,6 +350,123 @@ public class FieldTests
         var reference = FieldInstruction.Parse(" REF target \\h ");
         Assert.Equal("target", reference.Argument);
         Assert.True(reference.HasSwitch('h'));
+    }
+
+    // ----- STYLEREF -----
+
+    private const string HeadingStyle =
+        "<w:style w:type=\"paragraph\" w:styleId=\"Heading1\">" +
+        "<w:name w:val=\"heading 1\"/><w:pPr>" +
+        "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>" +
+        "</w:pPr></w:style>";
+
+    private static string Heading(string text) =>
+        $"<w:p><w:pPr><w:pStyle w:val=\"Heading1\"/>{ZeroSpacing}</w:pPr>" +
+        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{text}</w:t></w:r></w:p>";
+
+    /// <summary>
+    /// In the body a STYLEREF looks backwards from where it stands, which is the nearest heading
+    /// above it rather than the first or the last in the document.
+    /// </summary>
+    [Fact]
+    public void In_the_body_a_style_reference_looks_backwards()
+    {
+        var builder = new DocxBuilder().WithExtraStyles(HeadingStyle)
+            .AddRawParagraph(Heading("Alpha"))
+            .AddRawParagraph(Field(" STYLEREF \"Heading 1\" "))
+            .AddRawParagraph(Heading("Beta"))
+            .AddRawParagraph(Field(" STYLEREF \"Heading 1\" "));
+
+        var lines = LayoutOf(builder).Pages[0].Lines
+            .Select(l => string.Concat(l.Texts.Select(t => t.Text)).Trim())
+            .ToList();
+
+        Assert.Equal(["Alpha", "Alpha", "Beta", "Beta"], lines);
+    }
+
+    /// <summary>
+    /// A field with nothing of that style above it looks forward instead, which is the one case
+    /// where it shows a heading it comes before.
+    /// </summary>
+    [Fact]
+    public void A_style_reference_with_nothing_above_it_looks_forward()
+    {
+        var builder = new DocxBuilder().WithExtraStyles(HeadingStyle)
+            .AddRawParagraph(Field(" STYLEREF \"Heading 1\" "))
+            .AddRawParagraph(Heading("Alpha"));
+
+        var lines = LayoutOf(builder).Pages[0].Lines
+            .Select(l => string.Concat(l.Texts.Select(t => t.Text)).Trim())
+            .ToList();
+
+        Assert.Equal("Alpha", lines[0]);
+    }
+
+    /// <summary>
+    /// The style is named rather than identified. Word answers a field naming the style's id with
+    /// an error telling the reader to apply the style, so an id is not a name here even where it
+    /// looks like one — and what cannot be worked out keeps its cached result.
+    /// </summary>
+    [Fact]
+    public void A_style_reference_names_a_style_rather_than_identifying_it()
+    {
+        var builder = new DocxBuilder().WithExtraStyles(HeadingStyle)
+            .AddRawParagraph(Heading("Alpha"))
+            .AddRawParagraph(Field(" STYLEREF Heading1 ", "cached"))
+            .AddRawParagraph(Field(" STYLEREF \"No Such Style\" ", "also cached"));
+
+        var lines = LayoutOf(builder).Pages[0].Lines
+            .Select(l => string.Concat(l.Texts.Select(t => t.Text)).Trim())
+            .ToList();
+
+        Assert.Equal(["Alpha", "cached", "also cached"], lines);
+    }
+
+    /// <summary>
+    /// The whole point of the field: a running head that follows the headings down a document. On
+    /// a page holding a heading it shows that heading, and on one holding none it carries on
+    /// showing the last one before it.
+    /// </summary>
+    [Fact]
+    public void A_running_head_follows_the_headings_down_the_document()
+    {
+        var layout = LayoutOf(Fixtures.Build("styleref"), Options());
+
+        static string HeaderOf(LaidOutPage page) =>
+            string.Concat(page.Lines
+                .Where(l => l.Texts.Any(t => t.Text.StartsWith("head")))
+                .SelectMany(l => l.Texts)
+                .Select(t => t.Text));
+
+        Assert.Equal(3, layout.Pages.Count);
+
+        // The first page holds two headings: the head shows the first and \l the last.
+        Assert.Equal("head: Alpha / last: Beta", HeaderOf(layout.Pages[0]));
+
+        Assert.Equal("head: Gamma / last: Gamma", HeaderOf(layout.Pages[1]));
+
+        // The last page holds no heading at all — a line of its own saying nothing else — and
+        // carries the one before it.
+        Assert.DoesNotContain(layout.Pages[2].Lines,
+            l => string.Concat(l.Texts.Select(t => t.Text)).Trim() is "Alpha" or "Beta" or "Gamma");
+
+        Assert.Equal("head: Gamma / last: Gamma", HeaderOf(layout.Pages[2]));
+    }
+
+    /// <summary>
+    /// A footer looks down its page like a header rather than up it, which is not what would be
+    /// guessed: on a page with two headings it shows the first, and takes the last only when asked
+    /// for it.
+    /// </summary>
+    [Fact]
+    public void A_footer_looks_down_its_page_like_a_header()
+    {
+        var footer = LayoutOf(Fixtures.Build("styleref"), Options()).Pages[0].Lines
+            .Where(l => l.Texts.Any(t => t.Text.StartsWith("foot")))
+            .SelectMany(l => l.Texts)
+            .Select(t => t.Text);
+
+        Assert.Equal("foot: Alpha / last: Beta", string.Concat(footer));
     }
 
     /// <summary>

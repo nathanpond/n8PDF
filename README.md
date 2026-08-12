@@ -154,7 +154,8 @@ and footers (per page, with separate first-page and even-page variants, and
 fields evaluated), fields — page numbers (PAGE, NUMPAGES, SECTION,
 SECTIONPAGES, PAGEREF), what a document says about itself (AUTHOR, TITLE, SUBJECT, KEYWORDS,
 COMMENTS, LASTSAVEDBY, CREATEDATE, SAVEDATE, PRINTDATE, DOCPROPERTY, FILENAME), counters (SEQ, with
-its restart, repeat and format switches), references to a bookmark's text (REF), literal text
+its restart, repeat and format switches), references to a bookmark's text (REF), running heads
+(STYLEREF), literal text
 (QUOTE), and the clock (DATE, TIME) — each spelled the way its `\*` switch asks, in arabic, roman,
 letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or Caps, with a
 `\@` picture deciding how a date reads, lists and numbering (decimal, letters, roman and bullets, nested levels with
@@ -209,8 +210,18 @@ honest answer — showing nothing would lose text the document has, and guessing
 it never said. COMPANY and MANAGER are among those: the Word this was measured against does not
 evaluate them either.
 
+A running head is the one field whose answer depends on where the pages fell rather than only on
+what the document says, and Word's rules for it were read off its export of the `styleref` fixture:
+a header shows the first paragraph of the named style on its page, a footer looks *down* its page in
+the same way rather than up it, `\l` asks for the last one on the page instead, and a page holding
+none of that style carries the last one before it — which is what walks a chapter title through the
+pages under it. In the body the field looks backwards to the nearest one above it, and only where
+there is none does it look forward. The style is named rather than identified: Word answers
+`STYLEREF Heading1` with an error telling the reader to apply the style, so an id is not a name
+here even where it looks like one.
+
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, fields that compute over the document
-(TOC, INDEX, IF, formulas, STYLEREF and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
+(TOC, INDEX, IF, formulas and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

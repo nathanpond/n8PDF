@@ -38,6 +38,12 @@ public sealed class FieldEnvironment
     /// which is what makes a run of SEQ fields count.
     /// </summary>
     public Dictionary<string, int> Sequences { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The text of the paragraph a STYLEREF picks up. Answered by whatever is laying the document
+    /// out, since which paragraph that is depends on where the pages fall.
+    /// </summary>
+    public Func<FieldInstruction, string?> StyleReference { get; set; } = _ => null;
 }
 
 /// <summary>
@@ -92,6 +98,7 @@ public static class FieldEvaluator
             "REF" => instruction.Argument is { } named ? environment.TextOfBookmark(named) : null,
 
             "SEQ" => Sequence(instruction, environment),
+            "STYLEREF" => environment.StyleReference(instruction),
 
             "AUTHOR" => properties.Creator,
             "TITLE" => properties.Title,

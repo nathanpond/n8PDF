@@ -28,6 +28,15 @@ public static class Fixtures
 
     private static readonly string Times12 = Times();
 
+    /// <summary>The runs of one field: the instruction, and an empty result for Word to fill in.</summary>
+    private static string StyleRefRuns(string instruction) =>
+        $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"begin\"/></w:r>" +
+        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+        $"<w:instrText xml:space=\"preserve\">{instruction}</w:instrText></w:r>" +
+        $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r>" +
+        $"<w:r><w:rPr>{Times12}</w:rPr><w:t/></w:r>" +
+        $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r>";
+
     /// <summary>Numbered lines of text, for a cell that has to be taller than its neighbour.</summary>
     private static IEnumerable<string> Lines(string label, int count) =>
         Enumerable.Range(1, count).Select(i => $"{label} {i}");
@@ -1275,6 +1284,71 @@ public static class Fixtures
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r>" +
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:t>what Word last computed</w:t></w:r>" +
                     "<w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
+
+                return builder;
+            },
+
+            // What STYLEREF picks up, which is the field a running head is made of. Word's rule
+            // depends on where the field is: a header looks down the page it is on, a footer
+            // looks up it, and the body looks backwards from the field. This puts each of them
+            // over pages that hold two headings, one heading and none at all, so that the three
+            // can be told apart.
+            ["styleref"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithExtraStyles(
+                        "<w:style w:type=\"paragraph\" w:styleId=\"Heading1\">" +
+                        "<w:name w:val=\"heading 1\"/><w:pPr>" +
+                        "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>" +
+                        $"</w:pPr><w:rPr>{Times(24, bold: true)}</w:rPr></w:style>")
+                    .WithHeaderFooter(header: true,
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">head: </w:t></w:r>" +
+                        StyleRefRuns(" STYLEREF \"Heading 1\" ") +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> / last: </w:t></w:r>" +
+                        StyleRefRuns(" STYLEREF \"Heading 1\" \\l ") + "</w:p>")
+                    .WithHeaderFooter(header: false,
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">foot: </w:t></w:r>" +
+                        StyleRefRuns(" STYLEREF \"Heading 1\" ") +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> / last: </w:t></w:r>" +
+                        StyleRefRuns(" STYLEREF \"Heading 1\" \\l ") + "</w:p>");
+
+                void Heading(string text) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr><w:pStyle w:val=\"Heading1\"/>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>{text}</w:t></w:r></w:p>");
+
+                void Body(string label, string instruction) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{label}: </w:t></w:r>" +
+                        StyleRefRuns(instruction) + "</w:p>");
+
+                void Filler(string label, int count)
+                {
+                    for (var i = 1; i <= count; i++)
+                        builder.AddParagraph($"{label} {i}.", ZeroSpacing, Times12);
+                }
+
+                // Before any heading at all, which is the case that can only look forwards.
+                Body("before-any", " STYLEREF \"Heading 1\" ");
+
+                Heading("Alpha");
+                Filler("Under alpha", 8);
+                Body("after-alpha", " STYLEREF \"Heading 1\" ");
+
+                // A second heading on the same page, so that first and last differ there.
+                Heading("Beta");
+                Filler("Under beta", 30);
+
+                // A page with no heading on it at all: the running head has to carry over from
+                // the page before, which is the case a document of any length is mostly made of.
+                Filler("Second page", 46);
+
+                Heading("Gamma");
+                Filler("Under gamma", 8);
+                Body("after-gamma", " STYLEREF \"Heading 1\" ");
 
                 return builder;
             },

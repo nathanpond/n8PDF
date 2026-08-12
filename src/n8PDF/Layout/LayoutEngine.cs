@@ -105,6 +105,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private int _fieldOccurrence;
     private readonly Dictionary<int, LaidOutPage> _fieldPages = [];
 
+    // The paragraphs a STYLEREF can pick up, in the order they were placed: which page each landed
+    // on, the style it was set in, and the text it holds. A running head is made of these.
+    private readonly List<StyledParagraph> _styledParagraphs = [];
+
+    // The same read straight off the document, for the one case the placed ones cannot answer: a
+    // field with no paragraph of that style before it looks forward instead.
+    private List<(string StyleId, string Text)> _documentStyled = [];
+
     /// <summary>What a field needs to know beyond its instruction.</summary>
     public FieldEnvironment Fields { get; set; } = new();
 
@@ -139,6 +147,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _fieldOccurrence = 0;
         _fieldPages.Clear();
         _sectionOrdinal = 1;
+        _styledParagraphs.Clear();
+        _documentStyled = CollectStyledParagraphs(document.Body);
+        Fields.StyleReference = StyleReference;
         Fields.Sequences.Clear();
         NeedsPagination = false;
 
@@ -500,17 +511,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 if (footnotes.Flows.Count > 0) footnotes = PrepareFootnotes(footnoteIds);
             }
 
-            if (firstLine && bookmarks.Count > 0 && _result is not null)
+            if (firstLine && _result is not null)
             {
                 // A detached flow composes onto a scratch page that is not part of the document
                 // yet, so its index is unknown here. Rather than record a destination that would
                 // point at the wrong place, the bookmark is left unrecorded and the link that
-                // wanted it simply does not become clickable.
+                // wanted it simply does not become clickable — and a paragraph composed there is
+                // not one a running head can pick up either.
                 var pageIndex = _result.Pages.IndexOf(cursor.Page);
                 if (pageIndex >= 0)
                 {
                     foreach (var name in bookmarks)
                         _result.Bookmarks[name] = new BookmarkDestination(pageIndex, cursor.Left, cursor.Y);
+
+                    RecordStyledParagraph(ordinal, pageIndex, paragraph);
                 }
 
                 firstLine = false;
@@ -1318,6 +1332,146 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                document.HeadersAndFooters.TryGetValue(fallback, out var defaultPart)
             ? defaultPart
             : null;
+    }
+
+    /// <summary>
+    /// A paragraph a running head can pick up: the page it landed on, the style it was set in, and
+    /// the text it holds.
+    /// </summary>
+    /// <param name="Ordinal">
+    /// Which paragraph of the document it is, so that one moved to another page by a pull-back
+    /// replaces its own earlier record rather than being counted twice.
+    /// </param>
+    private readonly record struct StyledParagraph(int Ordinal, int Page, string StyleId, string Text);
+
+    /// <summary>Notes a paragraph as it is placed, for the STYLEREF fields that look for it.</summary>
+    private void RecordStyledParagraph(int ordinal, int page, Paragraph paragraph)
+    {
+        if (paragraph.Properties?.StyleId is not { Length: > 0 } styleId) return;
+
+        // A line pulled back to the next page brings its paragraph with it, and the page recorded
+        // when it was first placed is no longer where it is.
+        if (_styledParagraphs.Count > 0 && _styledParagraphs[^1].Ordinal == ordinal)
+            _styledParagraphs.RemoveAt(_styledParagraphs.Count - 1);
+
+        _styledParagraphs.Add(new StyledParagraph(ordinal, page, styleId, TextOf(paragraph)));
+    }
+
+    /// <summary>
+    /// Every styled paragraph of the document in the order it is written, which is what answers a
+    /// STYLEREF with nothing of its style before it.
+    /// </summary>
+    private static List<(string StyleId, string Text)> CollectStyledParagraphs(
+        IEnumerable<BlockElement> blocks)
+    {
+        var collected = new List<(string, string)>();
+
+        foreach (var block in blocks)
+        {
+            switch (block)
+            {
+                case Paragraph paragraph when paragraph.Properties?.StyleId is { Length: > 0 } styleId:
+                    collected.Add((styleId, TextOf(paragraph)));
+                    break;
+
+                case Table table:
+                    foreach (var row in table.Rows)
+                    foreach (var cell in row.Cells)
+                        collected.AddRange(CollectStyledParagraphs(cell.Content));
+
+                    break;
+            }
+        }
+
+        return collected;
+    }
+
+    /// <summary>The plain text of a paragraph, which is what a field showing it displays.</summary>
+    private static string TextOf(Paragraph paragraph)
+    {
+        var text = new System.Text.StringBuilder();
+
+        foreach (var run in paragraph.Runs)
+        foreach (var content in run.Content)
+        {
+            switch (content)
+            {
+                case TextInline plain:
+                    text.Append(plain.Text);
+                    break;
+
+                case TabInline:
+                    text.Append('\t');
+                    break;
+            }
+        }
+
+        return text.ToString().Trim();
+    }
+
+    /// <summary>
+    /// The paragraph a STYLEREF picks up, which depends on where the field itself is.
+    /// </summary>
+    /// <remarks>
+    /// Word's rules, read off its export of the styleref fixture:
+    ///
+    ///   - In a header or a footer, the first paragraph of that style on the page — a footer looks
+    ///     down the page like a header rather than up it, which is not what would be guessed. The
+    ///     <c>\l</c> switch is what asks for the last one on the page instead.
+    ///   - On a page holding none of that style, the last one before the page, which is what
+    ///     carries a running head through the pages of a chapter.
+    ///   - In the body, the nearest one before the field; failing that, the first in the document.
+    ///
+    /// The style is named rather than identified: Word answers " STYLEREF Heading1 " with an error
+    /// telling the reader to apply the style, so an id is not a name here even where it looks like
+    /// one.
+    /// </remarks>
+    private string? StyleReference(FieldInstruction instruction)
+    {
+        if (instruction.Argument is not { Length: > 0 } name) return null;
+        if (StyleIdNamed(name) is not { } styleId) return null;
+
+        if (_currentPage > 0)
+        {
+            var page = _currentPage - 1;
+            var onPage = _styledParagraphs.Where(p => p.StyleId == styleId && p.Page == page).ToList();
+
+            if (onPage.Count > 0)
+                return instruction.HasSwitch('l') ? onPage[^1].Text : onPage[0].Text;
+
+            for (var i = _styledParagraphs.Count - 1; i >= 0; i--)
+            {
+                if (_styledParagraphs[i].StyleId == styleId && _styledParagraphs[i].Page < page)
+                    return _styledParagraphs[i].Text;
+            }
+
+            return null;
+        }
+
+        // In the body only what has been placed is behind the field, which is what makes the last
+        // of these the nearest one before it.
+        for (var i = _styledParagraphs.Count - 1; i >= 0; i--)
+        {
+            if (_styledParagraphs[i].StyleId == styleId) return _styledParagraphs[i].Text;
+        }
+
+        foreach (var (candidate, text) in _documentStyled)
+        {
+            if (string.Equals(candidate, styleId, StringComparison.OrdinalIgnoreCase)) return text;
+        }
+
+        return null;
+    }
+
+    /// <summary>The style of the given name, which is how a field asks for one.</summary>
+    private string? StyleIdNamed(string name)
+    {
+        foreach (var (id, style) in _styles.Styles.ById)
+        {
+            if (string.Equals(style.Name, name, StringComparison.OrdinalIgnoreCase)) return id;
+        }
+
+        return null;
     }
 
     /// <summary>
