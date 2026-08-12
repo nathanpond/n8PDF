@@ -1,0 +1,59 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 112.277, "font": "Times New Roman", "size": 12, "text": "Left aligned paragraph."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 106.094,
+          "height": 14.891,
+          "runs": [
+            {"x": 257.358, "width": 97.283, "font": "Times New Roman", "size": 12, "text": "Centered paragraph."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 128.986,
+          "height": 14.891,
+          "runs": [
+            {"x": 421.037, "width": 118.963, "font": "Times New Roman", "size": 12, "text": "Right aligned paragraph."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 151.877,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 468, "font": "Times New Roman", "size": 12, "text": "Justified text stretches to both margins. Justified text stretches to both margins. Justified text"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 166.768,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 468, "font": "Times New Roman", "size": 12, "text": "stretches to both margins. Justified text stretches to both margins. Justified text stretches to both"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 181.659,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 232.629, "font": "Times New Roman", "size": 12, "text": "margins. Justified text stretches to both margins."}
+          ]
+        }
+      ]
+    }
+  ]
+}

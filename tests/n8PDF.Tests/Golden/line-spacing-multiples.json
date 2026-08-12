@@ -1,0 +1,47 @@
+{
+  "pageCount": 3,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 112.641, "font": "Times New Roman", "size": 12, "text": "Single spaced first line."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 1,
+          "baselineY": 83.203,
+          "height": 27.598,
+          "runs": [
+            {"x": 72, "width": 117.299, "font": "Times New Roman", "size": 12, "text": "Double spaced first line."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 83.203,
+          "height": 20.698,
+          "runs": [
+            {"x": 72, "width": 152.273, "font": "Times New Roman", "size": 12, "text": "One and a half spaced first line."}
+          ]
+        }
+      ]
+    }
+  ]
+}

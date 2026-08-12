@@ -1,0 +1,43 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 171.281, "font": "Times New Roman", "size": 12, "text": "First paragraph, twelve points after."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 122.094,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 230.895, "font": "Times New Roman", "size": 12, "text": "Second paragraph, twenty-four before and after."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 160.986,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 184.6, "font": "Times New Roman", "size": 12, "text": "Third paragraph, twelve points before."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 175.877,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 170.285, "font": "Times New Roman", "size": 12, "text": "Fourth paragraph, no spacing at all."}
+          ]
+        }
+      ]
+    }
+  ]
+}

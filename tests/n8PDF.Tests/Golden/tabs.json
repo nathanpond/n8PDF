@@ -1,0 +1,31 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "A"},
+            {"x": 108, "width": 8.004, "font": "Times New Roman", "size": 12, "text": "B"},
+            {"x": 144, "width": 8.004, "font": "Times New Roman", "size": 12, "text": "C"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 106.094,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "A"},
+            {"x": 216, "width": 8.004, "font": "Times New Roman", "size": 12, "text": "B"},
+            {"x": 360, "width": 8.004, "font": "Times New Roman", "size": 12, "text": "C"}
+          ]
+        }
+      ]
+    }
+  ]
+}

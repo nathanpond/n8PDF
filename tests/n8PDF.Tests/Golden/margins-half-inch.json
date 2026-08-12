@@ -1,0 +1,19 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 47.203,
+          "height": 14.891,
+          "runs": [
+            {"x": 36, "width": 157.617, "font": "Times New Roman", "size": 12, "text": "Half-inch margins on every side."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>n8PDF</RootNamespace>
+    </PropertyGroup>
+
+    <!--
+      This project must never gain a PackageReference. n8PDF converts DOCX to PDF entirely from
+      scratch on top of the base class library; a third-party dependency here defeats the point.
+    -->
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="n8PDF.Tests" />
+    </ItemGroup>
+
+</Project>

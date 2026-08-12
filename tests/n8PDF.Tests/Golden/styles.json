@@ -1,0 +1,35 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 102.672,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 178.311, "font": "Times New Roman", "size": 20, "bold": true, "text": "Heading from a style"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.201,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 208.623, "font": "Times New Roman", "size": 12, "text": "Body text inheriting the document defaults."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 157.469,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 403.223, "font": "Times New Roman", "size": 20, "text": "Bold style inside a bold heading cancels to regular"}
+          ]
+        }
+      ]
+    }
+  ]
+}

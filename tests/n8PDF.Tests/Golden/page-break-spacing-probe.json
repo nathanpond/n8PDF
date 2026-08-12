@@ -1,0 +1,61 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 90.672,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 203.857, "font": "Times New Roman", "size": 20, "bold": true, "text": "Control no space before"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 1,
+          "baselineY": 102.672,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 177.754, "font": "Times New Roman", "size": 20, "bold": true, "text": "Twelve points before"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 114.672,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 222.764, "font": "Times New Roman", "size": 20, "bold": true, "text": "Twenty four points before"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 3,
+          "baselineY": 102.672,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 336.641, "font": "Times New Roman", "size": 20, "bold": true, "text": "Twelve before and a twenty point mark"}
+          ]
+        }
+      ]
+    }
+  ]
+}

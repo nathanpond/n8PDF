@@ -1,0 +1,16 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+/.idea/
+
+# Per-user IDE state, not shared settings.
+*.DotSettings.user
+*.user
+
+# Test output written for eyeballing (converted PDFs, diff images). Not assertions.
+/artifacts/
+
+# Word's owner-lock files, left beside any document it has open.
+~$*

@@ -1,0 +1,78 @@
+using System.Xml.Linq;
+
+namespace n8PDF.Ooxml;
+
+/// <summary>XML namespaces used by WordprocessingML documents.</summary>
+public static class W
+{
+    /// <summary>The main WordprocessingML namespace.</summary>
+    public static readonly XNamespace Main =
+        "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+    /// <summary>DrawingML, for images and shapes.</summary>
+    public static readonly XNamespace Drawing =
+        "http://schemas.openxmlformats.org/drawingml/2006/main";
+
+    /// <summary>DrawingML word-processing extensions (inline and anchored drawing wrappers).</summary>
+    public static readonly XNamespace WordDrawing =
+        "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+
+    /// <summary>Relationship references, the source of r:id attributes.</summary>
+    public static readonly XNamespace Relationships =
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    /// <summary>The xml: namespace, needed for xml:space on text elements.</summary>
+    public static readonly XNamespace Xml = XNamespace.Xml;
+
+    /// <summary>Reads a <c>w:val</c> attribute.</summary>
+    public static string? Val(this XElement element) => element.Attribute(Main + "val")?.Value;
+
+    /// <summary>
+    /// Reads a <c>w:val</c> that carries an on/off value. An element with no val attribute means
+    /// "on" — <c>&lt;w:b/&gt;</c> is bold — while "0", "false" and "off" all mean off.
+    /// </summary>
+    public static bool OnOff(this XElement element)
+    {
+        var value = element.Val();
+        if (value is null) return true;
+
+        return value switch
+        {
+            "0" or "false" or "off" => false,
+            _ => true
+        };
+    }
+
+    /// <summary>Reads an integer <c>w:val</c>.</summary>
+    public static int? IntVal(this XElement element) =>
+        int.TryParse(element.Val(), out var value) ? value : null;
+
+    /// <summary>Reads a named attribute in the main namespace.</summary>
+    public static string? Attr(this XElement element, string name) =>
+        element.Attribute(Main + name)?.Value;
+
+    /// <summary>Reads a named attribute as an integer, tolerating the decimals some producers emit.</summary>
+    public static int? IntAttr(this XElement element, string name)
+    {
+        var text = element.Attr(name);
+        if (text is null) return null;
+
+        if (int.TryParse(text, out var value)) return value;
+        return double.TryParse(text, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var real)
+            ? (int)Math.Round(real)
+            : null;
+    }
+
+    /// <summary>Reads a named attribute as an on/off value.</summary>
+    public static bool? BoolAttr(this XElement element, string name)
+    {
+        var text = element.Attr(name);
+        return text switch
+        {
+            null => null,
+            "0" or "false" or "off" => false,
+            _ => true
+        };
+    }
+}

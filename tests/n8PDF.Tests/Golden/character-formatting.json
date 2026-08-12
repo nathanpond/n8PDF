@@ -1,0 +1,25 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 43.986, "font": "Times New Roman", "size": 12, "text": "Regular, "},
+            {"x": 115.986, "width": 28.682, "font": "Times New Roman", "size": 12, "bold": true, "text": "bold, "},
+            {"x": 144.668, "width": 30.662, "font": "Times New Roman", "size": 12, "italic": true, "text": "italic, "},
+            {"x": 175.33, "width": 57.006, "font": "Times New Roman", "size": 12, "bold": true, "italic": true, "syntheticItalic": true, "text": "bold italic, "},
+            {"x": 232.336, "width": 57.316, "font": "Times New Roman", "size": 12, "text": "underlined, "},
+            {"x": 289.652, "width": 75.656, "font": "Times New Roman", "size": 12, "text": "struck through, "},
+            {"x": 365.309, "width": 18.322, "font": "Times New Roman", "size": 12, "color": "CC0000", "text": "red."}
+          ]
+        }
+      ]
+    }
+  ]
+}
