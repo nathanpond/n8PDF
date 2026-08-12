@@ -182,6 +182,13 @@ public sealed class ParagraphProperties
     /// <summary>Suppress widow and orphan control. Word enables the control by default.</summary>
     public bool? WidowControl { get; set; }
 
+    /// <summary>
+    /// The heading level a paragraph stands at, from <c>w:outlineLvl</c>: zero for the topmost,
+    /// eight for the lowest, and absent for body text. It is what a table of contents gathers by,
+    /// and it usually comes from the heading style rather than from the paragraph.
+    /// </summary>
+    public int? OutlineLevel { get; set; }
+
     /// <summary>Numbering definition id referenced by <c>w:numPr/w:numId</c>.</summary>
     public int? NumberingId { get; set; }
 

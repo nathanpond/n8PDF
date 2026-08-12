@@ -227,6 +227,7 @@ public sealed class StyleResolver(
         private bool? _keepLines;
         private bool? _pageBreakBefore;
         private bool? _widowControl;
+        private int? _outlineLevel;
         private List<TabStop>? _tabStops;
 
         public int? NumberingId { get; private set; }
@@ -262,6 +263,7 @@ public sealed class StyleResolver(
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
             if (source.PageBreakBefore is { } pageBreak) _pageBreakBefore = pageBreak;
             if (source.WidowControl is { } widow) _widowControl = widow;
+            if (source.OutlineLevel is { } outline) _outlineLevel = outline;
             if (source.NumberingId is { } numberingId) NumberingId = numberingId;
             if (source.NumberingLevel is { } numberingLevel) NumberingLevel = numberingLevel;
 
@@ -287,6 +289,7 @@ public sealed class StyleResolver(
             KeepLines = _keepLines ?? false,
             PageBreakBefore = _pageBreakBefore ?? false,
             WidowControl = _widowControl ?? true,
+            OutlineLevel = _outlineLevel,
             TabStops = _tabStops ?? [],
             MarkFormat = markFormat
         };

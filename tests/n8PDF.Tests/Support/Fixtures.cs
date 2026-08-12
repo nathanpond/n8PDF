@@ -28,6 +28,24 @@ public static class Fixtures
 
     private static readonly string Times12 = Times();
 
+    /// <summary>
+    /// A style of the given id and name. The properties are written in the order the schema puts
+    /// them in: tabs before spacing, indents after it, and the outline level last of all.
+    /// </summary>
+    private static string Style(
+        string id, string name, string tabs = "", string indent = "", string outline = "",
+        bool bold = false) =>
+        $"<w:style w:type=\"paragraph\" w:styleId=\"{id}\"><w:name w:val=\"{name}\"/>" +
+        $"<w:pPr>{tabs}{ZeroSpacing}{indent}{outline}</w:pPr>" +
+        $"<w:rPr>{Times(24, bold: bold)}</w:rPr></w:style>";
+
+    /// <summary>
+    /// What a table-of-contents style carries: a right tab stop at the far margin with a dotted
+    /// leader running out to it, which is what the page number sits against.
+    /// </summary>
+    private const string TocTab =
+        "<w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9360\"/></w:tabs>";
+
     /// <summary>The runs of one field: the instruction, and an empty result for Word to fill in.</summary>
     private static string StyleRefRuns(string instruction) =>
         $"<w:r><w:rPr>{Times12}</w:rPr><w:fldChar w:fldCharType=\"begin\"/></w:r>" +
@@ -1349,6 +1367,51 @@ public static class Fixtures
                 Heading("Gamma");
                 Filler("Under gamma", 8);
                 Body("after-gamma", " STYLEREF \"Heading 1\" ");
+
+                return builder;
+            },
+
+            // A table of contents: the field that reads the document's own headings back to it,
+            // with the page each is on. The styles are the ones Word writes into a document when
+            // it builds one, so that what it exports is measured against the same definitions
+            // this reads.
+            ["toc"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithExtraStyles(
+                        Style("Heading1", "heading 1", outline: "<w:outlineLvl w:val=\"0\"/>", bold: true) +
+                        Style("Heading2", "heading 2", outline: "<w:outlineLvl w:val=\"1\"/>", bold: true) +
+                        Style("TOC1", "toc 1", tabs: TocTab) +
+                        Style("TOC2", "toc 2", tabs: TocTab, indent: "<w:ind w:left=\"220\"/>"));
+
+                void Heading(int level, string text) =>
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr><w:pStyle w:val=\"Heading{level}\"/>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>{text}</w:t></w:r></w:p>");
+
+                void Filler(string label, int count)
+                {
+                    for (var i = 1; i <= count; i++)
+                        builder.AddParagraph($"{label} {i}.", ZeroSpacing, Times12);
+                }
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    StyleRefRuns(" TOC \\o \"1-2\" \\h \\z \\u ") + "</w:p>");
+
+                Heading(1, "The first chapter");
+                Filler("Under the first chapter", 6);
+                Heading(2, "A section of it");
+                Filler("Under the section", 30);
+
+                Heading(1, "The second chapter");
+                Filler("Under the second chapter", 20);
+                Heading(2, "Another section");
+                Filler("Under another section", 40);
+
+                Heading(1, "The third chapter, whose title is long enough to say something about " +
+                           "how a line of the table of contents that will not fit is broken");
+                Filler("Under the third chapter", 4);
 
                 return builder;
             },

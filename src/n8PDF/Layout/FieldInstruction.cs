@@ -48,6 +48,7 @@ public readonly record struct FieldInstruction(
         var tokens = Tokenize(instruction);
         if (tokens.Count == 0) return None;
 
+        var keyword = tokens[0].Text.ToUpperInvariant();
         var arguments = new List<string>();
         var switches = new List<(char, string?)>();
 
@@ -75,21 +76,36 @@ public readonly record struct FieldInstruction(
             var next = i + 1 < tokens.Count ? tokens[i + 1] : default;
             var takesValue = next.Text is { Length: > 0 } &&
                              (next.Quoted || next.Text[0] != '\\') &&
-                             SwitchTakesValue(letter);
+                             SwitchTakesValue(letter, keyword);
 
             switches.Add((letter, takesValue ? next.Text : null));
             if (takesValue) i++;
         }
 
-        return new FieldInstruction(tokens[0].Text.ToUpperInvariant(), arguments, switches);
+        return new FieldInstruction(keyword, arguments, switches);
     }
 
     /// <summary>
     /// Which switches are followed by a value. The rest are flags, and taking the next token as
     /// their value would swallow an argument that belongs to the field.
     /// </summary>
-    private static bool SwitchTakesValue(char letter) =>
-        letter is '*' or '@' or '#' or 'r' or 'f' or 's' or 'd' or 'l' or 't';
+    /// <remarks>
+    /// The same letter can be either, depending on the field it is written on: a table of contents
+    /// reads <c>\p</c> as the text to put between an entry and its page number, while a file name
+    /// reads it as "the whole path" and takes nothing. There is no rule behind that, only the list
+    /// of what each field means by it.
+    /// </remarks>
+    private static bool SwitchTakesValue(char letter, string keyword) => letter switch
+    {
+        // Formatting and pictures, which mean the same on every field that takes them.
+        '*' or '@' or '#' => true,
+
+        'o' or 'b' or 'a' or 'c' or 'p' or 'l' => keyword == "TOC",
+
+        't' or 'r' or 'f' or 's' or 'd' => true,
+
+        _ => false
+    };
 
     private static List<(string Text, bool Quoted)> Tokenize(string instruction)
     {

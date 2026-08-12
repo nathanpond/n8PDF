@@ -14,12 +14,20 @@ namespace n8PDF.Layout;
 /// <param name="Pages">The page each field landed on, by occurrence, counting from one.</param>
 /// <param name="Sections">The section each page belongs to, counting from one.</param>
 /// <param name="Counts">How many pages each section holds, in section order.</param>
+/// <param name="Headings">
+/// The page each heading landed on, counting from one — what a table of contents needs, and the
+/// reason a document holding one is laid out twice.
+/// </param>
 public sealed record FieldPagination(
     int TotalPages,
     IReadOnlyDictionary<int, int> Pages,
     IReadOnlyList<int> Sections,
-    IReadOnlyList<int> Counts)
+    IReadOnlyList<int> Counts,
+    IReadOnlyDictionary<Ooxml.Paragraph, int> Headings)
 {
+    /// <summary>The page a heading landed on, or zero where it was not recorded.</summary>
+    public int PageOfHeading(Ooxml.Paragraph paragraph) => Headings.GetValueOrDefault(paragraph);
+
     /// <summary>The page a field landed on, or zero where it was not recorded.</summary>
     public int PageOfField(int occurrence) => Pages.GetValueOrDefault(occurrence);
 

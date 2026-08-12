@@ -113,6 +113,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // field with no paragraph of that style before it looks forward instead.
     private List<(string StyleId, string Text)> _documentStyled = [];
 
+    // The page each heading landed on, by the paragraph itself: a table of contents cannot say
+    // which page a heading is on until the document has been laid out once, so this is filled as
+    // the headings are placed and read back on the pass after. Keyed by the paragraph rather than
+    // by its position, since both passes lay out the same document.
+    private readonly Dictionary<Paragraph, LaidOutPage> _headingPages = [];
+
+    // The body being laid out, which a table of contents reads to find the headings. It is the
+    // document rather than the section, since a table gathers the whole of it.
+    private IReadOnlyList<BlockElement> _body = [];
+
     /// <summary>What a field needs to know beyond its instruction.</summary>
     public FieldEnvironment Fields { get; set; } = new();
 
@@ -148,6 +158,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _fieldPages.Clear();
         _sectionOrdinal = 1;
         _styledParagraphs.Clear();
+        _headingPages.Clear();
+        _body = document.Body;
         _documentStyled = CollectStyledParagraphs(document.Body);
         Fields.StyleReference = StyleReference;
         Fields.Sequences.Clear();
@@ -397,6 +409,31 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             switch (blocks[index])
             {
+                // A table of contents is not content the document wrote but a field's answer to
+                // it, so it is worked out again rather than laid out — and what it produced last
+                // time, which is the paragraphs that follow, is passed over.
+                case Paragraph opening when TableOfContents(cursor, opening) is { } entries:
+                {
+                    LayoutBlocks(cursor, entries);
+
+                    // What the field produced last time follows it in the body, and is passed
+                    // over: these entries stand for it now.
+                    var last = opening;
+                    while (index + 1 < blocks.Count &&
+                           blocks[index + 1] is Paragraph { InsideField: true } inside)
+                    {
+                        last = inside;
+                        index++;
+                    }
+
+                    // The paragraph the field closes in outlives it, empty. Word's own export
+                    // shows the mark of it on a line of its own below the entries, set in the
+                    // document's default rather than in a table-of-contents style.
+                    LayoutBlocks(cursor, [new Paragraph { Properties = last.Properties }]);
+
+                    break;
+                }
+
                 case Paragraph paragraph:
                     LayoutParagraph(cursor, paragraph, blocks, index);
                     break;
@@ -525,6 +562,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         _result.Bookmarks[name] = new BookmarkDestination(pageIndex, cursor.Left, cursor.Y);
 
                     RecordStyledParagraph(ordinal, pageIndex, paragraph);
+
+                    // A heading is where a table of contents points, so where it landed is worth
+                    // knowing whether or not the document has a table in it yet.
+                    if (format.OutlineLevel is not null) _headingPages[paragraph] = cursor.Page;
                 }
 
                 firstLine = false;
@@ -1335,6 +1376,86 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// The paragraphs standing for a table of contents, where this paragraph opens one and its
+    /// entries can be worked out. Null for anything else, which is then laid out as it stands.
+    /// </summary>
+    /// <remarks>
+    /// The entries are worked out from the document rather than read from what the field last
+    /// produced: a table of contents is the one field whose answer is a run of paragraphs, and a
+    /// stale one is as wrong as a stale page number. What it produced last time follows it in the
+    /// body and is passed over.
+    ///
+    /// A heading's page is only known once the document has been laid out, so on a first pass the
+    /// entries are built without their numbers — the same entries, over the same lines, so that
+    /// the pass which fills the numbers in paginates the same way.
+    /// </remarks>
+    private List<BlockElement>? TableOfContents(Cursor cursor, Paragraph paragraph)
+    {
+        // The field may run past this paragraph, holding its first entry, or it may be closed and
+        // empty — a table of contents that has never been built is written the second way, and one
+        // Word has built the first.
+        if (TableOfContentsField(paragraph) is not { } field) return null;
+
+        var instruction = FieldInstruction.Parse(field.Instruction);
+
+        var scope = TableOfContentsBuilder.ScopeOf(instruction);
+        var numbered = TableOfContentsBuilder.ShowsPageNumbers(instruction);
+
+        // The far margin, which is where a table of contents that has no style to say puts the
+        // stop its page numbers hang from.
+        var tabPosition = (int)Math.Round(Units.PointsToTwips(cursor.Width));
+
+        var entries = new List<BlockElement>();
+
+        foreach (var block in _body)
+        {
+            if (block is not Paragraph heading || heading.InsideField) continue;
+
+            var format = _styles.ResolveParagraph(heading.Properties);
+            if (scope.LevelOf(format.OutlineLevel, format.StyleId) is not { } level) continue;
+
+            var text = TextOf(heading);
+            if (text.Length == 0) continue;
+
+            var page = Pagination?.PageOfHeading(heading) ?? 0;
+            var styleId = $"TOC{level}";
+
+            entries.Add(TableOfContentsBuilder.Build(
+                new TableOfContentsBuilder.Entry(level, text, page),
+                numbered, _styles.Styles.ById.ContainsKey(styleId), tabPosition));
+        }
+
+        // Nothing to say: the document has no headings the field asks for, and what it last
+        // produced is left to stand rather than replaced with an empty space.
+        if (entries.Count == 0) return null;
+
+        // The numbers come from the pass before this one, so a document with a table of contents
+        // is one that has to be laid out twice.
+        if (numbered && Pagination is null) NeedsPagination = true;
+
+        return entries;
+    }
+
+    /// <summary>The TOC field a paragraph holds, if it holds one.</summary>
+    private static FieldInline? TableOfContentsField(Paragraph paragraph)
+    {
+        if (paragraph.OpensField is { } opened)
+            return FieldInstruction.Parse(opened.Instruction).Keyword == "TOC" ? opened : null;
+
+        foreach (var run in paragraph.Runs)
+        foreach (var content in run.Content)
+        {
+            if (content is FieldInline field &&
+                FieldInstruction.Parse(field.Instruction).Keyword == "TOC")
+            {
+                return field;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// A paragraph a running head can pick up: the page it landed on, the style it was set in, and
     /// the text it holds.
     /// </summary>
@@ -1563,7 +1684,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             sections.Add(counts.Count);
         }
 
-        return new FieldPagination(result.Pages.Count, pages, sections, counts);
+        var headings = new Dictionary<Paragraph, int>();
+
+        foreach (var (paragraph, page) in _headingPages)
+        {
+            var index = result.Pages.IndexOf(page);
+            if (index >= 0) headings[paragraph] = index + 1;
+        }
+
+        return new FieldPagination(result.Pages.Count, pages, sections, counts, headings);
     }
 
     // ----- tables -----
@@ -2663,7 +2792,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 x = ClosePendingTab(line, ref pending, x, tabs);
                 if (x >= available - 0.001) beyondMargin = true;
 
-                var (next, alignment, leader) = NextTabStop(x, tab.Stops, tab.DefaultIntervalPoints);
+                // Tab stops are measured from the margin rather than from the paragraph's own
+                // indent — an indented paragraph's stops stay where the unindented ones are, which
+                // is what lines the page numbers of a table of contents up however deep the entry
+                // is. The line works in its own coordinates, so the two are converted between.
+                var (stop, alignment, leader) =
+                    NextTabStop(x + line.IndentLeft, tab.Stops, tab.DefaultIntervalPoints);
+
+                var next = stop - line.IndentLeft;
 
                 if (alignment == TabAlignment.Left)
                 {
@@ -3311,13 +3447,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 break;
 
             default:
-                // Tab stops are measured from the line's own left edge, and a hanging indent puts
-                // that edge left of the paragraph's indent by exactly the hanging amount — so the
-                // indent sits at that distance along the first line.
-                var toIndent = Math.Max(0, -format.IndentFirstLinePoints);
+                // A hanging indent starts the first line left of the paragraph's own indent, and
+                // the label's tab is what carries the text out to it. Stops are measured from the
+                // margin, so that is where the paragraph's indent stands.
+                var hanging = format.IndentFirstLinePoints < 0;
 
                 var stops = new List<TabStop>(format.TabStops);
-                if (toIndent > 0) stops.Add(new TabStop(Units.PointsToTwips(toIndent), TabAlignment.Left, TabLeader.None));
+                if (hanging)
+                {
+                    stops.Add(new TabStop(
+                        Units.PointsToTwips(format.IndentLeftPoints), TabAlignment.Left, TabLeader.None));
+                }
 
                 atoms.Add(new TabAtom
                 {

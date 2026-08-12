@@ -264,9 +264,46 @@ public sealed class Paragraph : BlockElement
     /// </summary>
     public SectionProperties? SectionBreak { get; set; }
 
+    /// <summary>
+    /// The field this paragraph opens and does not close, if it opens one. A table of contents is
+    /// written that way: the field begins in the paragraph holding its first entry and ends in the
+    /// one holding its last.
+    /// </summary>
+    public FieldInline? OpensField { get; set; }
+
+    /// <summary>
+    /// True where this paragraph is part of what a field begun in an earlier paragraph produced,
+    /// rather than content the document wrote itself. A field that can be worked out again
+    /// replaces all of them.
+    /// </summary>
+    public bool InsideField { get; set; }
+
     public string GetText() => string.Concat(Runs.Select(r => r.GetText()));
 
     public override string ToString() => GetText();
+}
+
+/// <summary>
+/// How far into a field the reader is, carried from one paragraph to the next.
+/// </summary>
+/// <remarks>
+/// Fields are a sequence of markers rather than a container, and nothing says a field has to end
+/// in the paragraph it began in. Reading each paragraph on its own would lose the ones that do
+/// not — the first entry of a table of contents lives in the same paragraph as the instruction
+/// that produced it.
+/// </remarks>
+public sealed class FieldScope
+{
+    private int _depth;
+
+    public bool IsOpen => _depth > 0;
+
+    public void Open() => _depth++;
+
+    public void Close()
+    {
+        if (_depth > 0) _depth--;
+    }
 }
 
 /// <summary>One edge of a border, as declared by <c>w:top</c>, <c>w:insideV</c> and friends.</summary>

@@ -14,10 +14,13 @@ public static class DocumentParser
         var body = xml.Root?.Element(W.Main + "body");
         if (body is null) return document;
 
+        // Fields run from paragraph to paragraph, so what is open carries down the body.
+        var scope = new FieldScope();
+
         foreach (var element in body.Elements())
         {
             if (element.Name == W.Main + "p")
-                document.Body.Add(ParseParagraph(element));
+                document.Body.Add(ParseParagraph(element, scope));
             else if (element.Name == W.Main + "tbl")
                 document.Body.Add(ParseTable(element));
             else if (element.Name == W.Main + "sectPr")
@@ -27,7 +30,7 @@ public static class DocumentParser
         return document;
     }
 
-    public static Paragraph ParseParagraph(XElement element)
+    public static Paragraph ParseParagraph(XElement element, FieldScope? scope = null)
     {
         var paragraph = new Paragraph();
 
@@ -40,7 +43,7 @@ public static class DocumentParser
             if (sectPr is not null) paragraph.SectionBreak = ParseSection(sectPr);
         }
 
-        CollectParagraphContent(element, paragraph);
+        CollectParagraphContent(element, paragraph, scope);
         return paragraph;
     }
 
@@ -52,15 +55,22 @@ public static class DocumentParser
     /// instruction, a "separate", the runs Word last rendered, then "end". Reading them as
     /// ordinary runs would show the cached value but lose the instruction, so the field could
     /// never be recomputed — which is exactly what a page number needs.
+    ///
+    /// Fields nest, and they do not have to end in the paragraph they begin in. A table of
+    /// contents is both at once: it runs from the first of its entries to the last, and each of
+    /// those entries holds a page reference of its own. One that runs past the end of its
+    /// paragraph keeps the runs it has collected as ordinary content — that is the result Word
+    /// last computed, and it is what a reader sees where nothing here can work the field out —
+    /// and the paragraphs that carry on with it are marked as belonging to it.
     /// </remarks>
-    private static void CollectParagraphContent(XElement element, Paragraph paragraph)
+    private static void CollectParagraphContent(XElement element, Paragraph paragraph, FieldScope? scope)
     {
-        var instruction = new System.Text.StringBuilder();
-        var result = new System.Text.StringBuilder();
+        // Fields begun in this paragraph and not yet ended, innermost last.
+        var open = new Stack<FieldBuilder>();
 
-        // 0 outside a field, 1 collecting the instruction, 2 collecting the cached result.
-        var state = 0;
-        RunProperties? fieldProperties = null;
+        // A field begun in an earlier paragraph is still open here, which makes this paragraph
+        // part of what it produced rather than content of its own.
+        if (scope is { IsOpen: true }) paragraph.InsideField = true;
 
         foreach (var child in element.Elements())
         {
@@ -71,48 +81,86 @@ public static class DocumentParser
             switch (fieldChar)
             {
                 case "begin":
-                    state = 1;
-                    instruction.Clear();
-                    result.Clear();
-                    fieldProperties = child.Element(W.Main + "rPr") is { } begin
-                        ? ParseRunProperties(begin)
-                        : null;
+                    open.Push(new FieldBuilder
+                    {
+                        Properties = child.Element(W.Main + "rPr") is { } begin
+                            ? ParseRunProperties(begin)
+                            : null
+                    });
                     continue;
 
                 case "separate":
-                    state = 2;
+                    if (open.Count > 0) open.Peek().InResult = true;
                     continue;
 
                 case "end":
-                {
-                    var run = new Run();
-                    if (fieldProperties is not null) run.Properties = fieldProperties;
-                    run.Content.Add(new FieldInline(instruction.ToString(), result.ToString()));
-                    paragraph.Runs.Add(run);
+                    if (open.Count > 0) Close(open, paragraph);
+                    else scope?.Close();
 
-                    state = 0;
                     continue;
-                }
             }
 
-            if (state == 1)
+            if (open.Count > 0 && !open.Peek().InResult)
             {
-                instruction.Append(string.Concat(child.Descendants(W.Main + "instrText").Select(t => t.Value)));
+                open.Peek().Instruction.Append(
+                    string.Concat(child.Descendants(W.Main + "instrText").Select(t => t.Value)));
+
                 continue;
             }
 
-            if (state == 2)
-            {
-                // The result's own formatting is taken from the first run that carries any.
-                if (fieldProperties is null && child.Element(W.Main + "rPr") is { } resultProperties)
-                    fieldProperties = ParseRunProperties(resultProperties);
-
-                result.Append(string.Concat(child.Descendants(W.Main + "t").Select(t => t.Value)));
-                continue;
-            }
-
-            CollectRuns(child, paragraph);
+            CollectRuns(child, open.Count > 0 ? open.Peek().Result : paragraph.Runs);
         }
+
+        // What is still open runs on past this paragraph. Its instruction is known, so it is
+        // recorded where it began, and what it has gathered so far follows as ordinary runs.
+        foreach (var unclosed in open.Reverse())
+        {
+            var run = new Run();
+            if (unclosed.Properties is not null) run.Properties = unclosed.Properties;
+
+            var field = new FieldInline(unclosed.Instruction.ToString(), string.Empty);
+            run.Content.Add(field);
+
+            paragraph.Runs.Add(run);
+            paragraph.Runs.AddRange(unclosed.Result);
+
+            paragraph.OpensField ??= field;
+            scope?.Open();
+        }
+    }
+
+    /// <summary>
+    /// Ends the innermost open field, folding it into a single run of the context around it —
+    /// which is the paragraph, or the field that field is nested inside.
+    /// </summary>
+    private static void Close(Stack<FieldBuilder> open, Paragraph paragraph)
+    {
+        var finished = open.Pop();
+
+        var run = new Run();
+        var properties = finished.Properties ??
+                         finished.Result.FirstOrDefault(r => r.Properties is not null)?.Properties;
+
+        if (properties is not null) run.Properties = properties;
+
+        run.Content.Add(new FieldInline(
+            finished.Instruction.ToString(),
+            string.Concat(finished.Result.Select(r => r.GetText()))));
+
+        (open.Count > 0 ? open.Peek().Result : paragraph.Runs).Add(run);
+    }
+
+    /// <summary>A field being read: its instruction, and the runs of the result after it.</summary>
+    private sealed class FieldBuilder
+    {
+        public System.Text.StringBuilder Instruction { get; } = new();
+
+        public List<Run> Result { get; } = [];
+
+        public RunProperties? Properties { get; init; }
+
+        /// <summary>True once the "separate" has been passed and the result has begun.</summary>
+        public bool InResult { get; set; }
     }
 
     /// <summary>
@@ -120,11 +168,11 @@ public static class DocumentParser
     /// runs rather than replacing them, so their contents are pulled up rather than skipped —
     /// otherwise the text inside a tracked insertion would silently vanish.
     /// </summary>
-    private static void CollectRuns(XElement element, Paragraph paragraph)
+    private static void CollectRuns(XElement element, List<Run> runs)
     {
         if (element.Name == W.Main + "r")
         {
-            paragraph.Runs.Add(ParseRun(element));
+            runs.Add(ParseRun(element));
             return;
         }
 
@@ -140,7 +188,7 @@ public static class DocumentParser
             if (firstRun?.Element(W.Main + "rPr") is { } rPr) run.Properties = ParseRunProperties(rPr);
 
             run.Content.Add(new FieldInline(instruction, cached));
-            paragraph.Runs.Add(run);
+            runs.Add(run);
             return;
         }
 
@@ -155,7 +203,7 @@ public static class DocumentParser
             {
                 var marker = new Run();
                 marker.Content.Add(new BookmarkInline(name, element.IntAttr("id") ?? 0));
-                paragraph.Runs.Add(marker);
+                runs.Add(marker);
             }
 
             return;
@@ -167,7 +215,7 @@ public static class DocumentParser
         {
             var marker = new Run();
             marker.Content.Add(new BookmarkEndInline(element.IntAttr("id") ?? 0));
-            paragraph.Runs.Add(marker);
+            runs.Add(marker);
             return;
         }
 
@@ -178,13 +226,13 @@ public static class DocumentParser
                 element.Attribute(W.Relationships + "id")?.Value,
                 element.Attr("anchor"));
 
-            var first = paragraph.Runs.Count;
+            var first = runs.Count;
             foreach (var child in element.Elements())
-                CollectRuns(child, paragraph);
+                CollectRuns(child, runs);
 
             // Everything the element contained belongs to the link.
-            for (var i = first; i < paragraph.Runs.Count; i++)
-                paragraph.Runs[i].Hyperlink = target;
+            for (var i = first; i < runs.Count; i++)
+                runs[i].Hyperlink = target;
 
             return;
         }
@@ -194,7 +242,7 @@ public static class DocumentParser
             element.Name == W.Main + "sdtContent")
         {
             foreach (var child in element.Elements())
-                CollectRuns(child, paragraph);
+                CollectRuns(child, runs);
             return;
         }
 
@@ -205,7 +253,7 @@ public static class DocumentParser
             if (content is not null)
             {
                 foreach (var child in content.Elements())
-                    CollectRuns(child, paragraph);
+                    CollectRuns(child, runs);
             }
         }
 
@@ -547,6 +595,9 @@ public static class DocumentParser
                     break;
                 case "widowControl":
                     properties.WidowControl = element.OnOff();
+                    break;
+                case "outlineLvl":
+                    properties.OutlineLevel = element.IntVal();
                     break;
                 case "numPr":
                     properties.NumberingId = element.Element(W.Main + "numId")?.IntVal();

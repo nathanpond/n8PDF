@@ -220,8 +220,25 @@ there is none does it look forward. The style is named rather than identified: W
 `STYLEREF Heading1` with an error telling the reader to apply the style, so an id is not a name
 here even where it looks like one.
 
+A table of contents is the one field whose answer is a run of paragraphs rather than a few words,
+and it is worked out again rather than read back: a stale table is as wrong as a stale page number,
+and a document that has never had one built has nothing to read back at all. The headings are
+gathered by the outline level their style stands at — `\o "1-3"` says which levels, `\t
+"Style,Level"` names styles outright, `\n` leaves the page numbers off — and each entry is set in
+the `TOCn` style named for its level, with a tab out to that style's right stop and the page the
+heading landed on. A document defining no such styles gets an indent and a dotted leader of its own
+so that the numbers still line up.
+
+Two details of Word's own come from measuring its export of the `toc` fixture rather than from
+reasoning. Tab stops are measured from the margin and not from the paragraph's indent, so the page
+numbers of a second-level entry line up with a first-level one's rather than sitting eleven points
+further out — which was wrong here until this fixture showed it. And the paragraph the field closes
+in outlives it, empty: Word leaves the mark of it on a line of its own below the entries, set in the
+document's default rather than in a table-of-contents style, which is the extra line between a table
+of contents and the first heading under it.
+
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, fields that compute over the document
-(TOC, INDEX, IF, formulas and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
+(INDEX, IF, formulas and mail merge, whose cached results are shown), splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

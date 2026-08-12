@@ -127,6 +127,12 @@ public sealed record ResolvedParagraphFormat
 
     public bool WidowControl { get; init; } = true;
 
+    /// <summary>
+    /// The heading level this paragraph stands at, or null for body text. A table of contents
+    /// gathers the paragraphs that have one.
+    /// </summary>
+    public int? OutlineLevel { get; init; }
+
     public IReadOnlyList<TabStop> TabStops { get; init; } = [];
 
     /// <summary>The list this paragraph belongs to, or null when it is not a list item.</summary>
