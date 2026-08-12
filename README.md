@@ -31,7 +31,7 @@ src/n8PDF/
   Converter.cs   public API
 tests/n8PDF.Tests/
   Fixtures/Minimal/     hand-authored .docx, one feature each (generated, committed)
-  Fixtures/Real/        real Word documents — drop yours here
+  Fixtures/Real/        documents Word itself wrote (tools/make-real-fixtures.sh)
   Fixtures/Reference/   Word-exported reference PDFs — drop yours here
   Golden/               committed layout traces
 ```
@@ -132,3 +132,15 @@ stops.
 
 `ContentCoverageTests` asserts that every text run in a document reaches the PDF, so an
 unimplemented block construct fails loudly instead of vanishing from the output.
+
+### Real documents
+
+`Fixtures/Real/` holds documents Word wrote. `tools/make-real-fixtures.sh` takes the seed
+documents defined in `Fixtures.RealSeeds`, opens each in Word and saves it straight back out,
+which rewrites the package in Word's own terms — a `styles.xml` carrying several hundred latent
+styles, `settings.xml`, its theme, `docProps`. None of that can be produced by hand, and it is
+what these fixtures exist to test. They go through the same per-line comparison as everything
+else.
+
+`tools/make-real-fixtures.sh` --list shows what would be generated. Add to `RealSeeds` to cover
+more; third-party templates are best avoided, since their licence terms would come with them.

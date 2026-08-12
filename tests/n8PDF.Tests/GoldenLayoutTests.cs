@@ -69,6 +69,18 @@ public class GoldenLayoutTests
     }
 
     [Fact]
+    public void Real_fixture_seeds_are_written_for_word_to_round_trip()
+    {
+        // Written to the artifacts directory rather than into the repository: these are input to
+        // tools/make-real-fixtures.sh, and what gets committed is Word's version of them.
+        var directory = Path.Combine(TestPaths.Artifacts, "real-seeds");
+        var written = Fixtures.MaterializeRealSeeds(directory);
+
+        Assert.Equal(Fixtures.RealSeeds.Count, written.Count);
+        Assert.All(written, path => Assert.True(new FileInfo(path).Length > 0));
+    }
+
+    [Fact]
     public void Every_fixture_has_a_committed_golden()
     {
         // A fixture with no golden silently tests nothing, since Verify writes one on first run.

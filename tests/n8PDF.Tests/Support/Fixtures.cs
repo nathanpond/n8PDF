@@ -490,8 +490,111 @@ public static class Fixtures
                     """)
         };
 
+    /// <summary>
+    /// Source documents for the real-Word fixtures.
+    /// </summary>
+    /// <remarks>
+    /// These are not fixtures themselves. They are opened in Word and saved back out by it, and
+    /// the result is what lands in Fixtures/Real — a package Word wrote, carrying its full
+    /// styles.xml with every latent style, its settings.xml with the compatibility flags, its own
+    /// theme and docProps. None of that can be produced by hand, and it is the whole reason for
+    /// having real documents: what is being tested is Word's markup, not the content.
+    ///
+    /// The content deliberately sticks to constructs that are implemented, so that a failure
+    /// means Word's markup broke something rather than simply naming a feature that does not
+    /// exist yet. See tools/make-real-fixtures.sh.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, Func<DocxBuilder>> RealSeeds { get; } =
+        new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
+        {
+            ["report"] = () => new DocxBuilder()
+                .AddParagraph("Quarterly Operations Review",
+                    "<w:spacing w:after=\"240\"/><w:jc w:val=\"center\"/>", Times(40, bold: true))
+                .AddParagraph("Summary", "<w:spacing w:before=\"240\" w:after=\"120\"/>", Times(28, bold: true))
+                .AddParagraph(
+                    "Throughput improved across every region this quarter, with the northern "
+                    + "territories accounting for the larger share of the gain. The figures below "
+                    + "are drawn from the regional ledgers and have not been adjusted for seasonal "
+                    + "variation, which typically flatters the second half of the year.",
+                    "<w:spacing w:after=\"120\"/><w:jc w:val=\"both\"/>", Times12)
+                .AddParagraph("Regional detail", "<w:spacing w:before=\"240\" w:after=\"120\"/>", Times(28, bold: true))
+                .AddRawParagraph($"""
+                    <w:tbl>
+                      <w:tblPr>
+                        <w:tblW w:w="0" w:type="auto"/>
+                        <w:tblBorders>
+                          <w:top w:val="single" w:sz="4" w:color="auto"/>
+                          <w:left w:val="single" w:sz="4" w:color="auto"/>
+                          <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                          <w:right w:val="single" w:sz="4" w:color="auto"/>
+                          <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                          <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                        </w:tblBorders>
+                      </w:tblPr>
+                      <w:tr>
+                        <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Change</w:t></w:r></w:p></w:tc>
+                      </w:tr>
+                      <w:tr>
+                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Northern territories</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>12,480</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>+18%</w:t></w:r></w:p></w:tc>
+                      </w:tr>
+                      <w:tr>
+                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Southern territories</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>9,240</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>+4%</w:t></w:r></w:p></w:tc>
+                      </w:tr>
+                    </w:tbl>
+                    """)
+                .AddParagraph("Notes", "<w:pageBreakBefore/><w:spacing w:after=\"120\"/>", Times(28, bold: true))
+                .AddParagraphWithRuns([
+                    ("Figures are ", Times12),
+                    ("provisional", Times(24, italic: true)),
+                    (" and subject to revision. Contact the ", Times12),
+                    ("operations desk", Times(24, bold: true)),
+                    (" with corrections.", Times12)
+                ], "<w:spacing w:after=\"120\"/>")
+                .AddParagraph("Adjustments applied after the ledger close are listed separately.",
+                    "<w:ind w:left=\"720\" w:hanging=\"360\"/>", Times12),
+
+            ["memo"] = () => new DocxBuilder()
+                .WithPage(left: 1080, right: 1080, top: 1080, bottom: 1080)
+                .AddParagraph("Internal memorandum", "<w:spacing w:after=\"240\"/>", Times(32, bold: true))
+                .AddParagraphWithRuns([("To: ", Times(24, bold: true)), ("All staff", Times12)])
+                .AddParagraphWithRuns([("Date: ", Times(24, bold: true)), ("12 August 2026", Times12)])
+                .AddParagraphWithRuns([("Subject: ", Times(24, bold: true)), ("Office closure", Times12)],
+                    "<w:spacing w:after=\"240\"/>")
+                .AddParagraph(
+                    "The building will be closed for maintenance on the last Friday of the month. "
+                    + "Staff who need access on that day should arrange it in advance; the usual "
+                    + "entry cards will not work while the work is under way.",
+                    "<w:jc w:val=\"both\"/>", Times12)
+                .AddParagraph("Thank you for your patience.",
+                    "<w:spacing w:before=\"240\"/><w:jc w:val=\"right\"/>", Times(24, italic: true))
+        };
+
     /// <summary>Builds a fixture's bytes by name.</summary>
     public static byte[] Build(string name) => All[name]().Build();
+
+    /// <summary>
+    /// Writes the seed documents that <c>tools/make-real-fixtures.sh</c> feeds through Word.
+    /// </summary>
+    public static IReadOnlyList<string> MaterializeRealSeeds(string directory)
+    {
+        Directory.CreateDirectory(directory);
+
+        var written = new List<string>();
+        foreach (var (name, build) in RealSeeds)
+        {
+            var path = Path.Combine(directory, name + ".docx");
+            File.WriteAllBytes(path, build().Build());
+            written.Add(path);
+        }
+
+        return written;
+    }
 
     /// <summary>
     /// Writes every fixture to <c>Fixtures/Minimal</c> so the documents can be opened in Word.
