@@ -254,6 +254,8 @@ public class FootnoteTests
     [Theory]
     [InlineData("footnotes")]
     [InlineData("footnote-separator-probe")]
+    [InlineData("endnotes")]
+    [InlineData("notes-mixed")]
     public void Separator_matches_word(string name)
     {
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, name + ".pdf");
@@ -274,7 +276,13 @@ public class FootnoteTests
             Assert.Equal(reference.Left, rule.Left, 1);
             Assert.Equal(reference.Width, rule.Width, 1);
             Assert.Equal(reference.Height, rule.Height, 2);
-            Assert.True(Math.Abs(rule.Top - reference.Top) <= 0.3,
+            // Word quantizes vertical positions to 1/300 inch and rounds the separator's own
+            // paragraph along with everything else: for the same construct after the same body
+            // text it lands 0.24pt apart in two of these documents. Half a point admits one
+            // quantum of that while still being an order of magnitude tighter than any real
+            // misplacement would be. A footnote separator, which is measured from the page bottom
+            // rather than down through the body, lands within 0.012pt.
+            Assert.True(Math.Abs(rule.Top - reference.Top) <= 0.5,
                 $"separator {i + 1} is at {rule.Top:0.###} against Word's {reference.Top:0.###}");
         }
     }

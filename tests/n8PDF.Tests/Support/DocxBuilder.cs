@@ -108,21 +108,12 @@ public sealed class DocxBuilder
     }
 
     private readonly List<(int Id, string Type, string Body)> _footnotes = [];
-
-    /// <summary>
-    /// Adds a footnote and returns the id its references use.
-    /// </summary>
-    /// <remarks>
-    /// The first call also adds the two separator notes, because Word writes them into every
-    /// footnotes part it creates and the rule above a page's notes comes from the first of them.
-    /// The styles the notes are formatted with are added at the same time, again matching what
-    /// Word puts in a document the moment a footnote is inserted.
-    /// </remarks>
+    private readonly List<(int Id, string Type, string Body)> _endnotes = [];
     private string? _separatorMarkProperties;
 
     /// <summary>
     /// Formatting for the paragraph mark of the separator's paragraph. Must be set before the
-    /// first footnote is added, since that is when the separators are created.
+    /// first note is added, since that is when the separators are created.
     /// </summary>
     public DocxBuilder WithFootnoteSeparatorMark(string runProperties)
     {
@@ -130,9 +121,25 @@ public sealed class DocxBuilder
         return this;
     }
 
-    public int AddFootnote(string paragraphsXml)
+    /// <summary>
+    /// Adds a footnote and returns the id its references use.
+    /// </summary>
+    /// <remarks>
+    /// The first call also adds the two separator notes, because Word writes them into every notes
+    /// part it creates and the rule above the notes comes from the first of them. The styles the
+    /// notes are formatted with are added at the same time, again matching what Word puts in a
+    /// document the moment a note is inserted.
+    /// </remarks>
+    public int AddFootnote(string paragraphsXml) =>
+        AddNote(_footnotes, paragraphsXml, FootnoteStyles);
+
+    /// <summary>Adds an endnote and returns the id its references use.</summary>
+    public int AddEndnote(string paragraphsXml) =>
+        AddNote(_endnotes, paragraphsXml, EndnoteStyles);
+
+    private int AddNote(List<(int Id, string Type, string Body)> notes, string paragraphsXml, string styles)
     {
-        if (_footnotes.Count == 0)
+        if (notes.Count == 0)
         {
             const string spacing = "<w:spacing w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>";
             // The mark's properties go last in CT_PPr, after the spacing.
@@ -140,16 +147,16 @@ public sealed class DocxBuilder
                 ? string.Empty
                 : $"<w:rPr>{_separatorMarkProperties}</w:rPr>";
 
-            _footnotes.Add((-1, "separator",
+            notes.Add((-1, "separator",
                 $"<w:p><w:pPr>{spacing}{mark}</w:pPr><w:r><w:separator/></w:r></w:p>"));
-            _footnotes.Add((0, "continuationSeparator",
+            notes.Add((0, "continuationSeparator",
                 $"<w:p><w:pPr>{spacing}{mark}</w:pPr><w:r><w:continuationSeparator/></w:r></w:p>"));
 
-            WithExtraStyles(FootnoteStyles);
+            WithExtraStyles(styles);
         }
 
-        var id = _footnotes.Count - 1;
-        _footnotes.Add((id, "normal", paragraphsXml));
+        var id = notes.Count - 1;
+        notes.Add((id, "normal", paragraphsXml));
         return id;
     }
 
@@ -167,6 +174,20 @@ public sealed class DocxBuilder
         </w:style>
         """;
 
+    /// <summary>The same, for an endnote.</summary>
+    private const string EndnoteStyles = """
+        <w:style w:type="paragraph" w:styleId="EndnoteText">
+          <w:name w:val="endnote text"/>
+          <w:basedOn w:val="Normal"/>
+          <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+          <w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>
+        </w:style>
+        <w:style w:type="character" w:styleId="EndnoteReference">
+          <w:name w:val="endnote reference"/>
+          <w:rPr><w:vertAlign w:val="superscript"/></w:rPr>
+        </w:style>
+        """;
+
     /// <summary>Appends style definitions to whatever styles.xml the builder already has.</summary>
     public DocxBuilder WithExtraStyles(string stylesXml)
     {
@@ -176,18 +197,40 @@ public sealed class DocxBuilder
 
     /// <summary>A run holding a reference to a footnote, for use inside a paragraph.</summary>
     public static string FootnoteReference(int id, string? runProperties = null) =>
-        "<w:r>" +
-        $"<w:rPr><w:rStyle w:val=\"FootnoteReference\"/>{runProperties}</w:rPr>" +
-        $"<w:footnoteReference w:id=\"{id}\"/></w:r>";
+        NoteReference("footnote", id, runProperties);
+
+    /// <summary>A run holding a reference to an endnote.</summary>
+    public static string EndnoteReference(int id, string? runProperties = null) =>
+        NoteReference("endnote", id, runProperties);
+
+    private static string NoteReference(string kind, int id, string? runProperties)
+    {
+        var style = kind == "footnote" ? "FootnoteReference" : "EndnoteReference";
+        return "<w:r>" +
+               $"<w:rPr><w:rStyle w:val=\"{style}\"/>{runProperties}</w:rPr>" +
+               $"<w:{kind}Reference w:id=\"{id}\"/></w:r>";
+    }
 
     /// <summary>
     /// A footnote's text: the note's own number, then the text, the way Word writes one.
     /// </summary>
     public static string FootnoteBody(string text, string? runProperties = null) =>
-        "<w:p><w:pPr><w:pStyle w:val=\"FootnoteText\"/></w:pPr>" +
-        $"<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/>{runProperties}</w:rPr><w:footnoteRef/></w:r>" +
-        $"<w:r>{(runProperties is not null ? $"<w:rPr>{runProperties}</w:rPr>" : string.Empty)}" +
-        $"<w:t xml:space=\"preserve\"> {Escape(text)}</w:t></w:r></w:p>";
+        NoteBody("footnote", text, runProperties);
+
+    /// <summary>An endnote's text.</summary>
+    public static string EndnoteBody(string text, string? runProperties = null) =>
+        NoteBody("endnote", text, runProperties);
+
+    private static string NoteBody(string kind, string text, string? runProperties)
+    {
+        var paragraphStyle = kind == "footnote" ? "FootnoteText" : "EndnoteText";
+        var characterStyle = kind == "footnote" ? "FootnoteReference" : "EndnoteReference";
+
+        return $"<w:p><w:pPr><w:pStyle w:val=\"{paragraphStyle}\"/></w:pPr>" +
+               $"<w:r><w:rPr><w:rStyle w:val=\"{characterStyle}\"/>{runProperties}</w:rPr><w:{kind}Ref/></w:r>" +
+               $"<w:r>{(runProperties is not null ? $"<w:rPr>{runProperties}</w:rPr>" : string.Empty)}" +
+               $"<w:t xml:space=\"preserve\"> {Escape(text)}</w:t></w:r></w:p>";
+    }
 
     private readonly List<(string Id, string Url)> _hyperlinks = [];
 
@@ -504,7 +547,8 @@ public sealed class DocxBuilder
             if (_numbering is not null) Write(archive, "word/numbering.xml", _numbering);
             if (_evenAndOddHeaders) Write(archive, "word/settings.xml", EvenOddSettings);
 
-            if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildFootnotes());
+            if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildNotes("footnote", _footnotes));
+            if (_endnotes.Count > 0) Write(archive, "word/endnotes.xml", BuildNotes("endnote", _endnotes));
 
             foreach (var (_, partName, _, body, hyperlinks) in _headersFooters)
             {
@@ -674,11 +718,11 @@ public sealed class DocxBuilder
                 $"<Override PartName=\"/{partName}\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{type}+xml\"/>");
         }
 
-        if (_footnotes.Count > 0)
+        foreach (var kind in NoteKindsInUse())
         {
             defaults.Append(
-                "<Override PartName=\"/word/footnotes.xml\" " +
-                "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml\"/>");
+                $"<Override PartName=\"/word/{kind}s.xml\" " +
+                $"ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{kind}s+xml\"/>");
         }
 
         if (_evenAndOddHeaders)
@@ -696,19 +740,26 @@ public sealed class DocxBuilder
             .Replace("<!--NUMBERING_TYPE-->", numberingType);
     }
 
-    private string BuildFootnotes()
+    /// <summary>Which notes parts this document has, as the element name each one uses.</summary>
+    private IEnumerable<string> NoteKindsInUse()
+    {
+        if (_footnotes.Count > 0) yield return "footnote";
+        if (_endnotes.Count > 0) yield return "endnote";
+    }
+
+    private static string BuildNotes(string kind, List<(int Id, string Type, string Body)> notes)
     {
         var parts = new StringBuilder();
-        foreach (var (id, type, body) in _footnotes)
+        foreach (var (id, type, body) in notes)
         {
             var typeAttribute = type == "normal" ? string.Empty : $" w:type=\"{type}\"";
-            parts.Append($"<w:footnote{typeAttribute} w:id=\"{id}\">{body}</w:footnote>");
+            parts.Append($"<w:{kind}{typeAttribute} w:id=\"{id}\">{body}</w:{kind}>");
         }
 
         return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
-               "<w:footnotes xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
+               $"<w:{kind}s xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
                "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
-               parts + "</w:footnotes>";
+               parts + $"</w:{kind}s>";
     }
 
     private string BuildDocumentRelationships()
@@ -739,12 +790,12 @@ public sealed class DocxBuilder
                 $"Target=\"{partName["word/".Length..]}\"/>");
         }
 
-        if (_footnotes.Count > 0)
+        foreach (var kind in NoteKindsInUse())
         {
             extra.Append(
-                "<Relationship Id=\"rIdFootnotes\" " +
-                "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes\" " +
-                "Target=\"footnotes.xml\"/>");
+                $"<Relationship Id=\"rId{char.ToUpperInvariant(kind[0])}{kind[1..]}s\" " +
+                $"Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{kind}s\" " +
+                $"Target=\"{kind}s.xml\"/>");
         }
 
         foreach (var (id, url) in _hyperlinks)

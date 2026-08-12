@@ -57,20 +57,35 @@ public sealed class BookmarkInline(string name) : InlineElement
 }
 
 /// <summary>
-/// A reference to a footnote, which draws as the footnote's number where it appears and sends the
-/// footnote's text to the bottom of the page the reference lands on.
+/// The two kinds of note, which differ in where the note's text goes: a footnote to the foot of
+/// the page its reference lands on, an endnote to the end of the document.
 /// </summary>
-public sealed class FootnoteReferenceInline(int id) : InlineElement
+public enum NoteKind
 {
-    /// <summary>The id of the footnote in the footnotes part, not its printed number.</summary>
-    public int Id { get; } = id;
+    Footnote,
+    Endnote
 }
 
 /// <summary>
-/// A footnote's own number, from <c>w:footnoteRef</c>, which opens the note's text at the foot of
-/// the page. It carries no id: it means whichever footnote it appears inside.
+/// A reference to a note, which draws as that note's number where it appears and sends the note's
+/// text to wherever notes of its kind collect.
 /// </summary>
-public sealed class FootnoteMarkInline : InlineElement;
+public sealed class NoteReferenceInline(int id, NoteKind kind) : InlineElement
+{
+    /// <summary>The id of the note in its part, not its printed number.</summary>
+    public int Id { get; } = id;
+
+    public NoteKind Kind { get; } = kind;
+}
+
+/// <summary>
+/// A note's own number, from <c>w:footnoteRef</c> or <c>w:endnoteRef</c>, which opens the note's
+/// text. It carries no id: it means whichever note it appears inside.
+/// </summary>
+public sealed class NoteMarkInline(NoteKind kind) : InlineElement
+{
+    public NoteKind Kind { get; } = kind;
+}
 
 /// <summary>
 /// The separator drawn above a page's footnotes, from <c>w:separator</c>.
@@ -421,17 +436,17 @@ public sealed class TableCell
 }
 
 /// <summary>
-/// One footnote: its number, and the blocks that make up its text.
+/// One note: its id, and the blocks that make up its text.
 /// </summary>
-/// <param name="Id">
+/// <param name="id">
 /// The id the body's references use. Word reserves the ids below 1 for the separators, which are
-/// not footnotes in their own right.
+/// not notes in their own right.
 /// </param>
-/// <param name="Type">
-/// "normal" for a real footnote, or "separator" and "continuationSeparator" for the rules Word
-/// draws above a page's footnotes.
+/// <param name="type">
+/// "normal" for a real note, or "separator" and "continuationSeparator" for the rules Word draws
+/// above them.
 /// </param>
-public sealed class Footnote(int id, string type)
+public sealed class Note(int id, string type)
 {
     public int Id { get; } = id;
 
@@ -454,8 +469,23 @@ public sealed class WordDocument
     /// <summary>External hyperlink targets by relationship id.</summary>
     public Dictionary<string, string> Hyperlinks { get; } = [];
 
-    /// <summary>The footnotes part, by footnote id.</summary>
-    public Dictionary<int, Footnote> Footnotes { get; } = [];
+    /// <summary>The footnotes part, by note id.</summary>
+    public Dictionary<int, Note> Footnotes { get; } = [];
+
+    /// <summary>The endnotes part, by note id.</summary>
+    public Dictionary<int, Note> Endnotes { get; } = [];
+
+    /// <summary>
+    /// How note numbers are printed.
+    /// </summary>
+    /// <remarks>
+    /// The defaults are Word's own, measured from its exports: footnotes count in arabic numerals
+    /// and endnotes in lower-case roman ones. A document can say otherwise in its settings or on
+    /// its section.
+    /// </remarks>
+    public NumberFormat FootnoteNumberFormat { get; set; } = NumberFormat.Decimal;
+
+    public NumberFormat EndnoteNumberFormat { get; set; } = NumberFormat.LowerRoman;
 
     /// <summary>Header and footer parts by relationship id.</summary>
     public Dictionary<string, HeaderFooter> HeadersAndFooters { get; } = [];

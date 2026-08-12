@@ -45,6 +45,9 @@ public sealed class OpcPackage : IDisposable
     public const string FootnotesRelationship =
         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes";
 
+    public const string EndnotesRelationship =
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes";
+
     public const string HyperlinkRelationship =
         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
 

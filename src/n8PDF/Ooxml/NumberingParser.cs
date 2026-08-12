@@ -196,6 +196,12 @@ public static class NumberingParser
         };
     }
 
+    /// <summary>
+    /// Reads a <c>w:numFmt</c> value. Public because note numbering uses the same vocabulary as
+    /// list numbering, from a different part of the document.
+    /// </summary>
+    public static NumberFormat ParseNumberFormat(string? value) => ParseFormat(value);
+
     private static NumberFormat ParseFormat(string? value) => value switch
     {
         "bullet" => NumberFormat.Bullet,

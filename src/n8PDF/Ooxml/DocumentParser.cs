@@ -233,14 +233,19 @@ public static class DocumentParser
             {
                 if (ParseDrawing(child) is { } drawing) run.Content.Add(drawing);
             }
-            else if (child.Name == W.Main + "footnoteReference")
+            else if (child.Name == W.Main + "footnoteReference" || child.Name == W.Main + "endnoteReference")
             {
+                var kind = child.Name == W.Main + "footnoteReference" ? NoteKind.Footnote : NoteKind.Endnote;
                 if (int.TryParse(child.Attr("id"), out var id))
-                    run.Content.Add(new FootnoteReferenceInline(id));
+                    run.Content.Add(new NoteReferenceInline(id, kind));
             }
             else if (child.Name == W.Main + "footnoteRef")
             {
-                run.Content.Add(new FootnoteMarkInline());
+                run.Content.Add(new NoteMarkInline(NoteKind.Footnote));
+            }
+            else if (child.Name == W.Main + "endnoteRef")
+            {
+                run.Content.Add(new NoteMarkInline(NoteKind.Endnote));
             }
             else if (child.Name == W.Main + "separator" || child.Name == W.Main + "continuationSeparator")
             {
@@ -260,34 +265,46 @@ public static class DocumentParser
     }
 
     /// <summary>
-    /// Reads a footnotes part into footnotes keyed by id.
+    /// Reads a notes part — footnotes or endnotes — into notes keyed by id.
     /// </summary>
     /// <remarks>
-    /// The separators come through as footnotes too, because that is how the format stores them:
-    /// the rule Word draws above a page's notes is a footnote whose body holds a
-    /// <c>w:separator</c>. Keeping them means the space they occupy is measured from the document
-    /// rather than assumed.
+    /// The separators come through as notes too, because that is how the format stores them: the
+    /// rule Word draws above the notes is a note whose body holds a <c>w:separator</c>. Keeping
+    /// them means the space they occupy is measured from the document rather than assumed.
     /// </remarks>
-    public static Dictionary<int, Footnote> ParseFootnotes(XDocument xml)
+    public static Dictionary<int, Note> ParseNotes(XDocument xml, NoteKind kind)
     {
-        var result = new Dictionary<int, Footnote>();
+        var name = W.Main + (kind == NoteKind.Footnote ? "footnote" : "endnote");
+        var result = new Dictionary<int, Note>();
 
-        foreach (var element in xml.Root?.Elements(W.Main + "footnote") ?? [])
+        foreach (var element in xml.Root?.Elements(name) ?? [])
         {
             if (!int.TryParse(element.Attr("id"), out var id)) continue;
 
-            var footnote = new Footnote(id, element.Attr("type") ?? "normal");
+            var note = new Note(id, element.Attr("type") ?? "normal");
 
             foreach (var child in element.Elements())
             {
-                if (child.Name == W.Main + "p") footnote.Body.Add(ParseParagraph(child));
-                else if (child.Name == W.Main + "tbl") footnote.Body.Add(ParseTable(child));
+                if (child.Name == W.Main + "p") note.Body.Add(ParseParagraph(child));
+                else if (child.Name == W.Main + "tbl") note.Body.Add(ParseTable(child));
             }
 
-            result[id] = footnote;
+            result[id] = note;
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Reads the number format from a <c>w:footnotePr</c> or <c>w:endnotePr</c>, wherever it
+    /// appears: a section carries one, and so does the document's settings part.
+    /// </summary>
+    public static NumberFormat? ReadNoteNumberFormat(XElement? container, NoteKind kind)
+    {
+        var name = W.Main + (kind == NoteKind.Footnote ? "footnotePr" : "endnotePr");
+        var value = container?.Element(name)?.Element(W.Main + "numFmt")?.Attr("val");
+
+        return value is null ? null : NumberingParser.ParseNumberFormat(value);
     }
 
     /// <summary>
@@ -554,6 +571,9 @@ public static class DocumentParser
             section.PageHeightTwips = pgSz.IntAttr("h") ?? section.PageHeightTwips;
             section.Landscape = string.Equals(pgSz.Attr("orient"), "landscape", StringComparison.OrdinalIgnoreCase);
         }
+
+        section.FootnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Footnote);
+        section.EndnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Endnote);
 
         var pgMar = sectPr.Element(W.Main + "pgMar");
         if (pgMar is not null)

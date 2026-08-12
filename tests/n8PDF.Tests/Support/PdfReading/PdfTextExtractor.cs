@@ -70,7 +70,7 @@ public static class PdfTextExtractor
         var parser = new PdfParser(content);
         var operands = new List<PdfValue>();
 
-        var graphicsStack = new Stack<Matrix>();
+        var graphicsStack = new Stack<GraphicsState>();
         var ctm = Matrix.Identity;
 
         var textMatrix = Matrix.Identity;
@@ -98,11 +98,29 @@ public static class PdfTextExtractor
             switch (op.Operator)
             {
                 case "q":
-                    graphicsStack.Push(ctm);
+                    // The text state is part of the graphics state, not separate from it. Word
+                    // sets character spacing inside a q/Q pair for a single superscript and
+                    // expects it gone afterwards; treating q as saving only the matrix left that
+                    // spacing applied to the rest of the page and made every later run measure
+                    // wider than it is.
+                    graphicsStack.Push(new GraphicsState(
+                        ctm, font, fontSize, charSpacing, wordSpacing, horizontalScale, leading, rise));
                     break;
 
                 case "Q":
-                    if (graphicsStack.Count > 0) ctm = graphicsStack.Pop();
+                    if (graphicsStack.Count > 0)
+                    {
+                        var saved = graphicsStack.Pop();
+                        ctm = saved.Ctm;
+                        font = saved.Font;
+                        fontSize = saved.FontSize;
+                        charSpacing = saved.CharSpacing;
+                        wordSpacing = saved.WordSpacing;
+                        horizontalScale = saved.HorizontalScale;
+                        leading = saved.Leading;
+                        rise = saved.Rise;
+                    }
+
                     break;
 
                 case "cm":
@@ -304,6 +322,17 @@ public static class PdfTextExtractor
         Number(operands[start + 3]), Number(operands[start + 4]), Number(operands[start + 5]));
 
     /// <summary>A 2x3 affine transform, the only shape PDF matrices take.</summary>
+    /// <summary>The part of the graphics state that q saves and Q restores.</summary>
+    private readonly record struct GraphicsState(
+        Matrix Ctm,
+        PdfFontInfo? Font,
+        double FontSize,
+        double CharSpacing,
+        double WordSpacing,
+        double HorizontalScale,
+        double Leading,
+        double Rise);
+
     public readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
         public static readonly Matrix Identity = new(1, 0, 0, 1, 0, 0);

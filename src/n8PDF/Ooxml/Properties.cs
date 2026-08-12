@@ -212,6 +212,14 @@ public sealed class SectionProperties
 
     public int HeaderDistanceTwips { get; set; } = 720;
 
+    /// <summary>
+    /// Note numbering formats stated on this section, or null where it says nothing and the
+    /// document's settings or Word's defaults decide.
+    /// </summary>
+    public NumberFormat? FootnoteNumberFormat { get; set; }
+
+    public NumberFormat? EndnoteNumberFormat { get; set; }
+
     public int FooterDistanceTwips { get; set; } = 720;
 
     public int GutterTwips { get; set; }

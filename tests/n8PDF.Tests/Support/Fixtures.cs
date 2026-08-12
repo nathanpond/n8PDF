@@ -641,6 +641,56 @@ public static class Fixtures
                 return builder;
             },
 
+            // Endnotes, which collect at the end of the document rather than the foot of a page.
+            // Two of them, referenced out of order, over enough body text to reach a second page:
+            // what Word does with the notes when the body ends part-way down a page, how it
+            // numbers them, and whether it rules them off are all read back from its export.
+            ["endnotes"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                var first = builder.AddEndnote(DocxBuilder.EndnoteBody("The first note.", Times10));
+                var second = builder.AddEndnote(DocxBuilder.EndnoteBody("The second note.", Times10));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">A sentence with a note</w:t></w:r>" +
+                    DocxBuilder.EndnoteReference(second) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> and another</w:t></w:r>" +
+                    DocxBuilder.EndnoteReference(first) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                for (var i = 1; i <= 50; i++)
+                    builder.AddParagraph($"Body paragraph number {i} of fifty.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
+            // Both kinds of note on one page, with the body sized so that the footnote area at the
+            // foot and the endnotes flowing after the text nearly meet: if the space reserved for
+            // the footnotes were wrong by more than a line, this would paginate differently from
+            // Word.
+            ["notes-mixed"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                var foot = builder.AddFootnote(DocxBuilder.FootnoteBody("A note at the foot.", Times10));
+                var end = builder.AddEndnote(DocxBuilder.EndnoteBody("A note at the end.", Times10));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">A sentence with a footnote</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(foot) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> and an endnote</w:t></w:r>" +
+                    DocxBuilder.EndnoteReference(end) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                for (var i = 1; i <= 40; i++)
+                    builder.AddParagraph($"Body paragraph number {i} of forty.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
             // The same footnote arrangement with the separator paragraph's mark three times the
             // size. Word's export says both how the separator's line box is sized and whether the
             // rule's offset within that box is fixed or proportional to it.

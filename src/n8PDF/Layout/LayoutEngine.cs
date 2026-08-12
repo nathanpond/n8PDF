@@ -41,11 +41,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // every item before it, so this is per-document state rather than per-paragraph.
     private NumberingCounter _numbering = new(new NumberingDefinitions());
 
-    // Footnote bodies by id, and the printed number each has been given. Numbers are assigned as
-    // references are met, because a footnote's number is its position in the document rather than
-    // anything stored in the file.
-    private IReadOnlyDictionary<int, Footnote> _footnotes = new Dictionary<int, Footnote>();
-    private readonly Dictionary<int, int> _footnoteNumbers = [];
+    // Note bodies by id, and the label each has been given. Labels are assigned as references are
+    // met, because a note's number is its position in the document rather than anything stored in
+    // the file.
+    private IReadOnlyDictionary<int, Note> _footnotes = new Dictionary<int, Note>();
+    private IReadOnlyDictionary<int, Note> _endnotes = new Dictionary<int, Note>();
+    private readonly Dictionary<int, string> _footnoteLabels = [];
+    private readonly Dictionary<int, string> _endnoteLabels = [];
+    private NumberFormat _footnoteFormat = NumberFormat.Decimal;
+    private NumberFormat _endnoteFormat = NumberFormat.LowerRoman;
+
+    // Endnote ids in the order their references appeared, which is the order they are written out
+    // in at the end of the document.
+    private readonly List<int> _endnoteOrder = [];
+
     private readonly Dictionary<int, DetachedFlow> _measuredFootnotes = [];
 
     // Footnotes waiting to be written into the foot of the page being filled.
@@ -58,8 +67,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private double _footnoteWidth;
     private double _footnoteBottom;
 
-    // The note whose body is being measured, for the w:footnoteRef that opens it.
-    private int _currentFootnote;
+    // The label of the note whose body is being laid out, for the w:footnoteRef or w:endnoteRef
+    // that opens it.
+    private string? _currentNoteLabel;
 
     // Which page is being laid out, for fields that depend on it. Zero means the body, where a
     // page number is not yet known; headers and footers set it before they run.
@@ -71,12 +81,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _images = document.Images;
         _hyperlinks = document.Hyperlinks;
         _footnotes = document.Footnotes;
-        _footnoteNumbers.Clear();
+        _endnotes = document.Endnotes;
+        _footnoteFormat = document.FootnoteNumberFormat;
+        _endnoteFormat = document.EndnoteNumberFormat;
+        _footnoteLabels.Clear();
+        _endnoteLabels.Clear();
+        _endnoteOrder.Clear();
         _measuredFootnotes.Clear();
         _pageFootnotes.Clear();
         _separatorFlow = null;
         _separatorMeasured = false;
-        _currentFootnote = 0;
+        _currentNoteLabel = null;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
         var section = document.Section;
@@ -104,6 +119,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         };
 
         LayoutBlocks(cursor, document.Body);
+
+        // Endnotes follow the body in ordinary flow, so they are laid out through the same cursor
+        // and paginate like anything else.
+        LayoutEndnotes(cursor);
 
         // The final paragraph's space-after still occupies the page even though nothing follows
         // it, which matters for how much content a page is considered to hold.
@@ -616,19 +635,47 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// Lays out one footnote's body, once. A note is referenced from one place and appears once,
     /// so measuring it again would only repeat the work.
     /// </summary>
-    private DetachedFlow MeasureFootnote(int id, Footnote footnote)
+    private DetachedFlow MeasureFootnote(int id, Note footnote)
     {
         if (_measuredFootnotes.TryGetValue(id, out var cached)) return cached;
 
         // The note's own number opens its text, and it is the number the reference was given.
-        var previous = _currentFootnote;
-        _currentFootnote = _footnoteNumbers.GetValueOrDefault(id);
+        var previous = _currentNoteLabel;
+        _currentNoteLabel = _footnoteLabels.GetValueOrDefault(id);
 
         var flow = MeasureBlocks(footnote.Body, _footnoteWidth);
 
-        _currentFootnote = previous;
+        _currentNoteLabel = previous;
         _measuredFootnotes[id] = flow;
         return flow;
+    }
+
+    /// <summary>
+    /// Writes the endnotes out where the body left off.
+    /// </summary>
+    /// <remarks>
+    /// Endnotes are not an area of the page the way footnotes are: Word carries straight on from
+    /// the last body paragraph with the separator and then the notes, breaking to a new page only
+    /// when it runs out of room like any other content. Laying them out through the body's own
+    /// cursor is what gives them that, and it also keeps them clear of any footnote area on the
+    /// page they land on.
+    /// </remarks>
+    private void LayoutEndnotes(Cursor cursor)
+    {
+        if (_endnoteOrder.Count == 0) return;
+
+        if (_endnotes.Values.FirstOrDefault(n => n.Type == "separator") is { } separator)
+            LayoutBlocks(cursor, separator.Body);
+
+        foreach (var id in _endnoteOrder)
+        {
+            if (!_endnotes.TryGetValue(id, out var note)) continue;
+
+            _currentNoteLabel = _endnoteLabels.GetValueOrDefault(id);
+            LayoutBlocks(cursor, note.Body);
+        }
+
+        _currentNoteLabel = null;
     }
 
     /// <summary>
@@ -641,7 +688,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         _separatorMeasured = true;
 
-        var separator = _footnotes.Values.FirstOrDefault(f => f.Type == "separator");
+        var separator = _footnotes.Values.FirstOrDefault(n => n.Type == "separator");
         if (separator is not null) _separatorFlow = MeasureBlocks(separator.Body, _footnoteWidth);
 
         return _separatorFlow;
@@ -1762,16 +1809,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         AddImageAtom(atoms, drawing);
                         break;
 
-                    case FootnoteReferenceInline reference:
-                        AddFootnoteMark(atoms, reference, runFormat, selection,
+                    case NoteReferenceInline reference:
+                        AddNoteMark(atoms, reference, runFormat, selection,
                             ascent, naturalHeight, descent, link);
                         break;
 
-                    case FootnoteMarkInline when _currentFootnote > 0:
-                        AddTextAtoms(
-                            atoms,
-                            _currentFootnote.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                            runFormat, selection, ascent, naturalHeight, descent, link);
+                    case NoteMarkInline when _currentNoteLabel is { } label:
+                        AddTextAtoms(atoms, label, runFormat, selection,
+                            ascent, naturalHeight, descent, link);
                         break;
 
                     case SeparatorInline:
@@ -1797,29 +1842,35 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
-    /// Puts a footnote's number where its reference appears.
+    /// Puts a note's number where its reference appears.
     /// </summary>
     /// <remarks>
-    /// The number is the footnote's position in the document, not its id: Word stores ids in the
-    /// order the notes were created and renumbers on the page. A reference to a footnote that is
-    /// not in the part draws nothing, since there would be no note for the number to lead to.
+    /// The number is the note's position in the document, not its id: Word stores ids in the order
+    /// the notes were created and renumbers on the page. A reference to a note that is not in the
+    /// part draws nothing, since there would be no note for the number to lead to.
     ///
-    /// The mark is raised and shrunk by the FootnoteReference character style, so nothing is done
-    /// here to make it superscript — that comes through the cascade like any other formatting.
+    /// The mark is raised and shrunk by the FootnoteReference or EndnoteReference character style,
+    /// so nothing is done here to make it superscript — that comes through the cascade like any
+    /// other formatting.
     /// </remarks>
-    private void AddFootnoteMark(
-        List<Atom> atoms, FootnoteReferenceInline reference, ResolvedRunFormat format,
+    private void AddNoteMark(
+        List<Atom> atoms, NoteReferenceInline reference, ResolvedRunFormat format,
         FontSelection font, double ascent, double naturalHeight, double descent, ResolvedHyperlink? link)
     {
-        if (!_footnotes.TryGetValue(reference.Id, out var footnote) || footnote.IsSeparator) return;
+        var footnote = reference.Kind == NoteKind.Footnote;
+        var notes = footnote ? _footnotes : _endnotes;
+        var labels = footnote ? _footnoteLabels : _endnoteLabels;
 
-        if (!_footnoteNumbers.TryGetValue(reference.Id, out var number))
+        if (!notes.TryGetValue(reference.Id, out var note) || note.IsSeparator) return;
+
+        if (!labels.TryGetValue(reference.Id, out var text))
         {
-            number = _footnoteNumbers.Count + 1;
-            _footnoteNumbers[reference.Id] = number;
-        }
+            text = NumberFormatter.Format(
+                labels.Count + 1, footnote ? _footnoteFormat : _endnoteFormat);
 
-        var text = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            labels[reference.Id] = text;
+            if (!footnote) _endnoteOrder.Add(reference.Id);
+        }
 
         atoms.Add(new TextAtom
         {
@@ -1831,7 +1882,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             NaturalHeight = naturalHeight,
             Descent = descent,
             Link = link,
-            FootnoteId = reference.Id,
+            FootnoteId = footnote ? reference.Id : null,
             Width = TextMeasurer.Measure(
                 font.Font, text, format.EffectiveFontSizePoints,
                 format.CharacterSpacingPoints, _options.ApplyKerning) * format.ScaleFactor

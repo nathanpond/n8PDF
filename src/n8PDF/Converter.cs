@@ -94,15 +94,30 @@ public static class Converter
         var document = DocumentParser.Parse(package.ReadPartAsXml(mainPartName));
         LoadImages(package, mainPartName, document);
         LoadHeadersAndFooters(package, mainPartName, document);
-        LoadFootnotes(package, mainPartName, document);
+        LoadNotes(package, mainPartName, document, NoteKind.Footnote);
+        LoadNotes(package, mainPartName, document, NoteKind.Endnote);
         LoadHyperlinks(package, mainPartName, mainPartName, document.Body, document);
 
         var settingsPart = package.GetRelatedPartName(mainPartName, OpcPackage.SettingsRelationship);
         if (settingsPart is not null)
         {
-            document.EvenAndOddHeaders = package.ReadPartAsXml(settingsPart)
-                .Root?.Element(W.Main + "evenAndOddHeaders") is not null;
+            var settings = package.ReadPartAsXml(settingsPart).Root;
+            document.EvenAndOddHeaders = settings?.Element(W.Main + "evenAndOddHeaders") is not null;
+
+            // How notes are numbered is stated on the section if anywhere, and in the settings
+            // otherwise; a document that says nothing gets Word's defaults.
+            if (DocumentParser.ReadNoteNumberFormat(settings, NoteKind.Footnote) is { } footnoteFormat)
+                document.FootnoteNumberFormat = footnoteFormat;
+
+            if (DocumentParser.ReadNoteNumberFormat(settings, NoteKind.Endnote) is { } endnoteFormat)
+                document.EndnoteNumberFormat = endnoteFormat;
         }
+
+        if (document.Section.FootnoteNumberFormat is { } sectionFootnotes)
+            document.FootnoteNumberFormat = sectionFootnotes;
+
+        if (document.Section.EndnoteNumberFormat is { } sectionEndnotes)
+            document.EndnoteNumberFormat = sectionEndnotes;
 
         var stylesPart = package.GetRelatedPartName(mainPartName, OpcPackage.StylesRelationship);
         var styles = StylesParser.Parse(stylesPart is null ? null : package.ReadPartAsXml(stylesPart));
@@ -169,22 +184,29 @@ public static class Converter
     }
 
     /// <summary>
-    /// Reads the footnotes part, if the document has one.
+    /// Reads the footnotes or endnotes part, if the document has one.
     /// </summary>
-    private static void LoadFootnotes(OpcPackage package, string mainPartName, WordDocument document)
+    private static void LoadNotes(
+        OpcPackage package, string mainPartName, WordDocument document, NoteKind kind)
     {
-        var partName = package.GetRelatedPartName(mainPartName, OpcPackage.FootnotesRelationship);
+        var relationship = kind == NoteKind.Footnote
+            ? OpcPackage.FootnotesRelationship
+            : OpcPackage.EndnotesRelationship;
+
+        var partName = package.GetRelatedPartName(mainPartName, relationship);
         if (partName is null || !package.HasPart(partName)) return;
+
+        var target = kind == NoteKind.Footnote ? document.Footnotes : document.Endnotes;
 
         try
         {
-            foreach (var (id, footnote) in DocumentParser.ParseFootnotes(package.ReadPartAsXml(partName)))
+            foreach (var (id, note) in DocumentParser.ParseNotes(package.ReadPartAsXml(partName), kind))
             {
-                document.Footnotes[id] = footnote;
+                target[id] = note;
 
-                // A footnote is its own part as far as relationships go, so a link inside one is
-                // resolved against the footnotes part rather than the body's.
-                LoadHyperlinks(package, partName, partName, footnote.Body, document);
+                // A note is its own part as far as relationships go, so a link inside one is
+                // resolved against the notes part rather than the body's.
+                LoadHyperlinks(package, partName, partName, note.Body, document);
             }
         }
         catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)

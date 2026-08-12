@@ -116,9 +116,10 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: footnotes (numbered in document order, each note at the foot of the page its
-reference lands on, with the separator rule and the space the notes take out of the body above
-them), hyperlinks (external addresses as clickable regions, internal links to bookmarks
+Implemented: footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
+for endnotes unless the document says otherwise; a footnote goes to the foot of the page its
+reference lands on and takes that space out of the body above it, an endnote carries on after the
+body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
 anywhere in the document, with the regions placed and padded the way Word places them), headers
 and footers (per page, with separate first-page and even-page variants, and
 PAGE and NUMPAGES fields evaluated), lists and numbering (decimal, letters, roman and bullets, nested levels with
@@ -142,8 +143,9 @@ algorithm the way the paragraph rules are.
 
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
 border, splitting a row across pages, fields other than PAGE and NUMPAGES (their cached values are
-shown), endnotes, splitting a footnote across pages, footnote numbering other than continuous
-decimal and notes positioned beneath the text rather than at the foot of the page, RTL and complex
+shown), splitting a note across pages, restarting note numbering per page or per section, notes
+positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
+each section rather than of the document, RTL and complex
 scripts, font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab stops.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
