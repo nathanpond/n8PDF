@@ -152,13 +152,15 @@ public class TabAlignmentTests
     /// the harness only sees where a line begins and ends, so a centred run could sit anywhere
     /// between the two and go unnoticed; this is what pins the positions in between.
     /// </summary>
-    [Fact]
-    public void Tabbed_positions_match_word()
+    [Theory]
+    [InlineData("tabs-aligned")]
+    [InlineData("tab-leaders")]
+    public void Tabbed_positions_match_word(string name)
     {
-        var referencePath = Path.Combine(TestPaths.ReferencePdfs, "tabs-aligned.pdf");
+        var referencePath = Path.Combine(TestPaths.ReferencePdfs, name + ".pdf");
         Assert.True(File.Exists(referencePath), $"No Word reference PDF at {referencePath}");
 
-        var ours = SegmentsOf(PdfTextExtractor.Extract(Converter.Convert(Fixtures.Build("tabs-aligned"), Options())));
+        var ours = SegmentsOf(PdfTextExtractor.Extract(Converter.Convert(Fixtures.Build(name), Options())));
         var theirs = SegmentsOf(PdfTextExtractor.ExtractFile(referencePath));
 
         Assert.Equal(theirs.Count, ours.Count);

@@ -1,0 +1,81 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.66, "font": "Times New Roman", "size": 12, "text": "Dotted"},
+            {"x": 528, "width": 12, "font": "Times New Roman", "size": 12, "text": "12"},
+            {"x": 105, "width": 423, "font": "Times New Roman", "size": 12, "text": "............................................................................................................................................."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.979, "font": "Times New Roman", "size": 12, "text": "Hyphenated"},
+            {"x": 528, "width": 12, "font": "Times New Roman", "size": 12, "text": "12"},
+            {"x": 131.871, "width": 395.613, "font": "Times New Roman", "size": 12, "text": "---------------------------------------------------------------------------------------------------"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.307, "font": "Times New Roman", "size": 12, "text": "Underscored"},
+            {"x": 528, "width": 12, "font": "Times New Roman", "size": 12, "text": "12"},
+            {"x": 138, "width": 390, "font": "Times New Roman", "size": 12, "text": "_________________________________________________________________"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.668, "font": "Times New Roman", "size": 12, "text": "Middle dots"},
+            {"x": 528, "width": 12, "font": "Times New Roman", "size": 12, "text": "12"},
+            {"x": 131.871, "width": 395.613, "font": "Times New Roman", "size": 12, "text": "···································································································"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 31.318, "font": "Times New Roman", "size": 12, "text": "Heavy"},
+            {"x": 528, "width": 12, "font": "Times New Roman", "size": 12, "text": "12"},
+            {"x": 108, "width": 420, "font": "Times New Roman", "size": 12, "text": "______________________________________________________________________"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 37.986, "font": "Times New Roman", "size": 12, "text": "Centred"},
+            {"x": 288.668, "width": 34.664, "font": "Times New Roman", "size": 12, "text": "Middle"},
+            {"x": 111, "width": 177, "font": "Times New Roman", "size": 12, "text": "..........................................................."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 19.986, "font": "Times New Roman", "size": 12, "text": "Left"},
+            {"x": 306, "width": 25.318, "font": "Times New Roman", "size": 12, "text": "After"},
+            {"x": 93, "width": 213, "font": "Times New Roman", "size": 12, "text": "......................................................................."}
+          ]
+        }
+      ]
+    }
+  ]
+}

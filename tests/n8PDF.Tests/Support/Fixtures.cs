@@ -329,6 +329,32 @@ public static class Fixtures
                 return builder;
             },
 
+            // Every kind of leader Word offers, on a right stop at the margin — which is what a
+            // table of contents is made of — plus one on a centre stop and one on a left stop.
+            ["tab-leaders"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                foreach (var (leader, label) in new[]
+                         {
+                             ("dot", "Dotted"), ("hyphen", "Hyphenated"), ("underscore", "Underscored"),
+                             ("middleDot", "Middle dots"), ("heavy", "Heavy")
+                         })
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"{leader}\" w:pos=\"9360\"/></w:tabs>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{label}</w:t><w:tab/><w:t>12</w:t></w:r></w:p>");
+                }
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:tabs><w:tab w:val=\"center\" w:leader=\"dot\" w:pos=\"4680\"/></w:tabs>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Centred</w:t><w:tab/><w:t>Middle</w:t></w:r></w:p>");
+
+                return builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:tabs><w:tab w:val=\"left\" w:leader=\"dot\" w:pos=\"4680\"/></w:tabs>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Left</w:t><w:tab/><w:t>After</w:t></w:r></w:p>");
+            },
+
             ["breaks"] = () => new DocxBuilder()
                 .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Line one</w:t><w:br/><w:t>Line two</w:t></w:r></w:p>")
                 .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Before the page break</w:t><w:br w:type=\"page\"/><w:t>After the page break</w:t></w:r></w:p>"),

@@ -851,7 +851,9 @@ public static class DocumentParser
     {
         "dot" => TabLeader.Dot,
         "hyphen" => TabLeader.Hyphen,
-        "underscore" => TabLeader.Underscore,
+        // Word draws a heavy leader with the same underscore glyph as a plain one; its export
+        // shows the two producing identical runs.
+        "underscore" or "heavy" => TabLeader.Underscore,
         "middleDot" => TabLeader.MiddleDot,
         _ => TabLeader.None
     };

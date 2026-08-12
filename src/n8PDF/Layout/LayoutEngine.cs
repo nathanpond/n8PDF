@@ -531,7 +531,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             footnoteIds, footnotes.Flows.Count, footnotes.Height,
             ordinal, paragraphIndex, keepNext));
 
-        EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex);
+        EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
         CommitFootnotes(cursor, footnotes);
         cursor.Y += line.Height;
     }
@@ -1693,7 +1693,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>Places a composed line's segments at their final page coordinates.</summary>
-    private static void EmitLine(LaidOutPage page, ComposedLine line, double contentLeft, double top, int paragraphIndex)
+    private static void EmitLine(
+        LaidOutPage page, ComposedLine line, double contentLeft, double top, int paragraphIndex,
+        TabOptions tabs)
     {
         var baselineY = top + line.Ascent;
 
@@ -1725,6 +1727,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             AddDecorations(page, text);
         }
 
+        foreach (var leader in line.Leaders)
+            EmitLeader(laidOut, leader, contentLeft, baselineY, tabs);
+
         foreach (var (separator, x) in line.Separators)
         {
             page.Rules.Add(new PositionedRule
@@ -1751,6 +1756,52 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         page.Lines.Add(laidOut);
+    }
+
+    /// <summary>
+    /// Fills a tab's gap with its leader.
+    /// </summary>
+    /// <remarks>
+    /// The characters sit on a grid of their own width measured from the left edge of the
+    /// <em>page</em>, not from the margin or from where the gap begins — so two leaders on
+    /// different lines line up with each other however far along their text ran out. Measured from
+    /// Word's export of the <c>tab-leaders</c> fixture, where a hyphen leader starting at 131.871pt
+    /// is an exact multiple of the 3.996pt hyphen and nothing else.
+    ///
+    /// Only whole characters are drawn, and only up to where the text after the tab begins, which
+    /// can leave a fraction of the gap empty at the right-hand end.
+    /// </remarks>
+    private static void EmitLeader(
+        LaidOutLine line, LeaderRun leader, double contentLeft, double baselineY, TabOptions tabs)
+    {
+        var character = LeaderCharacter(leader.Kind);
+        if (character == '\0') return;
+
+        var text = character.ToString();
+        var size = leader.Format.EffectiveFontSizePoints;
+
+        var width = TextMeasurer.Measure(
+            leader.Font.Font, text, size, leader.Format.CharacterSpacingPoints, tabs.ApplyKerning)
+            * leader.Format.ScaleFactor;
+
+        if (width <= 0.01) return;
+
+        var from = contentLeft + leader.Start;
+        var to = contentLeft + leader.End;
+
+        var start = Math.Ceiling(from / width - 0.001) * width;
+        var count = (int)Math.Floor((to - start) / width + 0.001);
+        if (count <= 0) return;
+
+        line.Texts.Add(new PositionedText
+        {
+            X = start,
+            BaselineY = baselineY - leader.Format.BaselineShiftPoints,
+            Text = new string(character, count),
+            Format = leader.Format,
+            Font = leader.Font,
+            Width = count * width
+        });
     }
 
     /// <summary>Adds the rules that draw underline and strikethrough for a placed run.</summary>
@@ -1930,16 +1981,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 x = ClosePendingTab(line, ref pending, x, tabs);
                 if (x >= available - 0.001) beyondMargin = true;
 
-                var (next, alignment) = NextTabStop(x, tab.Stops, tab.DefaultIntervalPoints);
+                var (next, alignment, leader) = NextTabStop(x, tab.Stops, tab.DefaultIntervalPoints);
 
                 if (alignment == TabAlignment.Left)
                 {
-                    line.Items.Add(new PlacedAtom(atom, x, next - x));
+                    line.Items.Add(new PlacedAtom(atom, x, next - x, leader));
                     x = next;
                 }
                 else
                 {
-                    line.Items.Add(new PlacedAtom(atom, x, 0));
+                    line.Items.Add(new PlacedAtom(atom, x, 0, leader));
                     pending = new PendingTab(line.Items.Count - 1, next, alignment, x);
                 }
 
@@ -2054,10 +2105,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // paragraph pushes the visible text past the right margin.
         foreach (var item in content.Take(lastVisible + 1))
         {
-            if (item.Atom is TabAtom)
+            if (item.Atom is TabAtom tabAtom)
             {
                 current = null;
                 pen = item.X + item.Width;
+
+                if (item.Leader != TabLeader.None && item.Width > 0.5)
+                {
+                    var from = indentLeft + offset + item.X;
+                    line.Leaders.Add(new LeaderRun(
+                        from, from + item.Width, item.Leader, tabAtom.Format, tabAtom.Font));
+                }
+
                 continue;
             }
 
@@ -2180,7 +2239,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// Past the last stop a document declares, tabs fall on the document's default interval, and
     /// those are always left-aligned.
     /// </remarks>
-    private static (double Position, TabAlignment Alignment) NextTabStop(
+    private static (double Position, TabAlignment Alignment, TabLeader Leader) NextTabStop(
         double x, IReadOnlyList<TabStop> stops, double defaultInterval)
     {
         foreach (var stop in stops.OrderBy(s => s.PositionTwips))
@@ -2188,20 +2247,31 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (stop.Alignment is TabAlignment.Clear or TabAlignment.Bar) continue;
 
             var position = Units.TwipsToPoints(stop.PositionTwips);
-            if (position > x + 0.001) return (position, stop.Alignment);
+            if (position > x + 0.001) return (position, stop.Alignment, stop.Leader);
         }
 
-        if (defaultInterval <= 0) return (x, TabAlignment.Left);
+        if (defaultInterval <= 0) return (x, TabAlignment.Left, TabLeader.None);
 
         var next = Math.Floor(x / defaultInterval + 1) * defaultInterval;
-        return (next <= x ? x + defaultInterval : next, TabAlignment.Left);
+        return (next <= x ? x + defaultInterval : next, TabAlignment.Left, TabLeader.None);
     }
 
     /// <summary>
     /// A tab whose stop aligns what comes after it, held while that text is being placed.
     /// </summary>
     /// <param name="PenBefore">Where the line had reached when the tab was met.</param>
-    private readonly record struct PendingTab(int Index, double Stop, TabAlignment Alignment, double PenBefore);
+    private readonly record struct PendingTab(
+        int Index, double Stop, TabAlignment Alignment, double PenBefore);
+
+    /// <summary>The characters Word fills a tab's gap with, one per kind of leader.</summary>
+    private static char LeaderCharacter(TabLeader leader) => leader switch
+    {
+        TabLeader.Dot => '.',
+        TabLeader.Hyphen => '-',
+        TabLeader.Underscore => '_',
+        TabLeader.MiddleDot => '\u00b7',
+        _ => '\0'
+    };
 
     /// <summary>
     /// Settles where the text after a centre, right or decimal tab starts, now that there is
@@ -2329,6 +2399,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         {
                             Stops = format.TabStops,
                             DefaultIntervalPoints = defaultTab,
+                            Format = runFormat,
+                            Font = selection,
                             Ascent = ascent,
                             NaturalHeight = naturalHeight,
                             Descent = descent
@@ -2516,6 +2588,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 {
                     Stops = stops,
                     DefaultIntervalPoints = defaultTab,
+                    Format = labelFormat,
+                    Font = selection,
                     Ascent = ascent,
                     NaturalHeight = naturalHeight,
                     Descent = descent
@@ -2950,6 +3024,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required IReadOnlyList<TabStop> Stops { get; init; }
 
         public required double DefaultIntervalPoints { get; init; }
+
+        /// <summary>What a leader filling this tab's gap would be drawn with.</summary>
+        public required ResolvedRunFormat Format { get; init; }
+
+        public required FontSelection Font { get; init; }
     }
 
     private sealed class BreakAtom : Atom
@@ -2970,7 +3049,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required double Height { get; init; }
     }
 
-    private readonly record struct PlacedAtom(Atom Atom, double X, double Width);
+    private readonly record struct PlacedAtom(
+        Atom Atom, double X, double Width, TabLeader Leader = TabLeader.None);
+
+    /// <summary>
+    /// A gap to be filled with a leader, in the line's own coordinates.
+    /// </summary>
+    private readonly record struct LeaderRun(
+        double Start, double End, TabLeader Kind, ResolvedRunFormat Format, FontSelection Font);
 
     private sealed class Segment
     {
@@ -3001,6 +3087,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         /// <summary>Footnote separator rules on this line, as atom and x offset.</summary>
         public List<(SeparatorAtom Atom, double X)> Separators { get; } = [];
+
+        /// <summary>Gaps this line's tabs asked to have filled with a leader.</summary>
+        public List<LeaderRun> Leaders { get; } = [];
 
         public double Height { get; set; }
 
