@@ -56,6 +56,31 @@ public sealed class BookmarkInline(string name) : InlineElement
     public string Name { get; } = name;
 }
 
+/// <summary>
+/// A reference to a footnote, which draws as the footnote's number where it appears and sends the
+/// footnote's text to the bottom of the page the reference lands on.
+/// </summary>
+public sealed class FootnoteReferenceInline(int id) : InlineElement
+{
+    /// <summary>The id of the footnote in the footnotes part, not its printed number.</summary>
+    public int Id { get; } = id;
+}
+
+/// <summary>
+/// A footnote's own number, from <c>w:footnoteRef</c>, which opens the note's text at the foot of
+/// the page. It carries no id: it means whichever footnote it appears inside.
+/// </summary>
+public sealed class FootnoteMarkInline : InlineElement;
+
+/// <summary>
+/// The separator drawn above a page's footnotes, from <c>w:separator</c>.
+/// </summary>
+/// <remarks>
+/// Word stores the separator as a footnote of its own whose body is a paragraph holding this
+/// element, which is what gives the line its height and the space around it.
+/// </remarks>
+public sealed class SeparatorInline : InlineElement;
+
 /// <summary>Where a hyperlink leads.</summary>
 /// <param name="RelationshipId">
 /// The relationship naming an external target. Resolved to a URL when the package is read, since
@@ -395,6 +420,28 @@ public sealed class TableCell
     public List<BlockElement> Content { get; } = [];
 }
 
+/// <summary>
+/// One footnote: its number, and the blocks that make up its text.
+/// </summary>
+/// <param name="Id">
+/// The id the body's references use. Word reserves the ids below 1 for the separators, which are
+/// not footnotes in their own right.
+/// </param>
+/// <param name="Type">
+/// "normal" for a real footnote, or "separator" and "continuationSeparator" for the rules Word
+/// draws above a page's footnotes.
+/// </param>
+public sealed class Footnote(int id, string type)
+{
+    public int Id { get; } = id;
+
+    public string Type { get; } = type;
+
+    public bool IsSeparator => Type is "separator" or "continuationSeparator";
+
+    public List<BlockElement> Body { get; } = [];
+}
+
 /// <summary>The contents of one header or footer part.</summary>
 public sealed class HeaderFooter
 {
@@ -406,6 +453,9 @@ public sealed class WordDocument
 {
     /// <summary>External hyperlink targets by relationship id.</summary>
     public Dictionary<string, string> Hyperlinks { get; } = [];
+
+    /// <summary>The footnotes part, by footnote id.</summary>
+    public Dictionary<int, Footnote> Footnotes { get; } = [];
 
     /// <summary>Header and footer parts by relationship id.</summary>
     public Dictionary<string, HeaderFooter> HeadersAndFooters { get; } = [];

@@ -116,7 +116,9 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: hyperlinks (external addresses as clickable regions, internal links to bookmarks
+Implemented: footnotes (numbered in document order, each note at the foot of the page its
+reference lands on, with the separator rule and the space the notes take out of the body above
+them), hyperlinks (external addresses as clickable regions, internal links to bookmarks
 anywhere in the document, with the regions placed and padded the way Word places them), headers
 and footers (per page, with separate first-page and even-page variants, and
 PAGE and NUMPAGES fields evaluated), lists and numbering (decimal, letters, roman and bullets, nested levels with
@@ -140,8 +142,9 @@ algorithm the way the paragraph rules are.
 
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
 border, splitting a row across pages, fields other than PAGE and NUMPAGES (their cached values are
-shown), footnotes, RTL and complex scripts, font subsetting, GPOS kerning, widow/orphan
-control, and centre/right/decimal tab stops.
+shown), endnotes, splitting a footnote across pages, footnote numbering other than continuous
+decimal and notes positioned beneath the text rather than at the foot of the page, RTL and complex
+scripts, font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab stops.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
 the PDF, so an unimplemented construct fails loudly instead of vanishing from the output.

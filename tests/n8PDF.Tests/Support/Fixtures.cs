@@ -27,6 +27,11 @@ public static class Fixtures
     private static readonly string Times12 = Times();
     private static readonly string Times24 = Times(48);
 
+    /// <summary>Ten point, which is the size Word's footnote text style uses.</summary>
+    private static readonly string Times10 = Times(20);
+
+    private static readonly string Times36 = Times(72);
+
     /// <summary>
     /// Paragraph properties with every spacing term pinned to zero, so a measured baseline gap is
     /// purely line-box geometry.
@@ -594,6 +599,61 @@ public static class Fixtures
                     builder.AddParagraph($"Body paragraph number {i} of seventy.", ZeroSpacing, Times12);
 
                 return builder;
+            },
+
+            // Footnotes on two pages, over enough body text that the space the notes take out of
+            // the page decides where the text breaks.
+            ["footnotes"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                var first = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("The first note, at the foot of the first page.", Times10));
+                var second = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("A second note on the same page as the first.", Times10));
+                var third = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("A note belonging to the second page.", Times10));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">A sentence with a note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(first) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> and another one</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(second) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                for (var i = 1; i <= 60; i++)
+                {
+                    if (i == 45)
+                    {
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph number {i} of sixty, which carries a note</w:t></w:r>" +
+                            DocxBuilder.FootnoteReference(third) +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+                    }
+                    else
+                    {
+                        builder.AddParagraph($"Body paragraph number {i} of sixty.", ZeroSpacing, Times12);
+                    }
+                }
+
+                return builder;
+            },
+
+            // The same footnote arrangement with the separator paragraph's mark three times the
+            // size. Word's export says both how the separator's line box is sized and whether the
+            // rule's offset within that box is fixed or proportional to it.
+            ["footnote-separator-probe"] = () =>
+            {
+                var builder = new DocxBuilder().WithFootnoteSeparatorMark(Times36);
+                var note = builder.AddFootnote(DocxBuilder.FootnoteBody("The note.", Times10));
+
+                return builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">A sentence with a note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(note) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
             },
 
             // External and internal links, the latter pointing across a page break at a bookmark.

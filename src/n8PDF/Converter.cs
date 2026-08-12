@@ -94,6 +94,7 @@ public static class Converter
         var document = DocumentParser.Parse(package.ReadPartAsXml(mainPartName));
         LoadImages(package, mainPartName, document);
         LoadHeadersAndFooters(package, mainPartName, document);
+        LoadFootnotes(package, mainPartName, document);
         LoadHyperlinks(package, mainPartName, mainPartName, document.Body, document);
 
         var settingsPart = package.GetRelatedPartName(mainPartName, OpcPackage.SettingsRelationship);
@@ -164,6 +165,30 @@ public static class Converter
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
             {
             }
+        }
+    }
+
+    /// <summary>
+    /// Reads the footnotes part, if the document has one.
+    /// </summary>
+    private static void LoadFootnotes(OpcPackage package, string mainPartName, WordDocument document)
+    {
+        var partName = package.GetRelatedPartName(mainPartName, OpcPackage.FootnotesRelationship);
+        if (partName is null || !package.HasPart(partName)) return;
+
+        try
+        {
+            foreach (var (id, footnote) in DocumentParser.ParseFootnotes(package.ReadPartAsXml(partName)))
+            {
+                document.Footnotes[id] = footnote;
+
+                // A footnote is its own part as far as relationships go, so a link inside one is
+                // resolved against the footnotes part rather than the body's.
+                LoadHyperlinks(package, partName, partName, footnote.Body, document);
+            }
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+        {
         }
     }
 

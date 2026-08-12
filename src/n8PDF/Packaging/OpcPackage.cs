@@ -42,6 +42,9 @@ public sealed class OpcPackage : IDisposable
     public const string ImageRelationship =
         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
 
+    public const string FootnotesRelationship =
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes";
+
     public const string HyperlinkRelationship =
         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
 

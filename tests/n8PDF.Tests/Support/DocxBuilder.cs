@@ -107,6 +107,88 @@ public sealed class DocxBuilder
         return this;
     }
 
+    private readonly List<(int Id, string Type, string Body)> _footnotes = [];
+
+    /// <summary>
+    /// Adds a footnote and returns the id its references use.
+    /// </summary>
+    /// <remarks>
+    /// The first call also adds the two separator notes, because Word writes them into every
+    /// footnotes part it creates and the rule above a page's notes comes from the first of them.
+    /// The styles the notes are formatted with are added at the same time, again matching what
+    /// Word puts in a document the moment a footnote is inserted.
+    /// </remarks>
+    private string? _separatorMarkProperties;
+
+    /// <summary>
+    /// Formatting for the paragraph mark of the separator's paragraph. Must be set before the
+    /// first footnote is added, since that is when the separators are created.
+    /// </summary>
+    public DocxBuilder WithFootnoteSeparatorMark(string runProperties)
+    {
+        _separatorMarkProperties = runProperties;
+        return this;
+    }
+
+    public int AddFootnote(string paragraphsXml)
+    {
+        if (_footnotes.Count == 0)
+        {
+            const string spacing = "<w:spacing w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>";
+            // The mark's properties go last in CT_PPr, after the spacing.
+            var mark = _separatorMarkProperties is null
+                ? string.Empty
+                : $"<w:rPr>{_separatorMarkProperties}</w:rPr>";
+
+            _footnotes.Add((-1, "separator",
+                $"<w:p><w:pPr>{spacing}{mark}</w:pPr><w:r><w:separator/></w:r></w:p>"));
+            _footnotes.Add((0, "continuationSeparator",
+                $"<w:p><w:pPr>{spacing}{mark}</w:pPr><w:r><w:continuationSeparator/></w:r></w:p>"));
+
+            WithExtraStyles(FootnoteStyles);
+        }
+
+        var id = _footnotes.Count - 1;
+        _footnotes.Add((id, "normal", paragraphsXml));
+        return id;
+    }
+
+    /// <summary>The styles Word adds to a document when a footnote is inserted into it.</summary>
+    private const string FootnoteStyles = """
+        <w:style w:type="paragraph" w:styleId="FootnoteText">
+          <w:name w:val="footnote text"/>
+          <w:basedOn w:val="Normal"/>
+          <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+          <w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>
+        </w:style>
+        <w:style w:type="character" w:styleId="FootnoteReference">
+          <w:name w:val="footnote reference"/>
+          <w:rPr><w:vertAlign w:val="superscript"/></w:rPr>
+        </w:style>
+        """;
+
+    /// <summary>Appends style definitions to whatever styles.xml the builder already has.</summary>
+    public DocxBuilder WithExtraStyles(string stylesXml)
+    {
+        _styles = _styles.Replace("</w:styles>", stylesXml + "</w:styles>");
+        return this;
+    }
+
+    /// <summary>A run holding a reference to a footnote, for use inside a paragraph.</summary>
+    public static string FootnoteReference(int id, string? runProperties = null) =>
+        "<w:r>" +
+        $"<w:rPr><w:rStyle w:val=\"FootnoteReference\"/>{runProperties}</w:rPr>" +
+        $"<w:footnoteReference w:id=\"{id}\"/></w:r>";
+
+    /// <summary>
+    /// A footnote's text: the note's own number, then the text, the way Word writes one.
+    /// </summary>
+    public static string FootnoteBody(string text, string? runProperties = null) =>
+        "<w:p><w:pPr><w:pStyle w:val=\"FootnoteText\"/></w:pPr>" +
+        $"<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/>{runProperties}</w:rPr><w:footnoteRef/></w:r>" +
+        $"<w:r>{(runProperties is not null ? $"<w:rPr>{runProperties}</w:rPr>" : string.Empty)}" +
+        $"<w:t xml:space=\"preserve\"> {Escape(text)}</w:t></w:r></w:p>";
+
     private readonly List<(string Id, string Url)> _hyperlinks = [];
 
     /// <summary>
@@ -422,6 +504,8 @@ public sealed class DocxBuilder
             if (_numbering is not null) Write(archive, "word/numbering.xml", _numbering);
             if (_evenAndOddHeaders) Write(archive, "word/settings.xml", EvenOddSettings);
 
+            if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildFootnotes());
+
             foreach (var (_, partName, _, body, hyperlinks) in _headersFooters)
             {
                 Write(archive, partName, body);
@@ -590,6 +674,13 @@ public sealed class DocxBuilder
                 $"<Override PartName=\"/{partName}\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{type}+xml\"/>");
         }
 
+        if (_footnotes.Count > 0)
+        {
+            defaults.Append(
+                "<Override PartName=\"/word/footnotes.xml\" " +
+                "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml\"/>");
+        }
+
         if (_evenAndOddHeaders)
         {
             defaults.Append(
@@ -603,6 +694,21 @@ public sealed class DocxBuilder
         return ContentTypes
             .Replace("<!--IMAGE_DEFAULTS-->", defaults.ToString())
             .Replace("<!--NUMBERING_TYPE-->", numberingType);
+    }
+
+    private string BuildFootnotes()
+    {
+        var parts = new StringBuilder();
+        foreach (var (id, type, body) in _footnotes)
+        {
+            var typeAttribute = type == "normal" ? string.Empty : $" w:type=\"{type}\"";
+            parts.Append($"<w:footnote{typeAttribute} w:id=\"{id}\">{body}</w:footnote>");
+        }
+
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+               "<w:footnotes xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
+               "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+               parts + "</w:footnotes>";
     }
 
     private string BuildDocumentRelationships()
@@ -631,6 +737,14 @@ public sealed class DocxBuilder
                 $"<Relationship Id=\"{id}\" " +
                 $"Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{type}\" " +
                 $"Target=\"{partName["word/".Length..]}\"/>");
+        }
+
+        if (_footnotes.Count > 0)
+        {
+            extra.Append(
+                "<Relationship Id=\"rIdFootnotes\" " +
+                "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes\" " +
+                "Target=\"footnotes.xml\"/>");
         }
 
         foreach (var (id, url) in _hyperlinks)

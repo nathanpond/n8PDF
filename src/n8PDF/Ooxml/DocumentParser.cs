@@ -233,6 +233,19 @@ public static class DocumentParser
             {
                 if (ParseDrawing(child) is { } drawing) run.Content.Add(drawing);
             }
+            else if (child.Name == W.Main + "footnoteReference")
+            {
+                if (int.TryParse(child.Attr("id"), out var id))
+                    run.Content.Add(new FootnoteReferenceInline(id));
+            }
+            else if (child.Name == W.Main + "footnoteRef")
+            {
+                run.Content.Add(new FootnoteMarkInline());
+            }
+            else if (child.Name == W.Main + "separator" || child.Name == W.Main + "continuationSeparator")
+            {
+                run.Content.Add(new SeparatorInline());
+            }
             else if (child.Name == W.Main + "noBreakHyphen")
             {
                 run.Content.Add(new TextInline("‑"));
@@ -244,6 +257,37 @@ public static class DocumentParser
         }
 
         return run;
+    }
+
+    /// <summary>
+    /// Reads a footnotes part into footnotes keyed by id.
+    /// </summary>
+    /// <remarks>
+    /// The separators come through as footnotes too, because that is how the format stores them:
+    /// the rule Word draws above a page's notes is a footnote whose body holds a
+    /// <c>w:separator</c>. Keeping them means the space they occupy is measured from the document
+    /// rather than assumed.
+    /// </remarks>
+    public static Dictionary<int, Footnote> ParseFootnotes(XDocument xml)
+    {
+        var result = new Dictionary<int, Footnote>();
+
+        foreach (var element in xml.Root?.Elements(W.Main + "footnote") ?? [])
+        {
+            if (!int.TryParse(element.Attr("id"), out var id)) continue;
+
+            var footnote = new Footnote(id, element.Attr("type") ?? "normal");
+
+            foreach (var child in element.Elements())
+            {
+                if (child.Name == W.Main + "p") footnote.Body.Add(ParseParagraph(child));
+                else if (child.Name == W.Main + "tbl") footnote.Body.Add(ParseTable(child));
+            }
+
+            result[id] = footnote;
+        }
+
+        return result;
     }
 
     /// <summary>

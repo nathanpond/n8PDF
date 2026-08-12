@@ -41,6 +41,26 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // every item before it, so this is per-document state rather than per-paragraph.
     private NumberingCounter _numbering = new(new NumberingDefinitions());
 
+    // Footnote bodies by id, and the printed number each has been given. Numbers are assigned as
+    // references are met, because a footnote's number is its position in the document rather than
+    // anything stored in the file.
+    private IReadOnlyDictionary<int, Footnote> _footnotes = new Dictionary<int, Footnote>();
+    private readonly Dictionary<int, int> _footnoteNumbers = [];
+    private readonly Dictionary<int, DetachedFlow> _measuredFootnotes = [];
+
+    // Footnotes waiting to be written into the foot of the page being filled.
+    private readonly List<DetachedFlow> _pageFootnotes = [];
+    private DetachedFlow? _separatorFlow;
+    private bool _separatorMeasured;
+
+    // Where the footnote area sits, fixed for the document by its section.
+    private double _footnoteLeft;
+    private double _footnoteWidth;
+    private double _footnoteBottom;
+
+    // The note whose body is being measured, for the w:footnoteRef that opens it.
+    private int _currentFootnote;
+
     // Which page is being laid out, for fields that depend on it. Zero means the body, where a
     // page number is not yet known; headers and footers set it before they run.
     private int _currentPage;
@@ -50,6 +70,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     {
         _images = document.Images;
         _hyperlinks = document.Hyperlinks;
+        _footnotes = document.Footnotes;
+        _footnoteNumbers.Clear();
+        _measuredFootnotes.Clear();
+        _pageFootnotes.Clear();
+        _separatorFlow = null;
+        _separatorMeasured = false;
+        _currentFootnote = 0;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
         var section = document.Section;
@@ -57,6 +84,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _result = result;
 
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
+
+        _footnoteLeft = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
+        _footnoteWidth = section.ContentWidthPoints;
+        _footnoteBottom = contentTop + section.ContentHeightPoints;
 
         var cursor = new Cursor
         {
@@ -67,8 +98,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             Left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips),
             Width = section.ContentWidthPoints,
             ContentTop = contentTop,
-            ContentBottom = contentTop + section.ContentHeightPoints,
-            Paginate = true
+            ContentLimit = contentTop + section.ContentHeightPoints,
+            Paginate = true,
+            OnPageComplete = FlushFootnotes
         };
 
         LayoutBlocks(cursor, document.Body);
@@ -76,6 +108,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // The final paragraph's space-after still occupies the page even though nothing follows
         // it, which matters for how much content a page is considered to hold.
         cursor.Y += cursor.PendingSpaceAfter;
+
+        // The last page never breaks, so its footnotes are still waiting.
+        FlushFootnotes(cursor.Page);
 
         // Headers and footers are laid out last, once the page count is known — a footer saying
         // "page 2 of 7" cannot be composed before the seven exists.
@@ -172,10 +207,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             if (line.ForcePageBreak && cursor.CanBreak) cursor.BreakPage();
 
+            // A footnote goes to the foot of the page its reference lands on, so its space has to
+            // come out of the page before the line that refers to it is fitted into what is left.
+            var footnoteIds = FootnotesOn(line);
+            if (cursor.FootnoteSink is not null) cursor.FootnoteSink.AddRange(footnoteIds);
+
+            var footnotes = cursor.FootnoteSink is null && footnoteIds.Count > 0
+                ? PrepareFootnotes(footnoteIds)
+                : ([], 0);
+
             // A line that does not fit starts a new page. Widow and orphan control would
             // move whole groups of lines here; it is not implemented yet.
-            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom && cursor.CanBreak)
+            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Height && cursor.CanBreak)
+            {
                 cursor.BreakPage();
+
+                // The new page carries no separator yet, so what the notes cost is not what they
+                // cost on the page just left behind.
+                if (footnotes.Flows.Count > 0) footnotes = PrepareFootnotes(footnoteIds);
+            }
 
             if (firstLine && bookmarks.Count > 0 && _result is not null)
             {
@@ -194,6 +244,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             }
 
             EmitLine(cursor.Page, line, cursor.Left, cursor.Y, index);
+            CommitFootnotes(cursor, footnotes);
             cursor.Y += line.Height;
         }
 
@@ -462,6 +513,140 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _currentPage = 0;
     }
 
+    // ----- footnotes -----
+
+    /// <summary>
+    /// The rule Word draws above a page's footnotes: two inches long, a hundredth of an inch
+    /// thick, and sitting a fixed distance above the first note.
+    /// </summary>
+    /// <remarks>
+    /// All three were measured from Word's exports, since the document says only that there is a
+    /// separator, never what it looks like. Word fills a path rather than stroking a line, which
+    /// is what <see cref="PositionedRule"/> does too.
+    ///
+    /// The gap is measured up from the bottom of the separator's line box — that is, down from the
+    /// first note — rather than from the top of that box. <c>footnote-separator-probe</c> gives the
+    /// separator's paragraph a mark three times the usual size, and Word draws the rule in exactly
+    /// the same place as it does for an ordinary one: the rule follows the notes, not its own
+    /// paragraph.
+    /// </remarks>
+    private const double FootnoteSeparatorWidthPoints = 144;
+
+    private const double FootnoteSeparatorThicknessPoints = 0.72;
+
+    private const double FootnoteSeparatorGapPoints = 5.07;
+
+    /// <summary>
+    /// Measures the footnotes some content refers to and reports how much more of the page they
+    /// need, so the content can be fitted against what is left rather than against the whole page.
+    /// </summary>
+    private (List<DetachedFlow> Flows, double Height) PrepareFootnotes(IEnumerable<int> ids)
+    {
+        var flows = new List<DetachedFlow>();
+        var height = 0.0;
+
+        foreach (var id in ids)
+        {
+            if (!_footnotes.TryGetValue(id, out var footnote) || footnote.IsSeparator) continue;
+
+            var flow = MeasureFootnote(id, footnote);
+            flows.Add(flow);
+            height += flow.Height;
+        }
+
+        // The separator is paid for once per page, by whichever note reaches it first.
+        if (flows.Count > 0 && _pageFootnotes.Count == 0)
+            height += SeparatorFlow()?.Height ?? 0;
+
+        return (flows, height);
+    }
+
+    /// <summary>Adds prepared footnotes to the page being filled and takes their space out of it.</summary>
+    private void CommitFootnotes(Cursor cursor, (List<DetachedFlow> Flows, double Height) prepared)
+    {
+        if (prepared.Flows.Count == 0) return;
+
+        _pageFootnotes.AddRange(prepared.Flows);
+        cursor.Reserved += prepared.Height;
+    }
+
+    /// <summary>Footnote ids referenced by the marks on a composed line, in order.</summary>
+    private static List<int> FootnotesOn(ComposedLine line)
+    {
+        List<int>? ids = null;
+
+        foreach (var item in line.Items)
+        {
+            if (item.Atom is TextAtom { FootnoteId: { } id }) (ids ??= []).Add(id);
+        }
+
+        return ids ?? [];
+    }
+
+    /// <summary>
+    /// Writes the footnotes a page collected into the foot of it.
+    /// </summary>
+    /// <remarks>
+    /// The notes are bottom-aligned against the bottom margin, which is where Word puts them, with
+    /// the separator immediately above the first. The space they take was reserved as each note
+    /// was committed, so nothing above them has been placed where they are about to go.
+    /// </remarks>
+    private void FlushFootnotes(LaidOutPage page)
+    {
+        if (_pageFootnotes.Count == 0) return;
+
+        var height = 0.0;
+        foreach (var flow in _pageFootnotes) height += flow.Height;
+
+        var y = _footnoteBottom - height;
+
+        if (SeparatorFlow() is { } separator)
+            separator.PlaceOnto(page, _footnoteLeft, y - separator.Height);
+
+        foreach (var flow in _pageFootnotes)
+        {
+            flow.PlaceOnto(page, _footnoteLeft, y);
+            y += flow.Height;
+        }
+
+        _pageFootnotes.Clear();
+    }
+
+    /// <summary>
+    /// Lays out one footnote's body, once. A note is referenced from one place and appears once,
+    /// so measuring it again would only repeat the work.
+    /// </summary>
+    private DetachedFlow MeasureFootnote(int id, Footnote footnote)
+    {
+        if (_measuredFootnotes.TryGetValue(id, out var cached)) return cached;
+
+        // The note's own number opens its text, and it is the number the reference was given.
+        var previous = _currentFootnote;
+        _currentFootnote = _footnoteNumbers.GetValueOrDefault(id);
+
+        var flow = MeasureBlocks(footnote.Body, _footnoteWidth);
+
+        _currentFootnote = previous;
+        _measuredFootnotes[id] = flow;
+        return flow;
+    }
+
+    /// <summary>
+    /// The separator's own content, or null when the document has none. Measured once: it is the
+    /// same on every page.
+    /// </summary>
+    private DetachedFlow? SeparatorFlow()
+    {
+        if (_separatorMeasured) return _separatorFlow;
+
+        _separatorMeasured = true;
+
+        var separator = _footnotes.Values.FirstOrDefault(f => f.Type == "separator");
+        if (separator is not null) _separatorFlow = MeasureBlocks(separator.Body, _footnoteWidth);
+
+        return _separatorFlow;
+    }
+
     /// <summary>
     /// Chooses which of the three header and footer kinds applies to a page.
     /// </summary>
@@ -552,8 +737,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var rowHeight = ComputeRowHeight(row, placed);
 
-            if (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom && cursor.CanBreak)
+            // A cell's contents were composed on a page of their own, so any footnote they refer
+            // to is still waiting to be given to the page the row lands on.
+            var rowFootnoteIds = placed.SelectMany(cell => cell.Content.Footnotes).ToList();
+            if (cursor.FootnoteSink is not null) cursor.FootnoteSink.AddRange(rowFootnoteIds);
+
+            var rowFootnotes = cursor.FootnoteSink is null && rowFootnoteIds.Count > 0
+                ? PrepareFootnotes(rowFootnoteIds)
+                : ([], 0);
+
+            if (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height && cursor.CanBreak)
+            {
                 cursor.BreakPage();
+                if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(rowFootnoteIds);
+            }
 
             var top = cursor.Y;
 
@@ -588,6 +785,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             DrawRowBorders(cursor.Page, placed, top, rowHeight);
 
+            CommitFootnotes(cursor, rowFootnotes);
             cursor.Y += rowHeight;
 
             // The final row's bottom edge is not shared with anything below it, so it is the one
@@ -990,6 +1188,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// </summary>
     private DetachedFlow MeasureBlocks(IReadOnlyList<BlockElement> blocks, double width)
     {
+        var footnotes = new List<int>();
         var section = new SectionProperties();
         var document = new LaidOutDocument { Section = section };
 
@@ -1005,14 +1204,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             Left = 0,
             Width = width,
             ContentTop = 0,
-            ContentBottom = double.MaxValue,
-            Paginate = false
+            ContentLimit = double.MaxValue,
+            Paginate = false,
+            FootnoteSink = footnotes
         };
 
         LayoutBlocks(cursor, blocks);
         cursor.Y += cursor.PendingSpaceAfter;
 
-        return new DetachedFlow(page, cursor.Y);
+        return new DetachedFlow(page, cursor.Y, footnotes);
     }
 
     private static (double Red, double Green, double Blue) ParseHexColor(string value)
@@ -1074,6 +1274,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             laidOut.Texts.Add(text);
             AddDecorations(page, text);
+        }
+
+        foreach (var (separator, x) in line.Separators)
+        {
+            page.Rules.Add(new PositionedRule
+            {
+                X = contentLeft + x,
+                Y = top + line.Height - FootnoteSeparatorGapPoints - separator.Thickness,
+                Width = separator.Width,
+                Thickness = separator.Thickness,
+                Color = (0, 0, 0)
+            });
         }
 
         foreach (var (image, x) in line.Images)
@@ -1251,6 +1463,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 continue;
             }
 
+            if (atom is SeparatorAtom)
+            {
+                line.Items.Add(new PlacedAtom(atom, x, 0));
+                index++;
+                placedAnything = true;
+                continue;
+            }
+
             if (atom is ImageAtom image)
             {
                 // An image behaves like a very wide word: it cannot be broken, and it wraps to
@@ -1347,6 +1567,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             {
                 current = null;
                 pen = item.X + item.Width;
+                continue;
+            }
+
+            if (item.Atom is SeparatorAtom separator)
+            {
+                line.Separators.Add((separator, indentLeft + offset + pen));
+                current = null;
+
+                // The rule draws nothing on the baseline but its run's font still sets the line
+                // box, which is the space Word leaves between the body text and the notes.
+                maxTextAscent = Math.Max(maxTextAscent, separator.Ascent);
+                maxTextDescent = Math.Max(maxTextDescent, separator.Descent);
+                maxTextNatural = Math.Max(maxTextNatural, separator.NaturalHeight);
                 continue;
             }
 
@@ -1529,6 +1762,29 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         AddImageAtom(atoms, drawing);
                         break;
 
+                    case FootnoteReferenceInline reference:
+                        AddFootnoteMark(atoms, reference, runFormat, selection,
+                            ascent, naturalHeight, descent, link);
+                        break;
+
+                    case FootnoteMarkInline when _currentFootnote > 0:
+                        AddTextAtoms(
+                            atoms,
+                            _currentFootnote.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                            runFormat, selection, ascent, naturalHeight, descent, link);
+                        break;
+
+                    case SeparatorInline:
+                        atoms.Add(new SeparatorAtom
+                        {
+                            Width = FootnoteSeparatorWidthPoints,
+                            Thickness = FootnoteSeparatorThicknessPoints,
+                            Ascent = ascent,
+                            NaturalHeight = naturalHeight,
+                            Descent = descent
+                        });
+                        break;
+
                     case FieldInline field:
                         AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(ResolveField(field), runFormat),
                             runFormat, selection, ascent, naturalHeight, descent, link);
@@ -1538,6 +1794,48 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         return atoms;
+    }
+
+    /// <summary>
+    /// Puts a footnote's number where its reference appears.
+    /// </summary>
+    /// <remarks>
+    /// The number is the footnote's position in the document, not its id: Word stores ids in the
+    /// order the notes were created and renumbers on the page. A reference to a footnote that is
+    /// not in the part draws nothing, since there would be no note for the number to lead to.
+    ///
+    /// The mark is raised and shrunk by the FootnoteReference character style, so nothing is done
+    /// here to make it superscript — that comes through the cascade like any other formatting.
+    /// </remarks>
+    private void AddFootnoteMark(
+        List<Atom> atoms, FootnoteReferenceInline reference, ResolvedRunFormat format,
+        FontSelection font, double ascent, double naturalHeight, double descent, ResolvedHyperlink? link)
+    {
+        if (!_footnotes.TryGetValue(reference.Id, out var footnote) || footnote.IsSeparator) return;
+
+        if (!_footnoteNumbers.TryGetValue(reference.Id, out var number))
+        {
+            number = _footnoteNumbers.Count + 1;
+            _footnoteNumbers[reference.Id] = number;
+        }
+
+        var text = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        atoms.Add(new TextAtom
+        {
+            Text = text,
+            IsSpace = false,
+            Format = format,
+            Font = font,
+            Ascent = ascent,
+            NaturalHeight = naturalHeight,
+            Descent = descent,
+            Link = link,
+            FootnoteId = reference.Id,
+            Width = TextMeasurer.Measure(
+                font.Font, text, format.EffectiveFontSizePoints,
+                format.CharacterSpacingPoints, _options.ApplyKerning) * format.ScaleFactor
+        });
     }
 
     /// <summary>
@@ -1726,7 +2024,29 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         public required double ContentTop { get; init; }
 
-        public required double ContentBottom { get; init; }
+        /// <summary>The bottom margin: where content would stop with nothing reserved.</summary>
+        public required double ContentLimit { get; init; }
+
+        /// <summary>
+        /// Height reserved at the foot of the current page, which is the footnote area. It grows
+        /// as footnotes are referenced and is given back when a new page starts.
+        /// </summary>
+        public double Reserved { get; set; }
+
+        /// <summary>How far down content may reach on this page.</summary>
+        public double ContentBottom => ContentLimit - Reserved;
+
+        /// <summary>
+        /// Called with the page being left behind, so that whatever was reserved on it can be
+        /// filled in before the cursor moves on.
+        /// </summary>
+        public Action<LaidOutPage>? OnPageComplete { get; init; }
+
+        /// <summary>
+        /// Where footnotes found while composing are collected instead of being placed. Set while
+        /// measuring a detached flow, whose page is not the one the content will end up on.
+        /// </summary>
+        public List<int>? FootnoteSink { get; init; }
 
         /// <summary>False inside a table cell, whose height is measured before it is placed.</summary>
         public required bool Paginate { get; init; }
@@ -1810,8 +2130,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         public void BreakPage()
         {
+            OnPageComplete?.Invoke(Page);
+
             Page = NewPage(Document, Section);
             Y = ContentTop;
+            Reserved = 0;
 
             // A float belongs to the page its anchor landed on; it does not follow the text.
             Floats.Clear();
@@ -1821,12 +2144,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>
     /// Content laid out at the origin of a detached page, ready to be translated into position.
     /// </summary>
-    private sealed class DetachedFlow(LaidOutPage page, double height)
+    private sealed class DetachedFlow(LaidOutPage page, double height, List<int>? footnotes = null)
     {
         public static readonly DetachedFlow Empty =
             new(new LaidOutPage { WidthPoints = 0, HeightPoints = 0 }, 0);
 
         public double Height { get; } = height;
+
+        /// <summary>
+        /// Footnotes referenced by this content, which belong to the page it is placed on rather
+        /// than to the detached page it was composed on.
+        /// </summary>
+        public IReadOnlyList<int> Footnotes { get; } = footnotes ?? [];
 
         /// <summary>Copies this flow's content onto a real page, offset by the given origin.</summary>
         public void PlaceOnto(LaidOutPage target, double dx, double dy)
@@ -1923,6 +2252,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     {
         public required string Text { get; init; }
 
+        /// <summary>
+        /// The footnote this atom is the reference mark for, if it is one. Carried on the atom so
+        /// that the line a mark lands on is known, which is the page the footnote belongs on.
+        /// </summary>
+        public int? FootnoteId { get; init; }
+
         public required bool IsSpace { get; init; }
 
         public required ResolvedRunFormat Format { get; init; }
@@ -1932,6 +2267,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required double Width { get; init; }
 
         public ResolvedHyperlink? Link { get; init; }
+    }
+
+    /// <summary>
+    /// The rule drawn above a page's footnotes. It occupies a line of its own and draws nothing
+    /// horizontally, so it advances the pen by nothing.
+    /// </summary>
+    private sealed class SeparatorAtom : Atom
+    {
+        public required double Width { get; init; }
+
+        public required double Thickness { get; init; }
     }
 
     private sealed class TabAtom : Atom
@@ -1987,6 +2333,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public List<Segment> Segments { get; } = [];
 
         public List<(ImageAtom Atom, double X)> Images { get; } = [];
+
+        /// <summary>Footnote separator rules on this line, as atom and x offset.</summary>
+        public List<(SeparatorAtom Atom, double X)> Separators { get; } = [];
 
         public double Height { get; set; }
 
