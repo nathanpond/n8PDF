@@ -116,7 +116,8 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: section breaks (next-page, continuous, even- and odd-page, each section with its own
+Implemented: widow and orphan control (two lines of a paragraph on each side of a page or column
+break, or none — a three-line paragraph moves whole, since it cannot give two to both), section breaks (next-page, continuous, even- and odd-page, each section with its own
 page size, orientation and margins, running heads inherited per kind from the section before where
 one says nothing), multiple text columns (evenly divided or individually stated, column breaks, and
 the rule down the gap where the document asks for one), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
@@ -152,7 +153,9 @@ each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
 them rather than under the whole measure, page numbering restarted per section, vertical page
 alignment,
-font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab stops.
+font subsetting, GPOS kerning, keeping a paragraph with the next one or keeping all its lines
+together (`w:keepNext` and `w:keepLines` are read but not acted on), and centre/right/decimal tab
+stops.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches
 the PDF, so an unimplemented construct fails loudly instead of vanishing from the output.

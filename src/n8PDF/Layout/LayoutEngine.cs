@@ -401,13 +401,26 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var bookmarks = _pendingBookmarks.ToList();
         var firstLine = true;
 
+        // This paragraph's lines in the column being filled, so that widow and orphan control can
+        // take some of them back off it. Cleared whenever the cursor moves on.
+        var placed = new List<PlacedLine>();
+        var emitted = 0;
+
         while (composer.HasMore)
         {
             // A break carried over from the previous line is applied before this one is composed,
             // not after: a column break changes the measure, and a line broken against the width
             // it was leaving would be wrapped in the wrong place.
-            if (composer.PendingPageBreak && cursor.CanBreak) cursor.BreakPage();
-            else if (composer.PendingColumnBreak && cursor.CanAdvance) cursor.AdvanceColumn();
+            if (composer.PendingPageBreak && cursor.CanBreak)
+            {
+                cursor.BreakPage();
+                placed.Clear();
+            }
+            else if (composer.PendingColumnBreak && cursor.CanAdvance)
+            {
+                cursor.AdvanceColumn();
+                placed.Clear();
+            }
 
             var band = ResolveBandForLine(cursor, composer.ProvisionalHeight);
             var line = composer.Next(band.Left, band.Width);
@@ -422,11 +435,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 : ([], 0);
 
             // A line that does not fit moves to the next column, or off the page when it was in
-            // the last of them. Widow and orphan control would move whole groups of lines here;
-            // it is not implemented yet.
+            // the last of them — and may take the lines above it along, so that a paragraph is
+            // never split with only one of its lines on either side of the break.
             if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Height && cursor.CanAdvance)
             {
+                var pull = WidowOrphanPullBack(format, placed, isLastLine: !composer.HasMore, cursor);
+                var pulled = pull > 0 ? UnplaceLines(cursor, placed, pull) : [];
+
                 cursor.AdvanceColumn();
+                placed.Clear();
+
+                foreach (var moved in pulled) RePlaceLine(cursor, moved, index, placed);
+
+                // A pulled-back first line takes its paragraph's bookmarks with it.
+                if (pull > 0 && emitted - pull == 0) firstLine = true;
 
                 // The new page carries no separator yet, so what the notes cost is not what they
                 // cost on the page just left behind.
@@ -449,9 +471,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 firstLine = false;
             }
 
-            EmitLine(cursor.Page, line, cursor.Left, cursor.Y, index);
-            CommitFootnotes(cursor, footnotes);
-            cursor.Y += line.Height;
+            placed.Add(Place(cursor, line, index, footnoteIds, footnotes));
+            emitted++;
         }
 
         var spaceAfter = format.SpaceAfterPoints;
@@ -467,6 +488,118 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // space-before.
         cursor.PendingSpaceAfter = spaceAfter;
         cursor.PreviousFormat = format;
+    }
+
+    // ----- widow and orphan control -----
+
+    /// <summary>
+    /// A line of the paragraph being laid out, and everything placing it added to the page, so
+    /// that it can be taken back off again.
+    /// </summary>
+    /// <param name="Top">Where the line started, which is where the cursor returns to.</param>
+    /// <param name="LineIndex">
+    /// How much of each of the page's lists belonged to the page before this line was placed.
+    /// Placing only ever appends, so these are all that is needed to undo it.
+    /// </param>
+    private readonly record struct PlacedLine(
+        ComposedLine Line,
+        double Top,
+        int LineIndex,
+        int RuleIndex,
+        int ImageIndex,
+        IReadOnlyList<int> FootnoteIds,
+        int FootnoteCount,
+        double FootnoteHeight);
+
+    /// <summary>Puts a composed line on the page and records what that took.</summary>
+    private PlacedLine Place(
+        Cursor cursor, ComposedLine line, int paragraphIndex,
+        IReadOnlyList<int> footnoteIds, (List<DetachedFlow> Flows, double Height) footnotes)
+    {
+        var placed = new PlacedLine(
+            line, cursor.Y,
+            cursor.Page.Lines.Count, cursor.Page.Rules.Count, cursor.Page.Images.Count,
+            footnoteIds, footnotes.Flows.Count, footnotes.Height);
+
+        EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex);
+        CommitFootnotes(cursor, footnotes);
+        cursor.Y += line.Height;
+
+        return placed;
+    }
+
+    /// <summary>
+    /// How many of a paragraph's lines must follow the break rather than staying above it.
+    /// </summary>
+    /// <remarks>
+    /// Word's rule is two lines on each side: one line of a paragraph left at the foot of a column
+    /// is an orphan, one carried alone to the next is a widow, and it will have neither. A
+    /// paragraph of three lines cannot satisfy both at once, so all of it moves.
+    ///
+    /// Lines are never pushed off a column they already start. There would be nothing above them
+    /// to gain by it, and the next column would be no roomier than the one they were pushed out
+    /// of, so the paragraph would march across the page never fitting anywhere.
+    /// </remarks>
+    private static int WidowOrphanPullBack(
+        ResolvedParagraphFormat format, List<PlacedLine> placed, bool isLastLine, Cursor cursor)
+    {
+        if (!format.WidowControl || placed.Count == 0) return 0;
+
+        var pull = placed.Count switch
+        {
+            1 => 1,
+            2 when isLastLine => 2,
+            _ when isLastLine => 1,
+            _ => 0
+        };
+
+        if (pull == 0) return 0;
+
+        return placed[^pull].Top > cursor.ContentTop + 0.001 ? pull : 0;
+    }
+
+    /// <summary>
+    /// Takes the last few lines back off the page, undoing everything placing them did, and
+    /// returns them in the order they were placed so they can go down again elsewhere.
+    /// </summary>
+    private List<PlacedLine> UnplaceLines(Cursor cursor, List<PlacedLine> placed, int count)
+    {
+        var pulled = placed.GetRange(placed.Count - count, count);
+        var first = pulled[0];
+        var page = cursor.Page;
+
+        page.Lines.RemoveRange(first.LineIndex, page.Lines.Count - first.LineIndex);
+        page.Rules.RemoveRange(first.RuleIndex, page.Rules.Count - first.RuleIndex);
+        page.Images.RemoveRange(first.ImageIndex, page.Images.Count - first.ImageIndex);
+
+        // The notes these lines referred to belong to wherever the lines end up, so the page gets
+        // back both them and the space it set aside for them.
+        var flows = 0;
+        var height = 0.0;
+        foreach (var line in pulled)
+        {
+            flows += line.FootnoteCount;
+            height += line.FootnoteHeight;
+        }
+
+        if (flows > 0)
+        {
+            _pageFootnotes.RemoveRange(_pageFootnotes.Count - flows, flows);
+            cursor.Reserved -= height;
+        }
+
+        cursor.Y = first.Top;
+        return pulled;
+    }
+
+    /// <summary>Puts a pulled-back line down again where the cursor now stands.</summary>
+    private void RePlaceLine(Cursor cursor, PlacedLine line, int paragraphIndex, List<PlacedLine> placed)
+    {
+        var footnotes = line.FootnoteIds.Count > 0 && cursor.FootnoteSink is null
+            ? PrepareFootnotes(line.FootnoteIds)
+            : ([], 0);
+
+        placed.Add(Place(cursor, line.Line, paragraphIndex, line.FootnoteIds, footnotes));
     }
 
     /// <summary>

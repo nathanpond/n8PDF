@@ -666,6 +666,31 @@ public static class Fixtures
                 return builder;
             },
 
+            // Paragraphs that wrap to three lines each, over enough of them that a page boundary
+            // has to fall inside one. Word will not leave a single line of a paragraph at the foot
+            // of a page or carry one alone to the next, so where it puts the paragraph the break
+            // lands in is what this fixture asks it.
+            ["widow-orphan"] = () =>
+            {
+                // Two lines to open with, which is what puts the page boundary inside a paragraph
+                // rather than neatly between two of them.
+                var builder = new DocxBuilder().AddParagraph(
+                    "An opening paragraph of its own, written to run to two lines and no further, " +
+                    "so that what follows starts part-way through the page.",
+                    ZeroSpacing, Times12);
+
+                for (var i = 1; i <= 26; i++)
+                {
+                    builder.AddParagraph(
+                        $"Paragraph number {i} of twenty-six, written at some length so that it " +
+                        "runs to a third line on a page of this width rather than stopping short " +
+                        "on the second one, which is what makes a break fall inside it.",
+                        ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
+
             // Two equal columns with a rule between them, holding more text than one column can
             // take: where Word puts the overflow, and whether it evens the two out when the text
             // runs out part-way down, are what the reference answers.
@@ -674,18 +699,16 @@ public static class Fixtures
                 var builder = new DocxBuilder().WithSection(
                     DocxBuilder.Section(columns: 2, columnSeparator: true));
 
-                // One paragraph long enough to wrap, at the top of the first column where nothing
-                // else is going on, which is what proves the measure the text is broken against.
-                builder.AddParagraph(
-                    "An opening paragraph written long enough that it has to wrap inside the " +
-                    "column rather than fitting on one line of it.",
-                    ZeroSpacing, Times12);
-
-                // The rest are single lines. Word will not leave one line of a paragraph alone at
-                // the foot of a column, so a fixture built from paragraphs that wrap would be
-                // measuring widow control — which is not implemented — rather than the columns.
-                for (var i = 1; i <= 60; i++)
-                    builder.AddParagraph($"Column line number {i} of sixty.", ZeroSpacing, Times12);
+                // Paragraphs that wrap inside a column, which is what proves the measure the text
+                // is broken against — and enough of them that a column boundary falls inside one,
+                // so that where it goes is decided by widow control as well.
+                for (var i = 1; i <= 26; i++)
+                {
+                    builder.AddParagraph(
+                        $"Paragraph number {i} of twenty-six, written long enough that it has to " +
+                        "wrap inside the column rather than fitting on one line of it.",
+                        ZeroSpacing, Times12);
+                }
 
                 return builder;
             },
