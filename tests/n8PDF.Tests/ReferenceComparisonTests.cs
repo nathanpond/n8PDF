@@ -112,13 +112,21 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Reduces a document to its characters with all whitespace removed. Word draws a trailing
-    /// space for each paragraph mark and splits runs differently from us, so whitespace carries no
-    /// information here — but the character sequence still identifies the document unambiguously,
-    /// which is all this check needs.
+    /// Reduces a document to its characters, in reading order, with all whitespace removed.
     /// </summary>
+    /// <remarks>
+    /// Sorted by position rather than taken in the order the runs appear in the file: headers and
+    /// footers are laid out after the body, because a page number needs the page count, so they
+    /// come last in our content stream and first on Word's page. Whitespace is dropped because
+    /// Word draws a trailing space for each paragraph mark and splits runs differently from us.
+    /// The character sequence still identifies the document unambiguously, which is all this
+    /// check needs.
+    /// </remarks>
     private static string Normalize(IEnumerable<ExtractedTextRun> runs) =>
-        new(string.Concat(runs.Select(r => r.Text)).Where(c => !char.IsWhiteSpace(c)).ToArray());
+        new(string.Concat(runs
+                .OrderBy(r => r.PageIndex).ThenBy(r => r.BaselineY).ThenBy(r => r.X)
+                .Select(r => r.Text))
+            .Where(c => !char.IsWhiteSpace(c)).ToArray());
 
     private static string Truncate(string text) => text.Length <= 90 ? text : text[..90] + "…";
 

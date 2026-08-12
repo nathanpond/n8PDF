@@ -40,10 +40,79 @@ public static class DocumentParser
             if (sectPr is not null) paragraph.SectionBreak = ParseSection(sectPr);
         }
 
-        foreach (var child in element.Elements())
-            CollectRuns(child, paragraph);
-
+        CollectParagraphContent(element, paragraph);
         return paragraph;
+    }
+
+    /// <summary>
+    /// Walks a paragraph's children, folding complex fields into single field runs.
+    /// </summary>
+    /// <remarks>
+    /// A complex field is not an element but a sequence: a run carrying "begin", runs holding the
+    /// instruction, a "separate", the runs Word last rendered, then "end". Reading them as
+    /// ordinary runs would show the cached value but lose the instruction, so the field could
+    /// never be recomputed — which is exactly what a page number needs.
+    /// </remarks>
+    private static void CollectParagraphContent(XElement element, Paragraph paragraph)
+    {
+        var instruction = new System.Text.StringBuilder();
+        var result = new System.Text.StringBuilder();
+
+        // 0 outside a field, 1 collecting the instruction, 2 collecting the cached result.
+        var state = 0;
+        RunProperties? fieldProperties = null;
+
+        foreach (var child in element.Elements())
+        {
+            var fieldChar = child.Name == W.Main + "r"
+                ? child.Element(W.Main + "fldChar")?.Attr("fldCharType")
+                : null;
+
+            switch (fieldChar)
+            {
+                case "begin":
+                    state = 1;
+                    instruction.Clear();
+                    result.Clear();
+                    fieldProperties = child.Element(W.Main + "rPr") is { } begin
+                        ? ParseRunProperties(begin)
+                        : null;
+                    continue;
+
+                case "separate":
+                    state = 2;
+                    continue;
+
+                case "end":
+                {
+                    var run = new Run();
+                    if (fieldProperties is not null) run.Properties = fieldProperties;
+                    run.Content.Add(new FieldInline(instruction.ToString(), result.ToString()));
+                    paragraph.Runs.Add(run);
+
+                    state = 0;
+                    continue;
+                }
+            }
+
+            if (state == 1)
+            {
+                instruction.Append(string.Concat(child.Descendants(W.Main + "instrText").Select(t => t.Value)));
+                continue;
+            }
+
+            if (state == 2)
+            {
+                // The result's own formatting is taken from the first run that carries any.
+                if (fieldProperties is null && child.Element(W.Main + "rPr") is { } resultProperties)
+                    fieldProperties = ParseRunProperties(resultProperties);
+
+                result.Append(string.Concat(child.Descendants(W.Main + "t").Select(t => t.Value)));
+                continue;
+            }
+
+            CollectRuns(child, paragraph);
+        }
     }
 
     /// <summary>
@@ -56,6 +125,22 @@ public static class DocumentParser
         if (element.Name == W.Main + "r")
         {
             paragraph.Runs.Add(ParseRun(element));
+            return;
+        }
+
+        // A simple field holds its instruction in an attribute and the value Word last computed
+        // in the runs inside it. Skipping the element would drop that cached value entirely.
+        if (element.Name == W.Main + "fldSimple")
+        {
+            var instruction = element.Attr("instr") ?? string.Empty;
+            var cached = string.Concat(element.Descendants(W.Main + "t").Select(t => t.Value));
+
+            var run = new Run();
+            var firstRun = element.Element(W.Main + "r");
+            if (firstRun?.Element(W.Main + "rPr") is { } rPr) run.Properties = ParseRunProperties(rPr);
+
+            run.Content.Add(new FieldInline(instruction, cached));
+            paragraph.Runs.Add(run);
             return;
         }
 
@@ -406,6 +491,20 @@ public static class DocumentParser
             section.GutterTwips = pgMar.IntAttr("gutter") ?? section.GutterTwips;
         }
 
+        foreach (var reference in sectPr.Elements(W.Main + "headerReference"))
+        {
+            var id = reference.Attribute(W.Relationships + "id")?.Value;
+            if (id is not null) section.HeaderReferences[reference.Attr("type") ?? "default"] = id;
+        }
+
+        foreach (var reference in sectPr.Elements(W.Main + "footerReference"))
+        {
+            var id = reference.Attribute(W.Relationships + "id")?.Value;
+            if (id is not null) section.FooterReferences[reference.Attr("type") ?? "default"] = id;
+        }
+
+        section.TitlePage = sectPr.Element(W.Main + "titlePg")?.OnOff() ?? false;
+
         var cols = sectPr.Element(W.Main + "cols");
         if (cols is not null)
             section.ColumnCount = Math.Max(1, cols.IntAttr("num") ?? 1);
@@ -418,7 +517,7 @@ public static class DocumentParser
         return section;
     }
 
-    private static Table ParseTable(XElement element)
+    public static Table ParseTable(XElement element)
     {
         var table = new Table();
 

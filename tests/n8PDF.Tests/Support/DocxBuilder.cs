@@ -246,6 +246,59 @@ public sealed class DocxBuilder
         return this;
     }
 
+    private readonly List<(string Id, string PartName, string Kind, string Body)> _headersFooters = [];
+    private bool _titlePage;
+    private bool _evenAndOddHeaders;
+
+    /// <summary>
+    /// Adds a header or footer part and references it from the section.
+    /// </summary>
+    /// <param name="kind">"default", "first" or "even".</param>
+    public DocxBuilder WithHeaderFooter(bool header, string paragraphsXml, string kind = "default")
+    {
+        var index = _headersFooters.Count + 1;
+        var id = $"rIdHF{index}";
+        var name = header ? "header" : "footer";
+
+        // The part is called header1.xml but its root element is w:hdr, not w:header. Word
+        // silently ignores a part whose root it does not recognise — no error, no header.
+        var root = header ? "hdr" : "ftr";
+
+        _headersFooters.Add((id, $"word/{name}{index}.xml", $"{name}:{kind}",
+            $"""
+             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+             <w:{root} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                       xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+               {paragraphsXml}
+             </w:{root}>
+             """));
+
+        return this;
+    }
+
+    /// <summary>The first page takes its own header and footer.</summary>
+    public DocxBuilder WithTitlePage()
+    {
+        _titlePage = true;
+        return this;
+    }
+
+    /// <summary>Odd and even pages take different headers and footers.</summary>
+    public DocxBuilder WithEvenAndOddHeaders()
+    {
+        _evenAndOddHeaders = true;
+        return this;
+    }
+
+    /// <summary>A paragraph holding a simple field, with the value Word would have cached.</summary>
+    public static string FieldParagraph(string instruction, string cachedText, string? runProperties = null) =>
+        $"""
+         <w:p><w:fldSimple w:instr="{instruction}">
+           <w:r>{(runProperties is null ? string.Empty : $"<w:rPr>{runProperties}</w:rPr>")}
+             <w:t>{cachedText}</w:t></w:r>
+         </w:fldSimple></w:p>
+         """;
+
     private string? _numbering;
 
     /// <summary>
@@ -314,7 +367,7 @@ public sealed class DocxBuilder
                         xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
                         xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
                         xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-              <w:body>{_body}{_sectionProperties}</w:body>
+              <w:body>{_body}{BuildSectionProperties()}</w:body>
             </w:document>
             """;
 
@@ -328,6 +381,10 @@ public sealed class DocxBuilder
             Write(archive, "word/styles.xml", _styles);
             Write(archive, "word/theme/theme1.xml", _theme);
             if (_numbering is not null) Write(archive, "word/numbering.xml", _numbering);
+            if (_evenAndOddHeaders) Write(archive, "word/settings.xml", EvenOddSettings);
+
+            foreach (var (_, partName, _, body) in _headersFooters)
+                Write(archive, partName, body);
 
             foreach (var (_, partName, data) in _images)
             {
@@ -360,6 +417,35 @@ public sealed class DocxBuilder
     /// change on every run and the working tree is permanently dirty for no reason.
     /// </remarks>
     private static readonly DateTimeOffset FixedTimestamp = new(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    /// <summary>
+    /// The section, with header and footer references spliced in. CT_SectPr is a sequence and the
+    /// references come first, before the page size.
+    /// </summary>
+    private string BuildSectionProperties()
+    {
+        if (_headersFooters.Count == 0 && !_titlePage) return _sectionProperties;
+
+        var references = new StringBuilder();
+        foreach (var (id, _, kind, _) in _headersFooters)
+        {
+            var parts = kind.Split(':');
+            references.Append($"<w:{parts[0]}Reference w:type=\"{parts[1]}\" r:id=\"{id}\"/>");
+        }
+
+        var titlePage = _titlePage ? "<w:titlePg/>" : string.Empty;
+
+        return _sectionProperties
+            .Replace("<w:sectPr>", "<w:sectPr>" + references)
+            .Replace("</w:sectPr>", titlePage + "</w:sectPr>");
+    }
+
+    private const string EvenOddSettings = """
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:evenAndOddHeaders/>
+        </w:settings>
+        """;
 
     private static void Write(ZipArchive archive, string name, string content)
     {
@@ -436,6 +522,19 @@ public sealed class DocxBuilder
             defaults.Append($"<Default Extension=\"{extension}\" ContentType=\"{type}\"/>");
         }
 
+        foreach (var (_, partName, kind, _) in _headersFooters)
+        {
+            var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
+            defaults.Append(
+                $"<Override PartName=\"/{partName}\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{type}+xml\"/>");
+        }
+
+        if (_evenAndOddHeaders)
+        {
+            defaults.Append(
+                "<Override PartName=\"/word/settings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>");
+        }
+
         var numberingType = _numbering is null
             ? string.Empty
             : "<Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>";
@@ -462,6 +561,23 @@ public sealed class DocxBuilder
                 "<Relationship Id=\"rIdNum\" " +
                 "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering\" " +
                 "Target=\"numbering.xml\"/>");
+        }
+
+        foreach (var (id, partName, kind, _) in _headersFooters)
+        {
+            var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
+            extra.Append(
+                $"<Relationship Id=\"{id}\" " +
+                $"Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/{type}\" " +
+                $"Target=\"{partName["word/".Length..]}\"/>");
+        }
+
+        if (_evenAndOddHeaders)
+        {
+            extra.Append(
+                "<Relationship Id=\"rIdSettings\" " +
+                "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings\" " +
+                "Target=\"settings.xml\"/>");
         }
 
         return DocumentRelationships.Replace("<!--IMAGE_RELATIONSHIPS-->", extra.ToString());

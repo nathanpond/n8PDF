@@ -93,6 +93,14 @@ public static class Converter
 
         var document = DocumentParser.Parse(package.ReadPartAsXml(mainPartName));
         LoadImages(package, mainPartName, document);
+        LoadHeadersAndFooters(package, mainPartName, document);
+
+        var settingsPart = package.GetRelatedPartName(mainPartName, OpcPackage.SettingsRelationship);
+        if (settingsPart is not null)
+        {
+            document.EvenAndOddHeaders = package.ReadPartAsXml(settingsPart)
+                .Root?.Element(W.Main + "evenAndOddHeaders") is not null;
+        }
 
         var stylesPart = package.GetRelatedPartName(mainPartName, OpcPackage.StylesRelationship);
         var styles = StylesParser.Parse(stylesPart is null ? null : package.ReadPartAsXml(stylesPart));
@@ -121,6 +129,47 @@ public static class Converter
     /// and a drawing carries only the relationship id, not the picture. A part that is missing or
     /// unreadable is skipped: a broken image should cost its own placement, not the conversion.
     /// </remarks>
+    /// <summary>
+    /// Reads the header and footer parts the section refers to.
+    /// </summary>
+    /// <remarks>
+    /// They are separate parts rather than part of the body, and are parsed with the same reader:
+    /// a header holds paragraphs and tables like anything else.
+    /// </remarks>
+    private static void LoadHeadersAndFooters(OpcPackage package, string mainPartName, WordDocument document)
+    {
+        foreach (var relationship in package.GetRelationships(mainPartName))
+        {
+            if (relationship.IsExternal) continue;
+            if (relationship.Type != OpcPackage.HeaderRelationship &&
+                relationship.Type != OpcPackage.FooterRelationship)
+            {
+                continue;
+            }
+
+            try
+            {
+                var partName = package.ResolveTarget(mainPartName, relationship.Target);
+                if (!package.HasPart(partName)) continue;
+
+                var root = package.ReadPartAsXml(partName).Root;
+                if (root is null) continue;
+
+                var content = new HeaderFooter();
+                foreach (var element in root.Elements())
+                {
+                    if (element.Name == W.Main + "p") content.Body.Add(DocumentParser.ParseParagraph(element));
+                    else if (element.Name == W.Main + "tbl") content.Body.Add(DocumentParser.ParseTable(element));
+                }
+
+                document.HeadersAndFooters[relationship.Id] = content;
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+            {
+            }
+        }
+    }
+
     private static void LoadImages(OpcPackage package, string mainPartName, WordDocument document)
     {
         foreach (var relationship in package.GetRelationships(mainPartName))

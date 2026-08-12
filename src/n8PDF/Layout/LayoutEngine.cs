@@ -36,6 +36,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // every item before it, so this is per-document state rather than per-paragraph.
     private NumberingCounter _numbering = new(new NumberingDefinitions());
 
+    // Which page is being laid out, for fields that depend on it. Zero means the body, where a
+    // page number is not yet known; headers and footers set it before they run.
+    private int _currentPage;
+    private int _totalPages;
+
     public LaidOutDocument Layout(WordDocument document)
     {
         _images = document.Images;
@@ -64,6 +69,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // The final paragraph's space-after still occupies the page even though nothing follows
         // it, which matters for how much content a page is considered to hold.
         cursor.Y += cursor.PendingSpaceAfter;
+
+        // Headers and footers are laid out last, once the page count is known — a footer saying
+        // "page 2 of 7" cannot be composed before the seven exists.
+        LayoutHeadersAndFooters(document, result);
 
         return result;
     }
@@ -389,6 +398,92 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             _ => origin
         };
     }
+
+    // ----- headers and footers -----
+
+    /// <summary>
+    /// Lays out the header and footer of every page into the margins.
+    /// </summary>
+    /// <remarks>
+    /// Each page gets its own pass, because the content can differ per page in two ways: a
+    /// document may give its first page or its even pages their own, and a field such as a page
+    /// number resolves differently on each.
+    /// </remarks>
+    private void LayoutHeadersAndFooters(WordDocument document, LaidOutDocument result)
+    {
+        var section = result.Section;
+        if (section.HeaderReferences.Count == 0 && section.FooterReferences.Count == 0) return;
+
+        _totalPages = result.Pages.Count;
+
+        var left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
+        var width = section.ContentWidthPoints;
+
+        for (var index = 0; index < result.Pages.Count; index++)
+        {
+            var page = result.Pages[index];
+            _currentPage = index + 1;
+
+            var kind = SelectKind(section, document.EvenAndOddHeaders, index);
+
+            if (Resolve(document, section.HeaderReferences, kind) is { } header)
+            {
+                // The header starts at its declared distance from the top of the page and grows
+                // downwards, into the margin it was given.
+                var flow = MeasureBlocks(header.Body, width);
+                flow.PlaceOnto(page, left, Units.TwipsToPoints(section.HeaderDistanceTwips));
+            }
+
+            if (Resolve(document, section.FooterReferences, kind) is { } footer)
+            {
+                // The footer's distance is measured from the bottom of the page to its own
+                // bottom, so its top depends on how tall it turned out to be.
+                var flow = MeasureBlocks(footer.Body, width);
+                var bottom = section.PageHeightPoints - Units.TwipsToPoints(section.FooterDistanceTwips);
+                flow.PlaceOnto(page, left, bottom - flow.Height);
+            }
+        }
+
+        _currentPage = 0;
+    }
+
+    /// <summary>
+    /// Chooses which of the three header and footer kinds applies to a page.
+    /// </summary>
+    private static string SelectKind(SectionProperties section, bool evenAndOdd, int pageIndex)
+    {
+        if (section.TitlePage && pageIndex == 0) return "first";
+
+        // Page numbers are one-based here: the second page is the first even one.
+        return evenAndOdd && (pageIndex + 1) % 2 == 0 ? "even" : "default";
+    }
+
+    /// <summary>
+    /// Finds the part for a kind, falling back to the default pair. A document declaring only a
+    /// default header uses it on every page.
+    /// </summary>
+    private static HeaderFooter? Resolve(
+        WordDocument document, Dictionary<string, string> references, string kind)
+    {
+        if (references.TryGetValue(kind, out var id) && document.HeadersAndFooters.TryGetValue(id, out var part))
+            return part;
+
+        return references.TryGetValue("default", out var fallback) &&
+               document.HeadersAndFooters.TryGetValue(fallback, out var defaultPart)
+            ? defaultPart
+            : null;
+    }
+
+    /// <summary>
+    /// Produces the text a field should display, evaluating the ones that depend on the page and
+    /// falling back to whatever Word last computed for the rest.
+    /// </summary>
+    private string ResolveField(FieldInline field) => field.Keyword switch
+    {
+        "PAGE" when _currentPage > 0 => _currentPage.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        "NUMPAGES" when _totalPages > 0 => _totalPages.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        _ => field.CachedText
+    };
 
     // ----- tables -----
 
@@ -1406,6 +1501,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
                     case DrawingInline drawing:
                         AddImageAtom(atoms, drawing);
+                        break;
+
+                    case FieldInline field:
+                        AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(ResolveField(field), runFormat),
+                            runFormat, selection, ascent, naturalHeight, descent);
                         break;
                 }
             }

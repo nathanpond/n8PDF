@@ -14,6 +14,34 @@ public sealed class TextInline(string text) : InlineElement
     public override string ToString() => Text;
 }
 
+/// <summary>
+/// A field, such as a page number.
+/// </summary>
+/// <remarks>
+/// A field carries both the instruction that produces its value and the value Word last computed,
+/// which it stores so that readers that cannot evaluate the instruction still show something. The
+/// cached result is used for anything not evaluated here.
+/// </remarks>
+public sealed class FieldInline(string instruction, string cachedText) : InlineElement
+{
+    /// <summary>The instruction text, for example " PAGE " or " NUMPAGES ".</summary>
+    public string Instruction { get; } = instruction;
+
+    /// <summary>What Word last rendered for this field.</summary>
+    public string CachedText { get; } = cachedText;
+
+    /// <summary>The instruction's leading keyword, upper-cased.</summary>
+    public string Keyword
+    {
+        get
+        {
+            var trimmed = Instruction.TrimStart();
+            var end = trimmed.IndexOf(' ');
+            return (end < 0 ? trimmed : trimmed[..end]).ToUpperInvariant();
+        }
+    }
+}
+
 /// <summary>A tab character from <c>w:tab</c>.</summary>
 public sealed class TabInline : InlineElement;
 
@@ -342,9 +370,24 @@ public sealed class TableCell
     public List<BlockElement> Content { get; } = [];
 }
 
+/// <summary>The contents of one header or footer part.</summary>
+public sealed class HeaderFooter
+{
+    public List<BlockElement> Body { get; } = [];
+}
+
 /// <summary>The parsed main document part.</summary>
 public sealed class WordDocument
 {
+    /// <summary>Header and footer parts by relationship id.</summary>
+    public Dictionary<string, HeaderFooter> HeadersAndFooters { get; } = [];
+
+    /// <summary>
+    /// Odd and even pages take different headers and footers. Declared in settings.xml rather
+    /// than on the section, because it applies to the whole document.
+    /// </summary>
+    public bool EvenAndOddHeaders { get; set; }
+
     public List<BlockElement> Body { get; } = [];
 
     /// <summary>

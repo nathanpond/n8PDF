@@ -219,6 +219,16 @@ public sealed class SectionProperties
     /// <summary>Number of text columns. Only single-column layout is implemented so far.</summary>
     public int ColumnCount { get; set; } = 1;
 
+    /// <summary>
+    /// Header parts by type — "default", "first" or "even" — as relationship ids.
+    /// </summary>
+    public Dictionary<string, string> HeaderReferences { get; } = [];
+
+    public Dictionary<string, string> FooterReferences { get; } = [];
+
+    /// <summary>The first page takes its own header and footer rather than the default pair.</summary>
+    public bool TitlePage { get; set; }
+
     /// <summary>Page width in points.</summary>
     public double PageWidthPoints => Units.TwipsToPoints(PageWidthTwips);
 

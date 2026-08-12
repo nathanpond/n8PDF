@@ -116,7 +116,8 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: lists and numbering (decimal, letters, roman and bullets, nested levels with
+Implemented: headers and footers (per page, with separate first-page and even-page variants, and
+PAGE and NUMPAGES fields evaluated), lists and numbering (decimal, letters, roman and bullets, nested levels with
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG decoded from scratch, JPEG passed through untouched,
 transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
@@ -136,8 +137,8 @@ not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not d
 algorithm the way the paragraph rules are.
 
 Not yet: GIF, BMP, TIFF and EMF pictures, interlaced PNG, vertical cell merges beyond suppressing the shared
-border, splitting a row across pages, headers and footers, fields,
-hyperlinks, footnotes, RTL and complex scripts, font subsetting, GPOS kerning, widow/orphan
+border, splitting a row across pages, fields other than PAGE and NUMPAGES (their cached values are
+shown), hyperlinks, footnotes, RTL and complex scripts, font subsetting, GPOS kerning, widow/orphan
 control, and centre/right/decimal tab stops.
 
 `ContentCoverageTests` asserts that every text run and every placeable image in a document reaches

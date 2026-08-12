@@ -574,6 +574,28 @@ public static class Fixtures
                 .AddListParagraph("Half-points are for font sizes only.", 2, runProperties: Times12)
                 .AddParagraph("End of the list.", ZeroSpacing, Times12),
 
+            // A running header and a footer carrying a page number, over enough body text to run
+            // to several pages so the number has to change.
+            ["headers-footers"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithHeaderFooter(header: true,
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t>Quarterly Operations Review</w:t></w:r></w:p>")
+                    .WithHeaderFooter(header: false,
+                        $"<w:p><w:pPr>{ZeroSpacing}<w:jc w:val=\"center\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Page </w:t></w:r>" +
+                        $"<w:fldSimple w:instr=\" PAGE \"><w:r><w:rPr>{Times12}</w:rPr><w:t>1</w:t></w:r></w:fldSimple>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> of </w:t></w:r>" +
+                        $"<w:fldSimple w:instr=\" NUMPAGES \"><w:r><w:rPr>{Times12}</w:rPr><w:t>1</w:t></w:r></w:fldSimple>" +
+                        "</w:p>");
+
+                for (var i = 1; i <= 70; i++)
+                    builder.AddParagraph($"Body paragraph number {i} of seventy.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""
