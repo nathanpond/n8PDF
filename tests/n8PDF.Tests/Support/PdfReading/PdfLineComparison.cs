@@ -169,6 +169,12 @@ public static class PdfLineComparison
                     ? last.Width * trailing / last.Text.Length
                     : 0;
 
+                // A line with nothing visible on it carries no information and is not always
+                // produced by both sides: Word draws a paragraph mark as a space, and adds a
+                // whole empty paragraph after a table that ends a document. Comparing those as
+                // real lines reports a difference where there is no visible one.
+                if (string.IsNullOrWhiteSpace(text.ToString())) continue;
+
                 lines.Add(new TextLine(
                     pageGroup.Key,
                     Math.Round(ordered.Min(r => r.BaselineY), 4),

@@ -108,13 +108,20 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: page size and margins from `sectPr`, paragraphs and runs, `xml:space` handling,
+Implemented: tables (fixed layout, grid columns, horizontal spans, borders, shading, cell margins
+and vertical alignment, rows kept whole across page breaks), page size and margins from `sectPr`,
+paragraphs and runs, `xml:space` handling,
 line and page breaks, tabs (left-aligned stops), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, caps, super/subscript, character spacing and scaling,
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-Not yet: tables (parsed but not laid out), images, lists and numbering, headers and footers,
-fields, hyperlinks, footnotes, floating objects, RTL and complex scripts, font subsetting, GPOS
-kerning, widow/orphan control, and centre/right/decimal tab stops.
+Not yet: table autofit (Word's default column sizing — declared grid widths are used instead),
+vertical cell merges beyond suppressing the shared border, splitting a row across pages, images,
+lists and numbering, headers and footers, fields, hyperlinks, footnotes, floating objects, RTL and
+complex scripts, font subsetting, GPOS kerning, widow/orphan control, and centre/right/decimal tab
+stops.
+
+`ContentCoverageTests` asserts that every text run in a document reaches the PDF, so an
+unimplemented block construct fails loudly instead of vanishing from the output.

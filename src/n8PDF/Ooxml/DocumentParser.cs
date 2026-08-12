@@ -346,36 +346,168 @@ public static class DocumentParser
     {
         var table = new Table();
 
-        foreach (var rowElement in element.Elements(W.Main + "tr"))
+        var tblPr = element.Element(W.Main + "tblPr");
+        if (tblPr is not null) table.Properties = ParseTableProperties(tblPr);
+
+        foreach (var gridCol in element.Element(W.Main + "tblGrid")?.Elements(W.Main + "gridCol") ?? [])
         {
-            var row = new TableRow();
-
-            foreach (var cellElement in rowElement.Elements(W.Main + "tc"))
-            {
-                var cell = new TableCell();
-
-                var tcPr = cellElement.Element(W.Main + "tcPr");
-                if (tcPr is not null)
-                {
-                    cell.WidthTwips = tcPr.Element(W.Main + "tcW")?.IntAttr("w");
-                    cell.GridSpan = tcPr.Element(W.Main + "gridSpan")?.IntVal() ?? 1;
-                }
-
-                foreach (var child in cellElement.Elements())
-                {
-                    if (child.Name == W.Main + "p")
-                        cell.Content.Add(ParseParagraph(child));
-                    else if (child.Name == W.Main + "tbl")
-                        cell.Content.Add(ParseTable(child));
-                }
-
-                row.Cells.Add(cell);
-            }
-
-            table.Rows.Add(row);
+            var width = gridCol.IntAttr("w");
+            if (width is not null) table.Grid.Add(width.Value);
         }
 
+        foreach (var rowElement in element.Elements(W.Main + "tr"))
+            table.Rows.Add(ParseTableRow(rowElement));
+
         return table;
+    }
+
+    public static TableProperties ParseTableProperties(XElement tblPr)
+    {
+        var properties = new TableProperties();
+
+        var tblW = tblPr.Element(W.Main + "tblW");
+        if (tblW is not null)
+        {
+            var width = tblW.IntAttr("w");
+            switch (tblW.Attr("type"))
+            {
+                case "dxa":
+                    properties.WidthTwips = width;
+                    break;
+                case "pct":
+                    // Percentages here are in fiftieths of a percent.
+                    if (width is not null)
+                        properties.WidthFraction = Units.FiftiethsOfPercentToFraction(width.Value);
+                    break;
+            }
+        }
+
+        properties.IndentTwips = tblPr.Element(W.Main + "tblInd")?.IntAttr("w") ?? 0;
+        properties.FixedLayout = tblPr.Element(W.Main + "tblLayout")?.Attr("type") == "fixed";
+        properties.Justification = tblPr.Element(W.Main + "jc") is { } jc
+            ? ParseJustification(jc.Val())
+            : null;
+
+        var borders = tblPr.Element(W.Main + "tblBorders");
+        if (borders is not null) ReadBorders(borders, properties.Borders);
+
+        var cellMargins = tblPr.Element(W.Main + "tblCellMar");
+        if (cellMargins is not null)
+        {
+            properties.CellMarginLeftTwips =
+                cellMargins.Element(W.Main + "left")?.IntAttr("w") ?? properties.CellMarginLeftTwips;
+            properties.CellMarginRightTwips =
+                cellMargins.Element(W.Main + "right")?.IntAttr("w") ?? properties.CellMarginRightTwips;
+            properties.CellMarginTopTwips =
+                cellMargins.Element(W.Main + "top")?.IntAttr("w") ?? properties.CellMarginTopTwips;
+            properties.CellMarginBottomTwips =
+                cellMargins.Element(W.Main + "bottom")?.IntAttr("w") ?? properties.CellMarginBottomTwips;
+        }
+
+        return properties;
+    }
+
+    private static TableRow ParseTableRow(XElement rowElement)
+    {
+        var row = new TableRow();
+
+        var trPr = rowElement.Element(W.Main + "trPr");
+        if (trPr is not null)
+        {
+            var height = trPr.Element(W.Main + "trHeight");
+            if (height is not null)
+            {
+                row.HeightTwips = height.IntAttr("val");
+                row.HeightRule = height.Attr("hRule") switch
+                {
+                    "exact" => RowHeightRule.Exact,
+                    "atLeast" => RowHeightRule.AtLeast,
+                    // Word omits hRule when it means "at least", which is its usual intent.
+                    _ => row.HeightTwips is not null ? RowHeightRule.AtLeast : RowHeightRule.Auto
+                };
+            }
+
+            row.CantSplit = trPr.Element(W.Main + "cantSplit")?.OnOff() ?? false;
+            row.IsHeader = trPr.Element(W.Main + "tblHeader")?.OnOff() ?? false;
+        }
+
+        foreach (var cellElement in rowElement.Elements(W.Main + "tc"))
+            row.Cells.Add(ParseTableCell(cellElement));
+
+        return row;
+    }
+
+    private static TableCell ParseTableCell(XElement cellElement)
+    {
+        var cell = new TableCell();
+
+        var tcPr = cellElement.Element(W.Main + "tcPr");
+        if (tcPr is not null)
+        {
+            cell.WidthTwips = tcPr.Element(W.Main + "tcW")?.IntAttr("w");
+            cell.GridSpan = Math.Max(1, tcPr.Element(W.Main + "gridSpan")?.IntVal() ?? 1);
+
+            var borders = tcPr.Element(W.Main + "tcBorders");
+            if (borders is not null) ReadBorders(borders, cell.Borders);
+
+            var shading = tcPr.Element(W.Main + "shd");
+            var fill = shading?.Attr("fill");
+            cell.ShadingFill = fill is null or "auto" ? null : fill;
+
+            cell.VerticalAlignment = tcPr.Element(W.Main + "vAlign")?.Val() switch
+            {
+                "center" => VerticalCellAlignment.Center,
+                "bottom" => VerticalCellAlignment.Bottom,
+                _ => VerticalCellAlignment.Top
+            };
+
+            // A vMerge with no value means "continue", which is the common spelling.
+            var vMerge = tcPr.Element(W.Main + "vMerge");
+            if (vMerge is not null) cell.VerticalMerge = vMerge.Val() ?? "continue";
+
+            var margins = tcPr.Element(W.Main + "tcMar");
+            if (margins is not null)
+            {
+                cell.MarginLeftTwips = margins.Element(W.Main + "left")?.IntAttr("w");
+                cell.MarginRightTwips = margins.Element(W.Main + "right")?.IntAttr("w");
+                cell.MarginTopTwips = margins.Element(W.Main + "top")?.IntAttr("w");
+                cell.MarginBottomTwips = margins.Element(W.Main + "bottom")?.IntAttr("w");
+            }
+        }
+
+        foreach (var child in cellElement.Elements())
+        {
+            if (child.Name == W.Main + "p")
+                cell.Content.Add(ParseParagraph(child));
+            else if (child.Name == W.Main + "tbl")
+                cell.Content.Add(ParseTable(child));
+        }
+
+        // A cell must contain at least one paragraph; an empty one still occupies a row.
+        if (cell.Content.Count == 0) cell.Content.Add(new Paragraph());
+
+        return cell;
+    }
+
+    private static void ReadBorders(XElement container, BorderSet target)
+    {
+        target.Top = ReadBorderEdge(container.Element(W.Main + "top"));
+        target.Left = ReadBorderEdge(container.Element(W.Main + "left") ?? container.Element(W.Main + "start"));
+        target.Bottom = ReadBorderEdge(container.Element(W.Main + "bottom"));
+        target.Right = ReadBorderEdge(container.Element(W.Main + "right") ?? container.Element(W.Main + "end"));
+        target.InsideHorizontal = ReadBorderEdge(container.Element(W.Main + "insideH"));
+        target.InsideVertical = ReadBorderEdge(container.Element(W.Main + "insideV"));
+    }
+
+    private static BorderEdge? ReadBorderEdge(XElement? element)
+    {
+        if (element is null) return null;
+
+        var color = element.Attr("color");
+        return new BorderEdge(
+            element.Val() ?? "none",
+            element.IntAttr("sz") ?? 0,
+            color is null or "auto" ? null : color);
     }
 
     private static Justification ParseJustification(string? value) => value switch

@@ -329,6 +329,84 @@ public static class Fixtures
                 .AddParagraph("Second paragraph with nothing stated.")
                 .AddParagraph("Third paragraph with nothing stated."),
 
+            // A three-column table with explicit grid widths, borders on every edge, a spanned
+            // cell and a wrapping cell, surrounded by ordinary paragraphs so that flow into and
+            // out of the table is measurable too.
+            ["tables"] = () => new DocxBuilder()
+                .AddParagraph("Paragraph before the table.", ZeroSpacing, Times12)
+                .AddRawParagraph($"""
+                    <w:tbl>
+                      <w:tblPr>
+                        <w:tblW w:w="9360" w:type="dxa"/>
+                        <w:tblLayout w:type="fixed"/>
+                        <w:tblBorders>
+                          <w:top w:val="single" w:sz="4" w:color="000000"/>
+                          <w:left w:val="single" w:sz="4" w:color="000000"/>
+                          <w:bottom w:val="single" w:sz="4" w:color="000000"/>
+                          <w:right w:val="single" w:sz="4" w:color="000000"/>
+                          <w:insideH w:val="single" w:sz="4" w:color="000000"/>
+                          <w:insideV w:val="single" w:sz="4" w:color="000000"/>
+                        </w:tblBorders>
+                      </w:tblPr>
+                      <w:tblGrid>
+                        <w:gridCol w:w="3120"/><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/>
+                      </w:tblGrid>
+                      <w:tr>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Revenue</w:t></w:r></w:p></w:tc>
+                      </w:tr>
+                      <w:tr>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>North</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>1240</w:t></w:r></w:p></w:tc>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>48200</w:t></w:r></w:p></w:tc>
+                      </w:tr>
+                      <w:tr>
+                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>South</w:t></w:r></w:p></w:tc>
+                        <w:tc>
+                          <w:tcPr><w:gridSpan w:val="2"/></w:tcPr>
+                          <w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t xml:space="preserve">A spanned cell whose text is long enough that it has to wrap onto more than one line.</w:t></w:r></w:p>
+                        </w:tc>
+                      </w:tr>
+                    </w:tbl>
+                    """)
+                .AddParagraph("Paragraph after the table.", ZeroSpacing, Times12),
+
+            // Two single-cell tables differing only in their left cell margin, each on its own
+            // page. Word places table text 4.92pt left of where we do, which is close enough to
+            // the 5.4pt default cell margin to suggest Word shifts a table left by that margin so
+            // its cell text lines up with body text.
+            //   If it does, the text sits at the left margin in both cases.
+            //   If it does not, the second table's text sits 10.8pt further right than the first.
+            ["table-indent-probe"] = () => new DocxBuilder()
+                .AddRawParagraph($"""
+                    <w:tbl>
+                      <w:tblPr>
+                        <w:tblW w:w="4680" w:type="dxa"/>
+                        <w:tblLayout w:type="fixed"/>
+                        <w:tblCellMar>
+                          <w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
+                        </w:tblCellMar>
+                      </w:tblPr>
+                      <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
+                      <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Zero left cell margin</w:t></w:r></w:p></w:tc></w:tr>
+                    </w:tbl>
+                    """)
+                .AddParagraph("Body text for reference.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph($"""
+                    <w:tbl>
+                      <w:tblPr>
+                        <w:tblW w:w="4680" w:type="dxa"/>
+                        <w:tblLayout w:type="fixed"/>
+                        <w:tblCellMar>
+                          <w:left w:w="216" w:type="dxa"/><w:right w:w="216" w:type="dxa"/>
+                        </w:tblCellMar>
+                      </w:tblPr>
+                      <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
+                      <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Wide left cell margin</w:t></w:r></w:p></w:tc></w:tr>
+                    </w:tbl>
+                    """),
+
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""

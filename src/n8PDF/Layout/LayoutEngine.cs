@@ -32,110 +32,443 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var section = document.Section;
         var result = new LaidOutDocument { Section = section };
 
-        var contentWidth = section.ContentWidthPoints;
-        var contentHeight = section.ContentHeightPoints;
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
-        var contentLeft = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
 
-        var page = NewPage(result, section);
-        var y = contentTop;
-
-        var paragraphs = document.Body.OfType<Paragraph>().ToList();
-        ResolvedParagraphFormat? previousFormat = null;
-
-        // Space-after of the paragraph just laid out, held back rather than applied immediately —
-        // see the collapsing rule below.
-        var pendingSpaceAfter = 0.0;
-
-        for (var index = 0; index < paragraphs.Count; index++)
+        var cursor = new Cursor
         {
-            var paragraph = paragraphs[index];
-            var format = _styles.ResolveParagraph(paragraph.Properties);
+            Document = result,
+            Section = section,
+            Page = NewPage(result, section),
+            Y = contentTop,
+            Left = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips),
+            Width = section.ContentWidthPoints,
+            ContentTop = contentTop,
+            ContentBottom = contentTop + section.ContentHeightPoints,
+            Paginate = true
+        };
 
-            var startedNewPage = false;
-            if (format.PageBreakBefore && page.Lines.Count > 0)
-            {
-                page = NewPage(result, section);
-                y = contentTop;
-                startedNewPage = true;
-            }
-
-            // Contextual spacing suppresses spacing between paragraphs sharing a style, which is
-            // what keeps list items tight.
-            var spaceBefore = format.SpaceBeforePoints;
-            if (previousFormat is not null &&
-                format.ContextualSpacing &&
-                previousFormat.StyleId == format.StyleId)
-            {
-                spaceBefore = 0;
-            }
-
-            // Word collapses adjacent paragraph spacing to the larger of the two rather than
-            // adding them, the way CSS margins collapse. Verified against Word with the
-            // paragraph-spacing-asymmetric fixture: with 12pt after and 24pt before it produces
-            // 24pt, and with 24pt after and 12pt before it also produces 24pt — which is only
-            // consistent with a maximum. Summing them put every paragraph after the first 12pt
-            // too low.
-            if (previousFormat is null)
-            {
-                y += spaceBefore;
-            }
-            else if (startedNewPage)
-            {
-                // The collapse carries across a page break, but the previous paragraph's
-                // space-after is absorbed by the page it ended on — it falls below the bottom
-                // margin where nothing can show it — so only the excess appears at the top of
-                // the new page. Verified against Word: with 12pt before, a paragraph opening a
-                // page sits 12pt down when the previous paragraph had no space-after and flush
-                // against the top margin when the previous paragraph had 12pt of it.
-                y += Math.Max(0, spaceBefore - pendingSpaceAfter);
-            }
-            else
-            {
-                y += Math.Max(pendingSpaceAfter, spaceBefore);
-            }
-
-            var lines = ComposeParagraph(paragraph, format, contentWidth);
-
-            foreach (var line in lines)
-            {
-                if (line.ForcePageBreak && page.Lines.Count > 0)
-                {
-                    page = NewPage(result, section);
-                    y = contentTop;
-                }
-
-                // A line that does not fit starts a new page. Widow and orphan control would
-                // move whole groups of lines here; it is not implemented yet.
-                if (y + line.Height > contentTop + contentHeight && page.Lines.Count > 0)
-                {
-                    page = NewPage(result, section);
-                    y = contentTop;
-                }
-
-                EmitLine(page, line, contentLeft, y, index);
-                y += line.Height;
-            }
-
-            var spaceAfter = format.SpaceAfterPoints;
-            if (format.ContextualSpacing &&
-                index + 1 < paragraphs.Count &&
-                _styles.ResolveParagraph(paragraphs[index + 1].Properties).StyleId == format.StyleId)
-            {
-                spaceAfter = 0;
-            }
-
-            // Held rather than added, so the next paragraph can collapse it against its own
-            // space-before.
-            pendingSpaceAfter = spaceAfter;
-            previousFormat = format;
-        }
+        LayoutBlocks(cursor, document.Body);
 
         // The final paragraph's space-after still occupies the page even though nothing follows
         // it, which matters for how much content a page is considered to hold.
-        y += pendingSpaceAfter;
+        cursor.Y += cursor.PendingSpaceAfter;
 
         return result;
+    }
+
+    /// <summary>
+    /// Lays out a sequence of block-level elements at the cursor, advancing it.
+    /// </summary>
+    /// <remarks>
+    /// Used for the document body and, with pagination disabled, for the contents of a table
+    /// cell — a cell's height has to be known before its row can be placed, so it cannot be
+    /// breaking pages while it is measured.
+    /// </remarks>
+    private void LayoutBlocks(Cursor cursor, IReadOnlyList<BlockElement> blocks)
+    {
+        for (var index = 0; index < blocks.Count; index++)
+        {
+            switch (blocks[index])
+            {
+                case Paragraph paragraph:
+                    LayoutParagraph(cursor, paragraph, blocks, index);
+                    break;
+
+                case Table table:
+                    LayoutTable(cursor, table);
+                    break;
+            }
+        }
+    }
+
+    private void LayoutParagraph(
+        Cursor cursor, Paragraph paragraph, IReadOnlyList<BlockElement> siblings, int index)
+    {
+        var format = _styles.ResolveParagraph(paragraph.Properties);
+
+        var startedNewPage = false;
+        if (format.PageBreakBefore && cursor.CanBreak)
+        {
+            cursor.BreakPage();
+            startedNewPage = true;
+        }
+
+        // Contextual spacing suppresses spacing between paragraphs sharing a style, which is
+        // what keeps list items tight.
+        var spaceBefore = format.SpaceBeforePoints;
+        if (cursor.PreviousFormat is not null &&
+            format.ContextualSpacing &&
+            cursor.PreviousFormat.StyleId == format.StyleId)
+        {
+            spaceBefore = 0;
+        }
+
+        // Word collapses adjacent paragraph spacing to the larger of the two rather than
+        // adding them, the way CSS margins collapse. Verified against Word with the
+        // paragraph-spacing-asymmetric fixture: with 12pt after and 24pt before it produces
+        // 24pt, and with 24pt after and 12pt before it also produces 24pt — which is only
+        // consistent with a maximum. Summing them put every paragraph after the first 12pt
+        // too low.
+        if (cursor.PreviousFormat is null)
+        {
+            cursor.Y += spaceBefore;
+        }
+        else if (startedNewPage)
+        {
+            // The collapse carries across a page break, but the previous paragraph's
+            // space-after is absorbed by the page it ended on — it falls below the bottom
+            // margin where nothing can show it — so only the excess appears at the top of
+            // the new page. Verified against Word: with 12pt before, a paragraph opening a
+            // page sits 12pt down when the previous paragraph had no space-after and flush
+            // against the top margin when the previous paragraph had 12pt of it.
+            cursor.Y += Math.Max(0, spaceBefore - cursor.PendingSpaceAfter);
+        }
+        else
+        {
+            cursor.Y += Math.Max(cursor.PendingSpaceAfter, spaceBefore);
+        }
+
+        foreach (var line in ComposeParagraph(paragraph, format, cursor.Width))
+        {
+            if (line.ForcePageBreak && cursor.CanBreak) cursor.BreakPage();
+
+            // A line that does not fit starts a new page. Widow and orphan control would
+            // move whole groups of lines here; it is not implemented yet.
+            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom && cursor.CanBreak)
+                cursor.BreakPage();
+
+            EmitLine(cursor.Page, line, cursor.Left, cursor.Y, index);
+            cursor.Y += line.Height;
+        }
+
+        var spaceAfter = format.SpaceAfterPoints;
+        if (format.ContextualSpacing &&
+            index + 1 < siblings.Count &&
+            siblings[index + 1] is Paragraph next &&
+            _styles.ResolveParagraph(next.Properties).StyleId == format.StyleId)
+        {
+            spaceAfter = 0;
+        }
+
+        // Held rather than added, so the next paragraph can collapse it against its own
+        // space-before.
+        cursor.PendingSpaceAfter = spaceAfter;
+        cursor.PreviousFormat = format;
+    }
+
+    // ----- tables -----
+
+    /// <summary>
+    /// Lays out a table row by row.
+    /// </summary>
+    /// <remarks>
+    /// A row's height is the tallest of its cells, so every cell has to be laid out before any of
+    /// it can be placed. Cells are therefore measured into a detached page and translated into
+    /// position once the row's geometry is known.
+    ///
+    /// Rows are kept whole: one that does not fit moves to the next page rather than splitting.
+    /// Word will split a row unless <c>w:cantSplit</c> says otherwise, so a row taller than the
+    /// text area is the one case this handles differently — it overflows rather than breaking.
+    /// </remarks>
+    private void LayoutTable(Cursor cursor, Table table)
+    {
+        var columns = ComputeColumnWidths(table, cursor.Width);
+        if (columns.Count == 0) return;
+
+        var properties = table.Properties;
+        var totalWidth = columns.Sum();
+
+        var tableLeft = cursor.Left + Units.TwipsToPoints(properties.IndentTwips);
+        tableLeft += properties.Justification switch
+        {
+            Justification.Center => Math.Max(0, cursor.Width - totalWidth) / 2,
+            Justification.Right => Math.Max(0, cursor.Width - totalWidth),
+            _ => 0
+        };
+
+        // A table interrupts the paragraph spacing chain: its own edge is the boundary, so a
+        // following paragraph has nothing to collapse against.
+        cursor.Y += cursor.PendingSpaceAfter;
+        cursor.PendingSpaceAfter = 0;
+        cursor.PreviousFormat = null;
+
+        for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+        {
+            var row = table.Rows[rowIndex];
+            var placed = MeasureRow(table, row, rowIndex, columns, tableLeft);
+            if (placed.Count == 0) continue;
+
+            var rowHeight = ComputeRowHeight(row, placed);
+
+            if (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom && cursor.CanBreak)
+                cursor.BreakPage();
+
+            var top = cursor.Y;
+
+            // Shading first, then content, then borders on top: a border sits on the cell edge
+            // and would otherwise be half-covered by the neighbouring cell's fill.
+            foreach (var cell in placed)
+            {
+                if (cell.Source.ShadingFill is not { } fill) continue;
+
+                cursor.Page.Rectangles.Add(new PositionedRectangle
+                {
+                    X = cell.Left,
+                    Y = top,
+                    Width = cell.Width,
+                    Height = rowHeight,
+                    Color = ParseHexColor(fill)
+                });
+            }
+
+            foreach (var cell in placed)
+            {
+                var available = rowHeight - cell.MarginTop - cell.MarginBottom;
+                var offset = cell.Source.VerticalAlignment switch
+                {
+                    VerticalCellAlignment.Center => Math.Max(0, (available - cell.Content.Height) / 2),
+                    VerticalCellAlignment.Bottom => Math.Max(0, available - cell.Content.Height),
+                    _ => 0
+                };
+
+                cell.Content.PlaceOnto(cursor.Page, cell.Left + cell.MarginLeft, top + cell.MarginTop + offset);
+            }
+
+            DrawRowBorders(cursor.Page, placed, top, rowHeight);
+
+            cursor.Y += rowHeight;
+
+            // The final row's bottom edge is not shared with anything below it, so it is the one
+            // border that adds to the table's overall height.
+            if (rowIndex == table.Rows.Count - 1)
+            {
+                var bottom = 0.0;
+                foreach (var cell in placed) bottom = Math.Max(bottom, BorderWidth(cell.Borders.Bottom));
+                cursor.Y += bottom;
+            }
+        }
+    }
+
+    /// <summary>Lays out each cell of a row into its own detached page and records its geometry.</summary>
+    private List<PlacedCell> MeasureRow(
+        Table table, TableRow row, int rowIndex, List<double> columns, double tableLeft)
+    {
+        var properties = table.Properties;
+        var placed = new List<PlacedCell>(row.Cells.Count);
+
+        var x = tableLeft;
+        var column = 0;
+
+        foreach (var cell in row.Cells)
+        {
+            if (column >= columns.Count) break;
+
+            var span = Math.Min(cell.GridSpan, columns.Count - column);
+
+            var width = 0.0;
+            for (var i = 0; i < span; i++) width += columns[column + i];
+
+            var borders = ResolveCellBorders(table, cell, rowIndex, column, span, columns.Count);
+
+            // Content is inset by the border as well as the margin: a border occupies space
+            // inside the cell rather than being painted over its contents.
+            var marginLeft = Units.TwipsToPoints(cell.MarginLeftTwips ?? properties.CellMarginLeftTwips)
+                             + BorderWidth(borders.Left);
+            var marginRight = Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRightTwips)
+                              + BorderWidth(borders.Right);
+            var marginTop = Units.TwipsToPoints(cell.MarginTopTwips ?? properties.CellMarginTopTwips)
+                            + BorderWidth(borders.Top);
+            // The bottom border is deliberately not counted here. Adjacent rows share an edge —
+            // one row's bottom border is the next row's top border — so charging it to both
+            // makes every row a border-width too tall and the error accumulates down the table.
+            // The last row's bottom border is added once, after the loop.
+            var marginBottom = Units.TwipsToPoints(cell.MarginBottomTwips ?? properties.CellMarginBottomTwips);
+
+            // A cell continuing a vertical merge draws no content of its own; the cell that
+            // started the merge owns it.
+            var content = cell.VerticalMerge == "continue"
+                ? DetachedFlow.Empty
+                : MeasureBlocks(cell.Content, Math.Max(1, width - marginLeft - marginRight));
+
+            placed.Add(new PlacedCell(cell, x, width, column, span, content,
+                marginLeft, marginRight, marginTop, marginBottom, borders));
+
+            x += width;
+            column += span;
+        }
+
+        return placed;
+    }
+
+    private static double ComputeRowHeight(TableRow row, List<PlacedCell> placed)
+    {
+        var natural = 0.0;
+        foreach (var cell in placed)
+            natural = Math.Max(natural, cell.Content.Height + cell.MarginTop + cell.MarginBottom);
+
+        if (row.HeightTwips is not { } declared) return natural;
+
+        var height = Units.TwipsToPoints(declared);
+        return row.HeightRule switch
+        {
+            RowHeightRule.Exact => height,
+            RowHeightRule.AtLeast => Math.Max(natural, height),
+            _ => natural
+        };
+    }
+
+    /// <summary>
+    /// Draws the borders of one row's cells.
+    /// </summary>
+    /// <remarks>
+    /// Each cell draws all four of its own edges, so a shared edge is drawn twice. That is
+    /// deliberate: resolving which of two adjacent cells owns an edge is Word's conflict
+    /// resolution, and drawing the same black line twice is invisible, whereas getting the
+    /// ownership wrong leaves gaps.
+    /// </remarks>
+    private static void DrawRowBorders(LaidOutPage page, List<PlacedCell> placed, double top, double height)
+    {
+        foreach (var cell in placed)
+        {
+            AddEdge(page, cell.Borders.Top, cell.Left, top, cell.Width, horizontal: true);
+            AddEdge(page, cell.Borders.Bottom, cell.Left, top + height, cell.Width, horizontal: true);
+            AddEdge(page, cell.Borders.Left, cell.Left, top, height, horizontal: false);
+            AddEdge(page, cell.Borders.Right, cell.Left + cell.Width, top, height, horizontal: false);
+        }
+    }
+
+    /// <summary>
+    /// Works out which border applies to each edge of a cell. A cell's own border wins; failing
+    /// that an outer edge takes the table's matching border and an inner edge takes the
+    /// corresponding inside border.
+    /// </summary>
+    private static CellBorders ResolveCellBorders(
+        Table table, TableCell cell, int rowIndex, int column, int span, int columnCount)
+    {
+        var borders = table.Properties.Borders;
+        var isFirstRow = rowIndex == 0;
+        var isLastRow = rowIndex == table.Rows.Count - 1;
+        var isFirstColumn = column == 0;
+        var isLastColumn = column + span >= columnCount;
+
+        var top = cell.Borders.Top ?? (isFirstRow ? borders.Top : borders.InsideHorizontal);
+
+        // A cell continuing a vertical merge has no line above it, which is what makes the merge
+        // read as one tall cell.
+        if (cell.VerticalMerge == "continue") top = null;
+
+        return new CellBorders(
+            cell.Borders.Left ?? (isFirstColumn ? borders.Left : borders.InsideVertical),
+            cell.Borders.Right ?? (isLastColumn ? borders.Right : borders.InsideVertical),
+            top,
+            cell.Borders.Bottom ?? (isLastRow ? borders.Bottom : borders.InsideHorizontal));
+    }
+
+    private static double BorderWidth(BorderEdge? edge) =>
+        edge is not null && edge.IsVisible ? edge.WidthPoints : 0;
+
+    private static void AddEdge(
+        LaidOutPage page, BorderEdge? edge, double x, double y, double length, bool horizontal)
+    {
+        if (edge is null || !edge.IsVisible) return;
+
+        var thickness = edge.WidthPoints;
+
+        page.Rectangles.Add(new PositionedRectangle
+        {
+            // Edges are centred on the cell boundary, so half the line falls either side of it.
+            X = horizontal ? x : x - thickness / 2,
+            Y = horizontal ? y - thickness / 2 : y,
+            Width = horizontal ? length : thickness,
+            Height = horizontal ? thickness : length,
+            Color = edge.GetColor()
+        });
+    }
+
+    /// <summary>
+    /// Determines the width of each grid column in points.
+    /// </summary>
+    /// <remarks>
+    /// The table grid is authoritative when present. Failing that the first row's declared cell
+    /// widths are used, and failing that the available width is divided evenly. A grid wider than
+    /// the text area is scaled down rather than allowed to run off the page.
+    /// </remarks>
+    private static List<double> ComputeColumnWidths(Table table, double availableWidth)
+    {
+        var widths = table.Grid.Select(twips => Units.TwipsToPoints(twips)).Where(w => w > 0).ToList();
+
+        if (widths.Count == 0 && table.Rows.Count > 0)
+        {
+            var first = table.Rows[0];
+            var columns = first.Cells.Sum(c => Math.Max(1, c.GridSpan));
+
+            foreach (var cell in first.Cells)
+            {
+                var span = Math.Max(1, cell.GridSpan);
+                var width = cell.WidthTwips is { } declared and > 0
+                    ? Units.TwipsToPoints(declared)
+                    : availableWidth / Math.Max(1, columns);
+
+                for (var i = 0; i < span; i++) widths.Add(width / span);
+            }
+        }
+
+        if (widths.Count == 0) widths.Add(availableWidth);
+
+        var total = widths.Sum();
+        if (total > availableWidth + 0.01 && total > 0)
+        {
+            var scale = availableWidth / total;
+            for (var i = 0; i < widths.Count; i++) widths[i] *= scale;
+        }
+
+        return widths;
+    }
+
+    /// <summary>
+    /// Lays out blocks into a detached page so their height can be measured before placement.
+    /// </summary>
+    private DetachedFlow MeasureBlocks(IReadOnlyList<BlockElement> blocks, double width)
+    {
+        var section = new SectionProperties();
+        var document = new LaidOutDocument { Section = section };
+
+        var page = new LaidOutPage { WidthPoints = width, HeightPoints = double.MaxValue };
+        document.Pages.Add(page);
+
+        var cursor = new Cursor
+        {
+            Document = document,
+            Section = section,
+            Page = page,
+            Y = 0,
+            Left = 0,
+            Width = width,
+            ContentTop = 0,
+            ContentBottom = double.MaxValue,
+            Paginate = false
+        };
+
+        LayoutBlocks(cursor, blocks);
+        cursor.Y += cursor.PendingSpaceAfter;
+
+        return new DetachedFlow(page, cursor.Y);
+    }
+
+    private static (double Red, double Green, double Blue) ParseHexColor(string value)
+    {
+        if (value.Length != 6) return (1, 1, 1);
+
+        try
+        {
+            return (Convert.ToInt32(value[..2], 16) / 255.0,
+                Convert.ToInt32(value.Substring(2, 2), 16) / 255.0,
+                Convert.ToInt32(value.Substring(4, 2), 16) / 255.0);
+        }
+        catch (Exception e) when (e is FormatException or ArgumentException or OverflowException)
+        {
+            return (1, 1, 1);
+        }
     }
 
     private static LaidOutPage NewPage(LaidOutDocument document, SectionProperties section)
@@ -589,6 +922,131 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     // ----- internal composition types -----
+
+    /// <summary>
+    /// Where content is being laid out and how far down it has reached. Carries the paragraph
+    /// spacing state too, since collapsing depends on what came immediately before.
+    /// </summary>
+    private sealed class Cursor
+    {
+        public required LaidOutDocument Document { get; init; }
+
+        public required SectionProperties Section { get; init; }
+
+        public required LaidOutPage Page { get; set; }
+
+        public required double Y { get; set; }
+
+        public required double Left { get; init; }
+
+        public required double Width { get; init; }
+
+        public required double ContentTop { get; init; }
+
+        public required double ContentBottom { get; init; }
+
+        /// <summary>False inside a table cell, whose height is measured before it is placed.</summary>
+        public required bool Paginate { get; init; }
+
+        public ResolvedParagraphFormat? PreviousFormat { get; set; }
+
+        public double PendingSpaceAfter { get; set; }
+
+        /// <summary>
+        /// True when a page break would achieve anything. Breaking an empty page just produces
+        /// another empty one, and inside a cell there are no pages to break at all.
+        /// </summary>
+        public bool CanBreak => Paginate && (Page.Lines.Count > 0 || Page.Rectangles.Count > 0);
+
+        public void BreakPage()
+        {
+            Page = NewPage(Document, Section);
+            Y = ContentTop;
+        }
+    }
+
+    /// <summary>
+    /// Content laid out at the origin of a detached page, ready to be translated into position.
+    /// </summary>
+    private sealed class DetachedFlow(LaidOutPage page, double height)
+    {
+        public static readonly DetachedFlow Empty =
+            new(new LaidOutPage { WidthPoints = 0, HeightPoints = 0 }, 0);
+
+        public double Height { get; } = height;
+
+        /// <summary>Copies this flow's content onto a real page, offset by the given origin.</summary>
+        public void PlaceOnto(LaidOutPage target, double dx, double dy)
+        {
+            foreach (var line in page.Lines)
+            {
+                var moved = new LaidOutLine
+                {
+                    BaselineY = line.BaselineY + dy,
+                    Height = line.Height,
+                    Ascent = line.Ascent,
+                    ParagraphIndex = line.ParagraphIndex
+                };
+
+                foreach (var text in line.Texts)
+                {
+                    moved.Texts.Add(new PositionedText
+                    {
+                        X = text.X + dx,
+                        BaselineY = text.BaselineY + dy,
+                        Text = text.Text,
+                        Format = text.Format,
+                        Font = text.Font,
+                        Width = text.Width,
+                        WordSpacing = text.WordSpacing
+                    });
+                }
+
+                target.Lines.Add(moved);
+            }
+
+            foreach (var rule in page.Rules)
+            {
+                target.Rules.Add(new PositionedRule
+                {
+                    X = rule.X + dx,
+                    Y = rule.Y + dy,
+                    Width = rule.Width,
+                    Thickness = rule.Thickness,
+                    Color = rule.Color
+                });
+            }
+
+            foreach (var rectangle in page.Rectangles)
+            {
+                target.Rectangles.Add(new PositionedRectangle
+                {
+                    X = rectangle.X + dx,
+                    Y = rectangle.Y + dy,
+                    Width = rectangle.Width,
+                    Height = rectangle.Height,
+                    Color = rectangle.Color
+                });
+            }
+        }
+    }
+
+    /// <summary>A cell with its resolved geometry and its measured contents.</summary>
+    private sealed record PlacedCell(
+        TableCell Source,
+        double Left,
+        double Width,
+        int Column,
+        int Span,
+        DetachedFlow Content,
+        double MarginLeft,
+        double MarginRight,
+        double MarginTop,
+        double MarginBottom,
+        CellBorders Borders);
+
+    /// <summary>The border edges that actually apply to a cell, after resolution.</summary>
+    private sealed record CellBorders(BorderEdge? Left, BorderEdge? Right, BorderEdge? Top, BorderEdge? Bottom);
 
     private abstract class Atom
     {

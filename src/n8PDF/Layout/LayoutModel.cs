@@ -67,6 +67,28 @@ public sealed class LaidOutLine
     public int ParagraphIndex { get; init; }
 }
 
+/// <summary>
+/// A filled rectangle: cell shading, and the border lines of a table.
+/// </summary>
+/// <remarks>
+/// Borders are filled rectangles rather than stroked lines because a stroke straddles its path,
+/// which puts half of every border outside the cell it belongs to and makes adjacent cells
+/// overlap by half a line width.
+/// </remarks>
+public sealed class PositionedRectangle
+{
+    public required double X { get; init; }
+
+    /// <summary>Distance from the top of the page down to the rectangle's top edge.</summary>
+    public required double Y { get; init; }
+
+    public required double Width { get; init; }
+
+    public required double Height { get; init; }
+
+    public required (double Red, double Green, double Blue) Color { get; init; }
+}
+
 public sealed class LaidOutPage
 {
     public required double WidthPoints { get; init; }
@@ -76,6 +98,12 @@ public sealed class LaidOutPage
     public List<LaidOutLine> Lines { get; } = [];
 
     public List<PositionedRule> Rules { get; } = [];
+
+    /// <summary>
+    /// Shading and borders, in paint order: everything here is drawn before any text, and fills
+    /// are added before the borders that sit on top of them.
+    /// </summary>
+    public List<PositionedRectangle> Rectangles { get; } = [];
 
     public IEnumerable<PositionedText> Texts => Lines.SelectMany(line => line.Texts);
 }

@@ -24,7 +24,19 @@ internal static class PdfRenderer
             var target = builder.AddPage(page.WidthPoints, page.HeightPoints);
             var content = target.Content;
 
-            // Rules go down first so that text sits on top of any underline.
+            // Shading and table borders go down first, in the order layout added them: fills
+            // before the borders that sit on top of them, and both before any text.
+            foreach (var rectangle in page.Rectangles)
+            {
+                content.Save()
+                    .SetFillColor(rectangle.Color.Red, rectangle.Color.Green, rectangle.Color.Blue)
+                    .Rectangle(rectangle.X, Flip(page, rectangle.Y) - rectangle.Height,
+                        rectangle.Width, rectangle.Height)
+                    .Fill()
+                    .Restore();
+            }
+
+            // Rules go down next so that text sits on top of any underline.
             foreach (var rule in page.Rules)
             {
                 content.Save()
