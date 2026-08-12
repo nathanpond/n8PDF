@@ -157,10 +157,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // it, which matters for how much content a page is considered to hold.
         cursor.Y += cursor.PendingSpaceAfter;
 
-        // The last page never breaks, so its footnotes are still waiting and its column rules
-        // have not been drawn.
-        DrawColumnSeparators(cursor);
-        FlushFootnotes(cursor.Page);
+        // The last page never breaks, so nothing has settled it yet.
+        cursor.FinishPage();
 
         // Headers and footers are laid out last, once the page count is known — a footer saying
         // "page 2 of 7" cannot be composed before the seven exists.
@@ -256,11 +254,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             return;
         }
 
-        // The footnotes of the page being left behind belong to the geometry it was laid out
-        // under, so they are written into it before the new section's takes over.
-        FlushFootnotes(cursor.Page);
+        // The page being left behind is settled under the geometry it was laid out with, before
+        // the new section's replaces it.
+        cursor.FinishPage();
         ApplySection(cursor, section);
-        cursor.BreakPage();
+        cursor.StartNewPage();
 
         // At most one blank page: each break flips the parity.
         var wantsEven = section.BreakType == SectionBreakType.EvenPage;
@@ -955,6 +953,149 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         _currentPage = 0;
+    }
+
+    // ----- vertical alignment -----
+
+    /// <summary>
+    /// Moves what a page holds to sit where its section asks for it.
+    /// </summary>
+    /// <remarks>
+    /// The text is laid out from the top margin down like any other, and moved once the page is
+    /// finished and how much of it was used is known. Only the body moves: footnotes are written
+    /// into the foot of the page afterwards and belong to the page rather than to the text, and
+    /// running heads live in the margins.
+    ///
+    /// A page with nothing spare — a full one — is left alone, which is why a long section aligned
+    /// to the bottom looks unchanged until its last page.
+    /// </remarks>
+    private static void AlignPageVertically(Cursor cursor)
+    {
+        var alignment = cursor.Section.VerticalAlignment;
+        if (alignment == VerticalPageAlignment.Top) return;
+
+        var used = Math.Max(cursor.PageMaxY, cursor.Y);
+        var free = cursor.ContentLimit - cursor.Reserved - used;
+        if (free <= 0.001) return;
+
+        var shift = alignment switch
+        {
+            VerticalPageAlignment.Center => Constant(free / 2),
+            VerticalPageAlignment.Bottom => Constant(free),
+            _ => Justified(cursor.Page, free, cursor.ContentTop)
+        };
+
+        MovePage(cursor.Page, shift);
+
+        // The rule between columns is drawn from what the page reached, so it has to know the
+        // text moved.
+        cursor.PageMaxY = used + shift(used);
+        cursor.Y += shift(cursor.Y);
+    }
+
+    private static Func<double, double> Constant(double shift) => _ => shift;
+
+    /// <summary>
+    /// Spreads the spare height between the paragraphs, which is where Word puts it: the first
+    /// stays against the top margin and the last ends against the bottom, with what is left over
+    /// divided equally into the gaps between them.
+    /// </summary>
+    private static Func<double, double> Justified(LaidOutPage page, double free, double contentTop)
+    {
+        // Where each paragraph starts, in the order they sit on the page.
+        var starts = new List<double>();
+        var seen = new HashSet<int>();
+
+        foreach (var line in page.Lines.OrderBy(line => line.BaselineY))
+        {
+            if (seen.Add(line.ParagraphIndex)) starts.Add(line.BaselineY - line.Ascent);
+        }
+
+        if (starts.Count < 2) return Constant(0);
+
+        var gap = free / (starts.Count - 1);
+
+        return y =>
+        {
+            // Everything down to the second paragraph stays put, and each paragraph after that
+            // takes one more gap with it.
+            var before = 0;
+            for (var i = 1; i < starts.Count; i++)
+            {
+                if (y >= starts[i] - 0.001) before = i;
+            }
+
+            return y < contentTop - 0.001 ? 0 : before * gap;
+        };
+    }
+
+    /// <summary>Moves everything already on a page, by however much it is standing.</summary>
+    private static void MovePage(LaidOutPage page, Func<double, double> shift)
+    {
+        var lines = page.Lines.ToList();
+        page.Lines.Clear();
+
+        foreach (var line in lines)
+        {
+            var delta = shift(line.BaselineY - line.Ascent);
+
+            var moved = new LaidOutLine
+            {
+                BaselineY = line.BaselineY + delta,
+                Height = line.Height,
+                Ascent = line.Ascent,
+                ParagraphIndex = line.ParagraphIndex
+            };
+
+            foreach (var text in line.Texts) moved.Texts.Add(text.Translate(0, delta));
+
+            page.Lines.Add(moved);
+        }
+
+        var rules = page.Rules.ToList();
+        page.Rules.Clear();
+
+        foreach (var rule in rules)
+        {
+            page.Rules.Add(new PositionedRule
+            {
+                X = rule.X,
+                Y = rule.Y + shift(rule.Y),
+                Width = rule.Width,
+                Thickness = rule.Thickness,
+                Color = rule.Color
+            });
+        }
+
+        var rectangles = page.Rectangles.ToList();
+        page.Rectangles.Clear();
+
+        foreach (var rectangle in rectangles)
+        {
+            page.Rectangles.Add(new PositionedRectangle
+            {
+                X = rectangle.X,
+                Y = rectangle.Y + shift(rectangle.Y),
+                Width = rectangle.Width,
+                Height = rectangle.Height,
+                Color = rectangle.Color
+            });
+        }
+
+        var images = page.Images.ToList();
+        page.Images.Clear();
+
+        foreach (var image in images)
+        {
+            page.Images.Add(new PositionedImage
+            {
+                X = image.X,
+                Y = image.Y + shift(image.Y),
+                Width = image.Width,
+                Height = image.Height,
+                Image = image.Image
+            });
+        }
     }
 
     // ----- footnotes -----
@@ -2959,12 +3100,27 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             Width = Columns[index].Width;
         }
 
-        public void BreakPage()
+        /// <summary>
+        /// Settles the page being left behind: where its text sits, what is ruled between its
+        /// columns, and what goes in its foot.
+        /// </summary>
+        /// <remarks>
+        /// All three read the geometry of the section the page belongs to, so this happens before
+        /// a section break changes it. Otherwise a page is aligned to the margins of the section
+        /// that follows it rather than its own.
+        /// </remarks>
+        public void FinishPage()
         {
             PageMaxY = Math.Max(PageMaxY, Y);
+
+            AlignPageVertically(this);
             DrawColumnSeparators(this);
             OnPageComplete?.Invoke(Page);
+        }
 
+        /// <summary>Moves to a fresh page, leaving the one behind as it stands.</summary>
+        public void StartNewPage()
+        {
             Page = Engine.NewPage(Document, Section);
             Y = ContentTop;
             Reserved = 0;
@@ -2977,6 +3133,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             // A float belongs to the page its anchor landed on; it does not follow the text.
             Floats.Clear();
+        }
+
+        public void BreakPage()
+        {
+            FinishPage();
+            StartNewPage();
         }
     }
 

@@ -217,8 +217,22 @@ public enum SectionBreakType
     NextColumn
 }
 
+/// <summary>Where a section's text sits between the top and bottom margins.</summary>
+public enum VerticalPageAlignment
+{
+    Top,
+    Center,
+    Bottom,
+
+    /// <summary>Spread to fill the page, with the space going between the paragraphs.</summary>
+    Both
+}
+
 public sealed class SectionProperties
 {
+    /// <summary>Where this section's text sits on the page. Top unless it says otherwise.</summary>
+    public VerticalPageAlignment VerticalAlignment { get; set; } = VerticalPageAlignment.Top;
+
     /// <summary>Where this section's content begins relative to the one before it.</summary>
     public SectionBreakType BreakType { get; set; } = SectionBreakType.NextPage;
 

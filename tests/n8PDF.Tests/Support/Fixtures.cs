@@ -892,6 +892,28 @@ public static class Fixtures
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:br w:type=\"column\"/></w:r>" +
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:t>Third column opens here.</w:t></w:r></w:p>"),
 
+            // The four ways a section can sit its text on the page. Each is its own section so
+            // that one export answers all of them, and the last has several paragraphs because
+            // justified alignment has to put its extra space somewhere.
+            ["vertical-alignment"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                foreach (var alignment in new[] { "top", "center", "bottom" })
+                {
+                    builder.AddParagraph($"A {alignment}-aligned page.", ZeroSpacing, Times12);
+                    builder.AddParagraphWithSectionBreak(
+                        "The second line of it.",
+                        DocxBuilder.Section(verticalAlignment: alignment),
+                        ZeroSpacing, Times12);
+                }
+
+                for (var i = 1; i <= 4; i++)
+                    builder.AddParagraph($"Justified paragraph {i} of four.", ZeroSpacing, Times12);
+
+                return builder.WithSection(DocxBuilder.Section(verticalAlignment: "both"));
+            },
+
             // Four sections on different paper with different margins, one of each break type the
             // engine treats differently: a next-page break onto landscape, a continuous break that
             // changes the margins part-way down a page, and an even-page break that has to leave a

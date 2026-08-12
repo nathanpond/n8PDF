@@ -130,7 +130,7 @@ public sealed class DocxBuilder
         string? type = null,
         int widthTwips = 12240, int heightTwips = 15840,
         int top = 1440, int right = 1440, int bottom = 1440, int left = 1440,
-        bool landscape = false, bool titlePage = false,
+        bool landscape = false, bool titlePage = false, string? verticalAlignment = null,
         int columns = 1, int columnSpaceTwips = 720, bool columnSeparator = false,
         IReadOnlyList<(int Width, int Space)>? columnWidths = null)
     {
@@ -149,7 +149,7 @@ public sealed class DocxBuilder
             <w:sectPr>
               {references}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
               <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
-              {Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(titlePage ? "<w:titlePg/>" : string.Empty)}
+              {Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
             </w:sectPr>
             """;
     }

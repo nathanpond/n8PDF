@@ -116,7 +116,9 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: font subsetting for both kinds of outline. A TrueType face is numbered again from
+Implemented: vertical page alignment (top, centred, bottom, and justified — which spreads the
+spare height between the paragraphs rather than between the lines, so a paragraph that wraps stays
+whole), font subsetting for both kinds of outline. A TrueType face is numbered again from
 nothing, so a document that used thirty glyphs embeds thirty rather than the three thousand the
 face has; a CFF one keeps its numbering — renumbering it means rewriting what its charset says
 about every glyph — and has its charstrings and the subroutines nothing reaches emptied instead.
@@ -164,8 +166,7 @@ shown), splitting a note across pages, restarting note numbering per page or per
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
-them rather than under the whole measure, page numbering restarted per section,
-and vertical page alignment.
+them rather than under the whole measure, and page numbering restarted per section.
 
 Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
 subset they embed. It cannot be subset in any case — control values are reached by index and

@@ -613,6 +613,14 @@ public static class DocumentParser
 
         section.TitlePage = sectPr.Element(W.Main + "titlePg")?.OnOff() ?? false;
 
+        section.VerticalAlignment = sectPr.Element(W.Main + "vAlign")?.Attr("val") switch
+        {
+            "center" => VerticalPageAlignment.Center,
+            "bottom" => VerticalPageAlignment.Bottom,
+            "both" => VerticalPageAlignment.Both,
+            _ => VerticalPageAlignment.Top
+        };
+
         var cols = sectPr.Element(W.Main + "cols");
         if (cols is not null)
         {

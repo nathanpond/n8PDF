@@ -1,0 +1,109 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 94.969, "font": "Times New Roman", "size": 12, "text": "A top-aligned page."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 101.637, "font": "Times New Roman", "size": 12, "text": "The second line of it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 393.404,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 108.943, "font": "Times New Roman", "size": 12, "text": "A center-aligned page."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 407.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 101.637, "font": "Times New Roman", "size": 12, "text": "The second line of it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 703.605,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 113.637, "font": "Times New Roman", "size": 12, "text": "A bottom-aligned page."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 717.404,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 101.637, "font": "Times New Roman", "size": 12, "text": "The second line of it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 139.623, "font": "Times New Roman", "size": 12, "text": "Justified paragraph 1 of four."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 294.604,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 139.623, "font": "Times New Roman", "size": 12, "text": "Justified paragraph 2 of four."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 506.004,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 139.623, "font": "Times New Roman", "size": 12, "text": "Justified paragraph 3 of four."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 717.404,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 139.623, "font": "Times New Roman", "size": 12, "text": "Justified paragraph 4 of four."}
+          ]
+        }
+      ]
+    }
+  ]
+}
