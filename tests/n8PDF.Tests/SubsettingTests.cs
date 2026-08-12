@@ -193,6 +193,94 @@ public class SubsettingTests
     }
 
     /// <summary>
+    /// A renumbered font is as many glyphs long as were used, not as many as the face has.
+    /// </summary>
+    [Fact]
+    public void The_embedded_font_holds_only_the_glyphs_that_were_used()
+    {
+        if (!FontToolsCheck.IsAvailable)
+        {
+            Assert.False(FontToolsCheck.IsRequired, FontToolsCheck.UnavailableMessage);
+            return;
+        }
+
+        var font = Times();
+        var report = FontToolsCheck.Read(EmbeddedProgram(Fixtures.Build("single-line"))!, []);
+
+        Assert.NotNull(report);
+        Assert.True(report.Glyphs < 100, $"the embedded font has {report.Glyphs:N0} glyphs");
+        Assert.True(report.Glyphs * 30 < font.GlyphCount, $"only {report.Glyphs} of {font.GlyphCount}");
+    }
+
+    /// <summary>
+    /// Every character the embedded font can reach draws what it drew in the face it came from.
+    /// </summary>
+    /// <remarks>
+    /// This is the whole chain in one assertion: the character map, the numbering it points into,
+    /// the outline found there and the metrics it is placed by. Both bugs this feature had would
+    /// have failed here — one made the font unreadable, the other left every glyph shifted by the
+    /// side bearing it should have been given.
+    /// </remarks>
+    [Fact]
+    public void Every_character_it_keeps_draws_what_it_drew()
+    {
+        if (!FontToolsCheck.IsAvailable)
+        {
+            Assert.False(FontToolsCheck.IsRequired, FontToolsCheck.UnavailableMessage);
+            return;
+        }
+
+        var font = Times();
+
+        // Accented letters, whose glyphs are built from others and whose components have to be
+        // renumbered along with them.
+        var docx = new DocxBuilder()
+            .AddParagraph("The quick brown fox, éàü 1234.", runProperties: Times12)
+            .Build();
+
+        var whole = FontToolsCheck.Read(font.GetEmbeddableFontProgram(), []);
+        var embedded = FontToolsCheck.Read(EmbeddedProgram(docx)!, []);
+
+        Assert.NotNull(whole);
+        Assert.NotNull(embedded);
+        Assert.NotEmpty(embedded.Characters);
+
+        foreach (var (code, drawing) in embedded.Characters)
+        {
+            Assert.True(whole.Characters.TryGetValue(code, out var original),
+                $"the face has no U+{code:X4} for the subset to have kept");
+
+            Assert.Equal(original, drawing);
+        }
+    }
+
+    /// <summary>The font program a converted document embeds.</summary>
+    private static byte[]? EmbeddedProgram(byte[] docx)
+    {
+        var pdf = Converter.Convert(docx, Options());
+        var reader = new PdfFileReader(pdf);
+
+        foreach (var page in reader.GetPages())
+        {
+            if (reader.GetEntry(page.Resources, "Font") is not PdfDictValue fonts) continue;
+
+            foreach (var (_, value) in fonts.Entries)
+            {
+                if (reader.Resolve(value) is not PdfDictValue font) continue;
+                if (reader.Resolve(font.Get("DescendantFonts")) is not PdfArrayValue descendants) continue;
+                if (reader.Resolve(descendants[0]) is not PdfDictValue descendant) continue;
+
+                var descriptor = reader.Resolve(descendant.Get("FontDescriptor")) as PdfDictValue;
+
+                if (reader.Resolve(descriptor?.Get("FontFile2")) is PdfStreamValue stream)
+                    return reader.DecodeStream(stream);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Word keeps the hinting in the fonts it embeds — its own exports carry all three of its
     /// tables — so this does too unless it is asked not to.
     /// </summary>

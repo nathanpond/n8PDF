@@ -16,13 +16,24 @@ public class EmbeddedFontTests
         var builder = new PdfBuilder();
         var font = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanPath));
 
-        var encoded = font.Encode("AB");
+        var encoded = font.Encode("ABA");
 
-        Assert.Equal(4, encoded.Length);
+        Assert.Equal(6, encoded.Length);
 
-        var glyphs = font.MapToGlyphs("AB");
-        Assert.Equal(glyphs[0], (ushort)((encoded[0] << 8) | encoded[1]));
-        Assert.Equal(glyphs[1], (ushort)((encoded[2] << 8) | encoded[3]));
+        // The glyphs are numbered again as they are first used, because that is the numbering the
+        // embedded font will have — so the first character of a document is glyph one.
+        var codes = Codes(encoded);
+
+        Assert.Equal([1, 2, 1], codes);
+    }
+
+    /// <summary>The two-byte codes of an encoded string.</summary>
+    private static List<int> Codes(byte[] encoded)
+    {
+        var codes = new List<int>(encoded.Length / 2);
+        for (var i = 0; i + 1 < encoded.Length; i += 2) codes.Add((encoded[i] << 8) | encoded[i + 1]);
+
+        return codes;
     }
 
     [Fact]
@@ -123,12 +134,13 @@ public class EmbeddedFontTests
         var text = Encoding.Latin1.GetString(builder.ToArray());
         Assert.Contains("/ToUnicode", text);
 
-        var glyph = typeface.GetGlyphIndex('A');
         var cmap = ExtractDecodedStreams(builder.ToArray())
             .FirstOrDefault(s => s.Contains("beginbfchar", StringComparison.Ordinal));
 
         Assert.NotNull(cmap);
-        Assert.Contains($"<{glyph:X4}> <0041>", cmap);
+
+        // Keyed by the code the glyph was written as, which is the first one used.
+        Assert.Contains("<0001> <0041>", cmap);
         Assert.Contains("/CMapType 2 def", cmap);
     }
 

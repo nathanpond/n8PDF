@@ -55,9 +55,13 @@ internal static class SfntRepackager
 
     public static byte[] BuildStandalone(
         TrueTypeFont font, IReadOnlyCollection<ushort>? usedGlyphs, out bool subsetted,
-        bool dropHinting = false)
+        bool dropHinting = false,
+        IReadOnlyList<ushort>? order = null,
+        IReadOnlyList<(int CodePoint, ushort Glyph)>? characters = null)
     {
-        var subset = usedGlyphs is { Count: > 0 } ? GlyphSubset.Build(font, usedGlyphs, dropHinting) : null;
+        var subset = order is { Count: > 0 }
+            ? GlyphSubset.Renumber(font, order, characters ?? [], dropHinting)
+            : usedGlyphs is { Count: > 0 } ? GlyphSubset.Build(font, usedGlyphs, dropHinting) : null;
         var charStrings = usedGlyphs is { Count: > 0 } ? BuildCffSubset(font, usedGlyphs) : null;
 
         // Whether anything was actually left out, which is what decides if the result may be
@@ -102,6 +106,11 @@ internal static class SfntRepackager
                 else if (tag == "loca") data = tables.Loca;
                 else if (tag == "post") data = GlyphSubset.NamelessPost(source, record);
                 else if (tag == "hmtx" && tables.Hmtx is { } metrics) data = metrics;
+                else if (tag == "cmap" && tables.Cmap is { } cmap) data = cmap;
+
+                // How many glyphs the font has, once they have been numbered again.
+                else if (tag == "maxp" && tables.GlyphCount > 0 && data.Length >= 6)
+                    WriteUInt16(data, 4, (ushort)tables.GlyphCount);
 
                 // The rebuilt locations are in the long format whatever the original used, and
                 // head is where a reader is told which to expect.

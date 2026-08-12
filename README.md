@@ -116,9 +116,11 @@ match Word vertically.
 
 ## Current scope
 
-Implemented: font subsetting for both kinds of outline — the glyphs a document draws are embedded
-and the rest emptied — along with the subroutines nothing reaches — taking a TrueType text face
-from 676KB to 43KB and a CFF one from 11.4MB to 497KB — kerning, read from a font's GPOS table as well as the legacy one — Calibri has only
+Implemented: font subsetting for both kinds of outline. A TrueType face is numbered again from
+nothing, so a document that used thirty glyphs embeds thirty rather than the three thousand the
+face has; a CFF one keeps its numbering — renumbering it means rewriting what its charset says
+about every glyph — and has its charstrings and the subroutines nothing reaches emptied instead.
+Times New Roman goes from 676KB to 33KB, Hiragino Sans GB from 11.4MB to 497KB. Kerning, read from a font's GPOS table as well as the legacy one — Calibri has only
 the former and Times New Roman only the latter, so both are needed to kern either — applied where
 `w:kern` asks for it and from the type size it names upwards, tab stops of every alignment — left, centre, right and decimal, the last three
 resolved once the text after the tab has been measured, with a stop the line has already passed

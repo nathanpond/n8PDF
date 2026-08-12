@@ -137,6 +137,15 @@ public sealed class TrueTypeFont
         IReadOnlyCollection<ushort> usedGlyphs, out bool subsetted, bool dropHinting = false) =>
         SfntRepackager.BuildStandalone(this, usedGlyphs, out subsetted, dropHinting);
 
+    /// <summary>
+    /// The font program with its glyphs numbered again, in the order given, so that the file
+    /// holds as many glyphs as were used rather than as many as the face has.
+    /// </summary>
+    public byte[] GetRenumberedFontProgram(
+        IReadOnlyList<ushort> order, IReadOnlyList<(int CodePoint, ushort Glyph)> characters,
+        out bool subsetted, bool dropHinting = false) =>
+        SfntRepackager.BuildStandalone(this, order, out subsetted, dropHinting, order, characters);
+
     // ----- loading -----
 
     public static TrueTypeFont Load(byte[] data, int faceIndex = 0)

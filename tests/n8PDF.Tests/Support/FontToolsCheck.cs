@@ -14,6 +14,9 @@ public sealed record FontReport(int Glyphs, Dictionary<int, string> Drawn)
 
     /// <summary>Bytes of hinting: the programs, plus the instructions inside the glyphs.</summary>
     public int Hinting { get; init; }
+
+    /// <summary>What each character in the font's own map draws, by code point.</summary>
+    public Dictionary<int, string> Characters { get; init; } = [];
 }
 
 /// <summary>
@@ -25,6 +28,9 @@ public sealed record FontReport(int Glyphs, Dictionary<int, string> Drawn)
 /// is an implementation with nothing in common with this one: it parses the file independently
 /// and, importantly, <em>executes</em> the charstrings, so a subset whose subroutine calls no
 /// longer resolve draws differently rather than merely parsing differently.
+///
+/// Composites are drawn through to their outlines rather than recorded as references, because a
+/// reference carries the name of the glyph it points at and a subset has no names to give.
 ///
 /// It is a developer tool rather than a dependency. When it is not installed these tests report
 /// and skip, unless <c>N8PDF_REQUIRE_FONTTOOLS=1</c> turns absence into a failure.
@@ -60,7 +66,7 @@ public static class FontToolsCheck
             var script = """
                 import sys, hashlib
                 from fontTools.ttLib import TTFont
-                from fontTools.pens.recordingPen import RecordingPen
+                from fontTools.pens.recordingPen import DecomposingRecordingPen
 
                 font = TTFont(sys.argv[1])
                 order = font.getGlyphOrder()
@@ -81,13 +87,21 @@ public static class FontToolsCheck
 
                 print("hinting\t%d" % hinting)
 
+                # What the font's own character map reaches, which is the whole chain: the map,
+                # the numbering it points into, and the outline found there.
+                for code, name in sorted(font.getBestCmap().items()):
+                    pen = DecomposingRecordingPen(glyphs)
+                    glyphs[name].draw(pen)
+                    drawing = repr(pen.value).encode("utf-8")
+                    print("char\t%d\t%d\t%s" % (code, len(pen.value), hashlib.sha256(drawing).hexdigest()))
+
                 if "CFF " not in font:
                     print("subrs\t0\t0")
                     print("glyphs\t%d" % len(order))
                     for index in [GLYPHS]:
                         if index >= len(order):
                             continue
-                        pen = RecordingPen()
+                        pen = DecomposingRecordingPen(glyphs)
                         glyphs[order[index]].draw(pen)
                         drawing = repr(pen.value).encode("utf-8")
                         print("%d\t%d\t%s" % (index, len(pen.value), hashlib.sha256(drawing).hexdigest()))
@@ -113,7 +127,7 @@ public static class FontToolsCheck
                 for index in [GLYPHS]:
                     if index >= len(order):
                         continue
-                    pen = RecordingPen()
+                    pen = DecomposingRecordingPen(glyphs)
                     glyphs[order[index]].draw(pen)
                     drawing = repr(pen.value).encode("utf-8")
                     print("%d\t%d\t%s" % (index, len(pen.value), hashlib.sha256(drawing).hexdigest()))
@@ -147,6 +161,7 @@ public static class FontToolsCheck
         var empty = 0;
         var hinting = 0;
         var drawn = new Dictionary<int, string>();
+        var characters = new Dictionary<int, string>();
 
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
@@ -161,6 +176,14 @@ public static class FontToolsCheck
             if (fields.Length == 2 && fields[0] == "hinting")
             {
                 int.TryParse(fields[1], out hinting);
+                continue;
+            }
+
+            if (fields.Length == 4 && fields[0] == "char")
+            {
+                if (int.TryParse(fields[1], out var code))
+                    characters[code] = fields[2] == "0" ? "nothing" : fields[3];
+
                 continue;
             }
 
@@ -181,7 +204,10 @@ public static class FontToolsCheck
         return count > 0
             ? new FontReport(count, drawn)
             {
-                Subroutines = subroutines, EmptySubroutines = empty, Hinting = hinting
+                Subroutines = subroutines,
+                EmptySubroutines = empty,
+                Hinting = hinting,
+                Characters = characters
             }
             : null;
     }

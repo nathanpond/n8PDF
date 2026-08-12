@@ -18,7 +18,12 @@ internal static class GlyphSubset
     /// <summary>The rebuilt tables, ready to be written in place of the originals.</summary>
     /// <param name="Hmtx">Metrics as far as the last glyph kept, or null to leave them alone.</param>
     /// <param name="MetricCount">What <c>hhea</c> should now say the metric count is.</param>
-    internal readonly record struct Tables(byte[] Glyf, byte[] Loca, byte[]? Hmtx, int MetricCount);
+    /// <param name="GlyphCount">
+    /// What <c>maxp</c> should now say, when the glyphs were numbered again. Zero leaves it alone.
+    /// </param>
+    /// <param name="Cmap">A rebuilt character map, for the same case.</param>
+    internal readonly record struct Tables(
+        byte[] Glyf, byte[] Loca, byte[]? Hmtx, int MetricCount, int GlyphCount = 0, byte[]? Cmap = null);
 
     /// <summary>
     /// A <c>post</c> table of version 3.0, which is the version that carries no glyph names.
@@ -49,6 +54,60 @@ internal static class GlyphSubset
     /// Builds the outline tables for a set of glyphs, or returns null when the font is not one
     /// this can subset — a CFF face keeps its outlines somewhere else entirely.
     /// </summary>
+    /// <summary>
+    /// Rebuilds the outline tables with the glyphs numbered again from nothing, in the order
+    /// given, so that a font holding a hundred glyphs is a hundred glyphs long.
+    /// </summary>
+    /// <param name="order">
+    /// The glyphs to keep, in the order they will have. Position zero is <c>.notdef</c> and is
+    /// added here; anything a kept glyph is built out of is appended to the end.
+    /// </param>
+    /// <param name="characters">What each glyph is reached by, for the rebuilt character map.</param>
+    public static Tables? Renumber(
+        TrueTypeFont font, IReadOnlyList<ushort> order,
+        IReadOnlyList<(int CodePoint, ushort Glyph)> characters, bool dropHinting = false)
+    {
+        if (font.HasCffOutlines) return null;
+        if (!font.Tables.TryGetValue("glyf", out var glyf)) return null;
+        if (!font.Tables.TryGetValue("loca", out var loca)) return null;
+        if (!font.Tables.TryGetValue("head", out var head)) return null;
+
+        try
+        {
+            var source = font.SourceData;
+            var longLoca = new BigEndianReader(source, head.Offset + 50).ReadInt16() != 0;
+
+            var offsets = ReadLoca(source, loca, font.GlyphCount, longLoca);
+            if (offsets is null) return null;
+
+            // The numbering: position zero is .notdef, then the glyphs as they were asked for,
+            // then whatever those are built out of.
+            var numbering = new Dictionary<ushort, ushort> { [0] = 0 };
+            var kept = new List<ushort> { 0 };
+
+            foreach (var glyph in order)
+            {
+                if (glyph < font.GlyphCount && numbering.TryAdd(glyph, (ushort)kept.Count)) kept.Add(glyph);
+            }
+
+            for (var i = 0; i < kept.Count; i++)
+            {
+                foreach (var component in Components(source, glyf, offsets, kept[i]))
+                {
+                    if (component < font.GlyphCount && numbering.TryAdd(component, (ushort)kept.Count))
+                        kept.Add(component);
+                }
+            }
+
+            return RebuildRenumbered(font, source, glyf, offsets, kept, numbering, characters, dropHinting);
+        }
+        catch (Exception e) when (e is FontFormatException or IndexOutOfRangeException
+                                     or ArgumentOutOfRangeException or OverflowException)
+        {
+            return null;
+        }
+    }
+
     public static Tables? Build(TrueTypeFont font, IReadOnlyCollection<ushort> glyphs, bool dropHinting = false)
     {
         if (font.HasCffOutlines) return null;
@@ -74,6 +133,223 @@ internal static class GlyphSubset
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Writes the kept glyphs in their new order, with everything that refers to a glyph by
+    /// number brought along.
+    /// </summary>
+    /// <remarks>
+    /// A composite names the glyphs it is built from by index, so those references are rewritten
+    /// as the outline is copied. Everything else that is numbered by glyph — the locations, the
+    /// metrics, the count in <c>maxp</c> — is simply shorter.
+    /// </remarks>
+    private static Tables RebuildRenumbered(
+        TrueTypeFont font, byte[] source, TrueTypeFont.TableRecord glyf, int[] offsets,
+        List<ushort> kept, Dictionary<ushort, ushort> numbering,
+        IReadOnlyList<(int CodePoint, ushort Glyph)> characters, bool dropHinting)
+    {
+        var outlines = new MemoryStream();
+        var loca = new byte[(kept.Count + 1) * 4];
+        var hmtx = new byte[kept.Count * 4];
+
+        for (var index = 0; index < kept.Count; index++)
+        {
+            WriteUInt32(loca, index * 4, (uint)outlines.Length);
+
+            var glyph = kept[index];
+
+            // Both metrics move with the glyph. The advance is what the text is spaced by; the
+            // side bearing is where the outline sits against it, and a renderer positions the
+            // points by the difference between it and the outline's own left edge — so a glyph
+            // given a side bearing of zero draws shifted by however far in it used to start.
+            var advance = font.GetAdvanceWidth(glyph);
+            var bearing = LeftSideBearing(font, source, glyph);
+
+            hmtx[index * 4] = (byte)(advance >> 8);
+            hmtx[index * 4 + 1] = (byte)advance;
+            hmtx[index * 4 + 2] = (byte)(bearing >> 8);
+            hmtx[index * 4 + 3] = (byte)bearing;
+
+            var start = offsets[glyph];
+            var length = offsets[glyph + 1] - start;
+            if (length <= 0) continue;
+
+            var available = Math.Min(length, glyf.Length - start);
+            if (available <= 0) continue;
+
+            var outline = new ReadOnlySpan<byte>(source, glyf.Offset + start, available);
+            if (dropHinting) outline = WithoutInstructions(outline);
+
+            var copied = outline.ToArray();
+            Renumber(copied, numbering);
+
+            outlines.Write(copied);
+        }
+
+        WriteUInt32(loca, kept.Count * 4, (uint)outlines.Length);
+
+        var cmap = BuildCmap(characters, numbering);
+
+        return new Tables(outlines.ToArray(), loca, hmtx, kept.Count, kept.Count, cmap);
+    }
+
+    /// <summary>
+    /// A glyph's left side bearing, from wherever the metrics table keeps it.
+    /// </summary>
+    /// <remarks>
+    /// The table holds full metrics for the first so many glyphs and only side bearings for the
+    /// rest, which is how a font with many glyphs of one width stays small.
+    /// </remarks>
+    private static short LeftSideBearing(TrueTypeFont font, byte[] source, ushort glyph)
+    {
+        if (!font.Tables.TryGetValue("hmtx", out var hmtx)) return 0;
+        if (!font.Tables.TryGetValue("hhea", out var hhea)) return 0;
+
+        int metrics = new BigEndianReader(source, hhea.Offset + 34).ReadUInt16();
+        if (metrics == 0) return 0;
+
+        var at = glyph < metrics
+            ? hmtx.Offset + glyph * 4 + 2
+            : hmtx.Offset + metrics * 4 + (glyph - metrics) * 2;
+
+        return at + 2 <= source.Length && at + 2 <= hmtx.Offset + hmtx.Length
+            ? new BigEndianReader(source, at).ReadInt16()
+            : (short)0;
+    }
+
+    /// <summary>Rewrites the glyph numbers a composite refers to, in place.</summary>
+    private static void Renumber(byte[] outline, Dictionary<ushort, ushort> numbering)
+    {
+        if (outline.Length < 10) return;
+        if ((short)((outline[0] << 8) | outline[1]) >= 0) return;
+
+        var at = 10;
+
+        while (at + 4 <= outline.Length)
+        {
+            var flags = (outline[at] << 8) | outline[at + 1];
+            var component = (ushort)((outline[at + 2] << 8) | outline[at + 3]);
+
+            if (numbering.TryGetValue(component, out var renumbered))
+            {
+                outline[at + 2] = (byte)(renumbered >> 8);
+                outline[at + 3] = (byte)renumbered;
+            }
+
+            at += 4;
+            at += (flags & 0x0001) != 0 ? 4 : 2;
+
+            if ((flags & 0x0008) != 0) at += 2;
+            else if ((flags & 0x0040) != 0) at += 4;
+            else if ((flags & 0x0080) != 0) at += 8;
+
+            if ((flags & 0x0020) == 0) break;
+        }
+    }
+
+    /// <summary>The glyphs a composite is built from, or nothing for a simple one.</summary>
+    private static IEnumerable<ushort> Components(
+        byte[] source, TrueTypeFont.TableRecord glyf, int[] offsets, ushort glyph)
+    {
+        var start = offsets[glyph];
+        if (offsets[glyph + 1] - start < 10) yield break;
+
+        var reader = new BigEndianReader(source, glyf.Offset + start);
+        if (reader.ReadInt16() >= 0) yield break;
+
+        reader.Skip(8);
+
+        while (true)
+        {
+            var flags = reader.ReadUInt16();
+            yield return reader.ReadUInt16();
+
+            reader.Skip((flags & 0x0001) != 0 ? 4 : 2);
+
+            if ((flags & 0x0008) != 0) reader.Skip(2);
+            else if ((flags & 0x0040) != 0) reader.Skip(4);
+            else if ((flags & 0x0080) != 0) reader.Skip(8);
+
+            if ((flags & 0x0020) == 0) yield break;
+        }
+    }
+
+    /// <summary>
+    /// A character map for the renumbered font.
+    /// </summary>
+    /// <remarks>
+    /// Nothing in the PDF reads it — with Identity-H the code in the content stream is the glyph
+    /// number, and the text comes back through the ToUnicode map — but a font is expected to have
+    /// one, and a renumbered font carrying the original's would point at glyphs that have moved.
+    /// The grouped format is used because it can say what this needs to say in a few bytes.
+    /// </remarks>
+    private static byte[] BuildCmap(
+        IReadOnlyList<(int CodePoint, ushort Glyph)> characters, Dictionary<ushort, ushort> numbering)
+    {
+        var entries = characters
+            .Where(entry => entry.CodePoint > 0 && numbering.ContainsKey(entry.Glyph))
+            .Select(entry => (entry.CodePoint, Glyph: numbering[entry.Glyph]))
+            .GroupBy(entry => entry.CodePoint)
+            .Select(group => group.First())
+            .OrderBy(entry => entry.CodePoint)
+            .ToList();
+
+        // Runs of characters whose glyphs run alongside them collapse into one group.
+        var groups = new List<(int First, int Last, ushort Glyph)>();
+
+        foreach (var (codePoint, glyph) in entries)
+        {
+            if (groups.Count > 0)
+            {
+                var last = groups[^1];
+                if (codePoint == last.Last + 1 && glyph == last.Glyph + (last.Last - last.First) + 1)
+                {
+                    groups[^1] = (last.First, codePoint, last.Glyph);
+                    continue;
+                }
+            }
+
+            groups.Add((codePoint, codePoint, glyph));
+        }
+
+        var subtable = new MemoryStream();
+        WriteUInt16(subtable, 12);                       // format
+        WriteUInt16(subtable, 0);                        // reserved
+        WriteUInt32(subtable, (uint)(16 + groups.Count * 12));
+        WriteUInt32(subtable, 0);                        // language
+        WriteUInt32(subtable, (uint)groups.Count);
+
+        foreach (var (first, last, glyph) in groups)
+        {
+            WriteUInt32(subtable, (uint)first);
+            WriteUInt32(subtable, (uint)last);
+            WriteUInt32(subtable, glyph);
+        }
+
+        var table = new MemoryStream();
+        WriteUInt16(table, 0);                           // version
+        WriteUInt16(table, 1);                           // one subtable
+        WriteUInt16(table, 3);                           // Windows
+        WriteUInt16(table, 10);                          // full Unicode
+        WriteUInt32(table, 12);                          // where the subtable starts
+        subtable.WriteTo(table);
+
+        return table.ToArray();
+    }
+
+    private static void WriteUInt16(Stream output, int value)
+    {
+        output.WriteByte((byte)(value >> 8));
+        output.WriteByte((byte)value);
+    }
+
+    private static void WriteUInt32(Stream output, uint value)
+    {
+        output.WriteByte((byte)(value >> 24));
+        output.WriteByte((byte)(value >> 16));
+        output.WriteByte((byte)(value >> 8));
+        output.WriteByte((byte)value);
     }
 
     /// <summary>Where each glyph's outline starts, with one extra entry marking the end.</summary>

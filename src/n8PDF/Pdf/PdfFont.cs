@@ -18,6 +18,11 @@ public sealed class PdfFont
 {
     private readonly Dictionary<ushort, int> _glyphToUnicode = [];
 
+    // The glyphs of the embedded font, in the order they were first used: the code a glyph is
+    // written as is where it sits here, counting from one.
+    private readonly Dictionary<ushort, ushort> _subsetIds = [];
+    private readonly List<ushort> _subsetOrder = [];
+
     internal PdfFont(TrueTypeFont font, string resourceName)
     {
         Font = font;
@@ -31,6 +36,13 @@ public sealed class PdfFont
 
     /// <summary>Glyphs referenced so far, which is what the width array is built from.</summary>
     public int UsedGlyphCount => _glyphToUnicode.Count;
+
+    /// <summary>
+    /// Whether this font's glyphs are numbered again in the file it is embedded in. Only an
+    /// outline face is: renumbering a CFF one means rewriting what its charset says about every
+    /// glyph, and for a CID-keyed font its FDSelect too.
+    /// </summary>
+    private bool Renumbers => !Font.HasCffOutlines;
 
     /// <summary>
     /// Maps text to glyph indices, expanding surrogate pairs so that characters outside the
@@ -75,8 +87,9 @@ public sealed class PdfFont
             var glyph = Font.GetGlyphIndex(codePoint);
             RegisterGlyph(glyph, codePoint);
 
-            bytes.Add((byte)(glyph >> 8));
-            bytes.Add((byte)glyph);
+            var code = CodeFor(glyph);
+            bytes.Add((byte)(code >> 8));
+            bytes.Add((byte)code);
         }
 
         return [.. bytes];
@@ -90,8 +103,10 @@ public sealed class PdfFont
         for (var i = 0; i < glyphs.Length; i++)
         {
             RegisterGlyph(glyphs[i], i < codePoints.Length ? codePoints[i] : 0);
-            bytes[i * 2] = (byte)(glyphs[i] >> 8);
-            bytes[i * 2 + 1] = (byte)glyphs[i];
+
+            var code = CodeFor(glyphs[i]);
+            bytes[i * 2] = (byte)(code >> 8);
+            bytes[i * 2 + 1] = (byte)code;
         }
 
         return bytes;
@@ -100,6 +115,34 @@ public sealed class PdfFont
     /// <summary>Advance width of a glyph in text-space thousandths, the unit PDF widths use.</summary>
     public double GetGlyphWidth1000(ushort glyph) =>
         Font.GetAdvanceWidth(glyph) * 1000.0 / Font.UnitsPerEm;
+
+    /// <summary>
+    /// The code this glyph is written as, which is where it will sit in the embedded font.
+    /// </summary>
+    /// <remarks>
+    /// Glyphs are numbered again from one as they are first used, so that a font holding a
+    /// hundred of them is a hundred glyphs long rather than three thousand mostly empty ones.
+    /// With Identity-H the code in the content stream is the glyph index, so writing the new
+    /// number here is what keeps the two agreeing — and it is also what the width array and the
+    /// ToUnicode map are keyed by.
+    ///
+    /// A CFF face keeps its old numbering: renumbering one means rewriting the charset and, for a
+    /// CID-keyed font, its FDSelect, and those say things about the glyphs that the file's own
+    /// reader may go looking for.
+    /// </remarks>
+    private ushort CodeFor(ushort glyph)
+    {
+        if (!Renumbers) return glyph;
+        if (glyph == 0) return 0;
+
+        if (_subsetIds.TryGetValue(glyph, out var code)) return code;
+
+        code = (ushort)(_subsetIds.Count + 1);
+        _subsetIds[glyph] = code;
+        _subsetOrder.Add(glyph);
+
+        return code;
+    }
 
     private void RegisterGlyph(ushort glyph, int codePoint)
     {
@@ -114,7 +157,16 @@ public sealed class PdfFont
     internal PdfReference Build(PdfDocument document, bool dropHinting = false)
     {
         var glyphs = _glyphToUnicode.Keys.ToList();
-        var program = Font.GetEmbeddableFontProgram(glyphs, out var subsetted, dropHinting);
+
+        var characters = _glyphToUnicode
+            .Select(pair => (CodePoint: pair.Value, Glyph: pair.Key))
+            .ToList();
+
+        var program = Renumbers
+            ? Font.GetRenumberedFontProgram(_subsetOrder, characters, out var renumbered, dropHinting)
+            : Font.GetEmbeddableFontProgram(glyphs, out renumbered, dropHinting);
+
+        var subsetted = renumbered;
 
         // A subset font is named with a six-letter tag so that two documents carrying different
         // parts of the same face are not mistaken for each other. The tag is derived from the
@@ -193,22 +245,25 @@ public sealed class PdfFont
         var widths = new PdfArray();
         if (_glyphToUnicode.Count == 0) return widths;
 
-        var glyphs = _glyphToUnicode.Keys.ToList();
-        glyphs.Sort();
+        // Keyed by the code each glyph is written as, and measured from the glyph it came from.
+        var codes = _glyphToUnicode.Keys
+            .Select(glyph => (Code: CodeFor(glyph), Glyph: glyph))
+            .OrderBy(entry => entry.Code)
+            .ToList();
 
         // The compact form groups consecutive CIDs: "startCid [w w w ...]".
         var index = 0;
-        while (index < glyphs.Count)
+        while (index < codes.Count)
         {
             var runStart = index;
-            while (index + 1 < glyphs.Count && glyphs[index + 1] == glyphs[index] + 1)
+            while (index + 1 < codes.Count && codes[index + 1].Code == codes[index].Code + 1)
                 index++;
 
             var run = new PdfArray();
             for (var i = runStart; i <= index; i++)
-                run.Add(Math.Round(GetGlyphWidth1000(glyphs[i]), 2));
+                run.Add(Math.Round(GetGlyphWidth1000(codes[i].Glyph), 2));
 
-            widths.Add(new PdfNumber((int)glyphs[runStart])).Add(run);
+            widths.Add(new PdfNumber((int)codes[runStart].Code)).Add(run);
             index++;
         }
 
@@ -237,6 +292,7 @@ public sealed class PdfFont
 
         var entries = _glyphToUnicode
             .Where(pair => pair.Value > 0)
+            .Select(pair => new KeyValuePair<ushort, int>(CodeFor(pair.Key), pair.Value))
             .OrderBy(pair => pair.Key)
             .ToList();
 
