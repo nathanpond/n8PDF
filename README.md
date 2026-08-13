@@ -545,8 +545,9 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is placing marks by the font's own rules, and the scripts that join or reorder
-their letters: Arabic, and the Indic and South-East Asian families.
+remains elsewhere is the scripts that join or reorder their letters — Arabic, and the Indic and
+South-East Asian families — which need the substitutions of a font's `GSUB` table as well as the
+positioning of its `GPOS`.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -606,9 +607,23 @@ it is. The lines begin exactly where Word begins them, and every character a fon
 on the page; the borrowed faces are not the same width as Word's, because Word's choice is its own
 and not discoverable from the document.
 
-One thing a Hebrew document needs is still missing: the vowel points are placed by their own
-advances rather than by the font's mark positioning, which unpointed Hebrew never asks for and
-pointed Hebrew does.
+A mark is drawn where the font says it goes. An accent, a Hebrew vowel point, an Arabic dot: none
+of them has a place of its own and none can be drawn by advancing the pen. The font gives the mark
+an anchor and the letter an anchor, and the two are brought together — a movement of the mark alone,
+which the pen does not know about, so the letter after is set as though the mark were not there. A
+mark drawn on a mark is placed against that mark rather than the letter, which is how a letter
+carries two.
+
+Where no movement along the line can express it — a point below a letter, an accent above one —
+the text is raised for that glyph and put back down after, which is the only thing a PDF has to say
+it with.
+
+There is a reference implementation for this too, and it is used the same way. HarfBuzz shapes text
+for nearly everything that draws it and shares nothing with this; asked for the same characters in
+the same face it gives the same glyphs and the same offsets, to the design unit, for Latin accents
+and Hebrew points alike. Comparing the two takes a moment's care — HarfBuzz writes a right-to-left
+run in the order it draws it, so a mark's offset is measured from a different place — and what is
+compared is therefore where each glyph's ink lands rather than the numbers on it.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and

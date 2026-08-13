@@ -387,16 +387,49 @@ internal static class PdfRenderer
         var glyphs = new List<ushort>(shaped.Count);
         var codePoints = new List<int>(shaped.Count);
 
-        void Flush(double adjustment)
+        // What the glyphs so far have been raised by. A mark drawn above or below what it belongs
+        // to is the only thing that asks for this, and it has to be put back afterwards.
+        var rise = 0.0;
+
+        void Cut(double adjustment)
         {
             segments.Add((font.EncodeGlyphs([.. glyphs], [.. codePoints]), adjustment));
             glyphs.Clear();
             codePoints.Clear();
         }
 
+        void Flush()
+        {
+            if (glyphs.Count > 0) Cut(0);
+            if (segments.Count == 0) return;
+
+            content.ShowGlyphsAdjusted(segments);
+            segments.Clear();
+        }
+
         for (var i = 0; i < shaped.Count; i++)
         {
             var glyph = shaped.Glyphs[i];
+
+            // A mark sits above or below the line it is on, which no movement along the line can
+            // express: the text is raised for it and put back down after.
+            var wanted = units > 0 ? glyph.YOffset * size / units : 0;
+
+            if (Math.Abs(wanted - rise) > 0.0001)
+            {
+                Flush();
+                content.SetTextRise(wanted);
+                rise = wanted;
+            }
+
+            // And it is drawn away from where the pen stands without taking the pen with it, so
+            // the movement is made before it and unmade after.
+            if (glyph.XOffset != 0 && units > 0)
+            {
+                if (glyphs.Count > 0) Cut(0);
+
+                segments.Add(([], -glyph.XOffset * 1000.0 / units));
+            }
 
             glyphs.Add(glyph.Glyph);
             codePoints.Add(shaped.CodePointOf(i));
@@ -409,25 +442,20 @@ internal static class PdfRenderer
                 adjustment += spaceAdjustment;
 
             // Wherever a glyph advances the pen by something other than its own width — which is
-            // what kerning is, and what every other kind of positioning will be — the difference
-            // is written into the page as a movement between glyphs.
+            // what kerning is — the difference is written into the page as a movement.
             var natural = face.GetAdvanceWidth(glyph.Glyph);
 
             if (glyph.Advance != natural && units > 0)
                 adjustment += -(glyph.Advance - natural) * 1000.0 / units;
 
-            if (adjustment != 0) Flush(adjustment);
+            if (glyph.XOffset != 0 && units > 0) adjustment += glyph.XOffset * 1000.0 / units;
+
+            if (adjustment != 0) Cut(adjustment);
         }
 
-        if (segments.Count == 0)
-        {
-            content.ShowGlyphs(font.EncodeGlyphs([.. glyphs], [.. codePoints]));
-            return;
-        }
+        Flush();
 
-        if (glyphs.Count > 0) Flush(0);
-
-        content.ShowGlyphsAdjusted(segments);
+        if (rise != 0) content.SetTextRise(0);
     }
 
     /// <summary>

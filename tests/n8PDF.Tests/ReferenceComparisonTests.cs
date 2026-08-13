@@ -96,7 +96,7 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // round. Both fixtures below hold Hebrew for that reason. That the reference is the right
         // document is asserted for them by the line comparison instead, which is about where the
         // text goes rather than what it says.
-        if (name is "hebrew" or "font-fallback") return;
+        if (name is "hebrew" or "font-fallback" or "marks") return;
 
         // Word exports whichever document it considers current. When an earlier export failed and
         // left a document open, it silently exported that one instead and wrote it under this

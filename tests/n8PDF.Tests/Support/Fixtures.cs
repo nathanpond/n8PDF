@@ -1079,6 +1079,29 @@ public static class Fixtures
                 return builder;
             },
 
+            // Pointed Hebrew, whose vowel points are marks with no place of their own: the font
+            // says where each attaches, and a converter that draws them where the pen happens to
+            // be puts the meaning of the words somewhere else. The Latin line carries an accent
+            // with no precomposed form, which is the same question in the other direction.
+            ["marks"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string text, bool rightToLeft)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(rightToLeft ? "<w:bidi/>" : string.Empty)}{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Pointed Hebrew, and the same without its points:", false);
+                Line("שָׁלוֹם עוֹלָם", true);
+                Line("שלום עולם", true);
+                Line("Latin with a mark of its own: q\u0301 a\u0327", false);
+
+                return builder;
+            },
+
             // Text set in a face that cannot draw all of it. Arial Hebrew has no Latin letters at
             // all and Times New Roman has no Japanese, so each line here asks its font for
             // something the font has not got, and what is measured is that the text arrives.

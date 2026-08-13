@@ -1,17 +1,24 @@
 namespace n8PDF.Fonts;
 
 /// <summary>
-/// The pair kerning of an OpenType font's <c>GPOS</c> table.
+/// What an OpenType font's <c>GPOS</c> table says about where glyphs go: the kerning of a pair,
+/// and where a mark is drawn on the letter it belongs to.
 /// </summary>
 /// <remarks>
-/// The legacy <c>kern</c> table is the older way of saying the same thing, and fonts shipped this
-/// century increasingly carry only this one — Calibri has no <c>kern</c> table at all — so a
+/// The legacy <c>kern</c> table is the older way of saying the first of those, and fonts shipped
+/// this century increasingly carry only this one — Calibri has no <c>kern</c> table at all — so a
 /// converter that read only the old one would silently stop kerning on most modern text.
 ///
-/// Only what kerning needs is read: the <c>kern</c> feature's lookups, pair positioning in both of
-/// its formats, and the horizontal advance of the first glyph of a pair. Everything else GPOS can
-/// do — mark attachment, cursive joining, the rest — is skipped, and a table that cannot be read
-/// costs the font its kerning rather than failing the conversion.
+/// A mark is a different matter: there is no old way of saying it. An accent, a Hebrew vowel
+/// point, an Arabic dot — none of them has a place of its own. The font says where each attaches
+/// by giving the mark an anchor and the letter an anchor, and the two are brought together. A
+/// converter that ignores this draws the mark wherever the pen happened to be, which for the marks
+/// that carry meaning is not a smaller mistake than drawing nothing.
+///
+/// What is read is the <c>kern</c>, <c>mark</c> and <c>mkmk</c> features' lookups: pair
+/// positioning in both formats, marks attached to letters, and marks attached to other marks.
+/// Cursive joining and the contextual lookups are not, and a table that cannot be read costs the
+/// font its positioning rather than failing the conversion.
 /// </remarks>
 internal sealed class GlyphPositioning
 {
@@ -21,11 +28,71 @@ internal sealed class GlyphPositioning
     /// <summary>Class-based subtables, which is how most of a font's kerning is expressed.</summary>
     private readonly List<ClassPairs> _classPairs = [];
 
+    /// <summary>
+    /// The mark attachments, one entry for each subtable of the font that describes some.
+    /// </summary>
+    /// <remarks>
+    /// They are kept apart rather than merged because the kinds of place a subtable names are its
+    /// own: class two in one subtable and class two in another have nothing to do with each other,
+    /// so a mark's class read from one and a letter's places read from another give an answer that
+    /// looks reasonable and is wrong. A font that positions Latin and Hebrew in two subtables —
+    /// which Times New Roman does — puts every Hebrew point in the wrong place that way.
+    /// </remarks>
+    private readonly List<MarkAttachment> _attachments = [];
+
+    /// <summary>Every glyph the font treats as a mark, whichever subtable said so.</summary>
+    private readonly HashSet<ushort> _markGlyphs = [];
+
     private GlyphPositioning()
     {
     }
 
-    public bool IsEmpty => _pairs.Count == 0 && _classPairs.Count == 0;
+    public bool IsEmpty => _pairs.Count == 0 && _classPairs.Count == 0 && _attachments.Count == 0;
+
+    /// <summary>Whether the font treats this glyph as a mark drawn on something else.</summary>
+    public bool IsMark(ushort glyph) => _markGlyphs.Contains(glyph);
+
+    /// <summary>
+    /// Where a mark goes on what it is drawn on, in design units, relative to the pen standing
+    /// where that glyph began. Null where the font says nothing about the pair.
+    /// </summary>
+    /// <param name="onMark">
+    /// Whether it is being drawn on another mark rather than on a letter, which the font answers
+    /// from a different set of anchors.
+    /// </param>
+    public (short X, short Y)? GetMarkOffset(ushort mark, ushort attachTo, bool onMark)
+    {
+        // The subtables are tried in the order the font lists them, and the first that knows
+        // about both the mark and what it is drawn on is the one that decides — which is how the
+        // lookups themselves are applied.
+        foreach (var attachment in _attachments)
+        {
+            if (attachment.OnMark != onMark) continue;
+            if (attachment.Offset(mark, attachTo) is not { } offset) continue;
+
+            return offset;
+        }
+
+        return null;
+    }
+
+    /// <summary>One subtable's worth of marks and the places they are drawn in.</summary>
+    private sealed class MarkAttachment(
+        bool onMark,
+        Dictionary<ushort, (ushort Class, short X, short Y)> marks,
+        Dictionary<ushort, (short X, short Y)?[]> places)
+    {
+        public bool OnMark { get; } = onMark;
+
+        public (short X, short Y)? Offset(ushort mark, ushort attachTo)
+        {
+            if (!marks.TryGetValue(mark, out var held)) return null;
+            if (!places.TryGetValue(attachTo, out var offered)) return null;
+            if (held.Class >= offered.Length || offered[held.Class] is not { } place) return null;
+
+            return ((short)(place.X - held.X), (short)(place.Y - held.Y));
+        }
+    }
 
     /// <summary>
     /// The adjustment to the left glyph's advance, in design units, or zero when the pair is not
@@ -60,7 +127,9 @@ internal sealed class GlyphPositioning
 
             _ = scriptListOffset;
 
-            var lookups = KerningLookups(data, offset + featureListOffset, offset + lookupListOffset);
+            var lookups = LookupsOf(data, offset + featureListOffset, offset + lookupListOffset,
+                ["kern", "mark", "mkmk"]);
+
             if (lookups.Count == 0) return null;
 
             var result = new GlyphPositioning();
@@ -76,15 +145,17 @@ internal sealed class GlyphPositioning
     }
 
     /// <summary>
-    /// The offsets of every lookup the <c>kern</c> feature refers to.
+    /// The offsets of every lookup the named features refer to.
     /// </summary>
     /// <remarks>
-    /// Every feature with that tag counts, whichever script or language declared it. Picking the
-    /// one for the text's own script would need the script to be known, and for kerning the
-    /// difference between the tables is vanishingly rare — while missing the feature altogether
-    /// because the font filed it under a language rather than the default would not be.
+    /// Every feature with one of those tags counts, whichever script or language declared it.
+    /// Picking the one for the text's own script would need the script to be known here, and the
+    /// difference between the tables is vanishingly rare — while missing a feature altogether
+    /// because the font filed it under a language rather than the default would not be. What
+    /// keeps a script's lookups off another script's text is that a lookup only fires on the
+    /// glyphs it covers, and those are that script's own.
     /// </remarks>
-    private static List<int> KerningLookups(byte[] data, int featureList, int lookupList)
+    private static List<int> LookupsOf(byte[] data, int featureList, int lookupList, string[] tags)
     {
         var indices = new HashSet<ushort>();
 
@@ -95,7 +166,7 @@ internal sealed class GlyphPositioning
         {
             var tag = features.ReadTag();
             int featureOffset = features.ReadUInt16();
-            if (tag != "kern") continue;
+            if (Array.IndexOf(tags, tag) < 0) continue;
 
             var feature = new BigEndianReader(data, featureList + featureOffset);
             feature.Skip(2); // featureParams
@@ -138,6 +209,14 @@ internal sealed class GlyphPositioning
                     ReadPairPositioning(data, subtable);
                     break;
 
+                case 4:
+                    ReadMarkAttachment(data, subtable, onMark: false);
+                    break;
+
+                case 6:
+                    ReadMarkAttachment(data, subtable, onMark: true);
+                    break;
+
                 // An extension subtable is a type 2 subtable behind a 32-bit offset, which is how
                 // a font whose tables outgrew 16 bits reaches them.
                 case 9:
@@ -147,8 +226,22 @@ internal sealed class GlyphPositioning
                     int extensionType = extension.ReadUInt16();
                     var target = subtable + (int)extension.ReadUInt32();
 
-                    if (extensionType == 2 && target >= tableStart && target < tableStart + tableLength)
-                        ReadPairPositioning(data, target);
+                    if (target < tableStart || target >= tableStart + tableLength) break;
+
+                    switch (extensionType)
+                    {
+                        case 2:
+                            ReadPairPositioning(data, target);
+                            break;
+
+                        case 4:
+                            ReadMarkAttachment(data, target, onMark: false);
+                            break;
+
+                        case 6:
+                            ReadMarkAttachment(data, target, onMark: true);
+                            break;
+                    }
 
                     break;
                 }
@@ -271,6 +364,84 @@ internal sealed class GlyphPositioning
     }
 
     /// <summary>The glyphs a subtable applies to, in coverage-index order.</summary>
+    /// <summary>
+    /// Reads marks attached to letters, or marks attached to other marks: the two are the same
+    /// table under different names. One side holds the marks and the place each wants; the other
+    /// holds, for every glyph a mark may go on, a place for each kind of mark.
+    /// </summary>
+    private void ReadMarkAttachment(byte[] data, int offset, bool onMark)
+    {
+        var reader = new BigEndianReader(data, offset);
+
+        int format = reader.ReadUInt16();
+        if (format != 1) return;
+
+        int markCoverageOffset = reader.ReadUInt16();
+        int baseCoverageOffset = reader.ReadUInt16();
+        int classCount = reader.ReadUInt16();
+        int markArrayOffset = reader.ReadUInt16();
+        int baseArrayOffset = reader.ReadUInt16();
+
+        var markGlyphs = ReadCoverage(data, offset + markCoverageOffset);
+        var baseGlyphs = ReadCoverage(data, offset + baseCoverageOffset);
+
+        var marks = new Dictionary<ushort, (ushort Class, short X, short Y)>();
+        var places = new Dictionary<ushort, (short X, short Y)?[]>();
+
+        // The marks: each says which kind of place it wants and where its own anchor sits.
+        var markArray = new BigEndianReader(data, offset + markArrayOffset);
+        int markCount = markArray.ReadUInt16();
+
+        for (var i = 0; i < markCount && i < markGlyphs.Count; i++)
+        {
+            int markClass = markArray.ReadUInt16();
+            int anchorOffset = markArray.ReadUInt16();
+
+            if (anchorOffset == 0) continue;
+            if (ReadAnchor(data, offset + markArrayOffset + anchorOffset) is not { } anchor) continue;
+
+            marks[markGlyphs[i]] = ((ushort)markClass, anchor.X, anchor.Y);
+            _markGlyphs.Add(markGlyphs[i]);
+        }
+
+        // And what they are drawn on: a place for each kind of mark, or nothing where that glyph
+        // offers none of that kind.
+        var baseArray = new BigEndianReader(data, offset + baseArrayOffset);
+        int baseCount = baseArray.ReadUInt16();
+
+        for (var i = 0; i < baseCount && i < baseGlyphs.Count; i++)
+        {
+            var offered = new (short X, short Y)?[classCount];
+
+            for (var c = 0; c < classCount; c++)
+            {
+                int anchorOffset = baseArray.ReadUInt16();
+                if (anchorOffset == 0) continue;
+
+                offered[c] = ReadAnchor(data, offset + baseArrayOffset + anchorOffset);
+            }
+
+            places[baseGlyphs[i]] = offered;
+        }
+
+        if (marks.Count > 0 && places.Count > 0)
+            _attachments.Add(new MarkAttachment(onMark, marks, places));
+    }
+
+    /// <summary>
+    /// One anchor: a point on a glyph. Three formats, of which the two beyond the first add a
+    /// hinting refinement that means nothing at the sizes a PDF is drawn at.
+    /// </summary>
+    private static (short X, short Y)? ReadAnchor(byte[] data, int offset)
+    {
+        var reader = new BigEndianReader(data, offset);
+
+        int format = reader.ReadUInt16();
+        if (format is < 1 or > 3) return null;
+
+        return (reader.ReadInt16(), reader.ReadInt16());
+    }
+
     private static List<ushort> ReadCoverage(byte[] data, int offset)
     {
         var reader = new BigEndianReader(data, offset);

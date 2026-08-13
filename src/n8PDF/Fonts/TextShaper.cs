@@ -44,12 +44,59 @@ public static class TextShaper
 
             var glyph = font.GetGlyphIndex(codePoint);
 
-            glyphs.Add(new ShapedGlyph(glyph, font.GetAdvanceWidth(glyph), cluster));
+            glyphs.Add(new ShapedGlyph(glyph, font.GetAdvanceWidth(glyph), 0, 0, cluster));
         }
 
         if (applyKerning) Kern(font, glyphs);
 
+        Attach(font, glyphs);
+
         return new ShapedText(text, [.. glyphs]);
+    }
+
+    /// <summary>
+    /// Puts each mark where the face says it goes on what it is drawn on.
+    /// </summary>
+    /// <remarks>
+    /// An accent, a Hebrew vowel point, an Arabic dot: none has a place of its own, and none can
+    /// be drawn by advancing the pen. The face gives the mark an anchor and the letter an anchor
+    /// and the two are brought together, which is a movement of the mark alone — the pen does not
+    /// know it happened, and the letter after is set as though the mark were not there.
+    ///
+    /// A mark may be drawn on a mark, which is how a letter carries two: the second is placed
+    /// against the first rather than against the letter. What each is placed against is therefore
+    /// the nearest thing before it that is not a mark, or the mark before it, and the movement is
+    /// measured from where the pen stood when that glyph began — so everything between is
+    /// subtracted.
+    /// </remarks>
+    private static void Attach(TrueTypeFont font, List<ShapedGlyph> glyphs)
+    {
+        for (var i = 1; i < glyphs.Count; i++)
+        {
+            if (!font.IsMark(glyphs[i].Glyph)) continue;
+
+            // What it is drawn on: the mark before it where there is one, and otherwise the
+            // nearest letter.
+            var onMark = font.IsMark(glyphs[i - 1].Glyph);
+            var at = i - 1;
+
+            if (!onMark)
+            {
+                while (at > 0 && font.IsMark(glyphs[at].Glyph)) at--;
+            }
+
+            if (font.GetMarkOffset(glyphs[i].Glyph, glyphs[at].Glyph, onMark) is not { } offset) continue;
+
+            // The pen has moved on since that glyph began.
+            var between = 0;
+            for (var j = at; j < i; j++) between += glyphs[j].Advance;
+
+            glyphs[i] = glyphs[i] with
+            {
+                XOffset = offset.X - between + glyphs[i].XOffset,
+                YOffset = offset.Y + glyphs[i].YOffset
+            };
+        }
     }
 
     /// <summary>

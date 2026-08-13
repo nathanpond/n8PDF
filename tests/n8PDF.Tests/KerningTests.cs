@@ -71,8 +71,16 @@ public class KerningTests
     [Fact]
     public void Times_kerns_through_the_legacy_table()
     {
-        Assert.Null(PositioningOf(TestFonts.TimesNewRomanPath));
-        Assert.True(Kerning(Font("Times New Roman"), "AV") < 0);
+        var positioning = PositioningOf(TestFonts.TimesNewRomanPath);
+
+        // The table is there, and has plenty to say about where marks go.
+        Assert.NotNull(positioning);
+
+        var font = Font("Times New Roman");
+
+        // It says nothing about kerning, though, so the pair has to come from the old table.
+        Assert.Equal(0, positioning.GetAdjustment(font.GetGlyphIndex('A'), font.GetGlyphIndex('V')));
+        Assert.True(Kerning(font, "AV") < 0);
     }
 
     /// <summary>Reads a font file's GPOS kerning directly, so the source of a pair is not in doubt.</summary>

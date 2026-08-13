@@ -34,7 +34,7 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// arrives, and that is what is asked.
     /// </remarks>
     private static readonly HashSet<string> Reorders =
-        ["table-split", "table-vertical-merge", "table-merge-split", "hebrew", "font-fallback"];
+        ["table-split", "table-vertical-merge", "table-merge-split", "hebrew", "font-fallback", "marks"];
 
     public static TheoryData<string> FixtureNames
     {

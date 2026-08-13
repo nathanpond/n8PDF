@@ -9,12 +9,18 @@ namespace n8PDF.Fonts;
 /// How far the pen moves after drawing it, in the font's design units. Usually the glyph's own
 /// advance, and not always: kerning is a shortening of the advance of the glyph on the left.
 /// </param>
+/// <param name="XOffset">
+/// How far the glyph is drawn from where the pen stands, across, without moving the pen. Nought
+/// for everything that has a place of its own, and not for a mark: a mark is drawn on the letter
+/// before it rather than after it.
+/// </param>
+/// <param name="YOffset">The same, up the page.</param>
 /// <param name="Cluster">
 /// Where in the text this glyph came from, as an index into it. Several glyphs may share a
 /// cluster and several characters may share a glyph, which is why this is an index into the text
 /// rather than a count of glyphs.
 /// </param>
-public readonly record struct ShapedGlyph(ushort Glyph, int Advance, int Cluster);
+public readonly record struct ShapedGlyph(ushort Glyph, int Advance, int XOffset, int YOffset, int Cluster);
 
 /// <summary>
 /// Text turned into the glyphs that draw it.

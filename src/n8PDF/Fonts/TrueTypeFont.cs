@@ -94,6 +94,16 @@ public sealed class TrueTypeFont
     /// shipped this century put it — Calibri has no legacy table at all — and the old <c>kern</c>
     /// table answers for the fonts that predate it. Zero either way when neither kerns the pair.
     /// </summary>
+    /// <summary>Whether the font treats this glyph as a mark drawn on something else.</summary>
+    public bool IsMark(ushort glyph) => _positioning?.IsMark(glyph) ?? false;
+
+    /// <summary>
+    /// Where a mark goes on the glyph it is drawn on, in design units, or null where the font says
+    /// nothing about the pair.
+    /// </summary>
+    public (short X, short Y)? GetMarkOffset(ushort mark, ushort attachTo, bool onMark) =>
+        _positioning?.GetMarkOffset(mark, attachTo, onMark);
+
     public short GetKerning(ushort left, ushort right)
     {
         if (_positioning?.GetAdjustment(left, right) is { } adjustment and not 0) return adjustment;

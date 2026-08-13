@@ -77,6 +77,7 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     private static readonly Dictionary<string, string> TextNotComparable = new()
     {
         ["hebrew"] = "Word encodes a line of Hebrew as runs this reader cannot reassemble exactly",
+        ["marks"] = "the same, and its Hebrew carries points, which Word encodes the same way",
 
         // And this one for a second reason as well: which face is borrowed for a character the
         // run's own cannot draw is a choice rather than a fact, Word's is not discoverable, and
