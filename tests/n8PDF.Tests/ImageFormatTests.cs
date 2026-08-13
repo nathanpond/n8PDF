@@ -408,6 +408,112 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.Equal(0, Difference(pixels, theirs));
     }
 
+    // ----- sixteen bits a sample -----
+
+    /// <summary>
+    /// A picture written with sixteen bits a sample keeps them. Reducing one to eight would throw
+    /// away exactly what it was written that way to keep — and a PDF carries either, so there is
+    /// nothing to be gained by it.
+    /// </summary>
+    [Fact]
+    public void A_picture_of_sixteen_bits_a_sample_keeps_them()
+    {
+        const int width = 4;
+        const int height = 3;
+
+        // Values whose lower half differs while their upper half does not: reduced to eight bits
+        // these would all be the same colour.
+        var samples = new ushort[width * height * 3];
+
+        for (var i = 0; i < samples.Length; i++) samples[i] = (ushort)(0x1200 + i * 7);
+
+        var image = ImageReader.Read(PngWriter.WriteDeep(width, height, samples, hasAlpha: false));
+
+        Assert.Equal(16, image.BitsPerComponent);
+        Assert.Equal(samples.Length * 2, image.Data.Length);
+
+        for (var i = 0; i < samples.Length; i++)
+        {
+            // A PDF and a PNG both write the bigger half of a sample first.
+            var value = (image.Data[i * 2] << 8) | image.Data[i * 2 + 1];
+
+            Assert.Equal(samples[i], value);
+        }
+    }
+
+    /// <summary>The transparency of such a picture is kept at the same precision.</summary>
+    [Fact]
+    public void The_mask_of_a_deep_picture_is_deep_too()
+    {
+        const int size = 4;
+
+        var samples = new ushort[size * size * 4];
+
+        for (var i = 0; i < size * size; i++)
+        {
+            samples[i * 4] = 0x8000;
+            samples[i * 4 + 1] = 0x4000;
+            samples[i * 4 + 2] = 0x2000;
+            samples[i * 4 + 3] = (ushort)(i * 0x0101);
+        }
+
+        var image = ImageReader.Read(PngWriter.WriteDeep(size, size, samples, hasAlpha: true));
+
+        Assert.True(image.HasAlpha);
+        Assert.Equal(size * size * 2, image.Alpha!.Length);
+
+        for (var i = 0; i < size * size; i++)
+        {
+            var value = (image.Alpha[i * 2] << 8) | image.Alpha[i * 2 + 1];
+
+            Assert.Equal(i * 0x0101, value);
+        }
+    }
+
+    /// <summary>
+    /// And it reaches the PDF at that precision, drawn by a reader that shares nothing with this
+    /// one: a picture written at sixteen bits and described as eight comes out as noise, so what
+    /// says the two agree is the page being the colour it should be.
+    /// </summary>
+    [Fact]
+    public void A_deep_picture_reaches_the_page_as_the_colour_it_is()
+    {
+        const int size = 8;
+
+        var samples = new ushort[size * size * 3];
+
+        for (var i = 0; i < size * size; i++)
+        {
+            samples[i * 3] = 0x2000;
+            samples[i * 3 + 1] = 0x9000;
+            samples[i * 3 + 2] = 0x4000;
+        }
+
+        var builder = new DocxBuilder();
+        var id = builder.AddImagePart(PngWriter.WriteDeep(size, size, samples, hasAlpha: false));
+        builder.AddImageParagraph(id, 72, 72);
+
+        var pdf = n8PDF.Converter.Convert(builder.Build(),
+            new n8PDF.ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        Assert.Contains("/BitsPerComponent 16", System.Text.Encoding.Latin1.GetString(pdf));
+
+        if (PdfRasterizer.Render(pdf, scale: 2) is not { } rendered)
+        {
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        // The picture sits at the top left of the text area, and is one colour throughout.
+        var colour = rendered.At(72 + 36, 72 + 36, 2);
+
+        _output.WriteLine($"the page is {colour} where the picture is");
+
+        Assert.InRange(colour.R, 0x20 - 8, 0x20 + 8);
+        Assert.InRange(colour.G, 0x90 - 8, 0x90 + 8);
+        Assert.InRange(colour.B, 0x40 - 8, 0x40 + 8);
+    }
+
     // ----- a JPEG inside a TIFF -----
 
     /// <summary>A JPEG of the sample picture, made by a program that can make one.</summary>

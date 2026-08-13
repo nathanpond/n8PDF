@@ -225,6 +225,53 @@ public static class PngWriter
         return output.ToArray();
     }
 
+    /// <summary>
+    /// A picture of sixteen bits a sample, which is what a scanner or a camera writes where eight
+    /// would show its steps. The samples are given as they are to be written, biggest half first.
+    /// </summary>
+    public static byte[] WriteDeep(int width, int height, ushort[] samples, bool hasAlpha)
+    {
+        var channels = hasAlpha ? 4 : 3;
+        if (samples.Length != width * height * channels)
+            throw new ArgumentException("Sample buffer does not match the declared size.", nameof(samples));
+
+        using var output = new MemoryStream();
+        output.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+
+        var header = new byte[13];
+        WriteInt32(header, 0, width);
+        WriteInt32(header, 4, height);
+        header[8] = 16;
+        header[9] = (byte)(hasAlpha ? 6 : 2);
+        WriteChunk(output, "IHDR", header);
+
+        var rowBytes = width * channels * 2;
+        var raw = new byte[height * (1 + rowBytes)];
+
+        for (var y = 0; y < height; y++)
+        {
+            var target = y * (1 + rowBytes);
+            raw[target] = 0;
+
+            for (var i = 0; i < width * channels; i++)
+            {
+                var sample = samples[y * width * channels + i];
+
+                raw[target + 1 + i * 2] = (byte)(sample >> 8);
+                raw[target + 2 + i * 2] = (byte)sample;
+            }
+        }
+
+        using var deflated = new MemoryStream();
+        using (var zlib = new ZLibStream(deflated, CompressionLevel.Optimal, leaveOpen: true))
+            zlib.Write(raw, 0, raw.Length);
+
+        WriteChunk(output, "IDAT", deflated.ToArray());
+        WriteChunk(output, "IEND", []);
+
+        return output.ToArray();
+    }
+
     /// <summary>A solid rectangle, the simplest thing whose colour can be checked after decoding.</summary>
     public static byte[] Solid(int width, int height, byte red, byte green, byte blue)
     {

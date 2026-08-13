@@ -23,7 +23,7 @@ public sealed class PdfImage
             .Set("Subtype", "Image")
             .Set("Width", Image.Width)
             .Set("Height", Image.Height)
-            .Set("BitsPerComponent", 8)
+            .Set("BitsPerComponent", Image.BitsPerComponent)
             .Set("ColorSpace", ColorSpaceName(Image.ColorSpace));
 
         if (Image.Encoding == ImageEncoding.Jpeg)
@@ -50,7 +50,8 @@ public sealed class PdfImage
                 .Set("Subtype", "Image")
                 .Set("Width", Image.Width)
                 .Set("Height", Image.Height)
-                .Set("BitsPerComponent", 8)
+                // The mask is written at whatever precision the picture it belongs to is.
+                .Set("BitsPerComponent", Image.BitsPerComponent)
                 .Set("ColorSpace", "DeviceGray");
 
             stream.Set("SMask", document.Add(mask));

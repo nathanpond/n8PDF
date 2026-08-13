@@ -313,31 +313,38 @@ public static class PngDecoder
             return new ImageData(width, height, shades, ImageEncoding.Raw, ImageColorSpace.Gray);
         }
 
-        // 16-bit samples are reduced to 8; PDF supports 16 but nothing here needs the precision.
+        // A sample of sixteen bits is kept at sixteen: a PDF carries either, and a picture written
+        // with that much precision was written that way on purpose. Both formats write the bigger
+        // half of a sample first, so the two bytes go through as they lie.
         var step = bitDepth == 16 ? 2 : 1;
         var hasAlpha = colorType is 4 or 6;
         var colorChannels = colorType switch { 0 or 4 => 1, _ => 3 };
 
-        var pixels = new byte[width * height * colorChannels];
-        byte[]? mask = hasAlpha ? new byte[width * height] : null;
+        var pixels = new byte[width * height * colorChannels * step];
+        byte[]? mask = hasAlpha ? new byte[width * height * step] : null;
 
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
                 var source = y * rowBytes + x * channels * step;
-                var target = (y * width + x) * colorChannels;
+                var target = (y * width + x) * colorChannels * step;
 
-                for (var c = 0; c < colorChannels; c++)
-                    pixels[target + c] = raw[source + c * step];
+                for (var c = 0; c < colorChannels * step; c++)
+                    pixels[target + c] = raw[source + c];
 
-                if (mask is not null)
-                    mask[y * width + x] = raw[source + colorChannels * step];
+                if (mask is null) continue;
+
+                for (var c = 0; c < step; c++)
+                    mask[(y * width + x) * step + c] = raw[source + colorChannels * step + c];
             }
         }
 
         return new ImageData(width, height, pixels, ImageEncoding.Raw,
-            colorChannels == 1 ? ImageColorSpace.Gray : ImageColorSpace.Rgb, mask);
+            colorChannels == 1 ? ImageColorSpace.Gray : ImageColorSpace.Rgb, mask)
+        {
+            BitsPerComponent = bitDepth
+        };
     }
 
     /// <summary>Reads one sample from a row where several are packed into each byte.</summary>

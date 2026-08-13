@@ -40,6 +40,13 @@ public sealed record ImageData(
     byte[]? Alpha = null)
 {
     /// <summary>
+    /// How many bits each sample takes: eight for almost everything, and sixteen for a picture
+    /// whose precision is worth keeping. A PDF carries either, so a picture written at sixteen is
+    /// not thrown away to eight on the way through.
+    /// </summary>
+    public int BitsPerComponent { get; init; } = 8;
+
+    /// <summary>
     /// The commands this picture is drawn with, where it is a drawing rather than pixels. A
     /// metafile keeps its commands all the way to the PDF, which has commands of its own to write
     /// them out as.
