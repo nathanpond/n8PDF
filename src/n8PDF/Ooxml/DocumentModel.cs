@@ -101,6 +101,19 @@ public sealed class NoteMarkInline(NoteKind kind) : InlineElement
     public NoteKind Kind { get; } = kind;
 }
 
+/// <summary>How often a document begins its note numbering again, from <c>w:numRestart</c>.</summary>
+public enum NoteNumberRestart
+{
+    /// <summary>Numbered straight through the document, which is what a document says by default.</summary>
+    Continuous,
+
+    /// <summary>Numbered again from the beginning in each section.</summary>
+    EachSection,
+
+    /// <summary>Numbered again from the beginning on each page. Footnotes only.</summary>
+    EachPage
+}
+
 /// <summary>
 /// The separator drawn above a page's footnotes, from <c>w:separator</c>.
 /// </summary>

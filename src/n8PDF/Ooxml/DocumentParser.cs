@@ -367,6 +367,23 @@ public static class DocumentParser
     }
 
     /// <summary>
+    /// Reads whether the notes are numbered again from the beginning on every page or in every
+    /// section, from <c>w:numRestart</c>.
+    /// </summary>
+    public static NoteNumberRestart? ReadNoteNumberRestart(XElement? container, NoteKind kind)
+    {
+        var name = W.Main + (kind == NoteKind.Footnote ? "footnotePr" : "endnotePr");
+
+        return container?.Element(name)?.Element(W.Main + "numRestart")?.Attr("val") switch
+        {
+            "eachPage" => NoteNumberRestart.EachPage,
+            "eachSect" => NoteNumberRestart.EachSection,
+            "continuous" => NoteNumberRestart.Continuous,
+            _ => null
+        };
+    }
+
+    /// <summary>
     /// Reads a <c>w:t</c>. Leading and trailing whitespace is only meaningful when the element
     /// carries <c>xml:space="preserve"</c>; without it, XML whitespace rules apply and Word
     /// expects the text trimmed.
@@ -648,6 +665,8 @@ public static class DocumentParser
 
         section.FootnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Footnote);
         section.EndnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Endnote);
+        section.FootnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Footnote);
+        section.EndnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Endnote);
 
         var pgMar = sectPr.Element(W.Main + "pgMar");
         if (pgMar is not null)

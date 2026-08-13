@@ -267,6 +267,18 @@ public sealed class SectionProperties
     /// </summary>
     public NumberFormat? FootnoteNumberFormat { get; set; }
 
+    /// <summary>
+    /// Whether this section numbers its notes again from the beginning, and how often.
+    /// </summary>
+    /// <remarks>
+    /// Word reads this from the section and nowhere else. A document stating it in its settings
+    /// instead — which the format allows, and which is where it reads as a document-wide default —
+    /// is numbered straight through by Word regardless, which was measured rather than assumed.
+    /// </remarks>
+    public NoteNumberRestart? FootnoteNumberRestart { get; set; }
+
+    public NoteNumberRestart? EndnoteNumberRestart { get; set; }
+
     public NumberFormat? EndnoteNumberFormat { get; set; }
 
     public int FooterDistanceTwips { get; set; } = 720;

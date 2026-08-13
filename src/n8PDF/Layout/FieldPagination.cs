@@ -22,14 +22,22 @@ namespace n8PDF.Layout;
 /// The page each index entry was marked on. An XE field draws nothing, so where it fell is only
 /// known from the paragraph that carried it.
 /// </param>
+/// <param name="Notes">
+/// The page each note's mark landed on, by note id, for a document that numbers its notes again
+/// on every page.
+/// </param>
 public sealed record FieldPagination(
     int TotalPages,
     IReadOnlyDictionary<int, int> Pages,
     IReadOnlyList<int> Sections,
     IReadOnlyList<int> Counts,
     IReadOnlyDictionary<Ooxml.Paragraph, int> Headings,
-    IReadOnlyDictionary<Ooxml.FieldInline, int> Marks)
+    IReadOnlyDictionary<Ooxml.FieldInline, int> Marks,
+    IReadOnlyDictionary<int, int> Notes)
 {
+    /// <summary>The page a note's mark landed on, or zero where it was not recorded.</summary>
+    public int PageOfNote(int id) => Notes.GetValueOrDefault(id);
+
     /// <summary>The page a heading landed on, or zero where it was not recorded.</summary>
     public int PageOfHeading(Ooxml.Paragraph paragraph) => Headings.GetValueOrDefault(paragraph);
 

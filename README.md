@@ -146,7 +146,8 @@ including chains of headings that move as one), section breaks (next-page, conti
 page size, orientation and margins, running heads inherited per kind from the section before where
 one says nothing), multiple text columns (evenly divided or individually stated, column breaks, and
 the rule down the gap where the document asks for one), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
-for endnotes unless the document says otherwise; a footnote goes to the foot of the page its
+for endnotes unless the document says otherwise, and numbered again from the beginning on every
+page or in every section where the section asks for it; a footnote goes to the foot of the page its
 reference lands on and takes that space out of the body above it, dividing between that page and
 the next where it is too long for the room left under it, an endnote carries on after the
 body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
@@ -458,9 +459,31 @@ body text left to carry it — so pages are made for the rest of it, holding not
 the same, which `footnote-overrun-probe` is there to have asked: its second page has no body at all
 and the last thirty-seven lines of the note at the foot of it.
 
+Where a document numbers its notes again from the beginning, two things had to be measured rather
+than read. The first is where the instruction lives: the format allows it in the settings, as a
+default for the whole document, and in each section's properties. Word reads only the section. A
+document asking in its settings alone for its notes to begin again on every page comes back from
+Word numbered straight through, so that is what happens here, and there is a test that says so.
+
+The second is per-page numbering itself, which cannot be settled while the page it depends on is
+still being filled — the line carrying a mark may yet move to the next page and take its number
+with it. So it is done the way page numbers are: the first pass records the page each mark landed
+on and the second numbers from that, converging rather than being exact for the same reason. Per
+section needs none of that, since a mark is composed inside the section it belongs to. Endnotes
+restart by section too, and are still gathered at the end of the document, so their numbers repeat
+down the one list — which looks wrong until you check, and is exactly what Word does with the same
+document.
+
+One difference from Word came out of the fixtures those last two needed, and is left standing
+rather than folded in: a line carrying a raised mark is about 0.36pt shorter here than in Word,
+which is invisible in a document with a note or two and accumulates to 2.8pt down a page holding
+eight of them. It is the raise that does it — Word grows the line box by what stands above the
+text and this sizes the line from the run's own metrics — and it has nothing to do with notes:
+any superscript would do the same. `TextPositionComparisonTests` records it as a known divergence
+with that reasoning beside it, so it is measured every run rather than forgotten.
+
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is restarting note numbering per page or per
-section, notes
+remains elsewhere is notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

@@ -59,7 +59,26 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     ///   styles, heading-spacing-probe — Word fills in what a document's styles leave unstated
     ///     from its own built-in definitions. See WordBuiltInStyles.
     /// </remarks>
-    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences = [];
+    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
+        new()
+        {
+            // A line carrying a note's mark is about 0.36pt taller in Word than here, which is a
+            // quarter of one percent of a line and invisible in a document with a note or two —
+            // the footnotes fixture has three and matches to a tenth of a point. These have eight
+            // to a page, and the difference accumulates down the body: 0.23pt at the first mark,
+            // 2.76pt by the eighth.
+            //
+            // It is the raised mark that does it. Word raises the mark 4.08pt above the baseline
+            // where this raises it 3.85, and grows the line box by what stands above it; this
+            // sizes the line from the run's own metrics and the raise costs it nothing. Nothing to
+            // do with how the notes are numbered — page 0 of footnote-restart-page is numbered
+            // one to eight either way — and nothing to do with the notes themselves: any
+            // superscript would do it. Left as its own thing to fix rather than folded into the
+            // numbering, since it moves every document holding a raised run.
+            ["footnote-restart-page"] = (3.0, "a line carrying a raised mark is 0.36pt short of Word's, eight times over"),
+            ["footnote-restart-section"] = (3.0, "a line carrying a raised mark is 0.36pt short of Word's, eight times over"),
+            ["endnote-restart-section"] = (3.5, "a line carrying a raised mark is 0.36pt short of Word's, nine times over")
+        };
 
     public static TheoryData<string> FixtureNames
     {

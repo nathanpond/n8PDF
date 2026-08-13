@@ -54,6 +54,24 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private IReadOnlyDictionary<int, Note> _footnotes = new Dictionary<int, Note>();
     private IReadOnlyDictionary<int, Note> _endnotes = new Dictionary<int, Note>();
     private readonly Dictionary<int, string> _footnoteLabels = [];
+
+    /// <summary>
+    /// How often each kind of note is numbered again from the beginning, which the section says.
+    /// </summary>
+    private NoteNumberRestart _footnoteRestart;
+
+    private NoteNumberRestart _endnoteRestart;
+
+    /// <summary>
+    /// The next number each kind of note takes, and what was true of the last one numbered — the
+    /// page it fell on and the section it was in, which is what says whether to begin again.
+    /// </summary>
+    private (int Next, int Page, int Section) _footnoteCounter = (1, 0, 0);
+
+    private (int Next, int Page, int Section) _endnoteCounter = (1, 0, 0);
+
+    /// <summary>The page each note's mark fell on, which per-page numbering is worked out from.</summary>
+    private readonly Dictionary<int, LaidOutPage> _notePages = [];
     private readonly Dictionary<int, string> _endnoteLabels = [];
     private NumberFormat _footnoteFormat = NumberFormat.Decimal;
     private NumberFormat _endnoteFormat = NumberFormat.LowerRoman;
@@ -165,6 +183,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _endnoteFormat = document.EndnoteNumberFormat;
         _footnoteLabels.Clear();
         _endnoteLabels.Clear();
+        _notePages.Clear();
+        _footnoteCounter = (1, 0, 0);
+        _endnoteCounter = (1, 0, 0);
         _endnoteOrder.Clear();
         _measuredFootnotes.Clear();
         _pageFootnotes.Clear();
@@ -418,6 +439,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         cursor.ApplyColumn();
         cursor.ContentTop = contentTop;
         cursor.ContentLimit = contentTop + section.ContentHeightPoints;
+
+        // How often the notes begin their numbering again. Word reads this from the section and
+        // from nowhere else: a document stating it in its settings, where the format has it as a
+        // document-wide default, is numbered straight through regardless.
+        _footnoteRestart = section.FootnoteNumberRestart ?? NoteNumberRestart.Continuous;
+        _endnoteRestart = section.EndnoteNumberRestart ?? NoteNumberRestart.Continuous;
 
         // Footnotes sit under the whole measure rather than under the column that refers to them,
         // which is not what Word does in a multi-column section.
@@ -1933,6 +1960,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             if (item.Atom is TextAtom { FieldOccurrence: { } occurrence })
                 _fieldPages[occurrence] = page;
+
+            // Where a note's mark landed, which is what numbering by page is worked out from. A
+            // line that is taken back off a page and put on the next records it again.
+            if (item.Atom is TextAtom { FootnoteId: { } note }) _notePages[note] = page;
         }
     }
 
@@ -1976,7 +2007,15 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (index >= 0) marks[mark] = index + 1;
         }
 
-        return new FieldPagination(result.Pages.Count, pages, sections, counts, headings, marks);
+        var notes = new Dictionary<int, int>();
+
+        foreach (var (id, page) in _notePages)
+        {
+            var index = result.Pages.IndexOf(page);
+            if (index >= 0) notes[id] = index + 1;
+        }
+
+        return new FieldPagination(result.Pages.Count, pages, sections, counts, headings, marks, notes);
     }
 
     // ----- tables -----
@@ -3634,7 +3673,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         if (!labels.TryGetValue(reference.Id, out var text))
         {
             text = NumberFormatter.Format(
-                labels.Count + 1, footnote ? _footnoteFormat : _endnoteFormat);
+                NextNoteNumber(footnote, reference.Id), footnote ? _footnoteFormat : _endnoteFormat);
 
             labels[reference.Id] = text;
             if (!footnote) _endnoteOrder.Add(reference.Id);
@@ -3656,6 +3695,43 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 font.Font, text, format.EffectiveFontSizePoints,
                 format.CharacterSpacingPoints, Kerned(format)) * format.ScaleFactor
         });
+    }
+
+    /// <summary>
+    /// The number the next note takes, beginning again where the section says to.
+    /// </summary>
+    /// <remarks>
+    /// Per section is settled as the marks are composed, since a mark is composed inside the
+    /// section it belongs to. Per page cannot be: which page a reference falls on is not known
+    /// while that page is still being filled, and the line carrying it may yet move to the next.
+    /// So the first pass records where each mark landed and the second numbers from that, which is
+    /// how everything else here that depends on the page is done — and converges the same way.
+    /// </remarks>
+    private int NextNoteNumber(bool footnote, int id)
+    {
+        var restart = footnote ? _footnoteRestart : _endnoteRestart;
+        var counter = footnote ? _footnoteCounter : _endnoteCounter;
+
+        var page = restart == NoteNumberRestart.EachPage ? Pagination?.PageOfNote(id) ?? 0 : 0;
+
+        var begins = restart switch
+        {
+            NoteNumberRestart.EachSection => counter.Section != _sectionOrdinal,
+            NoteNumberRestart.EachPage => page != counter.Page,
+            _ => false
+        };
+
+        // A document numbering by page has to be laid out twice, since the first pass has no
+        // pages to number from.
+        if (restart == NoteNumberRestart.EachPage && Pagination is null) NeedsPagination = true;
+
+        var next = begins ? 1 : counter.Next;
+        counter = (next + 1, page, _sectionOrdinal);
+
+        if (footnote) _footnoteCounter = counter;
+        else _endnoteCounter = counter;
+
+        return next;
     }
 
     /// <summary>

@@ -246,6 +246,146 @@ public class FootnoteTests
         Assert.Contains(LinesOf(layout.Pages[0]), line => line.StartsWith("A sentence with a note"));
     }
 
+    // ----- numbering again from the beginning -----
+
+    /// <summary>
+    /// A document of several pages with two notes on each, numbered as the section asks.
+    /// </summary>
+    private static DocxBuilder WithNotesThroughout(string? restart, bool sectionBreak = false)
+    {
+        var builder = new DocxBuilder()
+            .WithSection(DocxBuilder.Section(footnoteRestart: restart));
+
+        const string spacing = "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>";
+
+        for (var i = 1; i <= 60; i++)
+        {
+            if (i % 10 == 3 || i % 10 == 7)
+            {
+                var id = builder.AddFootnote(DocxBuilder.FootnoteBody($"Note on paragraph {i}.", Times10));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{spacing}</w:pPr>" + Run($"Body paragraph {i}, with a note") +
+                    DocxBuilder.FootnoteReference(id) + Run(".") + "</w:p>");
+
+                continue;
+            }
+
+            if (sectionBreak && i == 45)
+            {
+                builder.AddParagraphWithSectionBreak(
+                    $"Body paragraph {i} of sixty, closing a section.",
+                    DocxBuilder.Section(type: "nextPage", footnoteRestart: restart), spacing, Times12);
+
+                continue;
+            }
+
+            builder.AddRawParagraph($"<w:p><w:pPr>{spacing}</w:pPr>{Run($"Body paragraph {i} of sixty.")}</w:p>");
+        }
+
+        return builder;
+    }
+
+    /// <summary>The number each note's mark shows, page by page.</summary>
+    private static List<List<string>> MarksByPage(LaidOutDocument layout) =>
+        layout.Pages
+            .Select(page => LinesOf(page)
+                .Where(line => line.Contains(", with a note"))
+                .Select(line => line[(line.IndexOf("with a note", StringComparison.Ordinal) + 11)..].TrimEnd('.'))
+                .ToList())
+            .ToList();
+
+    /// <summary>
+    /// Notes are numbered straight through the document unless something says otherwise, which is
+    /// what a document that says nothing about it asks for.
+    /// </summary>
+    [Fact]
+    public void Notes_are_numbered_straight_through_unless_the_section_says_otherwise()
+    {
+        var marks = MarksByPage(LayoutOf(WithNotesThroughout(restart: null)));
+
+        Assert.Equal(Enumerable.Range(1, 12).Select(n => n.ToString()), marks.SelectMany(page => page));
+    }
+
+    /// <summary>
+    /// A section may ask for the numbering to begin again on every page, which a document with
+    /// many notes to the page usually does.
+    /// </summary>
+    /// <remarks>
+    /// Which page a note counts as being on cannot be known while that page is still being filled,
+    /// so this is settled the way page numbers are: the first pass records where each mark landed
+    /// and the second numbers from it.
+    /// </remarks>
+    [Fact]
+    public void Notes_are_numbered_again_on_each_page_where_the_section_asks()
+    {
+        var marks = MarksByPage(LayoutOf(WithNotesThroughout("eachPage")));
+
+        Assert.True(marks.Count > 1, "the document was one page, so nothing was restarted");
+
+        foreach (var page in marks.Where(page => page.Count > 0))
+        {
+            Assert.Equal(Enumerable.Range(1, page.Count).Select(n => n.ToString()), page);
+        }
+    }
+
+    /// <summary>
+    /// Or on every section, which carries on across the pages a section covers and begins again
+    /// only where the next one does.
+    /// </summary>
+    [Fact]
+    public void Notes_are_numbered_again_in_each_section_where_the_section_asks()
+    {
+        var marks = MarksByPage(LayoutOf(WithNotesThroughout("eachSect", sectionBreak: true)));
+
+        var flat = marks.SelectMany(page => page).ToList();
+
+        // The break is at paragraph 45, after the ninth note of twelve.
+        Assert.Equal(
+            Enumerable.Range(1, 9).Concat(Enumerable.Range(1, 3)).Select(n => n.ToString()), flat);
+
+        // And the first section's numbering ran on over the page it covers rather than starting
+        // again on the second of them.
+        Assert.True(marks[0].Count > 1 && marks[1].Count > 0, "the first section did not cover two pages");
+        Assert.Equal((marks[0].Count + 1).ToString(), marks[1][0]);
+    }
+
+    /// <summary>
+    /// The format lets a document state this in its settings as well, where it reads as a default
+    /// for the whole of it. Word ignores it there — measured, not assumed: a document asking for
+    /// eachPage in its settings alone comes back numbered straight through — so this does too.
+    /// </summary>
+    [Fact]
+    public void A_restart_stated_only_in_the_settings_is_ignored_the_way_word_ignores_it()
+    {
+        var builder = WithNotesThroughout(restart: null).WithNoteNumbering("footnote", "eachPage");
+
+        var marks = MarksByPage(LayoutOf(builder));
+
+        Assert.Equal(Enumerable.Range(1, 12).Select(n => n.ToString()), marks.SelectMany(page => page));
+    }
+
+    /// <summary>
+    /// Endnotes restart the same way, and are still gathered at the end of the document, so their
+    /// numbers repeat down the one list. That is what Word does with the same document, odd as it
+    /// looks: <c>endnote-restart-section</c> is there to have asked.
+    /// </summary>
+    [Fact]
+    public void Endnotes_restart_by_section_and_repeat_down_the_one_list()
+    {
+        var layout = LayoutOf(Fixtures.All["endnote-restart-section"]());
+
+        var marks = layout.Pages
+            .SelectMany(LinesOf)
+            .Where(line => line.Contains(", with a note"))
+            .Select(line => line[(line.IndexOf("with a note", StringComparison.Ordinal) + 11)..].TrimEnd('.'))
+            .ToList();
+
+        // Nine in the first section, three in the second, in roman as an endnote is by default.
+        Assert.Equal(
+            new[] { "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "i", "ii", "iii" }, marks);
+    }
+
     // ----- a note too long for the page it belongs to -----
 
     /// <summary>A note of as many numbered lines as asked for, each its own paragraph.</summary>

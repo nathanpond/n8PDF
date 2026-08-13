@@ -329,6 +329,47 @@ public static class Fixtures
     /// content row and a right-aligned marker row so that both edges of every column can be read
     /// straight off the rendered page.
     /// </summary>
+    /// <summary>
+    /// A document of several pages with two notes on each, and — where asked — a section break
+    /// part way down the second page, so that restarting per page and restarting per section give
+    /// different answers everywhere after it.
+    /// </summary>
+    private static DocxBuilder WithNotesThroughout(DocxBuilder builder, bool sections, string? restart = null)
+    {
+        var note = 0;
+
+        for (var i = 1; i <= 60; i++)
+        {
+            if (i % 10 == 3 || i % 10 == 7)
+            {
+                var id = builder.AddFootnote(DocxBuilder.FootnoteBody($"Note {++note} of the document.", Times10));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph {i}, with a note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(id) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                continue;
+            }
+
+            // One section break, part way down a page rather than at the foot of one, so that
+            // restarting per section and restarting per page part company after it.
+            if (sections && i == 45)
+            {
+                builder.AddParagraphWithSectionBreak(
+                    $"Body paragraph {i} of sixty, closing a section.",
+                    DocxBuilder.Section(type: "nextPage", footnoteRestart: restart), ZeroSpacing, Times12);
+
+                continue;
+            }
+
+            builder.AddParagraph($"Body paragraph {i} of sixty.", ZeroSpacing, Times12);
+        }
+
+        return builder;
+    }
+
     private static string AutofitTable(int[]? grid, string[] cells)
     {
         var gridXml = grid is null
@@ -1794,6 +1835,70 @@ public static class Fixtures
 
                 for (var i = 1; i <= 40; i++)
                     builder.AddParagraph($"Body paragraph number {i} of forty.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
+            // Notes numbered again from one on every page, which is what a document of many notes
+            // a page usually asks for. What is measured is which page a note counts as being on,
+            // since a reference near a page's edge may be moved by the line that carries it.
+            ["footnote-restart-page"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithSection(DocxBuilder.Section(footnoteRestart: "eachPage"));
+
+                return WithNotesThroughout(builder, sections: false);
+            },
+
+            // The same, restarted at each section instead. The one section break is at a
+            // paragraph no page break falls on, so a section here runs over more than one page and
+            // the two ways of restarting cannot give the same answer.
+            ["footnote-restart-section"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithSection(DocxBuilder.Section(footnoteRestart: "eachSect"));
+
+                return WithNotesThroughout(builder, sections: true, restart: "eachSect");
+            },
+
+            // Endnotes restarted at each section while still gathered at the end of the document,
+            // which is a combination the format allows and Word's own dialog offers. What is
+            // measured is whether the numbers really do repeat down one list.
+            ["endnote-restart-section"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithSection(DocxBuilder.Section(endnoteRestart: "eachSect"));
+
+                var note = 0;
+
+                for (var i = 1; i <= 60; i++)
+                {
+                    if (i % 10 == 3 || i % 10 == 7)
+                    {
+                        var id = builder.AddEndnote(
+                            DocxBuilder.EndnoteBody($"Note {++note} of the document.", Times10));
+
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph {i}, with a note</w:t></w:r>" +
+                            DocxBuilder.EndnoteReference(id) +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                        continue;
+                    }
+
+                    if (i == 45)
+                    {
+                        builder.AddParagraphWithSectionBreak(
+                            $"Body paragraph {i} of sixty, closing a section.",
+                            DocxBuilder.Section(type: "nextPage", endnoteRestart: "eachSect"),
+                            ZeroSpacing, Times12);
+
+                        continue;
+                    }
+
+                    builder.AddParagraph($"Body paragraph {i} of sixty.", ZeroSpacing, Times12);
+                }
 
                 return builder;
             },

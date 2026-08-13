@@ -217,9 +217,16 @@ public sealed class DocxBuilder
         int top = 1440, int right = 1440, int bottom = 1440, int left = 1440,
         bool landscape = false, bool titlePage = false, string? verticalAlignment = null,
         int columns = 1, int columnSpaceTwips = 720, bool columnSeparator = false,
-        IReadOnlyList<(int Width, int Space)>? columnWidths = null)
+        IReadOnlyList<(int Width, int Space)>? columnWidths = null,
+        string? footnoteRestart = null, string? endnoteRestart = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
+
+        // How the section numbers its notes, which comes after the references and before the
+        // type. This is where Word's own Footnote and Endnote dialog writes it.
+        var notes =
+            (footnoteRestart is null ? string.Empty : $"<w:footnotePr><w:numRestart w:val=\"{footnoteRestart}\"/></w:footnotePr>") +
+            (endnoteRestart is null ? string.Empty : $"<w:endnotePr><w:numRestart w:val=\"{endnoteRestart}\"/></w:endnotePr>");
         var orientation = landscape ? " w:orient=\"landscape\"" : string.Empty;
 
         // References come before everything else in CT_SectPr, headers before footers.
@@ -232,7 +239,7 @@ public sealed class DocxBuilder
 
         return $"""
             <w:sectPr>
-              {references}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
+              {references}{notes}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
               <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
               {Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
             </w:sectPr>
@@ -574,7 +581,12 @@ public sealed class DocxBuilder
     private readonly List<(string Id, string PartName, string Kind, string Body,
         IReadOnlyList<(string Id, string Url)> Hyperlinks)> _headersFooters = [];
     private bool _titlePage;
-    private bool _evenAndOddHeaders;
+
+    /// <summary>
+    /// What goes into the settings part, in the order the schema wants it. A document with none of
+    /// this has no settings part at all, which is a document Word will still open.
+    /// </summary>
+    private readonly List<string> _settings = [];
 
     /// <summary>
     /// Adds a header or footer part and references it from the section.
@@ -625,7 +637,20 @@ public sealed class DocxBuilder
     /// <summary>Odd and even pages take different headers and footers.</summary>
     public DocxBuilder WithEvenAndOddHeaders()
     {
-        _evenAndOddHeaders = true;
+        _settings.Add("<w:evenAndOddHeaders/>");
+        return this;
+    }
+
+    /// <summary>
+    /// How the document numbers its notes: <c>continuous</c> through the whole of it, or restarted
+    /// <c>eachPage</c> or <c>eachSect</c>.
+    /// </summary>
+    public DocxBuilder WithNoteNumbering(string kind, string restart)
+    {
+        // The settings part wants these in schema order, and both note elements come before
+        // evenAndOddHeaders.
+        _settings.Insert(0, $"<w:{kind}Pr><w:numRestart w:val=\"{restart}\"/></w:{kind}Pr>");
+
         return this;
     }
 
@@ -723,7 +748,7 @@ public sealed class DocxBuilder
             if (_coreProperties is not null) Write(archive, "docProps/core.xml", _coreProperties);
             if (_appProperties is not null) Write(archive, "docProps/app.xml", _appProperties);
             if (_customProperties is not null) Write(archive, "docProps/custom.xml", _customProperties);
-            if (_evenAndOddHeaders) Write(archive, "word/settings.xml", EvenOddSettings);
+            if (_settings.Count > 0) Write(archive, "word/settings.xml", BuildSettings());
 
             if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildNotes("footnote", _footnotes));
             if (_endnotes.Count > 0) Write(archive, "word/endnotes.xml", BuildNotes("endnote", _endnotes));
@@ -809,12 +834,11 @@ public sealed class DocxBuilder
             .Replace("</w:sectPr>", titlePage + "</w:sectPr>");
     }
 
-    private const string EvenOddSettings = """
-        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-          <w:evenAndOddHeaders/>
-        </w:settings>
-        """;
+    private string BuildSettings() =>
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+        "<w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" +
+        string.Concat(_settings) +
+        "</w:settings>";
 
     private static void Write(ZipArchive archive, string name, string content)
     {
@@ -910,7 +934,7 @@ public sealed class DocxBuilder
                 $"ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{kind}s+xml\"/>");
         }
 
-        if (_evenAndOddHeaders)
+        if (_settings.Count > 0)
         {
             defaults.Append(
                 "<Override PartName=\"/word/settings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>");
@@ -1012,7 +1036,7 @@ public sealed class DocxBuilder
                 $"Target=\"{Escape(url)}\" TargetMode=\"External\"/>");
         }
 
-        if (_evenAndOddHeaders)
+        if (_settings.Count > 0)
         {
             extra.Append(
                 "<Relationship Id=\"rIdSettings\" " +
