@@ -97,7 +97,9 @@ public static class Converter
         var builder = new PdfBuilder { Title = options.Title, DropHinting = options.DropFontHinting };
         builder.Document.CreationDate = options.CreationDate;
 
-        PdfRenderer.Render(laidOut, builder);
+        // The font library goes with it: a drawing can hold text that layout never measured,
+        // and drawing it needs a font of its own.
+        PdfRenderer.Render(laidOut, builder, options.Fonts);
         builder.Save(pdf);
     }
 

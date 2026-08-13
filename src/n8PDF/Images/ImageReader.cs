@@ -7,13 +7,14 @@ namespace n8PDF.Images;
 /// JPEG is handled by reading its header and passing the file through untouched: PDF's DCTDecode
 /// filter is JPEG, so decoding and re-encoding would cost quality for nothing. Everything else —
 /// PNG, GIF, BMP and TIFF — has to be unpacked to samples, which is what the decoders beside this
-/// do.
+/// do. A metafile is not pixels at all but the record of a drawing being made, and is kept as one:
+/// its commands are read here and written out again as the PDF's own.
 /// </remarks>
 public static class ImageReader
 {
     public static bool IsSupported(byte[] data) =>
         PngDecoder.IsPng(data) || IsJpeg(data) || GifDecoder.IsGif(data) ||
-        BmpDecoder.IsBmp(data) || TiffDecoder.IsTiff(data);
+        BmpDecoder.IsBmp(data) || TiffDecoder.IsTiff(data) || EmfDecoder.IsEmf(data);
 
     public static ImageData Read(byte[] data)
     {
@@ -22,9 +23,9 @@ public static class ImageReader
         if (GifDecoder.IsGif(data)) return GifDecoder.Decode(data);
         if (BmpDecoder.IsBmp(data)) return BmpDecoder.Decode(data);
         if (TiffDecoder.IsTiff(data)) return TiffDecoder.Decode(data);
+        if (EmfDecoder.IsEmf(data)) return EmfDecoder.Decode(data);
 
-        throw new ImageFormatException(
-            "Unsupported image format. PNG, JPEG, GIF, BMP and TIFF are handled; EMF is not.");
+        throw new ImageFormatException("Unsupported image format.");
     }
 
     /// <summary>Reads an image if the format is one we handle, and returns null otherwise.</summary>

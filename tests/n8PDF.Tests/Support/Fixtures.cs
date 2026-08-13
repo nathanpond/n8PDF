@@ -1619,6 +1619,34 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the pictures.", ZeroSpacing, Times12);
             },
 
+            // A metafile: a drawing kept as the commands that make it rather than as pixels. What
+            // is measured against Word here is where it puts the drawing and how big it is; what
+            // is inside it is compared by rendering both pages, in EmfTests.
+            ["images-metafile"] = () =>
+            {
+                var writer = new EmfWriter(200, 120);
+
+                var pen = writer.CreatePen(180, 20, 30, 2);
+                var brush = writer.CreateBrush(40, 90, 200);
+                writer.Select(pen).Select(brush).Rectangle(10, 10, 95, 70);
+
+                var hollow = writer.CreateHollowBrush();
+                writer.Select(hollow).Ellipse(105, 10, 190, 70);
+
+                writer.MoveTo(10, 85).LineTo(190, 110);
+
+                var font = writer.CreateFont("Times New Roman", 14);
+                writer.Select(font).TextColor(0, 110, 60).Text(12, 112, "Drawn by its records");
+
+                var builder = new DocxBuilder();
+                var metafile = builder.AddImagePart(writer.Build(), "emf");
+
+                return builder
+                    .AddParagraph("Paragraph before the drawing.", ZeroSpacing, Times12)
+                    .AddImageParagraph(metafile, 200, 120, ZeroSpacing)
+                    .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
+            },
+
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:
             // nothing else says whether a row that continues is closed off where it stops.

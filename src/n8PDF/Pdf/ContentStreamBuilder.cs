@@ -42,7 +42,18 @@ public sealed class ContentStreamBuilder
         Op($"{N(x)} {N(y)} {N(width)} {N(height)} re");
 
     /// <summary>Fills the current path (<c>f</c>).</summary>
+    public ContentStreamBuilder CurveTo(
+        double x1, double y1, double x2, double y2, double x3, double y3) =>
+        Op($"{N(x1)} {N(y1)} {N(x2)} {N(y2)} {N(x3)} {N(y3)} c");
+
+    public ContentStreamBuilder ClosePath() => Op("h");
+
     public ContentStreamBuilder Fill() => Op("f");
+
+    /// <summary>Fills by the even-odd rule rather than by the winding the path was drawn with.</summary>
+    public ContentStreamBuilder FillEvenOdd() => Op("f*");
+
+    public ContentStreamBuilder FillAndStroke(bool evenOdd = false) => Op(evenOdd ? "B*" : "B");
 
     /// <summary>Strokes the current path (<c>S</c>).</summary>
     public ContentStreamBuilder Stroke() => Op("S");

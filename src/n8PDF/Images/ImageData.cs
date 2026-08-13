@@ -39,6 +39,15 @@ public sealed record ImageData(
     ImageColorSpace ColorSpace,
     byte[]? Alpha = null)
 {
+    /// <summary>
+    /// The commands this picture is drawn with, where it is a drawing rather than pixels. A
+    /// metafile keeps its commands all the way to the PDF, which has commands of its own to write
+    /// them out as.
+    /// </summary>
+    public VectorDrawing? Drawing { get; init; }
+
+    public bool IsDrawing => Drawing is not null;
+
     public int ComponentCount => ColorSpace switch
     {
         ImageColorSpace.Gray => 1,

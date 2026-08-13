@@ -1,3 +1,4 @@
+using n8PDF.Fonts;
 using n8PDF.Layout;
 
 namespace n8PDF.Pdf;
@@ -26,7 +27,7 @@ internal static class PdfRenderer
     /// </remarks>
     private const double LinkPaddingPoints = 2.16;
 
-    public static void Render(LaidOutDocument document, PdfBuilder builder)
+    public static void Render(LaidOutDocument document, PdfBuilder builder, FontLibrary? fonts = null)
     {
         var pages = new List<(LaidOutPage Source, PdfPage Target)>();
 
@@ -50,6 +51,14 @@ internal static class PdfRenderer
 
             foreach (var image in page.Images)
             {
+                // A metafile is a drawing rather than a picture, and is written out as the PDF's
+                // own drawing commands rather than embedded as pixels.
+                if (image.Image.Drawing is { } drawing)
+                {
+                    RenderDrawing(builder, content, page, image, drawing, fonts);
+                    continue;
+                }
+
                 // An image XObject is drawn into the unit square, so placing one means scaling by
                 // its display size and translating to its bottom-left corner.
                 content.Save()
@@ -172,6 +181,120 @@ internal static class PdfRenderer
             }
 
             Flush();
+        }
+    }
+
+    /// <summary>
+    /// Writes a drawing out as the page's own drawing commands.
+    /// </summary>
+    /// <remarks>
+    /// The drawing's coordinates are turned into the page's here rather than by a transform around
+    /// them. A transform would be shorter, but a drawing counts downwards and a page upwards, so
+    /// the transform would have to turn the page over — and every piece of text in it would then
+    /// come out upside down and need turning back.
+    /// </remarks>
+    private static void RenderDrawing(
+        PdfBuilder builder, ContentStreamBuilder content, LaidOutPage page,
+        PositionedImage placed, Images.VectorDrawing drawing, FontLibrary? fonts)
+    {
+        var scaleX = placed.Width / Math.Max(0.001, drawing.Width);
+        var scaleY = placed.Height / Math.Max(0.001, drawing.Height);
+
+        double X(double x) => placed.X + x * scaleX;
+        double Y(double y) => Flip(page, placed.Y + y * scaleY);
+
+        foreach (var operation in drawing.Operations)
+        {
+            switch (operation)
+            {
+                case Images.PathOperation path:
+                {
+                    content.Save();
+
+                    if (path.Fill is { } fill)
+                        content.SetFillColor(fill.Red / 255.0, fill.Green / 255.0, fill.Blue / 255.0);
+
+                    if (path.Stroke is { } stroke)
+                    {
+                        content.SetStrokeColor(stroke.Red / 255.0, stroke.Green / 255.0, stroke.Blue / 255.0);
+                        content.SetLineWidth(Math.Max(0.24, path.StrokeWidth * scaleX));
+                    }
+
+                    foreach (var step in path.Steps)
+                    {
+                        switch (step.Kind)
+                        {
+                            case Images.PathStepKind.Move:
+                                content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                                break;
+
+                            case Images.PathStepKind.Line:
+                                content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                                break;
+
+                            case Images.PathStepKind.Curve:
+                                content.CurveTo(
+                                    X(step.Points[0].X), Y(step.Points[0].Y),
+                                    X(step.Points[1].X), Y(step.Points[1].Y),
+                                    X(step.Points[2].X), Y(step.Points[2].Y));
+                                break;
+
+                            case Images.PathStepKind.Close:
+                                content.ClosePath();
+                                break;
+                        }
+                    }
+
+                    if (path.Fill is not null && path.Stroke is not null) content.FillAndStroke(path.EvenOdd);
+                    else if (path.Fill is not null) _ = path.EvenOdd ? content.FillEvenOdd() : content.Fill();
+                    else content.Stroke();
+
+                    content.Restore();
+                    break;
+                }
+
+                case Images.TextOperation text when fonts is not null:
+                {
+                    var selection = fonts.Resolve(text.FontFamily, text.Bold, text.Italic);
+                    var font = builder.UseFont(selection.Font);
+
+                    // The size is in the drawing's own units, so it scales with everything else.
+                    var size = text.SizePoints * scaleY;
+
+                    // A drawing says where the top of its text goes; a PDF says where the
+                    // baseline goes. The distance between them is the height of the characters
+                    // themselves, which is the em less what hangs below the line — the leading
+                    // above them is not part of what the drawing measured. Word's own rendering
+                    // of the metafile fixture puts the baseline 10.98pt below the point the
+                    // record names, at 14pt Times, and that is exactly this.
+                    var metrics = selection.Font.Metrics;
+                    var toBaseline = (metrics.UnitsPerEm - metrics.WinDescent) * size / metrics.UnitsPerEm;
+
+                    content.Save();
+                    content.SetFillColor(text.Color.Red / 255.0, text.Color.Green / 255.0, text.Color.Blue / 255.0);
+                    content.BeginText();
+                    content.SetFont(font.ResourceName, size);
+                    content.SetTextPosition(X(text.X), Y(text.Y) - toBaseline);
+                    content.ShowGlyphs(font.Encode(text.Text));
+                    content.EndText();
+                    content.Restore();
+
+                    break;
+                }
+
+                case Images.ImageOperation picture:
+                {
+                    var width = picture.Width * scaleX;
+                    var height = picture.Height * scaleY;
+
+                    content.Save()
+                        .Transform(width, 0, 0, height, X(picture.X), Y(picture.Y) - height)
+                        .DrawXObject(builder.UseImage(picture.Image).ResourceName)
+                        .Restore();
+
+                    break;
+                }
+            }
         }
     }
 

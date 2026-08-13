@@ -159,7 +159,7 @@ its restart, repeat and format switches), references to a bookmark's text (REF),
 (QUOTE), and the clock (DATE, TIME) — each spelled the way its `\*` switch asks, in arabic, roman,
 letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or Caps, with a
 `\@` picture deciding how a date reads, lists and numbering (decimal, letters, roman and bullets, nested levels with
-independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP and TIFF all decoded from scratch, JPEG passed through untouched,
+independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched,
 transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
@@ -294,7 +294,33 @@ comes out has to be what the PNG it was made from holds, to the sample. Both fou
 bitmap's height is at a different offset in the modern header than in the old one, and a TIFF
 written big end first keeps a small number in the *high* half of the four bytes its tag reserves.
 
-Not yet: EMF pictures, splitting a note across pages, restarting note numbering per page or per section, notes
+A metafile is not a picture at all but the record of one being drawn — move here, line to there,
+fill with this, write that — so reading one is an interpreter rather than a decoder, and what comes
+out stays a drawing all the way to the PDF, whose own operators write it out again. That keeps a
+chart sharp at any size a reader looks at it, and it keeps the text inside one selectable. What is
+handled is what a picture in a document is made of: paths and the shapes that are shorthand for
+them, the pens and brushes that colour them, the fonts and the text, and the bitmaps a drawing can
+carry. What is not is the rest of an interface built to drive a screen — raster operations,
+clipping regions, palettes, and EMF+, which is a second format carried inside the comments of the
+first. A file that draws only in EMF+ records is reported as unreadable rather than drawn blank.
+
+Its text needed one measurement. A drawing says where the *top* of its text goes and a PDF says
+where the baseline goes, and the distance between them is the height of the characters themselves:
+the em less what hangs below the line, with the leading above them left out. Word's own rendering
+of the fixture puts the baseline 10.98pt below the point the record names, at 14pt Times New Roman,
+and the em less the descent is 10.97pt of it.
+
+A drawing is also the one thing here that cannot be checked by reading text positions out of a PDF:
+a chart could be drawn upside down and the comparison would not notice. So `tools/rasterize.swift`
+draws the page with macOS's own PDF reader and the pixels are looked at — which is how the drawing
+in the fixture is known to be where it was put, in the colours it was given. It found a real fault
+in the *fixture* rather than the reader: a metafile says how big it is twice over, in the frame it
+declares and in the resolution of the device it was recorded for, and the test's writer had been
+writing the two at odds. Word believed one and this believed the other, and both were right.
+
+Not yet: nothing of what a document usually holds. What is left is the parts of these formats that
+documents do not use — EMF+, the fax encodings in TIFF, tiled and planar TIFFs, and 16-bit PNG
+samples kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
