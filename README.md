@@ -25,6 +25,7 @@ src/n8PDF/
   Ooxml/         WordprocessingML model and parsers, plus Units
   Styling/       the formatting cascade, producing Resolved*Format
   Fonts/         SFNT parsing, metrics, font resolution, shaping
+  Text/          the bidirectional algorithm and the Unicode tables it reads
   Images/        PNG, GIF, BMP, TIFF, EMF and JPEG decoding
   Layout/        measurement, line breaking, page composition, list counters
   Pdf/           object model, writer, content streams, Type0 font embedding
@@ -545,6 +546,30 @@ document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
 remains elsewhere is RTL and complex scripts.
+
+A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
+and drawn in the order it appears, and the two part company the moment a line holds both
+directions, which nearly every real line does: a number is written left to right whatever is around
+it, and so is a Latin name inside a Hebrew sentence. The Unicode bidirectional algorithm decides
+which way each character runs and what order the line is drawn in, and it is implemented here in
+full — the paragraph rules, the explicit embeddings and isolates, the weak and neutral characters,
+the bracket pairs, the levels and the reordering.
+
+The tables it reads are generated from the Unicode character database rather than written, by
+`tools/make-bidi-tables.py`, because they are a hundred thousand answers and any of them typed by
+hand would be a chance to be wrong. The library carries no dependencies, so the output is committed
+as source.
+
+This is the one part of the converter with a reference implementation to hand, and it is checked
+the way that deserves: GNU FriBidi implements the same standard and shares nothing with this, so
+fifteen hundred lines built at random out of Hebrew, Arabic, Latin, digits, brackets, marks and
+directional characters go through both and are compared level for level, and another eight hundred
+are compared on where every character of them ends up. They agree on all of it. The comparison
+found two real faults while it was being written — the backward searches of two rules end on what
+a sequence sits after and not only on a character, and the formatting characters count as
+whitespace for the rule that resets the end of a line — and a third when the drawing order was
+compared: a mark drawn on a letter has to be put back after it when its run is turned round, which
+is a rule that matters to anything that draws rather than merely reorders.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and
