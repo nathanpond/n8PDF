@@ -1148,18 +1148,22 @@ public static class Fixtures
             // Thai is not here although Thonburi is one of these faces: asked for it, Word draws
             // the line in a font of its own instead, so there would be nothing to compare. Nor is
             // the word for kshatriya, which Word's own reading of these tables draws two points
-            // wider than HarfBuzz's. Both are checked against HarfBuzz in AppleLayoutTests.
+            // wider than HarfBuzz's. Nor Malayalam, which Word does not draw at all: asked for a
+            // line of it in Malayalam Sangam MN, its export holds nothing where the line should
+            // be, so the table that says where that face's glyphs go can only be checked against
+            // HarfBuzz. All three are, in AppleLayoutTests.
             ["apple"] = () =>
             {
                 var builder = new DocxBuilder();
 
-                void Line(string text, string family, int halfPoints = 28)
+                void Line(string text, string family, int halfPoints = 28, bool kerned = false)
                 {
                     builder.AddRawParagraph(
                         $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
                         $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
-                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/></w:rPr>" +
-                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/>" +
+                        (kerned ? "<w:kern w:val=\"2\"/>" : string.Empty) +
+                        $"</w:rPr><w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
                 }
 
                 Line("Faces with no OpenType tables at all.", "Arial", 24);

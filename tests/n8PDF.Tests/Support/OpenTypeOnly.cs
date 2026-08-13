@@ -18,14 +18,27 @@ namespace n8PDF.Tests.Support;
 /// </remarks>
 public static class OpenTypeOnly
 {
-    private static readonly string[] Apple = ["morx", "mort", "kerx", "feat"];
+    private static readonly string[] Apple = ["morx", "mort", "kerx", "feat", "ankr"];
+
+    /// <summary>The other way round: a copy holding Apple's tables and no OpenType ones.</summary>
+    /// <remarks>
+    /// <c>GDEF</c> stays: it says what each glyph is rather than what to do with it, and every
+    /// engine reads it whichever description of the shaping it is following.
+    /// </remarks>
+    private static readonly string[] OpenType = ["GSUB", "GPOS"];
 
     private static readonly Dictionary<string, string> Written = [];
 
     /// <summary>The path of a copy of one face of a font file, holding no Apple layout tables.</summary>
-    public static string Copy(string path, int face = 0)
+    /// <summary>
+    /// The mirror of this: a copy with the OpenType tables taken out instead, for asking what a
+    /// face's own tables say where it carries both descriptions.
+    /// </summary>
+    public static string AppleOnly(string path, int face = 0) => Copy(path, face, apple: true);
+
+    public static string Copy(string path, int face = 0, bool apple = false)
     {
-        var key = $"{path}#{face}";
+        var key = $"{path}#{face}#{apple}";
 
         lock (Written)
         {
@@ -42,7 +55,7 @@ public static class OpenTypeOnly
                 var record = start + 12 + i * 16;
 
                 var tag = System.Text.Encoding.ASCII.GetString(data, record, 4);
-                if (Array.IndexOf(Apple, tag) >= 0) continue;
+                if (Array.IndexOf(apple ? OpenType : Apple, tag) >= 0) continue;
 
                 tables.Add((tag, (int)ReadUInt32(data, record + 8), (int)ReadUInt32(data, record + 12)));
             }
@@ -79,7 +92,8 @@ public static class OpenTypeOnly
 
             var name = Path.GetFileNameWithoutExtension(path).Replace(' ', '-');
 
-            var file = Path.Combine(Path.GetTempPath(), $"n8pdf-opentype-{name}-{face}.ttf");
+            var file = Path.Combine(Path.GetTempPath(),
+                $"n8pdf-{(apple ? "apple" : "opentype")}-{name}-{face}.ttf");
 
             File.WriteAllBytes(file, [.. output]);
 

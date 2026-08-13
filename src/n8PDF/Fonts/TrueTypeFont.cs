@@ -21,6 +21,7 @@ public sealed class TrueTypeFont
     private LayoutTable? _gpos;
     private GlyphClasses? _classes;
     private Metamorphosis? _metamorphosis;
+    private ExtendedKerning? _extendedKerning;
     private bool _layoutRead;
 
     private readonly Dictionary<int, short> _pairKerning = [];
@@ -142,6 +143,19 @@ public sealed class TrueTypeFont
         }
     }
 
+    /// <summary>
+    /// Where the font says its glyphs go, in Apple's tables rather than OpenType's. Read only
+    /// where there is no <c>GPOS</c> to read instead, for the same reason its shaping is.
+    /// </summary>
+    internal ExtendedKerning? ExtendedKerning
+    {
+        get
+        {
+            ReadLayout();
+            return _gpos is null ? _extendedKerning : null;
+        }
+    }
+
     /// <summary>What the font says each of its glyphs is: a letter, a ligature, a mark.</summary>
     internal GlyphClasses? Classes
     {
@@ -168,6 +182,15 @@ public sealed class TrueTypeFont
 
         if (_gsub is null && Tables.TryGetValue("morx", out var morx))
             _metamorphosis = Metamorphosis.Read(_data, morx.Offset, morx.Length, GlyphCount);
+
+        if (_gpos is null && Tables.TryGetValue("kerx", out var kerx))
+        {
+            var anchors = Tables.TryGetValue("ankr", out var ankr)
+                ? Anchors.Read(_data, ankr.Offset, GlyphCount)
+                : null;
+
+            _extendedKerning = ExtendedKerning.Read(_data, kerx.Offset, GlyphCount, anchors);
+        }
     }
 
     /// <summary>

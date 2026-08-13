@@ -545,9 +545,9 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is Hangul, whose syllables are composed rather than shaped, and the positioning
-half of Apple's own tables — `kerx` and `ankr`, which a few of those faces use for kerning and for
-putting marks on letters.
+remains elsewhere is Hangul, whose syllables are composed rather than shaped, and the one kind of
+Apple attachment that names points on the outlines themselves rather than in a table — no face on
+this machine asks for it.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -648,12 +648,14 @@ narrower. What those comparisons cannot say is what the lines say — a shaped s
 standing for several characters, and Word's file maps them back to whatever code the glyph happens to
 sit at, so a line of Devanagari comes out of it as "नम#$".
 
-For Apple's tables the same comparison holds: twenty-six words in ten faces, and Word agrees about
-the page on every line of the fixture to four hundredths of a point. Two words are kept out of it
-because Word does something else with them — asked for Thai in Thonburi it draws the line in a font
-of its own, and for one Devanagari cluster its reading of the same table comes out two points wider
-than HarfBuzz's. Which of the two Apple's own engine agrees with is not a question this machine can
-answer, so the difference is recorded rather than resolved.
+For Apple's tables the same comparison holds: twenty-six words in ten faces for the shaping and
+thirteen more in eleven for the placing, and Word agrees about the page on every line of the fixture
+to four hundredths of a point. Three things are kept out of it because Word does something else with
+them — or nothing at all. Asked for a line of Malayalam in a face whose positioning is Apple's, its
+export holds nothing where the line should be. Asked for Thai in Thonburi, it draws the line in a
+font of its own. And for one Devanagari cluster its reading of the same table comes out two points
+wider than HarfBuzz's. Which of the two Apple's own engine agrees with is not a question this
+machine can answer, so the difference is recorded rather than resolved.
 
 Reading those faces turned up a fault of ours that had nothing to do with shaping. They carry their
 family name several times over in several languages, and the first record of the right kind is not
@@ -772,6 +774,21 @@ what OpenType needs four kinds of lookup for, and two more besides: rearranging 
 inserting ones the text never held. All five kinds are read here, and the reading is used only where
 the font has no OpenType tables. A face carrying both carries the same shaping twice, and the
 OpenType half is the one every other reader of the file will use.
+
+Where those faces go on to say how far apart the glyphs go, they say that in Apple's tables too, and
+those are read as well. Two quite different things live in the one table. Most of it is kerning — by
+naming pairs, by naming classes of glyphs, or by a machine that keeps a stack of what it has passed
+and moves several of them at once — and it is applied only where the document asks for kerning, as
+everywhere else here. The rest is attachment: a machine that marks a letter and fastens what follows
+to it by naming a point on each out of a table of anchors, which is how these faces put a vowel sign
+on a consonant. That is applied always, because a mark that is not fastened is not merely unkerned
+but in the wrong place.
+
+Its kerning is shared between the two glyphs rather than taken out of the first one's advance: half
+moves the glyph on the left and half moves the one on the right, which is drawn half a kern along as
+well. OpenType expresses the same thing the other way, as a shortening of the left glyph alone. The
+two give a pair the same width and put the second glyph in different places, and each face is drawn
+against one of them.
 
 Two things about it cost an afternoon each. A machine that writes several glyphs as one leaves the
 others behind marked as gone, and they have to be swept up before the next machine runs rather than

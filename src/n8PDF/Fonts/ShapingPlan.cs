@@ -140,11 +140,12 @@ internal abstract class ShapingPlan
     /// Places them: kerning where the document asks for it, and the marks on what they belong to,
     /// which no document has to ask for.
     /// </summary>
-    public virtual void Position(TrueTypeFont font, List<ShapeItem> buffer, bool applyKerning)
+    public virtual void Position(
+        TrueTypeFont font, List<ShapeItem> buffer, bool applyKerning, bool rightToLeft)
     {
         if (Marks == MarkWidths.BeforePlacing) Flatten(buffer);
 
-        Place(font, buffer, applyKerning);
+        Place(font, buffer, applyKerning, rightToLeft);
 
         if (Marks == MarkWidths.AfterPlacing) Flatten(buffer);
     }
@@ -158,8 +159,18 @@ internal abstract class ShapingPlan
         }
     }
 
-    private void Place(TrueTypeFont font, List<ShapeItem> buffer, bool applyKerning)
+    private void Place(
+        TrueTypeFont font, List<ShapeItem> buffer, bool applyKerning, bool rightToLeft)
     {
+        // A face that says where its glyphs go in Apple's tables rather than OpenType's is read
+        // from those, for the same reason its shaping is: there is no other description in the
+        // file, and half a description is worse than none.
+        if (font.ExtendedKerning is { } apple)
+        {
+            apple.Apply(buffer, applyKerning, rightToLeft, font.Classes);
+            return;
+        }
+
         var positioner = font.Positioner;
 
         positioner?.SelectScript(ScriptTags);

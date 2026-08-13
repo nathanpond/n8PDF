@@ -80,7 +80,9 @@ public class AppleLayoutTests(ITestOutputHelper output)
         // has them, and here that is the only kind it has.
         var rightToLeft = word[0] is >= '֐' and <= 'ࣿ';
 
-        if (Shape(path, word, rightToLeft) is not { } theirs)
+        // Kerning off: what is being compared here is which glyphs the machines choose, and some
+        // of these faces carry the old kerning table as well, which is a separate question.
+        if (Shape(path, word, rightToLeft, kerned: false) is not { } theirs)
         {
             output.WriteLine("hb-shape was not found, so the shaping was not compared.");
             return;
@@ -94,15 +96,18 @@ public class AppleLayoutTests(ITestOutputHelper output)
         Assert.Equal(theirs, ours);
     }
 
-    /// <summary>The same question, put to the first face of a collection.</summary>
-    private static List<string>? Shape(string path, string word, bool rightToLeft)
+    /// <summary>The same question, put to one face of a collection.</summary>
+    private static List<string>? Shape(
+        string path, string word, bool rightToLeft, int index = 0, bool kerned = true)
     {
         try
         {
             var arguments = new List<string>
             {
-                $"--font-file={path}", "--face-index=0", "--no-glyph-names", "--features=-kern"
+                $"--font-file={path}", $"--face-index={index}", "--no-glyph-names"
             };
+
+            if (!kerned) arguments.Add("--features=-kern");
 
             if (rightToLeft) arguments.Add("--direction=rtl");
             arguments.Add(word);
@@ -143,10 +148,72 @@ public class AppleLayoutTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// Where the glyphs go, for the faces that say it in Apple's tables rather than in
+    /// <c>GPOS</c>.
+    /// </summary>
+    /// <remarks>
+    /// Two quite different things live in that table. Most of it is kerning — by naming pairs, by
+    /// naming classes of glyphs, or by a machine that keeps a stack of what it has passed and moves
+    /// several at once. The rest is attachment: a machine that marks a letter and then fastens what
+    /// follows to it, by naming a point on each out of a table of anchors.
+    ///
+    /// The faces here are asked with their OpenType tables taken out, because most of them carry
+    /// both descriptions and this converter reads the OpenType one where there is a choice. That is
+    /// not a way of hiding a difference: it is the only way to ask the question at all, since a
+    /// face carrying both is never read this way in earnest.
+    /// </remarks>
+    [Theory]
+    [InlineData("മലയാളം", "Malayalam Sangam MN.ttc")]      // kerning by classes
+    [InlineData("കൃഷ്ണൻ", "Malayalam Sangam MN.ttc")]
+    [InlineData("తెలుగు", "Telugu MN.ttc")]                 // marks fastened by anchor
+    [InlineData("తెలుగు భాష", "Telugu Sangam MN.ttc")]
+    [InlineData("ଓଡ଼ିଶା", "Oriya MN.ttc")]
+    [InlineData("বাংলা", "Bangla Sangam MN.ttc")]
+    [InlineData("ভারত", "Bangla MN.ttc")]
+    [InlineData("ಕನ್ನಡ", "Kannada MN.ttc")]
+    [InlineData("ગુજરાતી", "Gujarati Sangam MN.ttc")]
+    [InlineData("मराठी", "Devanagari Sangam MN.ttc")]
+    [InlineData("မြန်မာ", "Myanmar Sangam MN.ttc")]
+    [InlineData("שלום", "../ArialHB.ttc")]                  // a machine, read backwards
+    [InlineData("Waffle AVA To", "../Helvetica.ttc")]       // pairs and classes, in Helvetica Light
+    public void The_glyphs_go_where_harfbuzz_puts_them(string word, string face)
+    {
+        var path = Path.GetFullPath(Fonts + face);
+
+        if (!File.Exists(path))
+        {
+            output.WriteLine($"{face} is not installed, so {word} was not compared.");
+            return;
+        }
+
+        // Helvetica Light is the face of that collection with Apple's positioning tables in it.
+        var index = face.Contains("Helvetica") ? 4 : 0;
+        var file = OpenTypeOnly.AppleOnly(path, index);
+
+        var rightToLeft = word[0] is >= '֐' and <= 'ࣿ';
+
+        if (Shape(file, word, rightToLeft, index: 0) is not { } theirs)
+        {
+            output.WriteLine("hb-shape was not found, so the placing was not compared.");
+            return;
+        }
+
+        var font = TrueTypeFont.Load(File.ReadAllBytes(file));
+
+        // Asked for with kerning on, since kerning is half of what this table holds.
+        var ours = HarfBuzz.Describe(TextShaper.Shape(font, word, true, rightToLeft));
+
+        output.WriteLine($"{word}\n  ours {string.Join(" ", ours)}\n  them {string.Join(" ", theirs)}");
+
+        Assert.Equal(theirs, ours);
+    }
+
+    /// <summary>
     /// A face that carries both kinds of table is read as OpenType, since that is the description
     /// Word reads.
     /// </summary>
     /// <remarks>
+    /// The same holds for where the glyphs go, and for the same reason.
     /// Several faces carry the same shaping twice over. Where they differ the difference is real —
     /// Khmer Sangam MN's OpenType tables write a consonant and its vowel as a shape plus a blank,
     /// and its state machine deletes the blank instead — and it is the OpenType answer that has to
@@ -165,6 +232,12 @@ public class AppleLayoutTests(ITestOutputHelper output)
 
         Assert.Null(apple.Substitutor);
         Assert.NotNull(apple.Metamorphosis);
+
+        // And a face that says where its glyphs go in both places is read the same way round.
+        var positioned = TrueTypeFont.Load(File.ReadAllBytes(Fonts + "Telugu MN.ttc"));
+
+        Assert.NotNull(positioned.Positioner);
+        Assert.Null(positioned.ExtendedKerning);
     }
 
     /// <summary>

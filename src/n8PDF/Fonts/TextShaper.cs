@@ -77,7 +77,7 @@ public static class TextShaper
         // positioning says otherwise.
         foreach (var item in buffer) item.Advance = font.GetAdvanceWidth(item.Glyph);
 
-        plan.Position(font, buffer, applyKerning);
+        plan.Position(font, buffer, applyKerning, rightToLeft);
 
         Positioner.Resolve(buffer, rightToLeft);
 
