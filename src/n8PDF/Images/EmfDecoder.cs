@@ -18,11 +18,12 @@ namespace n8PDF.Images;
 /// carry. What is not is the rest of an interface designed to drive a screen: raster operations,
 /// clipping regions and palettes.
 ///
-/// A metafile written by anything modern carries a second drawing as well, in the newer format
-/// that travels inside the comments of this one. The two are alternatives rather than halves, and
-/// the old records are the ones taken where a file has both: they are what every reader of a
-/// metafile has always understood, and they are the half whose reading can be checked against
-/// another implementation. The new ones are read only where they are all there is.
+/// A metafile written by anything modern carries the newer format's records as well, inside the
+/// comments of this one. Where a file has them they are what draws it: that is what they are for,
+/// and the old records beside them are a copy left for readers that cannot. The two are read in
+/// the one order the file puts them in, since the old records are not always only a copy — a file
+/// may hand the drawing back to the older interface part way through, and says so where it does,
+/// after which its records draw until the newer ones resume.
 /// </remarks>
 public static class EmfDecoder
 {
@@ -36,18 +37,7 @@ public static class EmfDecoder
     {
         if (!IsEmf(data)) throw new ImageFormatException("Not an enhanced metafile.");
 
-        var drawing = new Interpreter(data).Run();
-
-        // A file carrying both formats draws one picture, not two, and the old records are the
-        // ones taken: they are what every reader of a metafile has always understood, and they are
-        // the half that can be checked against another implementation. The new records are read
-        // only where they are all there is — which is a file that would otherwise draw nothing.
-        if (drawing.Operations.Count == 0 && EmfPlusRecords(data) is { Count: > 0 } records)
-        {
-            var operations = EmfPlusInterpreter.Read([.. records], drawing.Width / Math.Max(1, Units(data)));
-
-            if (operations.Count > 0) drawing = drawing with { Operations = operations };
-        }
+        var drawing = new Interpreter(data, HasEmfPlus(data), Units(data)).Run();
 
         if (drawing.Operations.Count == 0)
             throw new ImageFormatException("The metafile draws nothing this can read.");
@@ -64,12 +54,12 @@ public static class EmfDecoder
     }
 
     /// <summary>
-    /// The second format's records, joined: they travel inside the comments of the first, and one
-    /// of them may begin in a comment and end in the next.
+    /// Whether the file carries the newer format's records at all, which decides which of the two
+    /// draws it. They travel inside the comments of the old, and a comment that opens with the
+    /// letters "EMF+" is not a comment.
     /// </summary>
-    private static List<byte>? EmfPlusRecords(byte[] data)
+    private static bool HasEmfPlus(byte[] data)
     {
-        List<byte>? records = null;
         var at = 0;
 
         while (at + 8 <= data.Length)
@@ -79,20 +69,11 @@ public static class EmfDecoder
 
             if (size < 8 || at + size > data.Length) break;
 
-            // A comment, whose data opens with the letters that say it is not one.
             if (type == 70 && at + 16 <= data.Length)
             {
                 var length = data[at + 8] | (data[at + 9] << 8) | (data[at + 10] << 16) | (data[at + 11] << 24);
 
-                if (EmfPlusInterpreter.IsEmfPlusComment(data, at + 12, length))
-                {
-                    records ??= [];
-
-                    var from = at + 16;
-                    var to = Math.Min(at + 12 + length, at + size);
-
-                    if (to > from) records.AddRange(data[from..to]);
-                }
+                if (EmfPlusInterpreter.IsEmfPlusComment(data, at + 12, length)) return true;
             }
 
             if (type == 14) break;
@@ -100,7 +81,7 @@ public static class EmfDecoder
             at += size;
         }
 
-        return records;
+        return false;
     }
 
     /// <summary>How many of its own units a metafile is across, which is what its bounds say.</summary>
@@ -115,9 +96,20 @@ public static class EmfDecoder
     /// <summary>
     /// Replays a metafile's records.
     /// </summary>
-    private sealed class Interpreter(byte[] data)
+    /// <param name="hasPlus">
+    /// Whether the file carries the newer format's records. Where it does, they draw it, and the
+    /// old records draw only what the file hands back to them.
+    /// </param>
+    /// <param name="units">How many of its own units the drawing is across.</param>
+    private sealed class Interpreter(byte[] data, bool hasPlus, int units)
     {
         private readonly List<DrawingOperation> _operations = [];
+
+        /// <summary>The newer format's records, read as the comments carrying them come by.</summary>
+        private EmfPlusInterpreter.Reader? _plus;
+
+        /// <summary>Whether the newer records have handed the drawing back to these ones.</summary>
+        private bool _handedBack;
         private readonly Dictionary<uint, object> _objects = [];
         private readonly Stack<State> _saved = new();
 
@@ -160,6 +152,10 @@ public static class EmfDecoder
         public VectorDrawing Run()
         {
             ReadHeader();
+
+            // What the newer records measure in: the same units the bounds are given in, which the
+            // header has just said how to turn into points.
+            if (hasPlus) _plus = EmfPlusInterpreter.Begin(_width / Math.Max(1, units), _operations);
 
             var at = 0;
 
@@ -228,10 +224,41 @@ public static class EmfDecoder
             }
         }
 
+        /// <summary>
+        /// Keeps a drawing the old records make. Where the file has newer ones they are what draws
+        /// it, and these draw only between the record that hands the drawing back to them and the
+        /// next of the newer records.
+        /// </summary>
+        private void Add(DrawingOperation operation)
+        {
+            if (!hasPlus || _handedBack) _operations.Add(operation);
+        }
+
+        /// <summary>
+        /// A comment that is not one: the newer records, which are read at the point the file puts
+        /// them rather than gathered up and read after, so that a drawing made of both is made in
+        /// the order it was drawn.
+        /// </summary>
+        private void Comment(int at, int size)
+        {
+            if (_plus is null) return;
+
+            var length = ReadInt32(at + 8);
+
+            if (!EmfPlusInterpreter.IsEmfPlusComment(data, at + 12, length)) return;
+
+            _plus.Feed(data, at + 16, Math.Min(at + 12 + length, at + size));
+            _handedBack = _plus.HandedBack;
+        }
+
         private void Record(uint type, int at, int size)
         {
             switch (type)
             {
+                case 70: // COMMENT
+                    Comment(at, size);
+                    break;
+
                 // ----- the state -----
 
                 case 17: // SETMAPMODE
@@ -533,7 +560,7 @@ public static class EmfDecoder
 
             var font = _state.Font;
 
-            _operations.Add(new TextOperation(
+            Add(new TextOperation(
                 text.ToString(), x, y, font.Family, font.Size, font.Bold, font.Italic,
                 _state.TextColor, font.Angle));
         }
@@ -569,7 +596,7 @@ public static class EmfDecoder
 
             try
             {
-                _operations.Add(new ImageOperation(BmpDecoder.Decode(file), x, y, width, height));
+                Add(new ImageOperation(BmpDecoder.Decode(file), x, y, width, height));
             }
             catch (ImageFormatException)
             {
@@ -720,7 +747,7 @@ public static class EmfDecoder
 
             if (fillColor is null && strokeColor is null) return;
 
-            _operations.Add(new PathOperation(
+            Add(new PathOperation(
                 [.. steps], fillColor, strokeColor,
                 Math.Max(0.24, _state.StrokeWidth * _scale), _state.EvenOdd));
         }

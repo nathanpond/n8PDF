@@ -289,20 +289,80 @@ public class MetafileTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// A file carrying both formats draws one picture, not two, and it is the old records that
-    /// draw it: they are the half another reader can be asked about, and Word draws them too.
+    /// A file carrying both formats draws one picture, not two, and it is the newer records that
+    /// draw it. That is what they are for: the old ones beside them are a copy left for readers
+    /// that have never heard of the new, and a file whose halves differ at all differs by the new
+    /// half being the fuller one.
     /// </summary>
+    /// <remarks>
+    /// The two halves here draw different words, which no real file does, so that which of them
+    /// was read can be asked at all. What says the reading of the newer half is right rather than
+    /// merely chosen is the fixture, whose halves draw one picture: Word draws the old half of it,
+    /// this draws the new, and the two have to reach the page in the same place.
+    /// </remarks>
     [Fact]
-    public void A_file_written_both_ways_is_drawn_the_old_way()
+    public void A_file_written_both_ways_is_drawn_the_newer_way()
     {
-        var drawing = Drawing(MetafileOf(Fixtures.Build("images-metafile-plus")));
+        var writer = new EmfWriter(200, 120);
+
+        writer.PlusHeader(dual: true);
+        writer.PlusFillRectangle(40, 90, 200, 10, 10, 85, 60);
+        writer.PlusFont(2, "Times New Roman", 14);
+        writer.PlusString(2, 0, 110, 60, 12, 100, "Drawn the newer way");
+
+        var brush = writer.CreateBrush(40, 90, 200);
+        writer.Select(brush).Rectangle(10, 10, 95, 70);
+
+        var font = writer.CreateFont("Times New Roman", 14);
+        writer.Select(font).Text(12, 100, "Drawn the older way");
+
+        var drawing = Drawing(writer.Build());
 
         var text = drawing.Operations.OfType<TextOperation>().Single();
 
-        Assert.Equal("Drawn the older way", text.Text);
+        Assert.Equal("Drawn the newer way", text.Text);
 
-        // Once, not twice: the newer records drew a rectangle and a line of their own.
-        Assert.Equal(2, drawing.Operations.OfType<PathOperation>().Count());
+        // Once, not twice: the old records drew a rectangle of their own.
+        Assert.Single(drawing.Operations.OfType<PathOperation>());
+    }
+
+    /// <summary>
+    /// The old records are not always only a copy. A file may hand the drawing back to them part
+    /// way through — for something the newer interface had no way to record — and says so where it
+    /// does. From there they draw, until the newer records resume.
+    /// </summary>
+    [Fact]
+    public void The_older_records_draw_what_the_newer_ones_hand_back_to_them()
+    {
+        var writer = new EmfWriter(200, 120);
+
+        writer.PlusHeader();
+        writer.PlusFillRectangle(40, 90, 200, 10, 10, 85, 60);
+
+        // Handed back: what follows is drawn by the old records.
+        writer.PlusGetDC();
+
+        var brush = writer.CreateBrush(200, 40, 90);
+        writer.Select(brush).Rectangle(120, 10, 190, 70);
+
+        // And taken up again, after which they are not.
+        writer.PlusFillEllipse(10, 200, 90, 10, 85, 60, 30);
+
+        var ignored = writer.CreateBrush(1, 2, 3);
+        writer.Select(ignored).Rectangle(0, 0, 5, 5);
+
+        var paths = Drawing(writer.Build()).Operations.OfType<PathOperation>().ToList();
+
+        // The rectangle the newer records filled, the one the old records drew while they had the
+        // drawing, and the ellipse the newer ones drew on taking it back. Not the last rectangle,
+        // which the old records drew after the drawing had gone back to the newer ones.
+        Assert.Equal(3, paths.Count);
+        Assert.Equal(new DrawingColor(40, 90, 200), paths[0].Fill);
+        Assert.Equal(new DrawingColor(200, 40, 90), paths[1].Fill);
+        Assert.Equal(new DrawingColor(10, 200, 90), paths[2].Fill);
+
+        // And in the order the file draws them, which is the order they cover one another in.
+        Assert.Equal(120, paths[1].Steps[0].Points[0].X, 0);
     }
 
     /// <summary>The metafile a document carries, taken back out of it.</summary>
@@ -409,5 +469,75 @@ public class MetafileTests(ITestOutputHelper output)
 
         // The text of a drawing is text, so a reader can find it.
         Assert.Contains("Drawn by its records", rendered.Text);
+    }
+
+    /// <summary>
+    /// And the newer records draw what the old ones draw, measured against another implementation
+    /// rather than against this one's idea of them.
+    /// </summary>
+    /// <remarks>
+    /// This is the check the newer records had no way of having until they were the ones drawn.
+    /// Word renders classic metafile records and draws nothing whatever for these, so its export
+    /// of the fixture is its rendering of the old half — while this page is the new half. The two
+    /// halves record one picture, so the two pages have to be one picture: not pixel for pixel,
+    /// since two renderers differ along every edge they draw, but in what is covered and what is
+    /// left as paper.
+    ///
+    /// Where they agree the newer records have been read right, since nothing about this file's
+    /// old half reached the page. Where a shape were misplaced, misscaled, or missing, the two
+    /// would part company by far more than the edges of either can account for.
+    /// </remarks>
+    [Fact]
+    public void The_newer_records_draw_the_page_the_old_records_draw()
+    {
+        var reference = Path.Combine(TestPaths.ReferencePdfs, "images-metafile-plus.pdf");
+
+        Assert.True(File.Exists(reference),
+            $"No Word reference for the metafile fixture. Generate it: tools/make-reference-pdfs.sh");
+
+        var pdf = Converter.Convert(Fixtures.Build("images-metafile-plus"), Options());
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(pdf, scale: scale) is not { } ours ||
+            PdfRasterizer.Render(File.ReadAllBytes(reference), scale: scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        // The drawing's own corner of the page, in points, with room around it.
+        var covered = 0;
+        var agreed = 0;
+        var mine = 0;
+        var theirs = 0;
+
+        for (var y = 70; y < 200; y++)
+        for (var x = 70; x < 280; x++)
+        {
+            var a = ours.At(x, y, scale);
+            var b = word.At(x, y, scale);
+
+            var inkOfMine = a.R < 200 || a.G < 200 || a.B < 200;
+            var inkOfTheirs = b.R < 200 || b.G < 200 || b.B < 200;
+
+            if (inkOfMine) mine++;
+            if (inkOfTheirs) theirs++;
+            if (inkOfMine == inkOfTheirs) agreed++;
+
+            covered++;
+        }
+
+        var agreement = 100.0 * agreed / covered;
+
+        _output.WriteLine(
+            $"ink: {mine} here, {theirs} in Word's; the two pages agree on {agreement:0.00}% of the drawing");
+
+        Assert.True(agreement > 95, $"the two pages agree on only {agreement:0.0}% of the drawing");
+
+        // And neither draws substantially more of it than the other, which is what a shape drawn
+        // by one and not the other would look like however well the rest lined up.
+        Assert.InRange((double)mine / theirs, 0.8, 1.25);
     }
 }

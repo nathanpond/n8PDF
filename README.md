@@ -344,19 +344,24 @@ regions and palettes.
 
 A metafile written by anything modern carries the same drawing twice — once in those records, and
 once in the newer GDI+ ones that travel inside their comments, a format smuggled through a format.
-Both are read. The two are alternatives rather than halves, so a file carrying both is drawn from
-the old records: they are what every reader of a metafile has always understood, and they are the
-half whose reading can be checked against another implementation. The newer records are read only
-where they are all a file has, which is a file that would otherwise draw nothing at all.
+Both are read, and where a file has the newer ones they are what draws it. That is what they are
+for: the old records beside them are a copy left for readers that have never heard of the new, and
+where the two differ at all it is the new half that is the fuller. They are read in the one order
+the file puts them in, because the old records are not always only a copy — a file may hand the
+drawing back to them part way through, for something the newer interface had no way to record, and
+says so where it does. From there the old records draw until the newer ones resume, which is what
+the specification asks for and what the file means.
 
-That order is deliberate, and the reason is worth stating plainly. Word for Mac renders classic
-metafile records and draws nothing whatever for EMF+ ones — its export of a file holding only
-those is a blank space — so there is no second implementation on this machine to read EMF+ against.
-Everything else here is measured against Word; this one part is not, and is tested only against a
-writer built from the same reading of the specification, which is precisely the kind of agreement
-this project distrusts everywhere else. Preferring the old records keeps that uncertainty off the
-files documents are actually made of: a chart pasted out of a spreadsheet carries both, and is
-drawn the way Word draws it, to within a point.
+Preferring them used to be impossible to justify, and the reason is worth keeping. Word for Mac
+renders classic metafile records and draws nothing whatever for EMF+ ones — its export of a file
+holding only those is a blank space — so there was no second implementation here to read EMF+
+against, and everything else in this project is measured against Word. What settles it is that a
+file carrying both carries one picture twice: Word draws the old half of the metafile fixture and
+this draws the new, so comparing the two pages compares this reading of EMF+ against Word after
+all. The drawing's text lands within 0.07pt across and 0.12pt down of where Word puts it, and the
+two pages agree on 97% of what is covered and what is left as paper — the rest being the edges
+along which no two renderers ever agree. That is the same standard the rest of the metafile work is
+held to, and it is now the newer records being held to it.
 
 Its text needed one measurement. A drawing says where the *top* of its text goes and a PDF says
 where the baseline goes, and the distance between them is the height of the characters themselves:
@@ -436,9 +441,9 @@ nothing installed here writes one, so that path is transcribed from libjpeg's ow
 than checked against a file, and it is the one thing in these formats that has never met a real
 example.
 
-Not yet: for pictures, nothing a document holds, and nothing left of these formats but the one
-judgement call above, where a metafile carrying both kinds of records is drawn from the older
-ones., splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
+remains elsewhere is splitting a note across pages, restarting note numbering per page or per
+section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

@@ -21,7 +21,7 @@ public sealed class EmfWriter(int width, int height)
     {
         var handle = _handles++;
 
-        _records.Add(Record(38,   // CREATEPEN
+        Emit(Record(38,   // CREATEPEN
             Int32((int)handle),
             Int32(0),             // solid
             Int32(lineWidth), Int32(0),
@@ -34,7 +34,7 @@ public sealed class EmfWriter(int width, int height)
     {
         var handle = _handles++;
 
-        _records.Add(Record(39,   // CREATEBRUSHINDIRECT
+        Emit(Record(39,   // CREATEBRUSHINDIRECT
             Int32((int)handle),
             Int32(0),             // solid
             Colour(red, green, blue),
@@ -48,7 +48,7 @@ public sealed class EmfWriter(int width, int height)
     {
         var handle = _handles++;
 
-        _records.Add(Record(39, Int32((int)handle), Int32(1), Colour(0, 0, 0), Int32(0)));
+        Emit(Record(39, Int32((int)handle), Int32(1), Colour(0, 0, 0), Int32(0)));
 
         return handle;
     }
@@ -81,45 +81,45 @@ public sealed class EmfWriter(int width, int height)
         // The record keeps room for the rest of the extended font, which nothing here writes.
         while (font.Count < 320) font.Add(0);
 
-        _records.Add(Record(82, Int32((int)handle), [.. font]));
+        Emit(Record(82, Int32((int)handle), [.. font]));
 
         return handle;
     }
 
     public EmfWriter Select(uint handle)
     {
-        _records.Add(Record(37, Int32((int)handle)));
+        Emit(Record(37, Int32((int)handle)));
         return this;
     }
 
     /// <summary>Selects one of the objects a metafile need not create, named by number.</summary>
     public EmfWriter SelectStock(int stock)
     {
-        _records.Add(Record(37, Int32(unchecked((int)(0x80000000u | (uint)stock)))));
+        Emit(Record(37, Int32(unchecked((int)(0x80000000u | (uint)stock)))));
         return this;
     }
 
     public EmfWriter Rectangle(int left, int top, int right, int bottom)
     {
-        _records.Add(Record(43, Int32(left), Int32(top), Int32(right), Int32(bottom)));
+        Emit(Record(43, Int32(left), Int32(top), Int32(right), Int32(bottom)));
         return this;
     }
 
     public EmfWriter Ellipse(int left, int top, int right, int bottom)
     {
-        _records.Add(Record(42, Int32(left), Int32(top), Int32(right), Int32(bottom)));
+        Emit(Record(42, Int32(left), Int32(top), Int32(right), Int32(bottom)));
         return this;
     }
 
     public EmfWriter MoveTo(int x, int y)
     {
-        _records.Add(Record(27, Int32(x), Int32(y)));
+        Emit(Record(27, Int32(x), Int32(y)));
         return this;
     }
 
     public EmfWriter LineTo(int x, int y)
     {
-        _records.Add(Record(54, Int32(x), Int32(y)));
+        Emit(Record(54, Int32(x), Int32(y)));
         return this;
     }
 
@@ -135,7 +135,7 @@ public sealed class EmfWriter(int width, int height)
             body.AddRange(Int32(y));
         }
 
-        _records.Add(Record(2, [.. body]));
+        Emit(Record(2, [.. body]));
         return this;
     }
 
@@ -152,13 +152,13 @@ public sealed class EmfWriter(int width, int height)
             body.AddRange(Int32(y));
         }
 
-        _records.Add(Record(1, [.. body]));
+        Emit(Record(1, [.. body]));
         return this;
     }
 
     public EmfWriter TextColor(byte red, byte green, byte blue)
     {
-        _records.Add(Record(25, Colour(red, green, blue)));
+        Emit(Record(25, Colour(red, green, blue)));
         return this;
     }
 
@@ -195,7 +195,7 @@ public sealed class EmfWriter(int width, int height)
 
         while (body.Count % 4 != 0) body.Add(0);
 
-        _records.Add(Record(84, [.. body]));
+        Emit(Record(84, [.. body]));
         return this;
     }
 
@@ -242,43 +242,46 @@ public sealed class EmfWriter(int width, int height)
 
         while (body.Count % 4 != 0) body.Add(0);
 
-        _records.Add(Record(81, [.. body]));
+        Emit(Record(81, [.. body]));
         return this;
     }
 
     public EmfWriter BeginPath()
     {
-        _records.Add(Record(59));
+        Emit(Record(59));
         return this;
     }
 
     public EmfWriter EndPath()
     {
-        _records.Add(Record(60));
+        Emit(Record(60));
         return this;
     }
 
     public EmfWriter CloseFigure()
     {
-        _records.Add(Record(61));
+        Emit(Record(61));
         return this;
     }
 
     public EmfWriter FillPath()
     {
-        _records.Add(Record(62, Int32(0), Int32(0), Int32(width), Int32(height)));
+        Emit(Record(62, Int32(0), Int32(0), Int32(width), Int32(height)));
         return this;
     }
 
     public EmfWriter StrokeAndFillPath()
     {
-        _records.Add(Record(63, Int32(0), Int32(0), Int32(width), Int32(height)));
+        Emit(Record(63, Int32(0), Int32(0), Int32(width), Int32(height)));
         return this;
     }
 
     // ----- the second format, which travels inside the comments of the first -----
 
     private readonly List<byte> _plus = [];
+
+    /// <summary>Whether the file uses the newer records at all, which decides if it needs an end.</summary>
+    private bool _wroteAnyPlus;
 
     /// <summary>The version every EMF+ record carries, which names the format and its version.</summary>
     private const uint PlusVersion = 0xdbc01002;
@@ -434,12 +437,37 @@ public sealed class EmfWriter(int width, int height)
         return this;
     }
 
+    /// <summary>
+    /// Hands the drawing back to the older records, which draw from here until the newer ones
+    /// resume. The comment carrying the newer records has to end here for that to mean anything,
+    /// since what follows has to be outside it.
+    /// </summary>
+    public EmfWriter PlusGetDC()
+    {
+        PlusRecord(0x4004, 0);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a record of the old format. Whatever of the newer records is waiting goes into the
+    /// file in front of it, so that the two kinds stand in the order they were written — which is
+    /// the order they draw in, and the only thing that says which of them a hand-back covers.
+    /// </summary>
+    private void Emit(byte[] record)
+    {
+        FlushThePlusRecords(final: false);
+        _records.Add(record);
+    }
+
     private void PlusRecord(int type, int flags, params byte[][] parts)
     {
         var body = new List<byte>();
         foreach (var part in parts) body.AddRange(part);
 
         while (body.Count % 4 != 0) body.Add(0);
+
+        _wroteAnyPlus = true;
 
         _plus.AddRange(UInt16(type));
         _plus.AddRange(UInt16(flags));
@@ -452,17 +480,23 @@ public sealed class EmfWriter(int width, int height)
     private static byte[] Argb(byte red, byte green, byte blue) => [blue, green, red, 255];
 
     /// <summary>
-    /// Wraps the second format's records in the comments of the first, which is how they travel.
+    /// Wraps the second format's records in a comment of the first, which is how they travel. A
+    /// file may hold several such comments, and a record may even begin in one and end in the
+    /// next; what matters is only where each ends, since the records between two of them are the
+    /// old ones.
     /// </summary>
-    private void CloseThePlusRecords()
+    private void FlushThePlusRecords(bool final)
     {
         if (_plus.Count == 0) return;
 
-        // The end of them, and then the whole run as one comment.
-        _plus.AddRange(UInt16(0x4002));
-        _plus.AddRange(UInt16(0));
-        _plus.AddRange(Int32(12));
-        _plus.AddRange(Int32(0));
+        if (final)
+        {
+            // The end of them, which the last comment carries.
+            _plus.AddRange(UInt16(0x4002));
+            _plus.AddRange(UInt16(0));
+            _plus.AddRange(Int32(12));
+            _plus.AddRange(Int32(0));
+        }
 
         var body = new List<byte>();
         body.AddRange(Int32(_plus.Count + 4));         // the comment's own length
@@ -472,11 +506,12 @@ public sealed class EmfWriter(int width, int height)
         while (body.Count % 4 != 0) body.Add(0);
 
         _records.Add(Record(70, [.. body]));
+        _plus.Clear();
     }
 
     public byte[] Build()
     {
-        CloseThePlusRecords();
+        if (_wroteAnyPlus) FlushThePlusRecords(final: true);
 
         var body = new List<byte>();
         foreach (var record in _records) body.AddRange(record);

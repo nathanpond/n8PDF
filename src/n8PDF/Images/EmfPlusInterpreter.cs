@@ -34,10 +34,31 @@ public static class EmfPlusInterpreter
     /// </summary>
     public static List<DrawingOperation> Read(byte[] records, double unitsToPoints)
     {
-        var state = new Interpreter(records, unitsToPoints);
-        state.Run();
+        var state = new Interpreter(unitsToPoints, []);
+        state.Feed(records, 0, records.Length);
 
         return state.Operations;
+    }
+
+    /// <summary>
+    /// Begins reading, a comment at a time, so that the records of both formats can be replayed in
+    /// the one order the file puts them in.
+    /// </summary>
+    internal static Reader Begin(double unitsToPoints, List<DrawingOperation> operations) =>
+        new(unitsToPoints, operations);
+
+    /// <summary>Reads the records as they arrive, holding on to what a comment cut in half.</summary>
+    internal sealed class Reader(double unitsToPoints, List<DrawingOperation> operations)
+    {
+        private readonly Interpreter _interpreter = new(unitsToPoints, operations);
+
+        /// <summary>
+        /// Whether the last record read handed the drawing back to the older interface, after
+        /// which its records are the ones that draw until these resume.
+        /// </summary>
+        public bool HandedBack => _interpreter.HandedBack;
+
+        public void Feed(byte[] data, int from, int to) => _interpreter.Feed(data, from, to);
     }
 
     /// <summary>An affine transform, which is what both of a drawing's transforms are.</summary>
@@ -61,9 +82,14 @@ public static class EmfPlusInterpreter
         public double Scale => Math.Sqrt(Math.Abs(M11 * M22 - M12 * M21));
     }
 
-    private sealed class Interpreter(byte[] data, double unitsToPoints)
+    private sealed class Interpreter(double unitsToPoints, List<DrawingOperation> operations)
     {
-        public List<DrawingOperation> Operations { get; } = [];
+        public List<DrawingOperation> Operations => operations;
+
+        /// <summary>Whatever is waiting to be read: a record a comment ended in the middle of.</summary>
+        private byte[] data = [];
+
+        public bool HandedBack { get; private set; }
 
         private readonly Dictionary<int, object> _objects = [];
         private readonly Stack<State> _saved = new();
@@ -86,8 +112,16 @@ public static class EmfPlusInterpreter
 
         private sealed record PlusPath(List<PathStep> Steps);
 
-        public void Run()
+        /// <summary>
+        /// Reads what has arrived. A record may begin in one comment and end in the next, so
+        /// whatever is left over at the end of a run waits for the run that completes it.
+        /// </summary>
+        public void Feed(byte[] arrived, int from, int to)
         {
+            if (to <= from) return;
+
+            data = data.Length == 0 ? arrived[from..to] : [.. data, .. arrived[from..to]];
+
             var at = 0;
 
             while (at + 12 <= data.Length)
@@ -96,12 +130,25 @@ public static class EmfPlusInterpreter
                 var flags = ReadUInt16(at + 2);
                 var size = (int)ReadUInt32(at + 4);
 
-                if (size < 12 || at + size > data.Length) break;
+                if (size < 12)
+                {
+                    // Nothing further can be made sense of, so nothing further is read.
+                    data = [];
+
+                    return;
+                }
+
+                if (at + size > data.Length) break;
 
                 Record(type, flags, at + 12, at + size);
 
+                // Handing back lasts until the next of these records, whatever it is.
+                HandedBack = type == 0x4004;
+
                 at += size;
             }
+
+            data = data[at..];
         }
 
         private void Record(int type, int flags, int at, int end)
