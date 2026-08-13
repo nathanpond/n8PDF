@@ -214,6 +214,7 @@ public sealed class StyleResolver(
     private sealed class ParagraphAccumulator
     {
         private Justification? _justification;
+        private bool? _rightToLeft;
         private int? _indentLeft;
         private int? _indentRight;
         private int? _firstLine;
@@ -237,6 +238,7 @@ public sealed class StyleResolver(
         public void Apply(ParagraphProperties source)
         {
             if (source.Justification is { } justification) _justification = justification;
+            if (source.RightToLeft is { } rightToLeft) _rightToLeft = rightToLeft;
             if (source.IndentLeftTwips is { } left) _indentLeft = left;
             if (source.IndentRightTwips is { } right) _indentRight = right;
 
@@ -274,7 +276,11 @@ public sealed class StyleResolver(
         public ResolvedParagraphFormat Build(ResolvedRunFormat markFormat, string? styleId) => new()
         {
             StyleId = styleId,
-            Justification = _justification ?? Justification.Left,
+            RightToLeft = _rightToLeft ?? false,
+
+            // A paragraph that runs right to left begins at the right, which is what a document
+            // means by asking for neither one edge nor the other.
+            Justification = _justification ?? (_rightToLeft == true ? Justification.Right : Justification.Left),
             IndentLeftPoints = Units.TwipsToPoints(_indentLeft ?? 0),
             IndentRightPoints = Units.TwipsToPoints(_indentRight ?? 0),
             IndentFirstLinePoints = _hanging is { } hanging

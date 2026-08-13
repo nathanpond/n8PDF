@@ -27,7 +27,14 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// Fixtures whose pages hold their text in a different order from the document, and where
     /// that is the point of the fixture rather than a fault.
     /// </summary>
-    private static readonly HashSet<string> Reorders = ["table-split", "table-vertical-merge", "table-merge-split"];
+    /// <remarks>
+    /// The Hebrew fixture is here for a different reason from the tables: its text reaches the
+    /// page in the order it is drawn rather than the order it is stored, which for a script that
+    /// runs right to left is the reverse. What has to be true of it is that every character
+    /// arrives, and that is what is asked.
+    /// </remarks>
+    private static readonly HashSet<string> Reorders =
+        ["table-split", "table-vertical-merge", "table-merge-split", "hebrew"];
 
     public static TheoryData<string> FixtureNames
     {

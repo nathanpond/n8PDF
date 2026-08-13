@@ -602,6 +602,9 @@ public static class DocumentParser
                 case "jc":
                     properties.Justification = ParseJustification(element.Val());
                     break;
+                case "bidi":
+                    properties.RightToLeft = element.OnOff();
+                    break;
                 case "ind":
                     properties.IndentLeftTwips = element.IntAttr("left") ?? element.IntAttr("start");
                     properties.IndentRightTwips = element.IntAttr("right") ?? element.IntAttr("end");

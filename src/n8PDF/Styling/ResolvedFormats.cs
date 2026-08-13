@@ -120,6 +120,13 @@ public sealed record ResolvedParagraphFormat
 
     public Justification Justification { get; init; } = Justification.Left;
 
+    /// <summary>
+    /// Whether the paragraph runs right to left. What that decides is which way the paragraph
+    /// goes as a whole — where its lines begin, and which way round its runs are set when they
+    /// have no direction of their own. Which way each character runs is the character's business.
+    /// </summary>
+    public bool RightToLeft { get; init; }
+
     public double IndentLeftPoints { get; init; }
 
     public double IndentRightPoints { get; init; }

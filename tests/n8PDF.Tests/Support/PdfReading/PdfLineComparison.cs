@@ -150,6 +150,18 @@ public static class PdfLineComparison
                 while (ordered.Count > 1 && string.IsNullOrWhiteSpace(ordered[^1].Text))
                     ordered.RemoveAt(ordered.Count - 1);
 
+                // In a paragraph that runs right to left the mark is at the other end of the
+                // line, since that is where the line ends. It is told from a space that belongs to
+                // the text by its font: the mark carries the document's default font, and a line
+                // whose text is set in something else shows it up. A leading space in the same
+                // font as what follows it is part of the text and stays.
+                while (ordered.Count > 1 &&
+                       string.IsNullOrWhiteSpace(ordered[0].Text) &&
+                       ordered[0].FontFamily != ordered[1].FontFamily)
+                {
+                    ordered.RemoveAt(0);
+                }
+
                 // Word emits a line as many runs and does not always encode the spaces between
                 // words as characters, relying on TJ adjustments instead. A visible horizontal
                 // gap therefore has to be reconstituted as a space or the text will not match.

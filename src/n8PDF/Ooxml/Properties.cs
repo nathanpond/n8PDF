@@ -148,6 +148,12 @@ public sealed class ParagraphProperties
 
     public Justification? Justification { get; set; }
 
+    /// <summary>
+    /// Whether this paragraph runs right to left, from <c>w:bidi</c>. It says which way the
+    /// paragraph goes as a whole, not which way its characters do — that is theirs to say.
+    /// </summary>
+    public bool? RightToLeft { get; set; }
+
     public int? IndentLeftTwips { get; set; }
 
     public int? IndentRightTwips { get; set; }

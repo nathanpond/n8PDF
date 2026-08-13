@@ -3036,6 +3036,37 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>Places a composed line's segments at their final page coordinates.</summary>
+    /// <summary>
+    /// The things on a line in the order they are drawn, which is not the order they are stored in
+    /// wherever the line holds anything that runs right to left. This is the standard's rule L2,
+    /// applied to whole words rather than to characters: a word runs one way throughout, having
+    /// been broken where its direction changes.
+    /// </summary>
+    private static List<PlacedAtom> ForDrawing(List<PlacedAtom> items)
+    {
+        var mixed = false;
+
+        foreach (var item in items)
+        {
+            if (item.Atom.Level == 0) continue;
+
+            mixed = true;
+            break;
+        }
+
+        if (!mixed) return items;
+
+        var levels = new byte[items.Count];
+        for (var i = 0; i < items.Count; i++) levels[i] = items[i].Atom.Level;
+
+        var order = Text.Bidi.Reorder(levels);
+        var drawn = new List<PlacedAtom>(items.Count);
+
+        foreach (var at in order) drawn.Add(items[at]);
+
+        return drawn;
+    }
+
     private static void EmitLine(
         LaidOutPage page, ComposedLine line, double contentLeft, double top, int paragraphIndex,
         TabOptions tabs)
@@ -3472,7 +3503,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // Trailing spaces are dropped rather than emitted. They draw nothing, and keeping them
         // would make the line measure wider than its visible content — which in a justified
         // paragraph pushes the visible text past the right margin.
-        foreach (var item in content.Take(lastVisible + 1))
+        foreach (var item in ForDrawing(content.Take(lastVisible + 1).ToList()))
         {
             if (item.Atom is TabAtom tabAtom)
             {
@@ -3520,6 +3551,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             var width = item.Width;
 
             if (current is not null &&
+                current.Level == textAtom.Level &&
                 ReferenceEquals(current.Format, textAtom.Format) &&
                 ReferenceEquals(current.Font, textAtom.Font) &&
                 Equals(current.Link, textAtom.Link) &&
@@ -3534,6 +3566,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 current = new Segment
                 {
                     X = indentLeft + offset + pen,
+                    Level = textAtom.Level,
                     Text = textAtom.Text,
                     Format = textAtom.Format,
                     Font = textAtom.Font,
@@ -3767,6 +3800,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var atoms = new List<Atom>();
         var defaultTab = Units.TwipsToPoints(_options.DefaultTabStopTwips);
 
+        // Which way each character of the paragraph runs. It has to be worked out over the whole
+        // paragraph rather than run by run: what a comma or a digit does depends on what stands
+        // either side of it, and a run boundary is nothing to the reader.
+        var levels = ParagraphLevels(paragraph, format);
+        var at = 0;
+
         AddNumberingLabel(atoms, paragraph, format, defaultTab);
 
         foreach (var run in paragraph.Runs)
@@ -3792,7 +3831,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 {
                     case TextInline text:
                         AddTextAtoms(atoms, TextMeasurer.ApplyTextTransform(text.Text, runFormat),
-                            runFormat, selection, ascent, naturalHeight, descent, link);
+                            runFormat, selection, ascent, naturalHeight, descent, link, levels, at);
+
+                        at += text.Text.Length;
                         break;
 
                     case BookmarkInline bookmark:
@@ -4128,23 +4169,66 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// Splits text into word and space atoms. Spaces are separate atoms because they are both
     /// the break opportunities and the things justification stretches.
     /// </summary>
+    /// <summary>
+    /// Which way each character of a paragraph runs.
+    /// </summary>
+    /// <remarks>
+    /// Worked out over the paragraph's own text — everything its runs say, in the order they say
+    /// it — because the algorithm reads what stands either side of a character and a run boundary
+    /// is nothing to a reader. What is not text takes the paragraph's own direction, which is what
+    /// a tab or a picture standing between two words does.
+    /// </remarks>
+    private static byte[] ParagraphLevels(Paragraph paragraph, ResolvedParagraphFormat format)
+    {
+        var text = new System.Text.StringBuilder();
+
+        foreach (var run in paragraph.Runs)
+        foreach (var inline in run.Content)
+        {
+            if (inline is TextInline piece) text.Append(piece.Text);
+        }
+
+        if (text.Length == 0) return [];
+
+        // A paragraph says which way it runs; the text says only what it is made of.
+        var direction = format.RightToLeft
+            ? Text.Bidi.Direction.RightToLeft
+            : Text.Bidi.Direction.LeftToRight;
+
+        return Text.Bidi.Resolve(text.ToString(), direction).Levels;
+    }
+
     private void AddTextAtoms(
         List<Atom> atoms, string text, ResolvedRunFormat format, FontSelection font,
-        double ascent, double naturalHeight, double descent, ResolvedHyperlink? link = null)
+        double ascent, double naturalHeight, double descent, ResolvedHyperlink? link = null,
+        byte[]? levels = null, int offset = 0)
     {
         var kerned = Kerned(format);
         var previous = '\0';
+
+        byte LevelAt(int index) =>
+            levels is not null && offset + index < levels.Length
+                ? levels[offset + index]
+                : (byte)0;
 
         var index = 0;
         while (index < text.Length)
         {
             var isSpace = text[index] == ' ';
             var start = index;
+            var level = LevelAt(index);
 
-            while (index < text.Length && (text[index] == ' ') == isSpace)
+            // A word is broken where the direction changes as well as at a space: what runs one
+            // way and what runs the other are drawn in different places, so they cannot be one
+            // thing.
+            while (index < text.Length && (text[index] == ' ') == isSpace && LevelAt(index) == level)
                 index++;
 
             var slice = text[start..index];
+
+            // A run that goes right to left is drawn from its far end, marks kept with the
+            // letters they belong to and brackets facing the way the reader is going.
+            if ((level & 1) != 0) slice = Text.BidiText.Drawn(slice, level);
 
             // Splitting at spaces puts the pair straddling each split into neither atom, and Word
             // kerns those like any other — a V before a space is drawn tighter to it. The pair is
@@ -4158,6 +4242,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             atoms.Add(new TextAtom
             {
                 Text = slice,
+                Level = level,
                 IsSpace = isSpace,
                 Format = format,
                 Font = font,
@@ -4745,6 +4830,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public double Descent { get; init; }
 
         /// <summary>
+        /// Which way this atom runs, as the bidirectional algorithm settled it: even for left to
+        /// right, odd for right to left, and higher for each nesting. Everything on a line is put
+        /// in the order these say before any of it is drawn.
+        /// </summary>
+        public byte Level { get; init; }
+
+        /// <summary>
         /// Whether this atom's own box is part of the line's. A list's number is the one thing
         /// that is not: Word draws it in the paragraph mark's font, which may be a different one
         /// from the text's, and sizes the line from the text alone — the numbering fixture has an
@@ -4863,6 +4955,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private sealed class Segment
     {
         public double X { get; set; }
+
+        /// <summary>Which way this segment runs, which is the level of every atom in it.</summary>
+        public byte Level { get; init; }
 
         public string Text { get; set; } = string.Empty;
 

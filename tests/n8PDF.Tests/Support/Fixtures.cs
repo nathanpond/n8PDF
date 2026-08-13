@@ -1049,6 +1049,36 @@ public static class Fixtures
                 return builder.AddParagraph("Third section, the last paragraph.", ZeroSpacing, Times12);
             },
 
+            // Hebrew, which is written right to left. The paragraphs are the cases the
+            // bidirectional algorithm exists for: text of one direction, text of both, a number
+            // inside right-to-left text — a number is written left to right whatever surrounds it
+            // — and brackets, which face the way the reader is going.
+            ["hebrew"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                const string bidi = "<w:bidi/>";
+
+                void Line(string text, bool rightToLeft)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(rightToLeft ? bidi : string.Empty)}{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Hebrew below, in a paragraph that runs the ordinary way.", false);
+                Line("שלום עולם", false);
+
+                Line("שלום עולם", true);
+                Line("שלום ISO עולם", true);
+                Line("שלום 8601 עולם", true);
+                Line("שלום (עולם) שלום", true);
+                Line("שלום, עולם. שלום!", true);
+                Line("A Latin sentence in a paragraph that runs the other way.", true);
+
+                return builder;
+            },
+
             // A section of columns that ends part way down a page, which Word evens out rather
             // than filling the first column and leaving the last short. Three cases at once: a
             // section closed by a continuous break, one closed by a break to a new page, and one

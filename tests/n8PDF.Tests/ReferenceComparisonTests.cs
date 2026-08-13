@@ -91,6 +91,12 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         var path = ReferencePathFor(name);
         if (!File.Exists(path)) return;
 
+        // Word writes a line of Hebrew as runs this reader cannot put back together exactly —
+        // some of them encode a pair of characters whose map back gives the two the other way
+        // round. That the reference is the right document is asserted for it by the line
+        // comparison instead, which is about where the text goes rather than what it says.
+        if (name == "hebrew") return;
+
         // Word exports whichever document it considers current. When an earlier export failed and
         // left a document open, it silently exported that one instead and wrote it under this
         // fixture's name — a reference that looks entirely valid while describing a different

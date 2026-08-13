@@ -545,7 +545,9 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is RTL and complex scripts.
+remains elsewhere is the rest of what a right-to-left document needs — choosing a font per
+character where the run's own has no glyph, and placing marks by the font's own rules — and the
+scripts that join or reorder their letters: Arabic, and the Indic and South-East Asian families.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -570,6 +572,28 @@ a sequence sits after and not only on a character, and the formatting characters
 whitespace for the rule that resets the end of a line — and a third when the drawing order was
 compared: a mark drawn on a letter has to be put back after it when its run is turned round, which
 is a rule that matters to anything that draws rather than merely reorders.
+
+Hebrew is laid out with all of that behind it. A paragraph that says `w:bidi` begins at the right
+margin; the words of a line are placed in the order they are drawn rather than the order they are
+stored; a word that runs right to left is drawn from its own far end, with the marks kept on the
+letters they belong to and the brackets facing the way the reader is going. What has a direction of
+its own keeps it: a number inside a Hebrew sentence reads as it was written, and so does a Latin
+name. Hebrew inside an ordinary left-to-right paragraph is turned round too — which way a paragraph
+runs says where its lines begin, not which way its characters go.
+
+Word's export of the `hebrew` fixture says the lines begin where Word begins them, to within a
+hundredth of a point, in paragraphs running both ways and with numbers, Latin, brackets and
+punctuation inside them. What that comparison cannot say is what the lines *say*: Word writes a
+line of Hebrew as many runs, and encodes some of them as pairs whose map back to characters gives
+the two the other way round, so the text this reader recovers from Word's file is not quite the
+text Word drew. The drawn order is checked instead against the algorithm's own answer, and that is
+checked against another implementation of the standard.
+
+Two things a Hebrew document needs are not here yet. A font is not chosen per character, so a run
+set in a face that has no Hebrew — or, as with Arial Hebrew, no Latin — draws nothing for what the
+face lacks rather than borrowing a glyph from elsewhere. And the vowel points are placed by their
+own advances rather than by the font's mark positioning, which unpointed Hebrew never asks for and
+pointed Hebrew does.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and

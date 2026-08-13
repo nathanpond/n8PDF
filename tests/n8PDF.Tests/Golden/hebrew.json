@@ -1,0 +1,80 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 276.902, "font": "Times New Roman", "size": 12, "text": "Hebrew below, in a paragraph that runs the ordinary way."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 45, "font": "Times New Roman", "size": 12, "text": "םלוע םולש"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 495, "width": 45, "font": "Times New Roman", "size": 12, "text": "םלוע םולש"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 472.664, "width": 23.062, "font": "Times New Roman", "size": 12, "text": "םלוע "},
+            {"x": 495.727, "width": 19.336, "font": "Times New Roman", "size": 12, "text": "ISO"},
+            {"x": 515.062, "width": 24.938, "font": "Times New Roman", "size": 12, "text": " םולש"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 468, "width": 23.062, "font": "Times New Roman", "size": 12, "text": "םלוע "},
+            {"x": 491.062, "width": 24, "font": "Times New Roman", "size": 12, "text": "8601"},
+            {"x": 515.062, "width": 24.938, "font": "Times New Roman", "size": 12, "text": " םולש"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 462.07, "width": 77.93, "font": "Times New Roman", "size": 12, "text": "םולש (םלוע) םולש"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 460.066, "width": 79.934, "font": "Times New Roman", "size": 12, "text": "!םולש .םלוע ,םולש"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 271.102, "width": 3, "font": "Times New Roman", "size": 12, "text": "."},
+            {"x": 274.102, "width": 265.898, "font": "Times New Roman", "size": 12, "text": "A Latin sentence in a paragraph that runs the other way"}
+          ]
+        }
+      ]
+    }
+  ]
+}
