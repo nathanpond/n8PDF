@@ -1,0 +1,949 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 1, written long"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 2, written long"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 3, written long"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 4, written long"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 5, written long"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 6, written long"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 7, written long"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 8, written long"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 179.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 9, written long"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 185.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 10, written long"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 185.637, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 11, written long"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 207.609, "font": "Times New Roman", "size": 12, "text": "enough that it wraps inside a column rather"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 134.977, "font": "Times New Roman", "size": 12, "text": "than fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 188.971, "font": "Times New Roman", "size": 12, "text": "Continuous paragraph 12, the last of its"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "section."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 331.582,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 143.625, "font": "Times New Roman", "size": 12, "text": "One column between the two."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 1, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 2, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 3, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 4, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 5, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 6, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 331.582,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 7, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 345.381,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 359.18,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 372.979,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 8, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 386.777,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 400.576,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 414.375,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.941, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 9, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 428.174,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 441.973,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 455.771,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 197.947, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 10, written long enough"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 469.57,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 192.943, "font": "Times New Roman", "size": 12, "text": "that it wraps inside a column rather than"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 483.369,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 111.316, "font": "Times New Roman", "size": 12, "text": "fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 497.168,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 197.947, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 11, written long enough"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 510.967,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 192.943, "font": "Times New Roman", "size": 12, "text": "that it wraps inside a column rather than"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 524.766,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 111.316, "font": "Times New Roman", "size": 12, "text": "fitting on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 538.564,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 202.945, "font": "Times New Roman", "size": 12, "text": "Paged paragraph 12, the last of its section."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 4."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 5."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 6."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 7."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 8."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 57.65, "font": "Times New Roman", "size": 12, "text": "Even line 9."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 324, "width": 63.65, "font": "Times New Roman", "size": 12, "text": "Even line 10."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 108.621, "font": "Times New Roman", "size": 12, "text": "After the even section."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 1, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 2, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 3, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 4, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 5, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 6, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 331.582,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 7, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 345.381,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 359.18,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 372.979,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 8, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 386.777,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 400.576,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 414.375,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.943, "font": "Times New Roman", "size": 12, "text": "Last paragraph 9, written long enough that it"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 428.174,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.613, "font": "Times New Roman", "size": 12, "text": "wraps inside a column rather than fitting on"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 441.973,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 63.984, "font": "Times New Roman", "size": 12, "text": "one line of it."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 455.771,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.275, "font": "Times New Roman", "size": 12, "text": "Last paragraph 10, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 469.57,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 483.369,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 497.168,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.275, "font": "Times New Roman", "size": 12, "text": "Last paragraph 11, written long enough that"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 510.967,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 204.281, "font": "Times New Roman", "size": 12, "text": "it wraps inside a column rather than fitting"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 524.766,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.984, "font": "Times New Roman", "size": 12, "text": "on one line of it."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 538.564,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.932, "font": "Times New Roman", "size": 12, "text": "Last paragraph 12, the last of the document."}
+          ]
+        }
+      ]
+    }
+  ]
+}

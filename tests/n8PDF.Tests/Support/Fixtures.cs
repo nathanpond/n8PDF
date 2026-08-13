@@ -1049,6 +1049,61 @@ public static class Fixtures
                 return builder.AddParagraph("Third section, the last paragraph.", ZeroSpacing, Times12);
             },
 
+            // A section of columns that ends part way down a page, which Word evens out rather
+            // than filling the first column and leaving the last short. Three cases at once: a
+            // section closed by a continuous break, one closed by a break to a new page, and one
+            // that ends because the document does.
+            ["columns-balanced"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                // Long enough to wrap inside a column, so that the measure each line was broken
+                // against is visible in the export as well as where the line sits.
+                void Lines(string label, int count)
+                {
+                    for (var i = 1; i <= count; i++)
+                    {
+                        builder.AddParagraph(
+                            $"{label} paragraph {i}, written long enough that it wraps inside a " +
+                            "column rather than fitting on one line of it.",
+                            ZeroSpacing, Times12);
+                    }
+                }
+
+                // A dozen paragraphs over two columns, closed by a continuous break — the case
+                // that is supposed to even them out.
+                Lines("Continuous", 11);
+                builder.AddParagraphWithSectionBreak(
+                    "Continuous paragraph 12, the last of its section.",
+                    DocxBuilder.Section(columns: 2, type: "continuous"), ZeroSpacing, Times12);
+
+                // A section of one column between the two, so the break has something to change.
+                builder.AddParagraphWithSectionBreak(
+                    "One column between the two.",
+                    DocxBuilder.Section(type: "continuous"), ZeroSpacing, Times12);
+
+                Lines("Paged", 11);
+                builder.AddParagraphWithSectionBreak(
+                    "Paged paragraph 12, the last of its section.",
+                    DocxBuilder.Section(columns: 2, type: "nextPage"), ZeroSpacing, Times12);
+
+                // An even number of lines, so that where a column divides exactly in half is
+                // measured too rather than left to whichever rounding looks reasonable.
+                for (var i = 1; i <= 9; i++)
+                    builder.AddParagraph($"Even line {i}.", ZeroSpacing, Times12);
+
+                builder.AddParagraphWithSectionBreak("Even line 10.",
+                    DocxBuilder.Section(columns: 2, type: "nextPage"), ZeroSpacing, Times12);
+
+                builder.AddParagraphWithSectionBreak("After the even section.",
+                    DocxBuilder.Section(type: "continuous"), ZeroSpacing, Times12);
+
+                Lines("Last", 11);
+                builder.AddParagraph("Last paragraph 12, the last of the document.", ZeroSpacing, Times12);
+
+                return builder.WithSection(DocxBuilder.Section(columns: 2));
+            },
+
             // Notes in a section of two columns, with a reference in each of them and a third in
             // the first column of the second page. What is measured is which measure a note is
             // set to and where it sits: under the column that refers to it, or across the page.

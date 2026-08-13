@@ -43,6 +43,94 @@ public class ColumnTests
         return builder;
     }
 
+    // ----- evening out the last page of a section -----
+
+    /// <summary>
+    /// A document whose first section is in two columns, followed by a second section that begins
+    /// in the given way. The kind of break is the *following* section's business: the properties
+    /// on a break describe the section they close, and how a section begins is what says whether
+    /// the one before it was left on a page of its own.
+    /// </summary>
+    private static DocxBuilder ClosedBy(string following, int paragraphs = 20)
+    {
+        var builder = new DocxBuilder();
+
+        for (var i = 1; i < paragraphs; i++)
+            builder.AddParagraph($"Line {i}.", ZeroSpacing, Times12);
+
+        builder.AddParagraphWithSectionBreak($"Line {paragraphs}.",
+            DocxBuilder.Section(columns: 2), ZeroSpacing, Times12);
+
+        return builder
+            .AddParagraph("What follows the section.", ZeroSpacing, Times12)
+            .WithSection(DocxBuilder.Section(type: following));
+    }
+
+    /// <summary>
+    /// Where each column of a page begins and ends, counting only the numbered lines — what
+    /// follows the section is on the page too and is not part of what was evened out.
+    /// </summary>
+    private static List<(double Top, double Bottom, int Lines)> ColumnsOf(LaidOutPage page)
+    {
+        var middle = page.WidthPoints / 2;
+
+        return LinesOf(page)
+            .Where(line => line.Text.StartsWith("Line "))
+            .GroupBy(line => line.X < middle)
+            .OrderByDescending(group => group.Key)
+            .Select(group => (group.Min(l => l.Y), group.Max(l => l.Y), group.Count()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// A section of columns closed by a continuous break has its last page evened out: the columns
+    /// come to much the same depth rather than the first being full and the last empty. That is
+    /// what a continuous break is usually inserted to do.
+    /// </summary>
+    [Fact]
+    public void A_section_closed_by_a_continuous_break_has_its_columns_evened_out()
+    {
+        var layout = LayoutOf(ClosedBy("continuous"));
+
+        var columns = ColumnsOf(layout.Pages[0]);
+
+        Assert.Equal(2, columns.Count);
+
+        // Twenty lines over two columns, divided evenly.
+        Assert.Equal(10, columns[0].Lines);
+        Assert.Equal(10, columns[1].Lines);
+
+        // Both begin at the top of the page, and neither runs anywhere near its foot.
+        Assert.Equal(columns[0].Top, columns[1].Top, 1);
+        Assert.True(columns[0].Bottom < 300, $"the first column reaches {columns[0].Bottom:0.##}");
+
+        // What follows the section is under the deepest column, not beside it.
+        var after = LinesOf(layout.Pages[0]).Single(line => line.Text.StartsWith("What follows"));
+
+        Assert.True(after.Y > columns[0].Bottom && after.Y > columns[1].Bottom,
+            $"what follows the section is at {after.Y:0.##}, not under its columns");
+    }
+
+    /// <summary>
+    /// A section closed by a break to a new page is not evened out — the page is being left behind
+    /// either way — and neither is the last section of a document.
+    /// </summary>
+    [Theory]
+    [InlineData("nextPage")]
+    [InlineData(null)]
+    public void A_section_not_closed_by_a_continuous_break_is_left_as_it_is(string? breakType)
+    {
+        var builder = breakType is null
+            ? Filled(DocxBuilder.Section(columns: 2), 20)
+            : ClosedBy(breakType);
+
+        var columns = ColumnsOf(LayoutOf(builder).Pages[0]);
+
+        // Everything in the first column, which holds far more than twenty lines.
+        Assert.Single(columns);
+        Assert.True(columns[0].Lines >= 20, $"the first column holds only {columns[0].Lines} lines");
+    }
+
     [Fact]
     public void Text_fills_one_column_before_starting_the_next()
     {

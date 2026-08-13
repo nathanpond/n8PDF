@@ -368,6 +368,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var samePage = samePaper &&
                        section.BreakType is SectionBreakType.Continuous or SectionBreakType.NextColumn;
 
+        // A section of columns closed by a continuous break has its last page evened out, which is
+        // what a continuous break is usually inserted to do. One closed by a break to a new page
+        // is not, nor is the last section of a document: measured from Word's export of
+        // columns-balanced, which holds all three.
+        if (section.BreakType == SectionBreakType.Continuous) BalanceColumns(cursor);
+
         // Pages are counted from the start of each section, and the count has to be reset before
         // the section's first page is made rather than after it.
         _pagesInSection = 0;
@@ -401,6 +407,101 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             cursor.BreakPage();
         }
+    }
+
+    /// <summary>
+    /// Sets the current section's content on this page out again over its columns, so that they
+    /// come to much the same depth rather than the first being full and the last empty.
+    /// </summary>
+    /// <remarks>
+    /// The lines are already placed, so this takes them off the page and puts them down again
+    /// against a depth of its own: the content's total height divided by the number of columns,
+    /// filled to the first line boundary at or past that depth. Word divides thirty-five lines
+    /// eighteen and seventeen, which is that rule and not the other rounding.
+    ///
+    /// Only the section's own lines on the page move. A page may carry the end of one section and
+    /// the beginning of another, and evening out the one must leave the other where it is.
+    /// </remarks>
+    private void BalanceColumns(Cursor cursor)
+    {
+        if (cursor.Columns.Count < 2 || !cursor.Paginate) return;
+
+        var placed = cursor.PagePlaced.Where(entry => entry.Section == _sectionOrdinal).ToList();
+        if (placed.Count == 0) return;
+
+        // Already spread over the columns and reaching the foot of the page? Then there is nothing
+        // to even out: the page is full and Word leaves it alone.
+        var lines = placed.Select(entry => entry.Line).ToList();
+        var origin = lines.Min(line => line.Top);
+
+        // What the content comes to, as though it were set in one column.
+        var total = 0.0;
+        var previous = double.NaN;
+
+        foreach (var (column, _, line) in placed)
+        {
+            total += double.IsNaN(previous) || column != placed[0].Column && line.Top <= previous
+                ? line.Line.Height
+                : Math.Max(line.Line.Height, line.Top + line.Line.Height - previous);
+
+            previous = line.Top + line.Line.Height;
+        }
+
+        var target = total / cursor.Columns.Count;
+
+        // Take them off the page. Everything placed after the first of them goes with it, which is
+        // this section's own content and nothing else: it is the last thing on the page.
+        var first = lines[0];
+
+        cursor.Page.Lines.RemoveRange(first.LineIndex, cursor.Page.Lines.Count - first.LineIndex);
+        cursor.Page.Rules.RemoveRange(first.RuleIndex, cursor.Page.Rules.Count - first.RuleIndex);
+        cursor.Page.Images.RemoveRange(first.ImageIndex, cursor.Page.Images.Count - first.ImageIndex);
+
+        cursor.PagePlaced.RemoveAll(entry => entry.Section == _sectionOrdinal);
+        cursor.ColumnLines.Clear();
+
+        cursor.ColumnIndex = 0;
+        cursor.ApplyColumn();
+        cursor.Y = origin;
+
+        var bottom = origin;
+        var top = origin;
+        var last = double.NaN;
+
+        foreach (var line in lines)
+        {
+            // The gap this line kept from the one before it — the spacing between two paragraphs
+            // is part of what moves with them.
+            var gap = double.IsNaN(last) ? 0 : Math.Max(0, line.Top - last);
+
+            // A column takes lines while it is still short of the depth they are to be divided
+            // at, so the line that reaches it is the last one in. Thirty-five lines divide
+            // eighteen and seventeen and ten divide five and five, which is that rule and neither
+            // of the roundings either side of it.
+            if (cursor.Y + gap >= top + target - 0.001 && cursor.ColumnIndex + 1 < cursor.Columns.Count)
+            {
+                cursor.ColumnIndex++;
+                cursor.MaxColumnUsed = Math.Max(cursor.MaxColumnUsed, cursor.ColumnIndex);
+                cursor.ApplyColumn();
+                cursor.Y = top;
+            }
+            else
+            {
+                cursor.Y += gap;
+            }
+
+            last = line.Top + line.Line.Height;
+
+            Place(cursor, line.Line, line.ParagraphIndex, line.ParagraphOrdinal, line.KeepNext,
+                line.FootnoteIds, Prepared.None);
+
+            bottom = Math.Max(bottom, cursor.Y);
+        }
+
+        // What follows the section begins under the deepest of its columns.
+        cursor.ColumnIndex = 0;
+        cursor.ApplyColumn();
+        cursor.Y = bottom;
     }
 
     /// <summary>
@@ -714,11 +815,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         Cursor cursor, ComposedLine line, int paragraphIndex, int ordinal, bool keepNext,
         IReadOnlyList<int> footnoteIds, Prepared footnotes)
     {
-        cursor.ColumnLines.Add(new PlacedLine(
+        var placed = new PlacedLine(
             line, cursor.Y,
             cursor.Page.Lines.Count, cursor.Page.Rules.Count, cursor.Page.Images.Count,
             footnoteIds, footnotes.Flows.Count, footnotes.Height,
-            ordinal, paragraphIndex, keepNext));
+            ordinal, paragraphIndex, keepNext);
+
+        cursor.ColumnLines.Add(placed);
+        cursor.PagePlaced.Add((cursor.ColumnIndex, _sectionOrdinal, placed));
 
         RecordFieldPages(cursor.Page, line);
         EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
@@ -4120,6 +4224,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// </summary>
         public List<PlacedLine> ColumnLines { get; } = [];
 
+        /// <summary>
+        /// Everything placed on this page, with the column it went in and the section it belongs
+        /// to. Kept so that a section's own content on its last page can be found again and set
+        /// out afresh, which is what evening out its columns amounts to.
+        /// </summary>
+        public List<(int Column, int Section, PlacedLine Line)> PagePlaced { get; } = [];
+
         public required double ContentTop { get; set; }
 
         /// <summary>The bottom margin: where content would stop with nothing reserved.</summary>
@@ -4313,6 +4424,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             PageMaxY = 0;
             ColumnLines.Clear();
             ColumnBottoms.Clear();
+            PagePlaced.Clear();
             ApplyColumn();
 
             // A float belongs to the page its anchor landed on; it does not follow the text.

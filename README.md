@@ -159,8 +159,9 @@ break, or none — a three-line paragraph moves whole, since it cannot give two 
 paragraph with the next one and keeping its own lines together (`w:keepNext` and `w:keepLines`,
 including chains of headings that move as one), section breaks (next-page, continuous, even- and odd-page, each section with its own
 page size, orientation and margins, running heads inherited per kind from the section before where
-one says nothing), multiple text columns (evenly divided or individually stated, column breaks, and
-the rule down the gap where the document asks for one), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
+one says nothing), multiple text columns (evenly divided or individually stated, column breaks,
+the rule down the gap where the document asks for one, and the last page of a section evened out
+between its columns where a continuous break closes it), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
 for endnotes unless the document says otherwise, and numbered again from the beginning on every
 page or in every section where the section asks for it; a footnote goes to the foot of the page its
 reference lands on — or under the last line of text on it, where the section asks for that — and
@@ -476,6 +477,17 @@ body text left to carry it — so pages are made for the rest of it, holding not
 the same, which `footnote-overrun-probe` is there to have asked: its second page has no body at all
 and the last thirty-seven lines of the note at the foot of it.
 
+A section of columns closed by a continuous break has its last page evened out: the columns come to
+much the same depth rather than the first being full and the last empty, which is what a continuous
+break is usually inserted to do. A section closed by a break to a new page is not evened out, and
+neither is the last section of a document — `columns-balanced` holds all three cases and Word's
+export of it says so.
+
+Where the columns divide had to be measured too, since the obvious rules disagree. Word divides
+thirty-five lines eighteen and seventeen, and ten lines five and five: a column takes lines while it
+is still short of the depth the content is to be divided at, so the line that reaches that depth is
+the last one in. Rounding either way gives one of those two answers and not the other.
+
 In a section of columns a note goes under the column its reference is in, set to that column's
 measure and ruled off by a separator of its own. Each column keeps its own area, so what one column
 gives up for its notes is not taken out of the next: in `footnote-columns`, whose first column
@@ -532,7 +544,7 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is RTL and complex scripts, and balancing the columns of a section's last page.
+remains elsewhere is RTL and complex scripts.
 
 Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
 subset they embed. It cannot be subset in any case — control values are reached by index and
