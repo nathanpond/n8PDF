@@ -163,7 +163,8 @@ one says nothing), multiple text columns (evenly divided or individually stated,
 the rule down the gap where the document asks for one), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
 for endnotes unless the document says otherwise, and numbered again from the beginning on every
 page or in every section where the section asks for it; a footnote goes to the foot of the page its
-reference lands on and takes that space out of the body above it, dividing between that page and
+reference lands on — or under the last line of text on it, where the section asks for that — and
+takes that space out of the body above it, dividing between that page and
 the next where it is too long for the room left under it, an endnote carries on after the
 body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
 anywhere in the document, with the regions placed and padded the way Word places them), headers
@@ -474,6 +475,18 @@ body text left to carry it — so pages are made for the rest of it, holding not
 the same, which `footnote-overrun-probe` is there to have asked: its second page has no body at all
 and the last thirty-seven lines of the note at the foot of it.
 
+A section may also ask for its notes under the last line of text rather than at the foot of the
+page. On a page whose text reaches the bottom margin the two are the same place, which is most
+pages; on one whose text stops early — the last page of nearly every document — the notes come up
+with the text, and `footnote-beneath-text` is a document of exactly those two pages.
+
+That fixture answered a question nobody had asked, and corrected this. A line carrying a reference
+never moves to make room for its own note. `footnote-carry-probe` puts a reference on the very last
+line a page has room for and Word keeps the line there, squeezing the whole note in beneath it;
+the other fixture puts one where there is no room left at all, and Word still keeps the line and
+carries the whole note to the next page under the wide rule. This used to move the line instead,
+which is the obvious way to keep a note with its reference and moves body text Word leaves alone.
+
 Where a document numbers its notes again from the beginning, two things had to be measured rather
 than read. The first is where the instruction lives: the format allows it in the settings, as a
 default for the whole document, and in each section's properties. Word reads only the section. A
@@ -490,8 +503,7 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is notes
-positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
+remains elsewhere is endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
 them rather than under the whole measure, and page numbering restarted per section.

@@ -366,6 +366,17 @@ public static class DocumentParser
         return value is null ? null : NumberingParser.ParseNumberFormat(value);
     }
 
+    /// <summary>Reads where a page's footnotes are set, from <c>w:pos</c>.</summary>
+    public static NotePosition? ReadNotePosition(XElement? container)
+    {
+        return container?.Element(W.Main + "footnotePr")?.Element(W.Main + "pos")?.Attr("val") switch
+        {
+            "beneathText" => NotePosition.BeneathText,
+            "pageBottom" => NotePosition.PageBottom,
+            _ => null
+        };
+    }
+
     /// <summary>
     /// Reads whether the notes are numbered again from the beginning on every page or in every
     /// section, from <c>w:numRestart</c>.
@@ -665,6 +676,7 @@ public static class DocumentParser
 
         section.FootnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Footnote);
         section.EndnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Endnote);
+        section.FootnotePosition = ReadNotePosition(sectPr);
         section.FootnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Footnote);
         section.EndnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Endnote);
 

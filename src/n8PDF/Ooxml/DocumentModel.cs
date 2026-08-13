@@ -101,6 +101,19 @@ public sealed class NoteMarkInline(NoteKind kind) : InlineElement
     public NoteKind Kind { get; } = kind;
 }
 
+/// <summary>Where a page's footnotes are set, from <c>w:pos</c>.</summary>
+public enum NotePosition
+{
+    /// <summary>At the foot of the page, above the bottom margin. What a document means by default.</summary>
+    PageBottom,
+
+    /// <summary>
+    /// Directly under the last line of text on the page, which is the same place on a page whose
+    /// text reaches the bottom margin and a long way above it on a page whose text stops early.
+    /// </summary>
+    BeneathText
+}
+
 /// <summary>How often a document begins its note numbering again, from <c>w:numRestart</c>.</summary>
 public enum NoteNumberRestart
 {

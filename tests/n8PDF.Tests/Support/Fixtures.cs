@@ -1889,6 +1889,61 @@ public static class Fixtures
                 return builder;
             },
 
+            // Notes set under the text rather than at the foot of the page, which the section
+            // asks for with w:pos. The two are the same thing on a page whose text reaches the
+            // bottom margin, so what says which was done is a page whose text stops early: the
+            // first page here is full and the second holds four lines.
+            ["footnote-beneath-text"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithSection(DocxBuilder.Section(footnotePosition: "beneathText"));
+
+                string WithNote(int i, int id) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph {i}, with a note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(id) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>";
+
+                var first = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("A note on the page whose text fills it.", Times10));
+
+                builder.AddRawParagraph(WithNote(1, first));
+
+                for (var i = 2; i <= 44; i++)
+                    builder.AddParagraph($"Body paragraph {i} of forty-six.", ZeroSpacing, Times12);
+
+                var second = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("A note on the page whose text stops early.", Times10));
+
+                builder.AddRawParagraph(WithNote(45, second));
+                builder.AddParagraph("Body paragraph 46 of forty-six.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
+            // A reference on the very last line a page has room for, with the notes at the foot
+            // as a document has them by default. What is measured is what gives: does the line
+            // carrying the reference move to the next page so its note can begin under it, or
+            // does the line stay and the whole note go over?
+            ["footnote-carry-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                for (var i = 1; i <= 44; i++)
+                    builder.AddParagraph($"Body paragraph {i} of forty-six.", ZeroSpacing, Times12);
+
+                var note = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("A note whose reference is on the last line.", Times10));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph 45, with a note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(note) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                return builder.AddParagraph("Body paragraph 46 of forty-six.", ZeroSpacing, Times12);
+            },
+
             // Notes numbered again from one on every page, which is what a document of many notes
             // a page usually asks for. What is measured is which page a note counts as being on,
             // since a reference near a page's edge may be moved by the line that carries it.

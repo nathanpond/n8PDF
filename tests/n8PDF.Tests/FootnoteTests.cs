@@ -2,6 +2,7 @@ using n8PDF;
 using n8PDF.Layout;
 using n8PDF.Tests.Support;
 using n8PDF.Tests.Support.PdfReading;
+using Xunit.Abstractions;
 
 namespace n8PDF.Tests;
 
@@ -9,8 +10,10 @@ namespace n8PDF.Tests;
 /// Tests footnotes: the mark where the reference sits, the note at the foot of that same page, and
 /// the space the notes take away from the body above them.
 /// </summary>
-public class FootnoteTests
+public class FootnoteTests(ITestOutputHelper output)
 {
+    private readonly ITestOutputHelper _output = output;
+
     private const string Times12 =
         "<w:rFonts w:ascii=\"Times New Roman\" w:hAnsi=\"Times New Roman\"/><w:sz w:val=\"24\"/>";
 
@@ -386,6 +389,58 @@ public class FootnoteTests
             new[] { "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "i", "ii", "iii" }, marks);
     }
 
+    // ----- set under the text rather than at the foot -----
+
+    /// <summary>
+    /// A section may ask for its notes under the last line of text on the page rather than at the
+    /// foot of it. On a page whose text reaches the bottom margin the two are the same place; on
+    /// one whose text stops early — the last page of most documents — the notes come up with it.
+    /// </summary>
+    [Fact]
+    public void Notes_follow_the_text_where_the_section_asks_for_them_there()
+    {
+        var beneath = LayoutOf(Fixtures.All["footnote-beneath-text"]());
+
+        var last = beneath.Pages[^1];
+        var body = Bottom(last, "Body paragraph 46");
+        var note = Bottom(last, "note on the page whose text stops early");
+
+        _output.WriteLine($"the text ends at {body:0.##} and the note is at {note:0.##}");
+
+        // Under the text, not at the foot: the page runs to 720 and the note is nowhere near it.
+        Assert.True(note - body is > 0 and < 60, $"the note sits {note - body:0.##}pt under the text");
+        Assert.True(note < 200, $"the note is at {note:0.##}, which is the foot of the page");
+    }
+
+    /// <summary>
+    /// And the same document with the notes at the foot puts that note where the foot is, which is
+    /// what says the position was read rather than the page merely being short.
+    /// </summary>
+    [Fact]
+    public void The_same_notes_go_to_the_foot_where_the_section_does_not_ask()
+    {
+        var builder = new DocxBuilder();
+
+        var note = builder.AddFootnote(DocxBuilder.FootnoteBody("The note.", Times10));
+
+        builder.AddRawParagraph(
+            "<w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/></w:pPr>" +
+            Run("One short paragraph, with a note") +
+            DocxBuilder.FootnoteReference(note) + Run(".") + "</w:p>");
+
+        var atTheFoot = LayoutOf(builder);
+        var beneath = LayoutOf(builder.WithSection(DocxBuilder.Section(footnotePosition: "beneathText")));
+
+        var footY = Bottom(atTheFoot.Pages[0], "The note.");
+        var beneathY = Bottom(beneath.Pages[0], "The note.");
+
+        _output.WriteLine($"at the foot {footY:0.##}, beneath the text {beneathY:0.##}");
+
+        // The page's text area ends at 720, and the one line of body text ends near 86.
+        Assert.True(footY > 700, $"the note is at {footY:0.##} rather than at the foot");
+        Assert.True(beneathY < 130, $"the note is at {beneathY:0.##} rather than under the text");
+    }
+
     // ----- a note too long for the page it belongs to -----
 
     /// <summary>A note of as many numbered lines as asked for, each its own paragraph.</summary>
@@ -499,68 +554,43 @@ public class FootnoteTests
     }
 
     /// <summary>
-    /// A note begins on the page its reference is on, whatever else has to move for it. Where
-    /// there is no room under the reference for even the rule and one line of the note, it is the
-    /// line carrying the reference that goes to the next page rather than the note leaving it.
+    /// A line carrying a reference never moves to make room for its own note. What is left under
+    /// it is what the note gets, and where that is nothing at all the whole note goes over to the
+    /// next page rather than the line coming with it.
     /// </summary>
     /// <remarks>
-    /// Swept across a range of body lengths rather than aimed at one, since which line the
-    /// reference lands on is the whole question and a single document only asks it once.
+    /// Measured, and not what this did first. <c>footnote-carry-probe</c> puts a reference on the
+    /// very last line a page has room for and Word keeps the line there, squeezing the whole note
+    /// in beneath it; <c>footnote-beneath-text</c> puts one where there is no room left at all,
+    /// and Word still keeps the line and carries the note whole. Moving the line instead — which
+    /// is the obvious way to keep a note with its reference — would have moved body text Word
+    /// leaves alone.
+    ///
+    /// Swept across the length of the note rather than asked once, since the length is what
+    /// decides how much of it fits and none of the answers may move the line.
     /// </remarks>
     [Theory]
-    [InlineData(38)]
-    [InlineData(39)]
-    [InlineData(40)]
-    [InlineData(41)]
-    [InlineData(42)]
-    [InlineData(43)]
-    [InlineData(44)]
-    [InlineData(45)]
-    [InlineData(46)]
-    public void A_note_always_begins_on_the_page_its_reference_is_on(int referenceAt)
+    [InlineData(1)]
+    [InlineData(5)]
+    [InlineData(20)]
+    [InlineData(60)]
+    public void A_line_carrying_a_reference_never_moves_to_make_room_for_its_note(int noteLines)
     {
-        var layout = LayoutOf(WithLongNote(20, referenceAt + 6, referenceAt));
+        var layout = LayoutOf(WithLongNote(noteLines, 46, 45));
 
-        var reference = layout.Pages
-            .Select(LinesOf)
-            .Select((lines, index) => (Index: index, Lines: lines))
-            .Single(page => page.Lines.Any(line => line.StartsWith($"Body paragraph {referenceAt},")));
+        var pages = layout.Pages.Select(LinesOf).ToList();
 
-        Assert.Contains(reference.Lines, line => line.Contains("Line 1 of a note"));
-    }
+        // The reference sits on the last line the first page has room for, whatever its note does.
+        Assert.Contains(pages[0], line => line.StartsWith("Body paragraph 45,"));
 
-    /// <summary>
-    /// A note may outlast the document it belongs to: one referenced near the end and long enough
-    /// to fill several pages has no body text left to carry it onto them. Word makes the pages
-    /// anyway, each holding nothing but the rest of the note, bottom-aligned as ever — its export
-    /// of <c>footnote-overrun-probe</c> gives a second page with no body at all and the last
-    /// thirty-seven lines of the note at the foot of it.
-    /// </summary>
-    [Fact]
-    public void A_note_that_outlasts_the_document_is_finished_on_pages_of_its_own()
-    {
-        var layout = LayoutOf(WithLongNote(90, 1, 1));
-
-        Assert.True(layout.Pages.Count >= 2, "the note was not carried past the page its reference is on");
-
-        var lines = layout.Pages.Select(LinesOf).ToList();
-
-        // The body is one paragraph, on the first page and nowhere else.
-        Assert.Contains(lines[0], line => line.StartsWith("Body paragraph 1,"));
-        for (var i = 1; i < lines.Count; i++)
-        {
-            Assert.DoesNotContain(lines[i], line => line.StartsWith("Body paragraph"));
-        }
-
-        // And every line of the note is there, in order, ending on the last page.
-        var found = lines
+        // And every line of the note is somewhere, in order.
+        var found = pages
             .SelectMany(page => page)
             .Where(line => line.Contains("of a note far too long"))
             .Select(line => int.Parse(line.Split(' ')[1]))
             .ToList();
 
-        Assert.Equal(Enumerable.Range(1, 90), found);
-        Assert.Contains(lines[^1], line => line.Contains("Line 90 of a note"));
+        Assert.Equal(Enumerable.Range(1, noteLines), found);
     }
 
     /// <summary>

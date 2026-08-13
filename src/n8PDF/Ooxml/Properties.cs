@@ -279,6 +279,12 @@ public sealed class SectionProperties
 
     public NoteNumberRestart? EndnoteNumberRestart { get; set; }
 
+    /// <summary>
+    /// Where this section sets the footnotes of a page: at its foot, or under the last line of
+    /// text on it. Read from the section, as everything else about how a note is set is.
+    /// </summary>
+    public NotePosition? FootnotePosition { get; set; }
+
     public NumberFormat? EndnoteNumberFormat { get; set; }
 
     public int FooterDistanceTwips { get; set; } = 720;

@@ -58,6 +58,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>
     /// How often each kind of note is numbered again from the beginning, which the section says.
     /// </summary>
+    /// <summary>Where the notes of a page are set, which the section says.</summary>
+    private NotePosition _footnotePosition;
+
     private NoteNumberRestart _footnoteRestart;
 
     private NoteNumberRestart _endnoteRestart;
@@ -440,9 +443,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         cursor.ContentTop = contentTop;
         cursor.ContentLimit = contentTop + section.ContentHeightPoints;
 
-        // How often the notes begin their numbering again. Word reads this from the section and
+        // Where the notes go, and how often they begin their numbering again. Word reads this from the section and
         // from nowhere else: a document stating it in its settings, where the format has it as a
         // document-wide default, is numbered straight through regardless.
+        _footnotePosition = section.FootnotePosition ?? NotePosition.PageBottom;
         _footnoteRestart = section.FootnoteNumberRestart ?? NoteNumberRestart.Continuous;
         _endnoteRestart = section.EndnoteNumberRestart ?? NoteNumberRestart.Continuous;
 
@@ -588,8 +592,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // A line that does not fit moves to the next column, or off the page when it was in
             // the last of them — and may take the lines above it along, so that a paragraph is
             // never split with only one of its lines on either side of the break.
-            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Least &&
-                cursor.CanAdvance)
+            // The notes a line refers to are not part of what has to fit: Word never moves a line
+            // to make room for its own note. What room is left under it is what the note gets,
+            // which may be none of it at all — footnote-carry-probe has a reference on the last
+            // line a page holds and Word keeps it there, squeezing the whole note in beneath it,
+            // and footnote-beneath-text has one with no room left at all and Word still keeps the
+            // line, carrying the whole note over instead.
+            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom && cursor.CanAdvance)
             {
                 var pull = PullBackForBreak(format, cursor, ordinal, isLastLine: !composer.HasMore);
 
@@ -1288,28 +1297,21 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             height += flow.Height;
         }
 
-        if (flows.Count == 0) return new Prepared([], 0, 0);
+        if (flows.Count == 0) return Prepared.None;
 
         // The separator is paid for once per page, by whichever note reaches it first.
         var separator = _pageFootnotes.Count == 0 ? SeparatorFlow()?.Height ?? 0 : 0;
 
-        // A note that will not fit whole is divided rather than moved, so what the page has to
-        // find room for is not the note but its first line. Nothing is gained by dividing a note
-        // that has nowhere to put even that much: the line referring to it moves instead.
-        return new Prepared(flows, height + separator, separator + flows[0].FirstLineHeight);
+        return new Prepared(flows, height + separator);
     }
 
     /// <summary>
     /// Footnotes measured and waiting for the line that refers to them to be placed.
     /// </summary>
     /// <param name="Height">What they take altogether, including the separator where it is due.</param>
-    /// <param name="Least">
-    /// The least they can take on this page: the separator and the first line of the first note.
-    /// Where even that will not fit, the line referring to them belongs on the next page.
-    /// </param>
-    private readonly record struct Prepared(List<DetachedFlow> Flows, double Height, double Least)
+    private readonly record struct Prepared(List<DetachedFlow> Flows, double Height)
     {
-        public static readonly Prepared None = new([], 0, 0);
+        public static readonly Prepared None = new([], 0);
     }
 
     /// <summary>
@@ -1459,8 +1461,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// The notes are bottom-aligned against the bottom margin, which is where Word puts them, with
     /// the separator immediately above the first. The space they take was reserved as each note
     /// was committed, so nothing above them has been placed where they are about to go.
+    ///
+    /// A section may ask for them under the last line of text instead. That is the same place on a
+    /// page whose text reaches the bottom margin — which is most pages — and a long way above it
+    /// on one whose text stops early, which is what the last page of a document usually does.
     /// </remarks>
-    private void FlushFootnotes(LaidOutPage page)
+    private void FlushFootnotes(LaidOutPage page, double textBottom)
     {
         if (_pageFootnotes.Count == 0)
         {
@@ -1470,7 +1476,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         var height = Total(_pageFootnotes);
-        var y = _footnoteBottom - height;
+        var separatorHeight = (_footnotesContinue ? ContinuationFlow() : SeparatorFlow())?.Height ?? 0;
+
+        var y = _footnotePosition == NotePosition.BeneathText
+            ? Math.Min(textBottom + separatorHeight, _footnoteBottom - height)
+            : _footnoteBottom - height;
 
         // A page that opens with the rest of a note carries the other rule: right across the
         // measure, so that a reader can see the note above it was not finished.
@@ -4025,7 +4035,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// Called with the page being left behind, so that whatever was reserved on it can be
         /// filled in before the cursor moves on.
         /// </summary>
-        public Action<LaidOutPage>? OnPageComplete { get; init; }
+        /// <param name="textBottom">
+        /// How far down the page its text reached, which is where notes set under the text go.
+        /// </param>
+        public Action<LaidOutPage, double>? OnPageComplete { get; init; }
 
         /// <summary>
         /// Where footnotes found while composing are collected instead of being placed. Set while
@@ -4164,7 +4177,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             AlignPageVertically(this);
             DrawColumnSeparators(this);
-            OnPageComplete?.Invoke(Page);
+            OnPageComplete?.Invoke(Page, PageMaxY);
         }
 
         /// <summary>Moves to a fresh page, leaving the one behind as it stands.</summary>
@@ -4204,25 +4217,6 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             new(new LaidOutPage { WidthPoints = 0, HeightPoints = 0 }, 0);
 
         public double Height { get; } = height;
-
-        /// <summary>
-        /// How far down the first line of this content reaches, which is the least of it that can
-        /// be put anywhere: nothing fits until a whole line does.
-        /// </summary>
-        public double FirstLineHeight
-        {
-            get
-            {
-                var least = Height;
-
-                foreach (var line in page.Lines)
-                {
-                    least = Math.Min(least, line.BaselineY - line.Ascent + line.Height);
-                }
-
-                return page.Lines.Count == 0 ? Height : least;
-            }
-        }
 
         /// <summary>
         /// Footnotes referenced by this content, which belong to the page it is placed on rather

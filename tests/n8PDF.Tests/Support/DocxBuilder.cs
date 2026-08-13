@@ -218,14 +218,19 @@ public sealed class DocxBuilder
         bool landscape = false, bool titlePage = false, string? verticalAlignment = null,
         int columns = 1, int columnSpaceTwips = 720, bool columnSeparator = false,
         IReadOnlyList<(int Width, int Space)>? columnWidths = null,
-        string? footnoteRestart = null, string? endnoteRestart = null)
+        string? footnoteRestart = null, string? endnoteRestart = null,
+        string? footnotePosition = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
 
         // How the section numbers its notes, which comes after the references and before the
         // type. This is where Word's own Footnote and Endnote dialog writes it.
+        // In CT_FtnProps the position comes before the numbering.
+        var footnote = (footnotePosition is null ? string.Empty : $"<w:pos w:val=\"{footnotePosition}\"/>") +
+            (footnoteRestart is null ? string.Empty : $"<w:numRestart w:val=\"{footnoteRestart}\"/>");
+
         var notes =
-            (footnoteRestart is null ? string.Empty : $"<w:footnotePr><w:numRestart w:val=\"{footnoteRestart}\"/></w:footnotePr>") +
+            (footnote.Length == 0 ? string.Empty : $"<w:footnotePr>{footnote}</w:footnotePr>") +
             (endnoteRestart is null ? string.Empty : $"<w:endnotePr><w:numRestart w:val=\"{endnoteRestart}\"/></w:endnotePr>");
         var orientation = landscape ? " w:orient=\"landscape\"" : string.Empty;
 
