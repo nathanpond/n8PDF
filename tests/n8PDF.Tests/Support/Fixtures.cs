@@ -977,6 +977,78 @@ public static class Fixtures
                 return builder;
             },
 
+            // Page numbering begun again in a section, which is what a document with a preface
+            // does. The footer counts pages and totals them, so what is measured is which of those
+            // follow the restart and which count the document through: the second section starts
+            // again at one and the third at a number of its own, and PAGEREF points across all of
+            // them at a bookmark in the first.
+            ["page-numbering-restart"] = () =>
+            {
+                // The footer states no formatting of its own: Word writes a field result it has
+                // recalculated in the document's default size rather than in whatever the result
+                // it replaced was in, so a footer that asks for a size Word will not use compares
+                // its own width against a different one.
+                string Field(string instruction, string cached) =>
+                    $"<w:fldSimple w:instr=\" {instruction} \"><w:r><w:t>{cached}</w:t></w:r></w:fldSimple>";
+
+                var builder = new DocxBuilder()
+                    .WithHeaderFooter(header: false,
+                        $"<w:p><w:pPr>{ZeroSpacing}<w:jc w:val=\"center\"/></w:pPr>" +
+                        "<w:r><w:t xml:space=\"preserve\">Page </w:t></w:r>" + Field("PAGE", "1") +
+                        "<w:r><w:t xml:space=\"preserve\"> of </w:t></w:r>" + Field("NUMPAGES", "1") +
+                        "<w:r><w:t xml:space=\"preserve\">, section </w:t></w:r>" + Field("SECTION", "1") +
+                        "<w:r><w:t xml:space=\"preserve\"> of </w:t></w:r>" + Field("SECTIONPAGES", "1") +
+                        "</w:p>");
+
+                // The first section: two pages, and a bookmark on the second of them.
+                for (var i = 1; i <= 60; i++)
+                {
+                    if (i == 50)
+                    {
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                            "<w:bookmarkStart w:id=\"1\" w:name=\"marked\"/>" +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t>The marked paragraph.</w:t></w:r>" +
+                            "<w:bookmarkEnd w:id=\"1\"/></w:p>");
+
+                        continue;
+                    }
+
+                    builder.AddParagraph($"First section, paragraph {i}.", ZeroSpacing, Times12);
+                }
+
+                // The reference to the footer has to be repeated in each section: a section with
+                // none of its own inherits from the one before, and the first has nothing before
+                // it. The properties on a break describe the section it closes, so the numbering
+                // stated here is the first section's.
+                builder.AddParagraphWithSectionBreak(
+                    "The last paragraph of the first section.",
+                    DocxBuilder.Section([("footer:default", "rIdHF1")], type: "nextPage"), ZeroSpacing, Times12);
+
+                for (var i = 1; i <= 50; i++)
+                    builder.AddParagraph($"Second section, paragraph {i}.", ZeroSpacing, Times12);
+
+                // And the second section is the one begun again at one.
+                builder.AddParagraphWithSectionBreak(
+                    "The last paragraph of the second section.",
+                    DocxBuilder.Section([("footer:default", "rIdHF1")], type: "nextPage", pageNumberStart: 1),
+                    ZeroSpacing, Times12);
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">The marked page is </w:t></w:r>" +
+                    $"<w:fldSimple w:instr=\" PAGEREF marked \"><w:r><w:rPr>{Times12}</w:rPr><w:t>1</w:t></w:r></w:fldSimple>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                // The last section, whose own properties are the document's, begins again at
+                // twenty so that a restart to something other than one is measured as well.
+                // The final section's own properties, which the builder adds the footer reference
+                // to itself — stating it here as well would draw the footer twice.
+                builder.WithSection(DocxBuilder.Section(pageNumberStart: 20));
+
+                return builder.AddParagraph("Third section, the last paragraph.", ZeroSpacing, Times12);
+            },
+
             // Footnotes on two pages, over enough body text that the space the notes take out of
             // the page decides where the text breaks.
             ["footnotes"] = () =>

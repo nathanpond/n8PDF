@@ -67,6 +67,106 @@ public class FieldTests
         return string.Concat(layout.Pages[0].Lines.SelectMany(l => l.Texts).Select(t => t.Text)).Trim();
     }
 
+    // ----- page numbering begun again in a section -----
+
+    /// <summary>
+    /// A document of three sections: the first numbered as it comes, the second begun again at
+    /// one, the third at a number of its own. Each is a page and a bit, so the numbering is asked
+    /// about more than once inside a section as well as across the breaks.
+    /// </summary>
+    private static DocxBuilder ThreeSections(int? second, int? third)
+    {
+        var builder = new DocxBuilder();
+
+        void Fill(string label, int count)
+        {
+            for (var i = 1; i <= count; i++)
+                builder.AddParagraph($"{label} paragraph {i}.", ZeroSpacing, Times12);
+        }
+
+        Fill("First", 60);
+        builder.AddParagraphWithSectionBreak("The first section ends.",
+            DocxBuilder.Section(type: "nextPage"), ZeroSpacing, Times12);
+
+        Fill("Second", 60);
+        builder.AddParagraphWithSectionBreak("The second section ends.",
+            DocxBuilder.Section(type: "nextPage", pageNumberStart: second), ZeroSpacing, Times12);
+
+        Fill("Third", 10);
+
+        return builder.WithSection(DocxBuilder.Section(pageNumberStart: third));
+    }
+
+    /// <summary>
+    /// A section may begin the page numbering again, which is what a document with a preface does
+    /// — and what it begins again at is its own business, not necessarily one.
+    /// </summary>
+    /// <remarks>
+    /// The properties on a section break describe the section it closes, not the one it opens, so
+    /// the number stated on the first break belongs to the section before it.
+    /// </remarks>
+    [Fact]
+    public void Page_numbers_begin_again_where_a_section_says_so()
+    {
+        var layout = LayoutOf(ThreeSections(second: 1, third: 20));
+
+        var numbers = layout.Pages.Select(page => page.PageNumber).ToList();
+        var sections = layout.Pages.Select(page => page.IndexInSection).ToList();
+
+        // Three sections of two, two and one page: numbered 1,2 then 1,2 then 20.
+        Assert.Equal([0, 1, 0, 1, 0], sections);
+        Assert.Equal([1, 2, 1, 2, 20], numbers);
+    }
+
+    /// <summary>And a document whose sections say nothing is numbered straight through.</summary>
+    [Fact]
+    public void Page_numbers_run_through_a_document_whose_sections_say_nothing()
+    {
+        var layout = LayoutOf(ThreeSections(second: null, third: null));
+
+        Assert.Equal([1, 2, 3, 4, 5], layout.Pages.Select(page => page.PageNumber));
+    }
+
+    /// <summary>
+    /// What the fields make of it: the page number follows the restart, the total counts the
+    /// document through regardless, and a reference to a page shows the number it is printed as
+    /// rather than where it stands.
+    /// </summary>
+    [Fact]
+    public void The_fields_show_the_number_a_page_is_printed_as()
+    {
+        var builder = new DocxBuilder();
+
+        for (var i = 1; i <= 60; i++)
+            builder.AddParagraph($"First section, paragraph {i}.", ZeroSpacing, Times12);
+
+        builder.AddParagraphWithSectionBreak("The first section ends.",
+            DocxBuilder.Section(type: "nextPage"), ZeroSpacing, Times12);
+
+        // The second section begins again at one, and holds the bookmark.
+        builder.AddRawParagraph(
+            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:bookmarkStart w:id=\"1\" w:name=\"marked\"/>" +
+            $"<w:r><w:rPr>{Times12}</w:rPr><w:t>The marked paragraph.</w:t></w:r>" +
+            "<w:bookmarkEnd w:id=\"1\"/></w:p>");
+
+        builder.AddRawParagraph(Field(" PAGE ", "?"));
+        builder.AddRawParagraph(Field(" NUMPAGES ", "?"));
+        builder.AddRawParagraph(Field(" PAGEREF marked ", "?"));
+
+        var layout = LayoutOf(builder.WithSection(DocxBuilder.Section(pageNumberStart: 1)));
+
+        var lines = layout.Pages[^1].Lines
+            .OrderBy(line => line.BaselineY)
+            .Select(line => string.Concat(line.Texts.Select(text => text.Text)))
+            .ToList();
+
+        Assert.Equal(3, layout.Pages.Count);
+
+        // The page it is on is printed as one; the document still holds three pages; and the
+        // bookmark's page is named by the number it is printed as rather than by where it stands.
+        Assert.Equal(["The marked paragraph.", "1", "3", "1"], lines);
+    }
+
     /// <summary>A document carrying properties, so that the fields reading them have an answer.</summary>
     private static DocxBuilder Described() =>
         new DocxBuilder().WithDocumentProperties(

@@ -22,6 +22,10 @@ namespace n8PDF.Layout;
 /// The page each index entry was marked on. An XE field draws nothing, so where it fell is only
 /// known from the paragraph that carried it.
 /// </param>
+/// <param name="Printed">
+/// The number each page is printed as, by its place in the document, where a section began its
+/// numbering again. Empty where nothing did.
+/// </param>
 /// <param name="Notes">
 /// The page each note's mark landed on, by note id, for a document that numbers its notes again
 /// on every page.
@@ -33,8 +37,16 @@ public sealed record FieldPagination(
     IReadOnlyList<int> Counts,
     IReadOnlyDictionary<Ooxml.Paragraph, int> Headings,
     IReadOnlyDictionary<Ooxml.FieldInline, int> Marks,
-    IReadOnlyDictionary<int, int> Notes)
+    IReadOnlyDictionary<int, int> Notes,
+    IReadOnlyList<int> Printed)
 {
+    /// <summary>
+    /// The number a page is printed as, given its place in the document counting from one. The
+    /// same number back where no section began its numbering again.
+    /// </summary>
+    public int PrintedPage(int page) =>
+        page >= 1 && page <= Printed.Count ? Printed[page - 1] : page;
+
     /// <summary>The page a note's mark landed on, or zero where it was not recorded.</summary>
     public int PageOfNote(int id) => Notes.GetValueOrDefault(id);
 

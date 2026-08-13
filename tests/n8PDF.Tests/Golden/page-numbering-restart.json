@@ -1,0 +1,1024 @@
+{
+  "pageCount": 5,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 4."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 5."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 6."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 7."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 8."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 124.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 9."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 10."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 11."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 12."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 13."}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 14."}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 15."}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 16."}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 17."}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 18."}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 331.582,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 19."}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 345.381,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 20."}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 359.18,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 21."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 372.979,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 22."}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 386.777,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 23."}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 400.576,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 24."}
+          ]
+        },
+        {
+          "paragraph": 24,
+          "baselineY": 414.375,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 25."}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 428.174,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 26."}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 441.973,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 27."}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 455.771,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 28."}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 469.57,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 29."}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 483.369,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 30."}
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 497.168,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 31."}
+          ]
+        },
+        {
+          "paragraph": 31,
+          "baselineY": 510.967,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 32."}
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 524.766,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 33."}
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 538.564,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 34."}
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 552.363,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 35."}
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 566.162,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 36."}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 579.961,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 37."}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 593.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 38."}
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 607.559,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 39."}
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 621.357,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 40."}
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 635.156,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 41."}
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 648.955,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 42."}
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 662.754,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 43."}
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 676.553,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 44."}
+          ]
+        },
+        {
+          "paragraph": 44,
+          "baselineY": 690.352,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 45."}
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 704.15,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 46."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 753.046,
+          "height": 13.428,
+          "runs": [
+            {"x": 248.707, "width": 24.089, "font": "Calibri", "size": 11, "text": "Page "},
+            {"x": 272.796, "width": 5.575, "font": "Calibri", "size": 11, "text": "1"},
+            {"x": 278.371, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 292.502, "width": 5.575, "font": "Calibri", "size": 11, "text": "5"},
+            {"x": 298.078, "width": 39.934, "font": "Calibri", "size": 11, "text": ", section "},
+            {"x": 338.012, "width": 5.575, "font": "Calibri", "size": 11, "text": "1"},
+            {"x": 343.587, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 357.718, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 46,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 47."}
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 48."}
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 49."}
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 111.609, "font": "Times New Roman", "size": 12, "text": "The marked paragraph."}
+          ]
+        },
+        {
+          "paragraph": 50,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 51."}
+          ]
+        },
+        {
+          "paragraph": 51,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 52."}
+          ]
+        },
+        {
+          "paragraph": 52,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 53."}
+          ]
+        },
+        {
+          "paragraph": 53,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 54."}
+          ]
+        },
+        {
+          "paragraph": 54,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 55."}
+          ]
+        },
+        {
+          "paragraph": 55,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 56."}
+          ]
+        },
+        {
+          "paragraph": 56,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 57."}
+          ]
+        },
+        {
+          "paragraph": 57,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 58."}
+          ]
+        },
+        {
+          "paragraph": 58,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 59."}
+          ]
+        },
+        {
+          "paragraph": 59,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 130.969, "font": "Times New Roman", "size": 12, "text": "First section, paragraph 60."}
+          ]
+        },
+        {
+          "paragraph": 60,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 182.268, "font": "Times New Roman", "size": 12, "text": "The last paragraph of the first section."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 753.046,
+          "height": 13.428,
+          "runs": [
+            {"x": 248.707, "width": 24.089, "font": "Calibri", "size": 11, "text": "Page "},
+            {"x": 272.796, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"},
+            {"x": 278.371, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 292.502, "width": 5.575, "font": "Calibri", "size": 11, "text": "5"},
+            {"x": 298.078, "width": 39.934, "font": "Calibri", "size": 11, "text": ", section "},
+            {"x": 338.012, "width": 5.575, "font": "Calibri", "size": 11, "text": "1"},
+            {"x": 343.587, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 357.718, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 4."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 5."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.197,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 6."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.996,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 7."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.795,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 8."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.594,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 9."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 207.393,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 10."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 221.191,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 11."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 234.99,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 12."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 248.789,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 13."}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 262.588,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 14."}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 276.387,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 15."}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 290.186,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 16."}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 303.984,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 17."}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 18."}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 331.582,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 19."}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 345.381,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 20."}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 359.18,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 21."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 372.979,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 22."}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 386.777,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 23."}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 400.576,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 24."}
+          ]
+        },
+        {
+          "paragraph": 24,
+          "baselineY": 414.375,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 25."}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 428.174,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 26."}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 441.973,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 27."}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 455.771,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 28."}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 469.57,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 29."}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 483.369,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 30."}
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 497.168,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 31."}
+          ]
+        },
+        {
+          "paragraph": 31,
+          "baselineY": 510.967,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 32."}
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 524.766,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 33."}
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 538.564,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 34."}
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 552.363,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 35."}
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 566.162,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 36."}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 579.961,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 37."}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 593.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 38."}
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 607.559,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 39."}
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 621.357,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 40."}
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 635.156,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 41."}
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 648.955,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 42."}
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 662.754,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 43."}
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 676.553,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 44."}
+          ]
+        },
+        {
+          "paragraph": 44,
+          "baselineY": 690.352,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 45."}
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 704.15,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 46."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 753.046,
+          "height": 13.428,
+          "runs": [
+            {"x": 248.707, "width": 24.089, "font": "Calibri", "size": 11, "text": "Page "},
+            {"x": 272.796, "width": 5.575, "font": "Calibri", "size": 11, "text": "1"},
+            {"x": 278.371, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 292.502, "width": 5.575, "font": "Calibri", "size": 11, "text": "5"},
+            {"x": 298.078, "width": 39.934, "font": "Calibri", "size": 11, "text": ", section "},
+            {"x": 338.012, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"},
+            {"x": 343.587, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 357.718, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 46,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 47."}
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 48."}
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 49."}
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 124.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.287, "font": "Times New Roman", "size": 12, "text": "Second section, paragraph 50."}
+          ]
+        },
+        {
+          "paragraph": 50,
+          "baselineY": 138.398,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 196.26, "font": "Times New Roman", "size": 12, "text": "The last paragraph of the second section."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 753.046,
+          "height": 13.428,
+          "runs": [
+            {"x": 248.707, "width": 24.089, "font": "Calibri", "size": 11, "text": "Page "},
+            {"x": 272.796, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"},
+            {"x": 278.371, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 292.502, "width": 5.575, "font": "Calibri", "size": 11, "text": "5"},
+            {"x": 298.078, "width": 39.934, "font": "Calibri", "size": 11, "text": ", section "},
+            {"x": 338.012, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"},
+            {"x": 343.587, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 357.718, "width": 5.575, "font": "Calibri", "size": 11, "text": "2"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 97.295, "font": "Times New Roman", "size": 12, "text": "The marked page is "},
+            {"x": 169.295, "width": 6, "font": "Times New Roman", "size": 12, "text": "2"},
+            {"x": 175.295, "width": 3, "font": "Times New Roman", "size": 12, "text": "."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 157.945, "font": "Times New Roman", "size": 12, "text": "Third section, the last paragraph."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 753.046,
+          "height": 13.428,
+          "runs": [
+            {"x": 245.919, "width": 24.089, "font": "Calibri", "size": 11, "text": "Page "},
+            {"x": 270.008, "width": 11.15, "font": "Calibri", "size": 11, "text": "20"},
+            {"x": 281.159, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 295.29, "width": 5.575, "font": "Calibri", "size": 11, "text": "5"},
+            {"x": 300.865, "width": 39.934, "font": "Calibri", "size": 11, "text": ", section "},
+            {"x": 340.799, "width": 5.575, "font": "Calibri", "size": 11, "text": "3"},
+            {"x": 346.375, "width": 14.131, "font": "Calibri", "size": 11, "text": " of "},
+            {"x": 360.506, "width": 5.575, "font": "Calibri", "size": 11, "text": "1"}
+          ]
+        }
+      ]
+    }
+  ]
+}

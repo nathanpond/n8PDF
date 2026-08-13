@@ -688,6 +688,7 @@ public static class DocumentParser
         section.FootnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Footnote);
         section.EndnoteNumberFormat = ReadNoteNumberFormat(sectPr, NoteKind.Endnote);
         section.FootnotePosition = ReadNotePosition(sectPr);
+        section.PageNumberStart = sectPr.Element(W.Main + "pgNumType")?.IntAttr("start");
         section.FootnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Footnote);
         section.EndnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Endnote);
 

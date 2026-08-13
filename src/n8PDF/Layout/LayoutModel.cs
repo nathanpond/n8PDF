@@ -165,6 +165,12 @@ public sealed class LaidOutPage
     /// </summary>
     public int IndexInSection { get; init; }
 
+    /// <summary>
+    /// The number this page is printed as, which is what a page number field shows. The same as
+    /// its place in the document unless a section began its numbering again.
+    /// </summary>
+    public int PageNumber { get; init; }
+
     public List<LaidOutLine> Lines { get; } = [];
 
     /// <summary>Images, drawn after the shading and borders but before the text.</summary>

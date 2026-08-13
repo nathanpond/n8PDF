@@ -207,8 +207,10 @@ public static class Converter
 
         var pagination = engine.CollectPagination(laidOut);
 
+        // A reference to a page shows the number that page is printed as, which is not where it
+        // stands in the document once a section has begun its numbering again.
         environment.PageOfBookmark = name => laidOut.Bookmarks.TryGetValue(name, out var found)
-            ? found.PageIndex + 1
+            ? laidOut.Pages[found.PageIndex].PageNumber
             : 0;
 
         var second = new LayoutEngine(fonts, resolver, options.Layout)

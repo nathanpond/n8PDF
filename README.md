@@ -171,7 +171,7 @@ ruled off by the separator), hyperlinks (external addresses as clickable regions
 anywhere in the document, with the regions placed and padded the way Word places them), headers
 and footers (per page, with separate first-page and even-page variants, and
 fields evaluated), fields — page numbers (PAGE, NUMPAGES, SECTION,
-SECTIONPAGES, PAGEREF), what a document says about itself (AUTHOR, TITLE, SUBJECT, KEYWORDS,
+SECTIONPAGES, PAGEREF, each following a section that begins its numbering again), what a document says about itself (AUTHOR, TITLE, SUBJECT, KEYWORDS,
 COMMENTS, LASTSAVEDBY, CREATEDATE, SAVEDATE, PRINTDATE, DOCPROPERTY, FILENAME), counters (SEQ, with
 its restart, repeat and format switches), references to a bookmark's text (REF), running heads
 (STYLEREF), literal text
@@ -488,6 +488,15 @@ the other fixture puts one where there is no room left at all, and Word still ke
 carries the whole note to the next page under the wide rule. This used to move the line instead,
 which is the obvious way to keep a note with its reference and moves body text Word leaves alone.
 
+A section may begin the page numbering again, which is what a document with a preface does, and at
+a number of its own rather than necessarily at one. What follows the restart and what does not was
+read off Word's export of `page-numbering-restart`, a document of three sections whose footer counts
+pages four ways at once: the page number follows it, the total counts the document through
+regardless, and a reference to a page names the number that page is printed as rather than where it
+stands. The properties on a section break describe the section it closes rather than the one it
+opens, which is what makes a fixture for this worth writing rather than reasoning about — the first
+number stated belongs to the pages before it.
+
 Endnotes gather at the end of the document, or at the end of each section where the document asks
 for it, which is what a book of chapters does with them. Each group is written where its section
 stops, before the break that opens the next one, so the notes of a chapter belong to the pages of
@@ -518,8 +527,8 @@ document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
 remains elsewhere is RTL and complex
-scripts, balancing the columns of a section's last page, footnotes under the column that refers to
-them rather than under the whole measure, and page numbering restarted per section.
+scripts, balancing the columns of a section's last page, and footnotes under the column that refers to
+them rather than under the whole measure.
 
 Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
 subset they embed. It cannot be subset in any case — control values are reached by index and

@@ -285,6 +285,12 @@ public sealed class SectionProperties
     /// </summary>
     public NotePosition? FootnotePosition { get; set; }
 
+    /// <summary>
+    /// The number this section's first page is printed as, from <c>w:pgNumType/@w:start</c>. Null
+    /// where the section says nothing, and then its numbering carries on from the section before.
+    /// </summary>
+    public int? PageNumberStart { get; set; }
+
     public NumberFormat? EndnoteNumberFormat { get; set; }
 
     public int FooterDistanceTwips { get; set; } = 720;

@@ -219,9 +219,19 @@ public sealed class DocxBuilder
         int columns = 1, int columnSpaceTwips = 720, bool columnSeparator = false,
         IReadOnlyList<(int Width, int Space)>? columnWidths = null,
         string? footnoteRestart = null, string? endnoteRestart = null,
-        string? footnotePosition = null, string? endnotePosition = null)
+        string? footnotePosition = null, string? endnotePosition = null,
+        int? pageNumberStart = null, string? pageNumberFormat = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
+
+        // Where the section's page numbering begins, and in what. In CT_SectPr this comes after
+        // the paper and margins and before the columns.
+        var pageNumbers = pageNumberStart is null && pageNumberFormat is null
+            ? string.Empty
+            : "<w:pgNumType" +
+              (pageNumberFormat is null ? string.Empty : $" w:fmt=\"{pageNumberFormat}\"") +
+              (pageNumberStart is null ? string.Empty : $" w:start=\"{pageNumberStart}\"") +
+              "/>";
 
         // How the section numbers its notes, which comes after the references and before the
         // type. This is where Word's own Footnote and Endnote dialog writes it.
@@ -249,7 +259,7 @@ public sealed class DocxBuilder
             <w:sectPr>
               {references}{notes}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
               <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
-              {Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
+              {pageNumbers}{Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
             </w:sectPr>
             """;
     }

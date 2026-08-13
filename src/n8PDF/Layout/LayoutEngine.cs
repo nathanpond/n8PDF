@@ -126,6 +126,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     // section's own numbering are counted against.
     private int _pagesInSection;
 
+    /// <summary>
+    /// The number the last page made was printed as, and the number the next section's first page
+    /// is to be printed as where it begins its numbering again.
+    /// </summary>
+    private int _printedPage;
+
+    private int? _pendingPageNumber;
+
     // Which section is being laid out, counting from one. Only a first pass needs it: after that
     // the sections are read off the pages the last pass produced.
     private int _sectionOrdinal = 1;
@@ -225,6 +233,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var result = new LaidOutDocument { Section = document.Section };
         _result = result;
         _pagesInSection = 0;
+
+        // The first section's numbering begins where it says, or at one.
+        _printedPage = 0;
+        _pendingPageNumber = section.PageNumberStart;
 
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
 
@@ -358,6 +370,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // the section's first page is made rather than after it.
         _pagesInSection = 0;
         _sectionOrdinal++;
+        _pendingPageNumber = section.PageNumberStart;
 
         // The outgoing section's last paragraph still occupies its space, and nothing across the
         // boundary collapses against it.
@@ -1953,7 +1966,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // the line to say which page it landed on. It is given the page being filled instead,
         // which is right unless the paragraph moves — and the pass after this one, which is what
         // these values are being collected for, corrects it either way.
-        Fields.Page = page > 0 ? page : _result?.Pages.Count ?? 0;
+        // A page number field shows the number the page is printed as, which is not where the
+        // page stands in the document once a section has begun its numbering again.
+        Fields.Page = PrintedPage(page > 0 ? page : _result?.Pages.Count ?? 0);
         Fields.TotalPages = _totalPages > 0 ? _totalPages : Pagination?.TotalPages ?? 0;
         Fields.Section = section > 0 ? section : _sectionOrdinal;
         Fields.SectionPages = section > 0
@@ -1971,6 +1986,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         return value ?? field.CachedText;
+    }
+
+    /// <summary>
+    /// The number a page is printed as, given its place in the document. The pass before this one
+    /// worked it out for every page; on a first pass, where only the pages made so far exist, the
+    /// page itself is asked.
+    /// </summary>
+    private int PrintedPage(int page)
+    {
+        if (page <= 0) return 0;
+        if (Pagination is not null) return Pagination.PrintedPage(page);
+
+        return _result is not null && page <= _result.Pages.Count ? _result.Pages[page - 1].PageNumber : page;
     }
 
     /// <summary>
@@ -2048,7 +2076,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (index >= 0) notes[id] = index + 1;
         }
 
-        return new FieldPagination(result.Pages.Count, pages, sections, counts, headings, marks, notes);
+        var printed = result.Pages.Select(page => page.PageNumber).ToList();
+
+        return new FieldPagination(
+            result.Pages.Count, pages, sections, counts, headings, marks, notes, printed);
     }
 
     // ----- tables -----
@@ -2839,12 +2870,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     private LaidOutPage NewPage(LaidOutDocument document, SectionProperties section)
     {
+        // A section may begin its numbering again, which the first page of it takes up; every
+        // other page carries on from the page before, whatever section it is in.
+        _printedPage = _pendingPageNumber ?? _printedPage + 1;
+        _pendingPageNumber = null;
+
         var page = new LaidOutPage
         {
             WidthPoints = section.PageWidthPoints,
             HeightPoints = section.PageHeightPoints,
             Section = section,
-            IndexInSection = _pagesInSection++
+            IndexInSection = _pagesInSection++,
+            PageNumber = _printedPage
         };
 
         document.Pages.Add(page);
