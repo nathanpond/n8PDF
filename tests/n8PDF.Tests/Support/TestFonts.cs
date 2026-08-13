@@ -21,6 +21,12 @@ public static class TestFonts
     /// <summary>A font collection, for exercising the <c>.ttc</c> path.</summary>
     public const string HelveticaCollectionPath = "/System/Library/Fonts/Helvetica.ttc";
 
+    /// <summary>
+    /// A face with Hebrew and no Latin whatever, which is what makes it worth pinning: it is the
+    /// case a document meets when it asks one font for two scripts.
+    /// </summary>
+    public const string ArialHebrewPath = "/System/Library/Fonts/ArialHB.ttc";
+
     public static bool Exists(string path) => File.Exists(path);
 
     public static TrueTypeFont Load(string path)
@@ -40,7 +46,7 @@ public static class TestFonts
         foreach (var path in new[]
                  {
                      TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath,
-                     ArialPath, CalibriPath, CalibriBoldPath
+                     ArialPath, CalibriPath, CalibriBoldPath, ArialHebrewPath
                  })
         {
             if (File.Exists(path)) library.RegisterFile(path);

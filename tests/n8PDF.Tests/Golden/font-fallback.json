@@ -1,0 +1,70 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 278.924, "font": "Times New Roman", "size": 12, "text": "Times New Roman, which has the Latin and the Hebrew: "},
+            {"x": 350.924, "width": 21.938, "font": "Times New Roman", "size": 12, "text": "םולש"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.225,
+          "height": 15.446,
+          "runs": [
+            {"x": 72, "width": 22.383, "font": "Calibri", "size": 12, "text": "Arial"},
+            {"x": 94.383, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 97.719, "width": 38.484, "font": "Calibri", "size": 12, "text": "Hebrew"},
+            {"x": 136.203, "width": 5.892, "font": "Arial Hebrew", "size": 12, "text": ", "},
+            {"x": 142.095, "width": 29.016, "font": "Calibri", "size": 12, "text": "which"},
+            {"x": 171.111, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 174.447, "width": 16.746, "font": "Calibri", "size": 12, "text": "has"},
+            {"x": 191.193, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 194.529, "width": 12.633, "font": "Calibri", "size": 12, "text": "no"},
+            {"x": 207.162, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 210.498, "width": 23.871, "font": "Calibri", "size": 12, "text": "Latin"},
+            {"x": 234.369, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 237.705, "width": 9.768, "font": "Calibri", "size": 12, "text": "at"},
+            {"x": 247.472, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 250.808, "width": 11.256, "font": "Calibri", "size": 12, "text": "all"},
+            {"x": 262.064, "width": 6.18, "font": "Arial Hebrew", "size": 12, "text": ": "},
+            {"x": 268.244, "width": 24.036, "font": "Arial Hebrew", "size": 12, "text": "םולש"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 112.67,
+          "height": 15.446,
+          "runs": [
+            {"x": 72, "width": 44.789, "font": "Calibri", "size": 12, "text": "Numbers"},
+            {"x": 116.789, "width": 30.096, "font": "Arial Hebrew", "size": 12, "text": " 8601 "},
+            {"x": 146.885, "width": 18.357, "font": "Calibri", "size": 12, "text": "and"},
+            {"x": 165.242, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 168.578, "width": 59.467, "font": "Calibri", "size": 12, "text": "punctuation"},
+            {"x": 228.045, "width": 5.892, "font": "Arial Hebrew", "size": 12, "text": ", "},
+            {"x": 233.937, "width": 9.059, "font": "Calibri", "size": 12, "text": "in"},
+            {"x": 242.996, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 246.332, "width": 5.748, "font": "Calibri", "size": 12, "text": "a"},
+            {"x": 252.08, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 255.416, "width": 20.455, "font": "Calibri", "size": 12, "text": "face"},
+            {"x": 275.871, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 279.207, "width": 21.656, "font": "Calibri", "size": 12, "text": "with"},
+            {"x": 300.863, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 304.199, "width": 12.633, "font": "Calibri", "size": 12, "text": "no"},
+            {"x": 316.832, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
+            {"x": 320.168, "width": 23.871, "font": "Calibri", "size": 12, "text": "Latin"},
+            {"x": 344.039, "width": 6.18, "font": "Arial Hebrew", "size": 12, "text": ": "},
+            {"x": 350.219, "width": 24.036, "font": "Arial Hebrew", "size": 12, "text": "םולש"}
+          ]
+        }
+      ]
+    }
+  ]
+}

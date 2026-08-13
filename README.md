@@ -545,9 +545,8 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is the rest of what a right-to-left document needs — choosing a font per
-character where the run's own has no glyph, and placing marks by the font's own rules — and the
-scripts that join or reorder their letters: Arabic, and the Indic and South-East Asian families.
+remains elsewhere is placing marks by the font's own rules, and the scripts that join or reorder
+their letters: Arabic, and the Indic and South-East Asian families.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -589,10 +588,26 @@ the two the other way round, so the text this reader recovers from Word's file i
 text Word drew. The drawn order is checked instead against the algorithm's own answer, and that is
 checked against another implementation of the standard.
 
-Two things a Hebrew document needs are not here yet. A font is not chosen per character, so a run
-set in a face that has no Hebrew — or, as with Arial Hebrew, no Latin — draws nothing for what the
-face lacks rather than borrowing a glyph from elsewhere. And the vowel points are placed by their
-own advances rather than by the font's mark positioning, which unpointed Hebrew never asks for and
+A font is chosen per character rather than per run, because most fonts hold very few of the
+characters there are: Arial Hebrew has no Latin letters at all, Times New Roman has no Japanese,
+and a document written in Hebrew with an English name in it names one font for both. Asked for a
+character its face has not got, the run is set in two — the rest of it where it was, and that
+character in a face that can draw it. A converter that does not do this loses text the document
+plainly holds, without failing and without saying so.
+
+Which face is borrowed is a matter of taste rather than of correctness, and the taste is the
+document's: the substitution chain a missing family already walks is walked again, and only where
+none of those can draw it is everything else tried, in a fixed order so that two machines holding
+the same fonts do not disagree. Where nothing at all can draw it the run keeps its own face; the
+document is then short of a glyph, which is the truth, rather than short of a page.
+
+That is also why `font-fallback` is compared to Word on where its text goes rather than on how wide
+it is. The lines begin exactly where Word begins them, and every character a font could not draw is
+on the page; the borrowed faces are not the same width as Word's, because Word's choice is its own
+and not discoverable from the document.
+
+One thing a Hebrew document needs is still missing: the vowel points are placed by their own
+advances rather than by the font's mark positioning, which unpointed Hebrew never asks for and
 pointed Hebrew does.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it

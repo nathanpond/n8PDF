@@ -1079,6 +1079,33 @@ public static class Fixtures
                 return builder;
             },
 
+            // Text set in a face that cannot draw all of it. Arial Hebrew has no Latin letters at
+            // all and Times New Roman has no Japanese, so each line here asks its font for
+            // something the font has not got, and what is measured is that the text arrives.
+            ["font-fallback"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string family, string text)
+                {
+                    var run = $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
+                        "<w:sz w:val=\"24\"/>";
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{run}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                // The fonts these tests pin are Latin faces and Arial Hebrew, so what can be
+                // shown here is a face borrowed for the Latin. A face borrowed for a script none
+                // of the pinned fonts has would depend on what the machine happens to hold.
+                Line("Times New Roman", "Times New Roman, which has the Latin and the Hebrew: שלום");
+                Line("Arial Hebrew", "Arial Hebrew, which has no Latin at all: שלום");
+                Line("Arial Hebrew", "Numbers 8601 and punctuation, in a face with no Latin: שלום");
+
+                return builder;
+            },
+
             // A section of columns that ends part way down a page, which Word evens out rather
             // than filling the first column and leaving the last short. Three cases at once: a
             // section closed by a continuous break, one closed by a break to a new page, and one

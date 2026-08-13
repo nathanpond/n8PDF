@@ -140,6 +140,51 @@ public sealed class FontLibrary
         return false;
     }
 
+    /// <summary>
+    /// A face that can draw a character, preferring the one already chosen for the run.
+    /// </summary>
+    /// <remarks>
+    /// A font is not obliged to hold every character, and most hold very few: Arial Hebrew has no
+    /// Latin letters at all, and Times New Roman has no Chinese. Asked to set a character its own
+    /// face has no glyph for, a converter that does nothing about it draws the empty box every
+    /// font keeps at glyph zero — or, worse, nothing at all — and the document quietly loses text
+    /// it plainly holds. So another face is found for that character and the run is set in two.
+    ///
+    /// Which face is a matter of taste rather than of correctness, and the taste here is the
+    /// document's: the substitution chain a missing family already walks is walked again, so a
+    /// document whose text is Calibri and whose Hebrew is not borrows the Hebrew from whatever
+    /// stands next in that chain. Only where none of them can draw it is everything else tried,
+    /// and then in a fixed order, so that the same document does not come out differently on two
+    /// machines with the same fonts installed in a different order.
+    /// </remarks>
+    public FontSelection? ResolveForCharacter(int codePoint, FontSelection preferred, bool bold, bool italic)
+    {
+        if (Covers(preferred.Font, codePoint)) return preferred;
+
+        if (UseSystemFonts) EnsureSystemFontsLoaded();
+
+        foreach (var family in FallbackFamilies)
+        {
+            if (!TryResolveExactFamily(family, bold, italic, out var candidate)) continue;
+            if (Covers(candidate.Font, codePoint)) return candidate;
+        }
+
+        lock (_gate)
+        {
+            var ordered = _all
+                .Where(font => Covers(font, codePoint))
+                .OrderBy(font => font.FamilyName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (ordered.Count > 0) return Select(ordered, bold, italic);
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether a face has a glyph of its own for a character.</summary>
+    private static bool Covers(TrueTypeFont font, int codePoint) => font.GetGlyphIndex(codePoint) != 0;
+
     private bool TryResolveExactFamily(string familyName, bool bold, bool italic, out FontSelection selection)
     {
         selection = null!;

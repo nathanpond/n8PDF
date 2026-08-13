@@ -88,6 +88,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private EndnotePosition _endnotePosition;
 
     /// <summary>Notes already laid out, by the note and the measure it was set to.</summary>
+    /// <summary>
+    /// The face borrowed for a character its run's own cannot draw, asked once for each, and null
+    /// where the run's own face draws it — which is nearly always.
+    /// </summary>
+    private readonly Dictionary<(TrueTypeFont Font, int CodePoint, bool Bold, bool Italic), FontSelection?> _faces = [];
+
     private readonly Dictionary<(int Id, double Width), DetachedFlow> _measuredFootnotes = [];
 
     /// <summary>The separators, by kind and measure.</summary>
@@ -3553,7 +3559,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (current is not null &&
                 current.Level == textAtom.Level &&
                 ReferenceEquals(current.Format, textAtom.Format) &&
-                ReferenceEquals(current.Font, textAtom.Font) &&
+                Equals(current.Font, textAtom.Font) &&
                 Equals(current.Link, textAtom.Link) &&
                 Math.Abs(current.X + current.Width - (indentLeft + offset + pen)) < 0.001)
             {
@@ -4170,6 +4176,46 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// the break opportunities and the things justification stretches.
     /// </summary>
     /// <summary>
+    /// The face that draws a character: the run's own where it can, and another where it cannot.
+    /// </summary>
+    /// <remarks>
+    /// Cached, since the answer depends only on the character and the face asked for and the same
+    /// question is asked of every character of every document.
+    /// </remarks>
+    private FontSelection FaceFor(string text, int index, ResolvedRunFormat format, FontSelection font)
+    {
+        int codePoint = text[index];
+
+        if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length &&
+            char.IsLowSurrogate(text[index + 1]))
+        {
+            codePoint = char.ConvertToUtf32(text[index], text[index + 1]);
+        }
+        else if (char.IsLowSurrogate(text[index]) && index > 0 && char.IsHighSurrogate(text[index - 1]))
+        {
+            codePoint = char.ConvertToUtf32(text[index - 1], text[index]);
+        }
+
+        // A space is drawn by nothing and measured by everything, so it stays with the run rather
+        // than dragging a borrowed face into the middle of a word.
+        if (codePoint == ' ') return font;
+
+        // What is remembered is the answer, not the face that gave it: two runs of one family are
+        // two selections of one font, and handing the second run the first one's would split every
+        // word at the characters the first had already asked about.
+        var key = (font.Font, codePoint, format.Bold, format.Italic);
+
+        if (!_faces.TryGetValue(key, out var borrowed))
+        {
+            var found = _fonts.ResolveForCharacter(codePoint, font, format.Bold, format.Italic);
+
+            _faces[key] = borrowed = found is null || ReferenceEquals(found, font) ? null : found;
+        }
+
+        return borrowed ?? font;
+    }
+
+    /// <summary>
     /// Which way each character of a paragraph runs.
     /// </summary>
     /// <remarks>
@@ -4206,6 +4252,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var kerned = Kerned(format);
         var previous = '\0';
 
+        // Which face draws each character. Nearly always the run's own; where that face has no
+        // glyph for a character, another that has.
+        FontSelection FaceAt(int index) => FaceFor(text, index, format, font);
+
         byte LevelAt(int index) =>
             levels is not null && offset + index < levels.Length
                 ? levels[offset + index]
@@ -4217,12 +4267,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             var isSpace = text[index] == ' ';
             var start = index;
             var level = LevelAt(index);
+            var face = FaceAt(index);
 
             // A word is broken where the direction changes as well as at a space: what runs one
             // way and what runs the other are drawn in different places, so they cannot be one
-            // thing.
-            while (index < text.Length && (text[index] == ' ') == isSpace && LevelAt(index) == level)
+            // thing. It is broken where the face changes for the same reason — a run is set in
+            // one font, and a character its font cannot draw is set in another.
+            // The faces are compared by what they are rather than by which object they are: two
+            // borrowed faces of one family are two selections of one font, and a word set in a
+            // borrowed face would otherwise come apart at every character.
+            while (index < text.Length && (text[index] == ' ') == isSpace &&
+                   LevelAt(index) == level && Equals(FaceAt(index), face))
+            {
                 index++;
+            }
 
             var slice = text[start..index];
 
@@ -4239,21 +4297,30 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 : 0;
 
             previous = slice[^1];
+
+            // A borrowed face brings its own metrics: the line is as tall as what is drawn on it.
+            var box = format.LineBoxFontSizePoints;
+
+            var pieceAscent = Equals(face, font) ? ascent : TextMeasurer.GetAscent(face.Font, box);
+            var pieceHeight = Equals(face, font)
+                ? naturalHeight
+                : TextMeasurer.GetNaturalLineHeight(face.Font, box);
+
             atoms.Add(new TextAtom
             {
                 Text = slice,
                 Level = level,
                 IsSpace = isSpace,
                 Format = format,
-                Font = font,
-                Ascent = ascent,
-                NaturalHeight = naturalHeight,
-                Descent = descent,
+                Font = face,
+                Ascent = pieceAscent,
+                NaturalHeight = pieceHeight,
+                Descent = pieceHeight - pieceAscent,
                 Link = link,
                 Kerned = kerned,
                 LeadingKern = leadingKern,
                 Width = TextMeasurer.Measure(
-                    font.Font, slice, format.EffectiveFontSizePoints,
+                    face.Font, slice, format.EffectiveFontSizePoints,
                     format.CharacterSpacingPoints, kerned) * format.ScaleFactor + leadingKern
             });
         }

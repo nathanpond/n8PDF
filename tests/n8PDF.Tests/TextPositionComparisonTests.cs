@@ -76,7 +76,13 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// </remarks>
     private static readonly Dictionary<string, string> TextNotComparable = new()
     {
-        ["hebrew"] = "Word encodes a line of Hebrew as runs this reader cannot reassemble exactly"
+        ["hebrew"] = "Word encodes a line of Hebrew as runs this reader cannot reassemble exactly",
+
+        // And this one for a second reason as well: which face is borrowed for a character the
+        // run's own cannot draw is a choice rather than a fact, Word's is not discoverable, and
+        // the two are not the same width. Where the text goes is compared like any other fixture's
+        // and agrees exactly; how wide a borrowed face draws it is not something to hold Word to.
+        ["font-fallback"] = "the face borrowed for what a font cannot draw is a choice, and not Word's"
     };
 
     public static TheoryData<string> FixtureNames
