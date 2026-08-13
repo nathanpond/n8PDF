@@ -81,7 +81,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     // Endnote ids in the order their references appeared, which is the order they are written out
     // in at the end of the document.
-    private readonly List<int> _endnoteOrder = [];
+    /// <summary>The endnotes in reference order, and which section each was referred to from.</summary>
+    private readonly List<(int Id, int Section)> _endnoteOrder = [];
+
+    /// <summary>Where the endnotes are gathered, which the document says.</summary>
+    private EndnotePosition _endnotePosition;
 
     private readonly Dictionary<int, DetachedFlow> _measuredFootnotes = [];
 
@@ -183,6 +187,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _endnotes = document.Endnotes;
         _decimalSymbol = string.IsNullOrEmpty(document.DecimalSymbol) ? "." : document.DecimalSymbol;
         _footnoteFormat = document.FootnoteNumberFormat;
+        _endnotePosition = document.EndnotePosition;
         _endnoteFormat = document.EndnoteNumberFormat;
         _footnoteLabels.Clear();
         _endnoteLabels.Clear();
@@ -248,6 +253,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             if (index > 0) StartSection(cursor, sections[index].Section);
             LayoutBlocks(cursor, sections[index].Blocks);
+
+            // A document that gathers its endnotes by section writes each group where that section
+            // stops, which is before the break that opens the next one.
+            if (_endnotePosition == EndnotePosition.SectionEnd) LayoutEndnotes(cursor, _sectionOrdinal);
         }
 
         // Endnotes follow the body in ordinary flow, so they are laid out through the same cursor
@@ -1527,14 +1536,26 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// cursor is what gives them that, and it also keeps them clear of any footnote area on the
     /// page they land on.
     /// </remarks>
-    private void LayoutEndnotes(Cursor cursor)
+    /// <param name="section">
+    /// The section whose notes to write, or null for all of them that are left. A document may ask
+    /// for each section's own at the end of it, which is where a book puts the notes of a chapter,
+    /// and then each group is written where that section stops — before the break that opens the
+    /// next one, so they belong to the pages of the section they came from.
+    /// </param>
+    private void LayoutEndnotes(Cursor cursor, int? section = null)
     {
-        if (_endnoteOrder.Count == 0) return;
+        var ids = _endnoteOrder
+            .Where(entry => section is null || entry.Section == section)
+            .Select(entry => entry.Id)
+            .ToList();
 
+        if (ids.Count == 0) return;
+
+        // Each group is introduced by the separator, as Word draws one above every one of them.
         if (_endnotes.Values.FirstOrDefault(n => n.Type == "separator") is { } separator)
             LayoutBlocks(cursor, separator.Body);
 
-        foreach (var id in _endnoteOrder)
+        foreach (var id in ids)
         {
             if (!_endnotes.TryGetValue(id, out var note)) continue;
 
@@ -1543,6 +1564,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         _currentNoteLabel = null;
+
+        _endnoteOrder.RemoveAll(entry => ids.Contains(entry.Id));
     }
 
     /// <summary>
@@ -3702,7 +3725,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 NextNoteNumber(footnote, reference.Id), footnote ? _footnoteFormat : _endnoteFormat);
 
             labels[reference.Id] = text;
-            if (!footnote) _endnoteOrder.Add(reference.Id);
+            if (!footnote) _endnoteOrder.Add((reference.Id, _sectionOrdinal));
         }
 
         atoms.Add(new TextAtom

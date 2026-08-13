@@ -153,6 +153,95 @@ public class EndnoteTests
         Assert.Equal("1 The note.", lines[^1]);
     }
 
+    // ----- gathered by section rather than by document -----
+
+    /// <summary>
+    /// A document of two sections, each with a note, and a page break between them.
+    /// </summary>
+    private static DocxBuilder TwoSections(bool bySection, bool inTheSectionsOnly = false)
+    {
+        var position = bySection ? "sectEnd" : null;
+
+        var builder = new DocxBuilder()
+            .WithSection(DocxBuilder.Section(endnotePosition: position));
+
+        if (bySection && !inTheSectionsOnly) builder.WithEndnotePosition("sectEnd");
+
+        var first = builder.AddEndnote(DocxBuilder.EndnoteBody("The first section's note.", Times10));
+
+        builder.AddRawParagraph(
+            "<w:p>" + Run("A paragraph of the first section") +
+            DocxBuilder.EndnoteReference(first) + Run(".") + "</w:p>");
+
+        builder.AddParagraphWithSectionBreak(
+            "The last paragraph of the first section.",
+            DocxBuilder.Section(type: "nextPage", endnotePosition: position));
+
+        var second = builder.AddEndnote(DocxBuilder.EndnoteBody("The second section's note.", Times10));
+
+        return builder.AddRawParagraph(
+            "<w:p>" + Run("A paragraph of the second section") +
+            DocxBuilder.EndnoteReference(second) + Run(".") + "</w:p>");
+    }
+
+    /// <summary>
+    /// A document may gather each section's endnotes at the end of that section rather than all of
+    /// them at the end of itself, which is what a book of chapters does with them.
+    /// </summary>
+    [Fact]
+    public void Notes_are_gathered_at_the_end_of_each_section_where_the_document_asks()
+    {
+        var layout = LayoutOf(TwoSections(bySection: true));
+
+        Assert.Equal(2, layout.Pages.Count);
+
+        var first = LinesOf(layout.Pages[0]);
+        var second = LinesOf(layout.Pages[1]);
+
+        // Each section's note is on the section's own page, after its last paragraph.
+        Assert.Contains(first, line => line.Contains("The first section's note."));
+        Assert.DoesNotContain(first, line => line.Contains("The second section's note."));
+
+        Assert.Contains(second, line => line.Contains("The second section's note."));
+        Assert.DoesNotContain(second, line => line.Contains("The first section's note."));
+
+        // And the first section's note comes after the text of that section, not before it.
+        Assert.True(
+            first.FindIndex(line => line.Contains("The first section's note.")) >
+            first.FindIndex(line => line.StartsWith("The last paragraph")),
+            "the note was written before the text it belongs after");
+    }
+
+    /// <summary>And a document that says nothing gathers all of them at its own end.</summary>
+    [Fact]
+    public void Notes_are_gathered_at_the_end_of_the_document_by_default()
+    {
+        var layout = LayoutOf(TwoSections(bySection: false));
+
+        var last = LinesOf(layout.Pages[^1]);
+
+        Assert.Contains(last, line => line.Contains("The first section's note."));
+        Assert.Contains(last, line => line.Contains("The second section's note."));
+    }
+
+    /// <summary>
+    /// Word reads this from the settings part and not from the section, which is the other way
+    /// round from everything else about how a note is set. A document stating it in its sections
+    /// alone is gathered at the end regardless — measured, not assumed: Word's export of a
+    /// document written that way has all its notes at the end, and Word's own writer puts the
+    /// setting in both places.
+    /// </summary>
+    [Fact]
+    public void A_position_stated_only_in_the_sections_is_ignored_the_way_word_ignores_it()
+    {
+        var layout = LayoutOf(TwoSections(bySection: true, inTheSectionsOnly: true));
+
+        var last = LinesOf(layout.Pages[^1]);
+
+        Assert.Contains(last, line => line.Contains("The first section's note."));
+        Assert.Contains(last, line => line.Contains("The second section's note."));
+    }
+
     [Fact]
     public void Reference_to_a_missing_endnote_draws_nothing()
     {

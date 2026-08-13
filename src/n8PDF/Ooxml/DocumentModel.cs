@@ -114,6 +114,16 @@ public enum NotePosition
     BeneathText
 }
 
+/// <summary>Where a document gathers its endnotes, from <c>w:pos</c>.</summary>
+public enum EndnotePosition
+{
+    /// <summary>All of them after the body, which is what a document means by default.</summary>
+    DocumentEnd,
+
+    /// <summary>Each section's own at the end of it, before the next section begins.</summary>
+    SectionEnd
+}
+
 /// <summary>How often a document begins its note numbering again, from <c>w:numRestart</c>.</summary>
 public enum NoteNumberRestart
 {
@@ -581,6 +591,13 @@ public sealed class WordDocument
     public string DecimalSymbol { get; set; } = ".";
 
     public NumberFormat FootnoteNumberFormat { get; set; } = NumberFormat.Decimal;
+
+    /// <summary>
+    /// Where the endnotes are gathered. Unlike everything else about how a note is set, Word reads
+    /// this from the settings part rather than from the section: a document asking for it in its
+    /// sections alone is gathered at the end regardless, which was measured rather than assumed.
+    /// </summary>
+    public EndnotePosition EndnotePosition { get; set; } = EndnotePosition.DocumentEnd;
 
     public NumberFormat EndnoteNumberFormat { get; set; } = NumberFormat.LowerRoman;
 

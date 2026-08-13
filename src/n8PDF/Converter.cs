@@ -157,6 +157,11 @@ public static class Converter
 
             if (DocumentParser.ReadNoteNumberFormat(settings, NoteKind.Endnote) is { } endnoteFormat)
                 document.EndnoteNumberFormat = endnoteFormat;
+
+            // Where the endnotes are gathered is the one thing about a note Word takes from here
+            // rather than from the section.
+            if (DocumentParser.ReadEndnotePosition(settings) is { } endnotePosition)
+                document.EndnotePosition = endnotePosition;
         }
 
         if (document.Section.FootnoteNumberFormat is { } sectionFootnotes)

@@ -166,7 +166,8 @@ page or in every section where the section asks for it; a footnote goes to the f
 reference lands on — or under the last line of text on it, where the section asks for that — and
 takes that space out of the body above it, dividing between that page and
 the next where it is too long for the room left under it, an endnote carries on after the
-body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
+body like ordinary content — or after each section where the document asks for that — and both are
+ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
 anywhere in the document, with the regions placed and padded the way Word places them), headers
 and footers (per page, with separate first-page and even-page variants, and
 fields evaluated), fields — page numbers (PAGE, NUMPAGES, SECTION,
@@ -487,6 +488,19 @@ the other fixture puts one where there is no room left at all, and Word still ke
 carries the whole note to the next page under the wide rule. This used to move the line instead,
 which is the obvious way to keep a note with its reference and moves body text Word leaves alone.
 
+Endnotes gather at the end of the document, or at the end of each section where the document asks
+for it, which is what a book of chapters does with them. Each group is written where its section
+stops, before the break that opens the next one, so the notes of a chapter belong to the pages of
+that chapter.
+
+Where the instruction lives is the reverse of everywhere else, and cost a fixture to find out.
+Every other thing about how a note is set is read from the section; this one Word reads from the
+settings part and nowhere else. A document asking for it in its sections alone — which is what the
+format's own reading suggests, and what this fixture was written as — comes back from Word with
+every note at the end regardless. Word's own writer puts it in both places, which is what says
+which of them it believes: setting the option through Word itself and reading back what it wrote is
+how that was settled.
+
 Where a document numbers its notes again from the beginning, two things had to be measured rather
 than read. The first is where the instruction lives: the format allows it in the settings, as a
 default for the whole document, and in each section's properties. Word reads only the section. A
@@ -503,8 +517,7 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is endnotes gathered at the end of
-each section rather than of the document, RTL and complex
+remains elsewhere is RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to
 them rather than under the whole measure, and page numbering restarted per section.
 

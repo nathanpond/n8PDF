@@ -366,6 +366,17 @@ public static class DocumentParser
         return value is null ? null : NumberingParser.ParseNumberFormat(value);
     }
 
+    /// <summary>Reads where the endnotes are gathered, from <c>w:pos</c>.</summary>
+    public static EndnotePosition? ReadEndnotePosition(XElement? container)
+    {
+        return container?.Element(W.Main + "endnotePr")?.Element(W.Main + "pos")?.Attr("val") switch
+        {
+            "sectEnd" => EndnotePosition.SectionEnd,
+            "docEnd" => EndnotePosition.DocumentEnd,
+            _ => null
+        };
+    }
+
     /// <summary>Reads where a page's footnotes are set, from <c>w:pos</c>.</summary>
     public static NotePosition? ReadNotePosition(XElement? container)
     {

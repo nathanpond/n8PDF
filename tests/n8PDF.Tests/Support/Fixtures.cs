@@ -1944,6 +1944,58 @@ public static class Fixtures
                 return builder.AddParagraph("Body paragraph 46 of forty-six.", ZeroSpacing, Times12);
             },
 
+            // Endnotes gathered at the end of each section rather than of the document, which the
+            // section asks for with w:pos. Two sections, each with two notes and each short enough
+            // that where its notes go is unmistakable.
+            ["endnote-section-end"] = () =>
+            {
+                // Word writes this in both places and reads it from the settings, so the fixture
+                // is written the way Word writes one.
+                var builder = new DocxBuilder()
+                    .WithEndnotePosition("sectEnd")
+                    .WithSection(DocxBuilder.Section(endnotePosition: "sectEnd"));
+
+                var note = 0;
+
+                string WithNote(int i, int id) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph {i}, with a note</w:t></w:r>" +
+                    DocxBuilder.EndnoteReference(id) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>";
+
+                for (var i = 1; i <= 4; i++)
+                {
+                    if (i is 2 or 4)
+                    {
+                        builder.AddRawParagraph(WithNote(i,
+                            builder.AddEndnote(DocxBuilder.EndnoteBody($"Note {++note}, of the first section.", Times10))));
+
+                        continue;
+                    }
+
+                    builder.AddParagraph($"Body paragraph {i} of the first section.", ZeroSpacing, Times12);
+                }
+
+                builder.AddParagraphWithSectionBreak(
+                    "The last paragraph of the first section.",
+                    DocxBuilder.Section(type: "nextPage", endnotePosition: "sectEnd"), ZeroSpacing, Times12);
+
+                for (var i = 1; i <= 4; i++)
+                {
+                    if (i is 2 or 4)
+                    {
+                        builder.AddRawParagraph(WithNote(i + 10,
+                            builder.AddEndnote(DocxBuilder.EndnoteBody($"Note {++note}, of the second section.", Times10))));
+
+                        continue;
+                    }
+
+                    builder.AddParagraph($"Body paragraph {i + 10} of the second section.", ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
+
             // Notes numbered again from one on every page, which is what a document of many notes
             // a page usually asks for. What is measured is which page a note counts as being on,
             // since a reference near a page's edge may be moved by the line that carries it.

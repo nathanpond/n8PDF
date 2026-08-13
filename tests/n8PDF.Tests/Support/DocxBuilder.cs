@@ -219,7 +219,7 @@ public sealed class DocxBuilder
         int columns = 1, int columnSpaceTwips = 720, bool columnSeparator = false,
         IReadOnlyList<(int Width, int Space)>? columnWidths = null,
         string? footnoteRestart = null, string? endnoteRestart = null,
-        string? footnotePosition = null)
+        string? footnotePosition = null, string? endnotePosition = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
 
@@ -229,9 +229,12 @@ public sealed class DocxBuilder
         var footnote = (footnotePosition is null ? string.Empty : $"<w:pos w:val=\"{footnotePosition}\"/>") +
             (footnoteRestart is null ? string.Empty : $"<w:numRestart w:val=\"{footnoteRestart}\"/>");
 
+        var endnote = (endnotePosition is null ? string.Empty : $"<w:pos w:val=\"{endnotePosition}\"/>") +
+            (endnoteRestart is null ? string.Empty : $"<w:numRestart w:val=\"{endnoteRestart}\"/>");
+
         var notes =
             (footnote.Length == 0 ? string.Empty : $"<w:footnotePr>{footnote}</w:footnotePr>") +
-            (endnoteRestart is null ? string.Empty : $"<w:endnotePr><w:numRestart w:val=\"{endnoteRestart}\"/></w:endnotePr>");
+            (endnote.Length == 0 ? string.Empty : $"<w:endnotePr>{endnote}</w:endnotePr>");
         var orientation = landscape ? " w:orient=\"landscape\"" : string.Empty;
 
         // References come before everything else in CT_SectPr, headers before footers.
@@ -594,6 +597,14 @@ public sealed class DocxBuilder
     private readonly List<string> _settings = [];
 
     /// <summary>
+    /// What goes inside the settings part's own note properties, which come before everything else
+    /// in it and in that order: footnotes then endnotes.
+    /// </summary>
+    private readonly List<string> _footnoteSettings = [];
+
+    private readonly List<string> _endnoteSettings = [];
+
+    /// <summary>
     /// Adds a header or footer part and references it from the section.
     /// </summary>
     /// <param name="kind">"default", "first" or "even".</param>
@@ -652,12 +663,27 @@ public sealed class DocxBuilder
     /// </summary>
     public DocxBuilder WithNoteNumbering(string kind, string restart)
     {
-        // The settings part wants these in schema order, and both note elements come before
-        // evenAndOddHeaders.
-        _settings.Insert(0, $"<w:{kind}Pr><w:numRestart w:val=\"{restart}\"/></w:{kind}Pr>");
+        (kind == "footnote" ? _footnoteSettings : _endnoteSettings)
+            .Add($"<w:numRestart w:val=\"{restart}\"/>");
 
         return this;
     }
+
+    /// <summary>
+    /// Where the document's endnotes are gathered: <c>docEnd</c> or <c>sectEnd</c>. This one goes
+    /// in the settings part rather than the section, which is where Word writes it and — measured
+    /// rather than assumed — the only place it reads it from.
+    /// </summary>
+    public DocxBuilder WithEndnotePosition(string position)
+    {
+        _endnoteSettings.Add($"<w:pos w:val=\"{position}\"/>");
+
+        return this;
+    }
+
+    /// <summary>Whether anything asked for a settings part at all.</summary>
+    private bool HasSettings =>
+        _settings.Count > 0 || _footnoteSettings.Count > 0 || _endnoteSettings.Count > 0;
 
     /// <summary>A paragraph holding a simple field, with the value Word would have cached.</summary>
     public static string FieldParagraph(string instruction, string cachedText, string? runProperties = null) =>
@@ -753,7 +779,7 @@ public sealed class DocxBuilder
             if (_coreProperties is not null) Write(archive, "docProps/core.xml", _coreProperties);
             if (_appProperties is not null) Write(archive, "docProps/app.xml", _appProperties);
             if (_customProperties is not null) Write(archive, "docProps/custom.xml", _customProperties);
-            if (_settings.Count > 0) Write(archive, "word/settings.xml", BuildSettings());
+            if (HasSettings) Write(archive, "word/settings.xml", BuildSettings());
 
             if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildNotes("footnote", _footnotes));
             if (_endnotes.Count > 0) Write(archive, "word/endnotes.xml", BuildNotes("endnote", _endnotes));
@@ -842,6 +868,8 @@ public sealed class DocxBuilder
     private string BuildSettings() =>
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
         "<w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" +
+        (_footnoteSettings.Count > 0 ? $"<w:footnotePr>{string.Concat(_footnoteSettings)}</w:footnotePr>" : "") +
+        (_endnoteSettings.Count > 0 ? $"<w:endnotePr>{string.Concat(_endnoteSettings)}</w:endnotePr>" : "") +
         string.Concat(_settings) +
         "</w:settings>";
 
@@ -939,7 +967,7 @@ public sealed class DocxBuilder
                 $"ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.{kind}s+xml\"/>");
         }
 
-        if (_settings.Count > 0)
+        if (HasSettings)
         {
             defaults.Append(
                 "<Override PartName=\"/word/settings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>");
@@ -1041,7 +1069,7 @@ public sealed class DocxBuilder
                 $"Target=\"{Escape(url)}\" TargetMode=\"External\"/>");
         }
 
-        if (_settings.Count > 0)
+        if (HasSettings)
         {
             extra.Append(
                 "<Relationship Id=\"rIdSettings\" " +
