@@ -277,8 +277,17 @@ image filter is JPEG, so decoding and re-encoding it would cost quality for noth
 are unpacked to samples by decoders written here: a bitmap of one to thirty-two bits a pixel,
 written from the foot up or the top down and run-length packed or not; a GIF through its colour
 table, interlaced or not, with the colour it treats as transparent becoming the mask a PDF carries
-separately; a TIFF at either end, in grey, colour or a palette, its rows in strips packed with
-nothing, LZW, PackBits, Deflate or one of the fax encodings.
+separately; a TIFF at either end, in grey, colour or a palette, written in strips of rows or in
+tiles, with its channels together or each kept apart, packed with nothing, LZW, PackBits, Deflate
+or one of the fax encodings.
+
+The two layouts are the format's other way of dividing a picture up. Tiles are rectangles rather
+than rows, each written at the full size the tags declare however little of the picture it covers,
+so the ones along the right and the foot carry padding that has to be left behind. Kept apart, the
+channels are three pictures of one sample each rather than one picture of three, laid over one
+another at the end. Both were written and read back through `sips` as well as here, which is what
+said a tile's sides must be multiples of sixteen: it refused a file of eight-by-four tiles that
+this read quite happily.
 
 A fax is not written as pixels at all. A page of black on white is sent as the lengths of the runs
 its lines fall into, in a Huffman code the standard fixes rather than one built from the page — and
@@ -350,8 +359,8 @@ in the *fixture* rather than the reader: a metafile says how big it is twice ove
 declares and in the resolution of the device it was recorded for, and the test's writer had been
 writing the two at odds. Word believed one and this believed the other, and both were right.
 
-Not yet: nothing of what a document usually holds. What is left is tiled and planar TIFFs, JPEG
-carried inside a TIFF, and 16-bit PNG samples kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: nothing of what a document usually holds. What is left is JPEG carried inside a TIFF, and
+16-bit PNG samples kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

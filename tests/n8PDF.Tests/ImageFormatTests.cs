@@ -305,6 +305,109 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.Equal(0, Difference(expected.Data, actual));
     }
 
+    /// <summary>
+    /// A TIFF may be written in rectangles rather than in rows. Every tile is the full size the
+    /// tags declare however little of the picture it covers, so the ones at the right and the foot
+    /// carry padding that has to be left behind rather than read as pixels.
+    /// </summary>
+    [Fact]
+    public void A_tiled_tiff_is_put_back_together_from_its_tiles()
+    {
+        // Forty by thirty-six in tiles of sixteen is nine tiles, and neither edge divides evenly.
+        const int width = 40;
+        const int height = 36;
+
+        var pixels = ImageWriter.Pixels(width, height,
+            (x, y) => ((byte)(x * 6), (byte)(y * 7), (byte)((x ^ y) * 3)));
+
+        var image = ImageReader.Read(ImageWriter.TiledTiff(width, height, pixels, 16, 16));
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+        Assert.Equal(0, Difference(pixels, image));
+    }
+
+    /// <summary>
+    /// A TIFF may also keep its channels apart: three pictures of one sample each rather than one
+    /// picture of three, which have to be laid over one another to make pixels again.
+    /// </summary>
+    [Fact]
+    public void A_tiff_that_keeps_its_channels_apart_is_laid_back_together()
+    {
+        const int width = 11;
+        const int height = 9;
+
+        var pixels = ImageWriter.Pixels(width, height,
+            (x, y) => ((byte)(x * 20), (byte)(y * 25), (byte)((x + y) * 10)));
+
+        var image = ImageReader.Read(ImageWriter.PlanarTiff(width, height, pixels));
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+        Assert.Equal(0, Difference(pixels, image));
+    }
+
+    /// <summary>
+    /// And both again through another reader, which is what says the files are the format's rather
+    /// than this pair of routines' idea of it — a tile size that is not a multiple of sixteen is
+    /// a file the format does not allow, and the other reader is what says so.
+    /// </summary>
+    [Theory]
+    [InlineData("tiled")]
+    [InlineData("planar")]
+    public void A_tiff_of_either_layout_reads_the_same_to_another_reader(string layout)
+    {
+        const int width = 40;
+        const int height = 36;
+
+        var pixels = ImageWriter.Pixels(width, height,
+            (x, y) => ((byte)(x * 6), (byte)(y * 7), (byte)((x ^ y) * 3)));
+
+        var tiff = layout == "tiled"
+            ? ImageWriter.TiledTiff(width, height, pixels, 16, 16)
+            : ImageWriter.PlanarTiff(width, height, pixels);
+
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        Directory.CreateDirectory(directory);
+
+        var source = Path.Combine(directory, $"{layout}.tiff");
+        File.WriteAllBytes(source, tiff);
+
+        var converted = Path.Combine(directory, $"{layout}.png");
+        File.Delete(converted);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("sips",
+                ["-s", "format", "png", source, "--out", converted])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process?.WaitForExit(30_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            _output.WriteLine("sips was not found; the file was not read back by anything else.");
+            return;
+        }
+
+        if (!File.Exists(converted))
+        {
+            _output.WriteLine($"sips would not read the {layout} TIFF.");
+            return;
+        }
+
+        var theirs = PngDecoder.Decode(File.ReadAllBytes(converted));
+
+        _output.WriteLine($"{layout}: {tiff.Length:N0} bytes, read back as {theirs.Width}x{theirs.Height}");
+
+        Assert.Equal(width, theirs.Width);
+        Assert.Equal(height, theirs.Height);
+        Assert.Equal(0, Difference(pixels, theirs));
+    }
+
     // ----- the fax encodings -----
 
     /// <summary>

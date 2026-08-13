@@ -54,47 +54,53 @@ public static class TiffDecoder
         // the ones above them, and whether each begins on a byte.
         var faxOptions = (int)Value(reader, tags, compression == 4 ? 293 : 292, 0);
 
-        if (planar != 1)
-            throw new ImageFormatException("TIFF keeps its channels in separate planes, which is not handled.");
-
         if (bits is not (1 or 4 or 8 or 16))
             throw new ImageFormatException($"TIFF has {bits} bits a sample, which is not handled.");
 
-        var offsets = tags.TryGetValue(273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
-        var counts = tags.TryGetValue(279, out var countTag) ? Numbers(reader, countTag) : [];
+        // A TIFF keeps its channels together or apart. Apart, each is an image of one sample in
+        // its own right, and they are laid over one another at the end.
+        var planes = planar == 2 ? samples : 1;
+        var perPlane = planar == 2 ? 1 : samples;
 
-        if (offsets.Count == 0) throw new ImageFormatException("TIFF says where none of its pixels are.");
+        if (planar == 2 && bits < 8)
+            throw new ImageFormatException("TIFF keeps its channels apart and packs them, which is not handled.");
 
-        var rowBytes = (width * samples * bits + 7) / 8;
-        var raw = new byte[rowBytes * height];
-        var written = 0;
+        var tiled = tags.ContainsKey(322) && tags.ContainsKey(324);
 
-        for (var strip = 0; strip < offsets.Count && written < raw.Length; strip++)
+        var rowBytes = (width * perPlane * bits + 7) / 8;
+        var gathered = new byte[planes][];
+
+        for (var plane = 0; plane < planes; plane++)
         {
-            var offset = (int)offsets[strip];
-            var length = strip < counts.Count ? (int)counts[strip] : data.Length - offset;
+            gathered[plane] = tiled
+                ? Tiles(data, reader, tags, plane, width, height, perPlane, bits, rowBytes, Unpacker)
+                : Strips(data, reader, tags, plane, width, height, rowsPerStrip, perPlane, bits, rowBytes,
+                    Unpacker);
+        }
 
-            if (offset < 0 || offset >= data.Length) break;
+        var raw = planes == 1 ? gathered[0] : Interleave(gathered, width, height, samples, bits);
 
-            length = Math.Min(length, data.Length - offset);
+        // Laying the planes over one another makes the rows as long as they would have been had
+        // the channels been kept together in the first place.
+        if (planes > 1) rowBytes = width * samples * bits / 8;
 
-            var stripRows = Math.Min(rowsPerStrip, height - strip * rowsPerStrip);
-            if (stripRows <= 0) break;
-
+        // How a strip or a tile is unpacked, which is the same wherever it came from.
+        byte[] Unpacker(int offset, int length, int rows, int rowLength)
+        {
             var unpacked = compression is 2 or 3 or 4
                 ? CcittDecoder.Decode(
-                    data, offset, length, width, stripRows,
+                    data, offset, length, rowLength * 8 / Math.Max(1, perPlane * bits), rows,
                     twoDimensional: compression == 4 || (faxOptions & 1) != 0,
                     pureTwoDimensional: compression == 4,
                     byteAligned: compression == 2 || (faxOptions & 4) != 0)
-                : Unpack(data, offset, length, compression, rowBytes * stripRows);
+                : Unpack(data, offset, length, compression, rowLength * rows);
 
             if (fillOrder == 2) Reverse(unpacked);
-            if (predictor == 2) Undo(unpacked, width, samples, bits, rowBytes, stripRows);
 
-            var take = Math.Min(unpacked.Length, raw.Length - written);
-            Array.Copy(unpacked, 0, raw, written, take);
-            written += take;
+            if (predictor == 2)
+                Undo(unpacked, rowLength * 8 / Math.Max(1, perPlane * bits), perPlane, bits, rowLength, rows);
+
+            return unpacked;
         }
 
         var palette = photometric == 3 && tags.TryGetValue(320, out var mapTag)
@@ -171,6 +177,163 @@ public static class TiffDecoder
                 _ => tag.Offset
             }
             : fallback;
+
+    /// <summary>
+    /// Gathers one plane written in strips: runs of whole rows, each packed on its own.
+    /// </summary>
+    /// <remarks>
+    /// Where the channels are kept apart, every plane has a full set of strips of its own and they
+    /// follow one another, so a plane's strips begin where the planes before it left off.
+    /// </remarks>
+    private static byte[] Strips(
+        byte[] data, Reader reader, Dictionary<int, Tag> tags, int plane, int width, int height,
+        int rowsPerStrip, int perPlane, int bits, int rowBytes, Func<int, int, int, int, byte[]> unpack)
+    {
+        var offsets = tags.TryGetValue(273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
+        var counts = tags.TryGetValue(279, out var countTag) ? Numbers(reader, countTag) : [];
+
+        if (offsets.Count == 0) throw new ImageFormatException("TIFF says where none of its pixels are.");
+
+        var raw = new byte[rowBytes * height];
+        var perPlaneStrips = Math.Max(1, (height + rowsPerStrip - 1) / rowsPerStrip);
+        var written = 0;
+
+        for (var strip = 0; strip < perPlaneStrips && written < raw.Length; strip++)
+        {
+            var index = plane * perPlaneStrips + strip;
+            if (index >= offsets.Count) break;
+
+            var offset = (int)offsets[index];
+            if (offset < 0 || offset >= data.Length) break;
+
+            var length = Math.Min(
+                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset);
+
+            var rows = Math.Min(rowsPerStrip, height - strip * rowsPerStrip);
+            if (rows <= 0) break;
+
+            var unpacked = unpack(offset, length, rows, rowBytes);
+
+            var take = Math.Min(unpacked.Length, raw.Length - written);
+            Array.Copy(unpacked, 0, raw, written, take);
+            written += take;
+        }
+
+        return raw;
+    }
+
+    /// <summary>
+    /// Gathers one plane written in tiles: rectangles rather than rows, in reading order.
+    /// </summary>
+    /// <remarks>
+    /// Every tile is the full size the tags declare however little of the picture it covers, so a
+    /// tile at the right or the foot carries padding that is not part of the image and has to be
+    /// left behind rather than copied.
+    /// </remarks>
+    private static byte[] Tiles(
+        byte[] data, Reader reader, Dictionary<int, Tag> tags, int plane, int width, int height,
+        int perPlane, int bits, int rowBytes, Func<int, int, int, int, byte[]> unpack)
+    {
+        var tileWidth = (int)Value(reader, tags, 322, 0);
+        var tileHeight = (int)Value(reader, tags, 323, 0);
+
+        if (tileWidth <= 0 || tileHeight <= 0)
+            throw new ImageFormatException("TIFF is written in tiles of no size.");
+
+        var offsets = tags.TryGetValue(324, out var offsetTag) ? Numbers(reader, offsetTag) : [];
+        var counts = tags.TryGetValue(325, out var countTag) ? Numbers(reader, countTag) : [];
+
+        if (offsets.Count == 0) throw new ImageFormatException("TIFF says where none of its tiles are.");
+
+        var across = (width + tileWidth - 1) / tileWidth;
+        var down = (height + tileHeight - 1) / tileHeight;
+        var tileRowBytes = (tileWidth * perPlane * bits + 7) / 8;
+
+        var raw = new byte[rowBytes * height];
+
+        for (var row = 0; row < down; row++)
+        for (var column = 0; column < across; column++)
+        {
+            var index = plane * across * down + row * across + column;
+            if (index >= offsets.Count) continue;
+
+            var offset = (int)offsets[index];
+            if (offset < 0 || offset >= data.Length) continue;
+
+            var length = Math.Min(
+                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset);
+
+            var unpacked = unpack(offset, length, tileHeight, tileRowBytes);
+
+            // Only the part of the tile that is inside the picture.
+            var rows = Math.Min(tileHeight, height - row * tileHeight);
+            var columns = Math.Min(tileWidth, width - column * tileWidth);
+
+            for (var y = 0; y < rows; y++)
+            {
+                var from = y * tileRowBytes;
+                var to = (row * tileHeight + y) * rowBytes;
+
+                if (bits >= 8)
+                {
+                    var bytes = columns * perPlane * bits / 8;
+                    var at = column * tileWidth * perPlane * bits / 8;
+
+                    if (from + bytes <= unpacked.Length && to + at + bytes <= raw.Length)
+                        Array.Copy(unpacked, from, raw, to + at, bytes);
+
+                    continue;
+                }
+
+                // Packed samples do not begin on a byte where a tile does not, so they go across
+                // one at a time.
+                for (var x = 0; x < columns * perPlane; x++)
+                {
+                    var value = Sample(unpacked, from, x, bits);
+                    Put(raw, to, column * tileWidth * perPlane + x, bits, value);
+                }
+            }
+        }
+
+        return raw;
+    }
+
+    /// <summary>Writes one packed sample into a row.</summary>
+    private static void Put(byte[] raw, int rowStart, int index, int bits, int value)
+    {
+        var perByte = 8 / bits;
+        var at = rowStart + index / perByte;
+        if (at >= raw.Length) return;
+
+        var shift = 8 - bits * (index % perByte + 1);
+        var mask = ((1 << bits) - 1) << shift;
+
+        raw[at] = (byte)((raw[at] & ~mask) | ((value << shift) & mask));
+    }
+
+    /// <summary>
+    /// Lays the planes of an image over one another, so that what was one channel at a time
+    /// becomes one pixel at a time.
+    /// </summary>
+    private static byte[] Interleave(byte[][] planes, int width, int height, int samples, int bits)
+    {
+        var size = bits / 8;
+        var raw = new byte[width * height * samples * size];
+
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
+        for (var c = 0; c < samples; c++)
+        {
+            var from = (y * width + x) * size;
+            var to = ((y * width + x) * samples + c) * size;
+
+            if (c >= planes.Length || from + size > planes[c].Length) continue;
+
+            Array.Copy(planes[c], from, raw, to, size);
+        }
+
+        return raw;
+    }
 
     // ----- the pixels -----
 

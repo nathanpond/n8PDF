@@ -350,6 +350,161 @@ public static class ImageWriter
         return [.. file];
     }
 
+    /// <summary>
+    /// A TIFF written in tiles rather than in strips: rectangles in reading order, each the full
+    /// tile size however little of the picture it covers.
+    /// </summary>
+    public static byte[] TiledTiff(int width, int height, byte[] pixels, int tileWidth, int tileHeight)
+    {
+        var across = (width + tileWidth - 1) / tileWidth;
+        var down = (height + tileHeight - 1) / tileHeight;
+        var tileBytes = tileWidth * tileHeight * 3;
+
+        var body = new List<byte>();
+        var offsets = new List<int>();
+
+        for (var row = 0; row < down; row++)
+        for (var column = 0; column < across; column++)
+        {
+            offsets.Add(body.Count);
+
+            // The whole tile is written, the part past the edge of the picture included.
+            for (var y = 0; y < tileHeight; y++)
+            for (var x = 0; x < tileWidth; x++)
+            {
+                var px = column * tileWidth + x;
+                var py = row * tileHeight + y;
+
+                if (px >= width || py >= height)
+                {
+                    body.AddRange([0, 0, 0]);
+                    continue;
+                }
+
+                var at = (py * width + px) * 3;
+                body.AddRange(pixels[at..(at + 3)]);
+            }
+        }
+
+        // The offsets and the counts are arrays of their own where there is more than one tile.
+        var tiles = offsets.Count;
+        var extra = new List<byte>();
+
+        var offsetsAt = 0;
+        var countsAt = 0;
+
+        return Assemble(
+            body, tiles,
+            tags: (pixelsAt, arraysAt) =>
+            {
+                offsetsAt = arraysAt;
+                countsAt = arraysAt + tiles * 4;
+
+                foreach (var offset in offsets) extra.AddRange(Number(pixelsAt + offset, 4, true));
+                for (var i = 0; i < tiles; i++) extra.AddRange(Number(tileBytes, 4, true));
+
+                return
+                [
+                    (256, 3, 1, width),
+                    (257, 3, 1, height),
+                    (258, 3, 1, 8),
+                    (259, 3, 1, 1),
+                    (262, 3, 1, 2),
+                    (277, 3, 1, 3),
+                    (284, 3, 1, 1),
+                    (322, 3, 1, tileWidth),
+                    (323, 3, 1, tileHeight),
+                    (324, 4, tiles, tiles == 1 ? pixelsAt + offsets[0] : offsetsAt),
+                    (325, 4, tiles, tiles == 1 ? tileBytes : countsAt)
+                ];
+            },
+            arrays: extra);
+    }
+
+    /// <summary>
+    /// A TIFF that keeps its channels apart: three images of one sample each, one after another,
+    /// rather than one image of three.
+    /// </summary>
+    public static byte[] PlanarTiff(int width, int height, byte[] pixels)
+    {
+        var body = new List<byte>();
+        var offsets = new List<int>();
+
+        for (var channel = 0; channel < 3; channel++)
+        {
+            offsets.Add(body.Count);
+
+            for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
+                body.Add(pixels[(y * width + x) * 3 + channel]);
+        }
+
+        var planeBytes = width * height;
+        var extra = new List<byte>();
+
+        return Assemble(
+            body, 3,
+            tags: (pixelsAt, arraysAt) =>
+            {
+                foreach (var offset in offsets) extra.AddRange(Number(pixelsAt + offset, 4, true));
+                for (var i = 0; i < 3; i++) extra.AddRange(Number(planeBytes, 4, true));
+
+                return
+                [
+                    (256, 3, 1, width),
+                    (257, 3, 1, height),
+                    (258, 3, 1, 8),
+                    (259, 3, 1, 1),
+                    (262, 3, 1, 2),
+                    (273, 4, 3, arraysAt),
+                    (277, 3, 1, 3),
+                    (278, 3, 1, height),
+                    (279, 4, 3, arraysAt + 12),
+                    (284, 3, 1, 2)
+                ];
+            },
+            arrays: extra);
+    }
+
+    /// <summary>
+    /// Puts a TIFF together: the pixels, then whatever arrays the tags point at, then the tags.
+    /// </summary>
+    private static byte[] Assemble(
+        List<byte> body, int count,
+        Func<int, int, List<(int Id, int Type, int Count, int Value)>> tags,
+        List<byte> arrays)
+    {
+        const int pixelsAt = 8;
+        var arraysAt = pixelsAt + body.Count;
+
+        var written = tags(pixelsAt, arraysAt);
+        var directoryAt = arraysAt + arrays.Count;
+
+        var file = new List<byte>();
+        file.AddRange("II"u8.ToArray());
+        file.AddRange(Number(42, 2, true));
+        file.AddRange(Number(directoryAt, 4, true));
+        file.AddRange(body);
+        file.AddRange(arrays);
+
+        file.AddRange(Number(written.Count, 2, true));
+
+        foreach (var (id, type, entries, value) in written)
+        {
+            file.AddRange(Number(id, 2, true));
+            file.AddRange(Number(type, 2, true));
+            file.AddRange(Number(entries, 4, true));
+
+            file.AddRange(type == 3 && entries == 1
+                ? [.. Number(value, 2, true), 0, 0]
+                : Number(value, 4, true));
+        }
+
+        file.AddRange(Number(0, 4, true));
+
+        return [.. file];
+    }
+
     private static byte[] PackBits(byte[] row)
     {
         var packed = new List<byte>();
