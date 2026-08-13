@@ -25,7 +25,7 @@ src/n8PDF/
   Ooxml/         WordprocessingML model and parsers, plus Units
   Styling/       the formatting cascade, producing Resolved*Format
   Fonts/         SFNT parsing, metrics, font resolution
-  Images/        PNG decoding and JPEG header reading
+  Images/        PNG, GIF, BMP, TIFF, EMF and JPEG decoding
   Layout/        measurement, line breaking, page composition, list counters
   Pdf/           object model, writer, content streams, Type0 font embedding
   Diagnostics/   LayoutTrace — the testing spine
@@ -159,8 +159,8 @@ its restart, repeat and format switches), references to a bookmark's text (REF),
 (QUOTE), and the clock (DATE, TIME) — each spelled the way its `\*` switch asks, in arabic, roman,
 letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or Caps, with a
 `\@` picture deciding how a date reads, lists and numbering (decimal, letters, roman and bullets, nested levels with
-independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched,
-transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
+independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
+form including progressive and arithmetic, where a TIFF holds one; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
 from `sectPr`, paragraphs and runs, `xml:space` handling,
@@ -396,17 +396,29 @@ once the last pass has been read. A progressive file is where a JPEG is most eas
 right: a pass misread leaves a picture that is still a picture, only softer or blockier than it
 should be. So these are tested against real ones rather than any this could write — macOS ships
 several, written by encoders that had no idea this existed — and read against its decoder they
-agree to three levels of 255, mean under a tenth, at sizes up to 2048 square. Arithmetic coding and
-four-channel files are reported rather than half-read.
+agree to three levels of 255, mean under a tenth, at sizes up to 2048 square. Four-channel files
+are reported rather than half-read.
+
+A JPEG may also be coded arithmetically rather than by code tables, which almost nothing writes —
+the method was patented for most of the format's life — but files exist and there is no reading
+round one. Nothing here recovers from a mistake: Huffman codes resynchronise at the next symbol,
+whereas an interval narrowed by the wrong probability is wrong for ever after, so a decoder of this
+is either right or produces noise. That makes it testable in a way little else is. Recoding a JPEG
+from one entropy coding to the other changes not one number in it, so the same picture is written
+both ways by an encoder that shares nothing with this, and the arithmetic file has to decode to
+what the ordinary one decodes to — not close to it, equal to it, sample for sample. It does, for
+the sequential and progressive forms, with and without restarts. Reading a whole picture correctly
+is not evidence that the hundred and thirteen probability states are right, it is proof of it,
+which is worth having: two columns of that table transposed reads eleven decisions correctly and
+then quietly falls apart.
 
 The older way of holding a JPEG is the only thing here with no second opinion behind it: `sips`
 will not read a file written that way at all, so what is tested is that the JPEG comes back, and no
 more than that.
 
-Not yet: for pictures, nothing a document holds. What is left of these formats is arithmetic-coded
-JPEGs, which almost nothing has ever written, and the four-channel files a printing press wants —
-and the one judgement call above, where a metafile carrying both kinds of records is drawn from the
-older ones., splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: for pictures, nothing a document holds. What is left of these formats is the four-channel
+files a printing press wants — and the one judgement call above, where a metafile carrying both
+kinds of records is drawn from the older ones., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

@@ -50,6 +50,12 @@ internal static class JpegDecoder
 
         public int Predictor;
 
+        /// <summary>
+        /// What the last difference of this channel came to, in the round terms the arithmetic
+        /// coder keeps: whether it was nothing, small or large, and which way.
+        /// </summary>
+        public int DifferenceContext;
+
         public byte[] Samples = [];
         public int Width;
         public int Height;
@@ -113,6 +119,18 @@ internal static class JpegDecoder
         private int _height;
         private int _restartInterval;
         private bool _progressive;
+        private bool _arithmetic;
+
+        // What the arithmetic coder has learned so far, kept apart for each table the scan names,
+        // and the conditioning the file asks for.
+        private readonly byte[][] _dcStatistics = [new byte[64], new byte[64], new byte[64], new byte[64]];
+        private readonly byte[][] _acStatistics = [new byte[256], new byte[256], new byte[256], new byte[256]];
+        // The context the coder never learns from, which is what a sign is weighed against.
+        private readonly byte[] _fixed = [JpegArithmetic.Fixed];
+        private readonly int[] _lowerBound = [0, 0, 0, 0];
+        private readonly int[] _upperBound = [1, 1, 1, 1];
+        private readonly int[] _blockBound = [5, 5, 5, 5];
+        private JpegArithmetic? _arithmeticReader;
         private int _mcusAcross;
         private int _mcusDown;
 
@@ -158,19 +176,30 @@ internal static class JpegDecoder
 
                     case 0xc0:
                     case 0xc1:
-                        ReadFrame(body, end, progressive: false);
+                        ReadFrame(body, end, progressive: false, arithmetic: false);
                         break;
 
                     case 0xc2:
-                        ReadFrame(body, end, progressive: true);
+                        ReadFrame(body, end, progressive: true, arithmetic: false);
+                        break;
+
+                    // The same two again, coded arithmetically rather than with tables.
+                    case 0xc9:
+                        ReadFrame(body, end, progressive: false, arithmetic: true);
+                        break;
+
+                    case 0xca:
+                        ReadFrame(body, end, progressive: true, arithmetic: true);
+                        break;
+
+                    case 0xcc:
+                        ReadConditioning(body, end);
                         break;
 
                     case 0xc3:
                     case 0xc5:
                     case 0xc6:
                     case 0xc7:
-                    case 0xc9:
-                    case 0xca:
                     case 0xcb:
                     case 0xcd:
                     case 0xce:
@@ -238,9 +267,36 @@ internal static class JpegDecoder
             }
         }
 
-        private void ReadFrame(int at, int end, bool progressive)
+        /// <summary>
+        /// What the arithmetic coder is to assume before it has seen anything: which differences
+        /// count as small, and how far into a block the finer waves begin.
+        /// </summary>
+        private void ReadConditioning(int at, int end)
+        {
+            while (at + 1 < end)
+            {
+                var kind = data[at] >> 4;
+                var id = data[at] & 3;
+                var value = data[at + 1];
+
+                if (kind == 0)
+                {
+                    _lowerBound[id] = value & 0x0f;
+                    _upperBound[id] = value >> 4;
+                }
+                else
+                {
+                    _blockBound[id] = value;
+                }
+
+                at += 2;
+            }
+        }
+
+        private void ReadFrame(int at, int end, bool progressive, bool arithmetic)
         {
             _progressive = progressive;
+            _arithmetic = arithmetic;
 
             _height = (data[at + 1] << 8) | data[at + 2];
             _width = (data[at + 3] << 8) | data[at + 4];
@@ -327,7 +383,23 @@ internal static class JpegDecoder
 
             var bits = new BitReader(data, end);
 
-            foreach (var component in scan) component.Predictor = 0;
+            if (_arithmetic)
+            {
+                _arithmeticReader = new JpegArithmetic(data, end);
+
+                // Every scan begins knowing nothing, whatever the one before it learned.
+                foreach (var statistics in _dcStatistics) Array.Clear(statistics);
+                foreach (var statistics in _acStatistics) Array.Clear(statistics);
+
+                _fixed[0] = JpegArithmetic.Fixed;
+            }
+
+            foreach (var component in scan)
+            {
+                component.Predictor = 0;
+                component.DifferenceContext = 0;
+            }
+
             _endOfBandRun = 0;
 
             var untilRestart = _restartInterval;
@@ -336,9 +408,25 @@ internal static class JpegDecoder
             {
                 if (_restartInterval <= 0 || untilRestart > 0) return;
 
-                bits.Restart();
+                if (_arithmetic)
+                {
+                    _arithmeticReader!.Restart();
 
-                foreach (var component in scan) component.Predictor = 0;
+                    foreach (var statistics in _dcStatistics) Array.Clear(statistics);
+                    foreach (var statistics in _acStatistics) Array.Clear(statistics);
+
+                    _fixed[0] = JpegArithmetic.Fixed;
+                }
+                else
+                {
+                    bits.Restart();
+                }
+
+                foreach (var component in scan)
+                {
+                    component.Predictor = 0;
+                    component.DifferenceContext = 0;
+                }
 
                 _endOfBandRun = 0;
                 untilRestart = _restartInterval;
@@ -384,7 +472,7 @@ internal static class JpegDecoder
                 }
             }
 
-            return bits.Position;
+            return _arithmetic ? _arithmeticReader!.Position : bits.Position;
         }
 
         /// <summary>
@@ -398,6 +486,12 @@ internal static class JpegDecoder
             var coefficients = component.Coefficients;
             if (block + 63 >= coefficients.Length) return;
 
+            if (_arithmetic)
+            {
+                ReadArithmeticBlock(component, coefficients, block, from, to, previous, point);
+                return;
+            }
+
             if (from == 0)
             {
                 if (previous == 0) ReadDc(bits, component, coefficients, block, point);
@@ -410,6 +504,213 @@ internal static class JpegDecoder
 
             if (previous == 0) ReadAc(bits, component, coefficients, block, from, to, point);
             else RefineAc(bits, component, coefficients, block, from, to, point);
+        }
+
+        /// <summary>
+        /// One block read arithmetically. Every number is a run of yes-or-no decisions, each
+        /// weighed against what the picture has already been seen to do — and each context has its
+        /// own statistics, so a decision about a coarse wave learns nothing from a fine one.
+        /// </summary>
+        private void ReadArithmeticBlock(
+            Component component, int[] coefficients, int block, int from, int to, int previous, int point)
+        {
+            var reader = _arithmeticReader!;
+
+            if (from == 0)
+            {
+                if (previous == 0) ReadArithmeticDc(reader, component, coefficients, block, point);
+                else if (reader.Decode(_fixed, 0) == 1) coefficients[block] |= 1 << point;
+
+                if (!_progressive) ReadArithmeticAc(reader, component, coefficients, block, 1, 63, 0);
+
+                return;
+            }
+
+            if (previous == 0) ReadArithmeticAc(reader, component, coefficients, block, from, to, point);
+            else RefineArithmeticAc(reader, component, coefficients, block, from, to, point);
+        }
+
+        /// <summary>
+        /// The flat part of a block: whether it differs from the block before at all, then which
+        /// way, then how large, then the number itself — each decision weighed against how the
+        /// last difference of this channel turned out.
+        /// </summary>
+        private void ReadArithmeticDc(
+            JpegArithmetic reader, Component component, int[] coefficients, int block, int point)
+        {
+            var table = component.DcTable & 3;
+            var statistics = _dcStatistics[table];
+            var context = component.DifferenceContext;
+
+            if (reader.Decode(statistics, context) == 0)
+            {
+                component.DifferenceContext = 0;
+                coefficients[block] = component.Predictor << point;
+
+                return;
+            }
+
+            var negative = reader.Decode(statistics, context + 1);
+            var at = context + 2 + negative;
+
+            var magnitude = reader.Decode(statistics, at);
+
+            if (magnitude != 0)
+            {
+                // How many bits the number takes, counted up one at a time.
+                at = 20;
+
+                while (reader.Decode(statistics, at) == 1)
+                {
+                    magnitude <<= 1;
+
+                    if (magnitude == 0x8000) throw new ImageFormatException("JPEG holds a number too large.");
+
+                    at++;
+                }
+            }
+
+            // Which of the three sizes this difference counts as, for the block after it.
+            component.DifferenceContext = magnitude < (1 << _lowerBound[table]) >> 1
+                ? 0
+                : magnitude > (1 << _upperBound[table]) >> 1
+                    ? 12 + negative * 4
+                    : 4 + negative * 4;
+
+            var value = magnitude;
+
+            at += 14;
+
+            while ((magnitude >>= 1) != 0)
+            {
+                if (reader.Decode(statistics, at) == 1) value |= magnitude;
+            }
+
+            value++;
+            if (negative != 0) value = -value;
+
+            component.Predictor += value;
+            coefficients[block] = component.Predictor << point;
+        }
+
+        /// <summary>
+        /// The waves of a block: at each place, whether the block ends here, then whether this
+        /// place holds anything, and then the number if it does.
+        /// </summary>
+        private void ReadArithmeticAc(
+            JpegArithmetic reader, Component component, int[] coefficients, int block, int from, int to,
+            int point)
+        {
+            var table = component.AcTable & 3;
+            var statistics = _acStatistics[table];
+
+            for (var k = from; k <= to;)
+            {
+                var context = 3 * (k - 1);
+
+                if (reader.Decode(statistics, context) == 1) break;
+
+                while (reader.Decode(statistics, context + 1) == 0)
+                {
+                    context += 3;
+                    k++;
+
+                    if (k > to) return;
+                }
+
+                // A sign is the one decision nothing can be learned about, so it has a context to
+                // itself that is never updated by anything else.
+                var negative = reader.Decode(_fixed, 0);
+                context += 2;
+
+                var magnitude = reader.Decode(statistics, context);
+
+                if (magnitude != 0)
+                {
+                    if (reader.Decode(statistics, context) == 1)
+                    {
+                        magnitude <<= 1;
+
+                        // The finer waves of a block are counted apart from the coarser ones.
+                        context = k <= _blockBound[table] ? 189 : 217;
+
+                        while (reader.Decode(statistics, context) == 1)
+                        {
+                            magnitude <<= 1;
+
+                            if (magnitude == 0x8000)
+                                throw new ImageFormatException("JPEG holds a number too large.");
+
+                            context++;
+                        }
+                    }
+                }
+
+                var value = magnitude;
+
+                context += 14;
+
+                while ((magnitude >>= 1) != 0)
+                {
+                    if (reader.Decode(statistics, context) == 1) value |= magnitude;
+                }
+
+                value++;
+                if (negative != 0) value = -value;
+
+                coefficients[block + Zigzag[k]] = value << point;
+
+                k++;
+            }
+        }
+
+        /// <summary>
+        /// A pass that adds a bit to the waves already sent, which asks two things at each place:
+        /// whether a number already there moves, and whether a place still empty fills.
+        /// </summary>
+        private void RefineArithmeticAc(
+            JpegArithmetic reader, Component component, int[] coefficients, int block, int from, int to,
+            int point)
+        {
+            var statistics = _acStatistics[component.AcTable & 3];
+
+            var step = 1 << point;
+            var negativeStep = -1 << point;
+
+            // How far the passes before this one reached, past which a block may end.
+            var reached = to;
+            while (reached > 0 && coefficients[block + Zigzag[reached]] == 0) reached--;
+
+            for (var k = from; k <= to; k++)
+            {
+                var context = 3 * (k - 1);
+
+                if (k > reached && reader.Decode(statistics, context) == 1) break;
+
+                while (true)
+                {
+                    var at = block + Zigzag[k];
+
+                    if (coefficients[at] != 0)
+                    {
+                        if (reader.Decode(statistics, context + 2) == 1)
+                            coefficients[at] += coefficients[at] < 0 ? negativeStep : step;
+
+                        break;
+                    }
+
+                    if (reader.Decode(statistics, context + 1) == 1)
+                    {
+                        coefficients[at] = reader.Decode(_fixed, 0) == 1 ? negativeStep : step;
+                        break;
+                    }
+
+                    context += 3;
+                    k++;
+
+                    if (k > to) return;
+                }
+            }
         }
 
         /// <summary>The flat part of a block, written as the difference from the block before it.</summary>

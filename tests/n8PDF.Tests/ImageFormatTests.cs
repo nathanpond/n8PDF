@@ -731,20 +731,110 @@ public class ImageFormatTests(ITestOutputHelper output)
         return false;
     }
 
+    // ----- coded by arithmetic rather than by code tables -----
+
+    /// <summary>
+    /// A JPEG may be coded arithmetically instead of by code tables. Nothing writes one by default
+    /// — the method was patented for most of the format's life — but files exist, and a decoder
+    /// that meets one has no way to read round it.
+    /// </summary>
+    /// <remarks>
+    /// This is tested by transcoding, which is the strongest check available to any of these
+    /// formats. Recoding a JPEG from one entropy coding to the other changes not one number in it:
+    /// the same blocks come out the far side. So the same picture is written both ways by an
+    /// encoder that shares nothing with this, and what the arithmetic file decodes to has to be
+    /// what the ordinary one decodes to — not close to it, equal to it, sample for sample.
+    ///
+    /// That matters more here than elsewhere. Arithmetic coding keeps no boundaries between
+    /// symbols, so a decoder cannot be nearly right: one wrong decision moves every number after
+    /// it. Reading a whole picture correctly is not evidence that the hundred and thirteen
+    /// probability states are right, it is proof of it — and getting one of them wrong is exactly
+    /// the mistake this is easy to make. Both the sequential and progressive forms are checked,
+    /// with and without restarts, since each drives the coder differently.
+    /// </remarks>
+    [Theory]
+    [InlineData("plain", new[] { "-arithmetic" })]
+    [InlineData("progressive", new[] { "-arithmetic", "-progressive" })]
+    [InlineData("restarts", new[] { "-arithmetic", "-restart", "1" })]
+    [InlineData("progressive-restarts", new[] { "-arithmetic", "-progressive", "-restart", "1" })]
+    public void An_arithmetic_jpeg_holds_what_the_same_picture_holds_coded_the_usual_way(
+        string name, string[] flags)
+    {
+        const int width = 96;
+        const int height = 64;
+
+        var png = PngWriter.Write(width, height,
+            ImageWriter.Pixels(width, height,
+                (x, y) => ((byte)(x * 2 + y), (byte)(255 - y * 3), (byte)(x * y % 251))),
+            false);
+
+        var tables = Convert("jpeg", png);
+
+        if (tables is null)
+        {
+            _output.WriteLine("sips was not found; the arithmetic JPEGs were not read.");
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        var coded = Path.Combine(directory, $"arithmetic-{name}.jpg");
+        File.Delete(coded);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("jpegtran",
+                [.. flags, "-outfile", coded, tables])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process?.WaitForExit(60_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            _output.WriteLine("jpegtran was not found; the arithmetic JPEGs were not read.");
+            return;
+        }
+
+        if (!File.Exists(coded))
+        {
+            _output.WriteLine($"jpegtran wrote no {name} file.");
+            return;
+        }
+
+        var expected = JpegDecoder.Decode(File.ReadAllBytes(tables));
+        var ours = JpegDecoder.Decode(File.ReadAllBytes(coded));
+
+        Assert.Equal(expected.Width, ours.Width);
+        Assert.Equal(expected.Height, ours.Height);
+
+        var worst = 0;
+        for (var i = 0; i < expected.Data.Length; i++)
+        {
+            worst = Math.Max(worst, Math.Abs(expected.Data[i] - ours.Data[i]));
+        }
+
+        _output.WriteLine($"{name}: {new FileInfo(coded).Length} bytes, worst {worst}");
+
+        Assert.Equal(0, worst);
+    }
+
     /// <summary>The kinds of JPEG this still does not decode are reported rather than half-read.</summary>
     [Fact]
     public void A_jpeg_this_cannot_decode_is_reported()
     {
-        // A header that says the picture is coded arithmetically, which almost nothing writes.
-        byte[] arithmetic =
+        // A header that says the picture is coded losslessly, which is a different format wearing
+        // the same clothes: the pixels are predicted from their neighbours, with no blocks at all.
+        byte[] lossless =
         [
             0xff, 0xd8,
-            0xff, 0xc9, 0x00, 0x11, 0x08, 0x00, 0x10, 0x00, 0x10, 0x03,
+            0xff, 0xc3, 0x00, 0x11, 0x08, 0x00, 0x10, 0x00, 0x10, 0x03,
             0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
             0xff, 0xd9
         ];
 
-        Assert.Throws<ImageFormatException>(() => JpegDecoder.Decode(arithmetic));
+        Assert.Throws<ImageFormatException>(() => JpegDecoder.Decode(lossless));
     }
 
     // ----- sixteen bits a sample -----
