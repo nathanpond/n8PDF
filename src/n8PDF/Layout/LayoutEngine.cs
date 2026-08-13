@@ -66,7 +66,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     // Footnotes waiting to be written into the foot of the page being filled.
     private readonly List<DetachedFlow> _pageFootnotes = [];
+
+    /// <summary>
+    /// What is left of a note too long for the foot of the page its reference fell on, waiting for
+    /// the page after. A note may run over several pages, so what is carried is carried again.
+    /// </summary>
+    private readonly List<DetachedFlow> _carriedFootnotes = [];
+
+    /// <summary>Whether the page being filled opened with the rest of a note from the page before.</summary>
+    private bool _footnotesContinue;
     private DetachedFlow? _separatorFlow;
+
+    private DetachedFlow? _continuationFlow;
+
+    private bool _continuationMeasured;
     private bool _separatorMeasured;
 
     // Where the footnote area sits, fixed for the document by its section.
@@ -155,8 +168,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _endnoteOrder.Clear();
         _measuredFootnotes.Clear();
         _pageFootnotes.Clear();
+        _carriedFootnotes.Clear();
+        _footnotesContinue = false;
         _separatorFlow = null;
         _separatorMeasured = false;
+        _continuationFlow = null;
+        _continuationMeasured = false;
         _currentNoteLabel = null;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
@@ -216,6 +233,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // The final paragraph's space-after still occupies the page even though nothing follows
         // it, which matters for how much content a page is considered to hold.
         cursor.Y += cursor.PendingSpaceAfter;
+
+        // A note may outlast the document it belongs to: one referenced near the end and long
+        // enough to fill several pages has nothing left to carry it. Word makes the pages anyway,
+        // each holding nothing but the rest of the note, and so does this — dropping the end of a
+        // note would lose text the document has.
+        DrainFootnotes(cursor);
 
         // The last page never breaks, so nothing has settled it yet.
         cursor.FinishPage();
@@ -533,12 +556,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var footnotes = cursor.FootnoteSink is null && footnoteIds.Count > 0
                 ? PrepareFootnotes(footnoteIds)
-                : ([], 0);
+                : Prepared.None;
 
             // A line that does not fit moves to the next column, or off the page when it was in
             // the last of them — and may take the lines above it along, so that a paragraph is
             // never split with only one of its lines on either side of the break.
-            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Height && cursor.CanAdvance)
+            if (cursor.Paginate && cursor.Y + line.Height > cursor.ContentBottom - footnotes.Least &&
+                cursor.CanAdvance)
             {
                 var pull = PullBackForBreak(format, cursor, ordinal, isLastLine: !composer.HasMore);
 
@@ -629,7 +653,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>Puts a composed line on the page and records what that took.</summary>
     private void Place(
         Cursor cursor, ComposedLine line, int paragraphIndex, int ordinal, bool keepNext,
-        IReadOnlyList<int> footnoteIds, (List<DetachedFlow> Flows, double Height) footnotes)
+        IReadOnlyList<int> footnoteIds, Prepared footnotes)
     {
         cursor.ColumnLines.Add(new PlacedLine(
             line, cursor.Y,
@@ -639,7 +663,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         RecordFieldPages(cursor.Page, line);
         EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
-        CommitFootnotes(cursor, footnotes);
+        CommitFootnotes(cursor, footnotes, line.Height);
         cursor.Y += line.Height;
     }
 
@@ -791,7 +815,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var footnotes = line.FootnoteIds.Count > 0 && cursor.FootnoteSink is null
                 ? PrepareFootnotes(line.FootnoteIds)
-                : ([], 0);
+                : Prepared.None;
 
             Place(cursor, line.Line, line.ParagraphIndex, line.ParagraphOrdinal, line.KeepNext,
                 line.FootnoteIds, footnotes);
@@ -1223,7 +1247,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// Measures the footnotes some content refers to and reports how much more of the page they
     /// need, so the content can be fitted against what is left rather than against the whole page.
     /// </summary>
-    private (List<DetachedFlow> Flows, double Height) PrepareFootnotes(IEnumerable<int> ids)
+    private Prepared PrepareFootnotes(IEnumerable<int> ids)
     {
         var flows = new List<DetachedFlow>();
         var height = 0.0;
@@ -1237,20 +1261,155 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             height += flow.Height;
         }
 
-        // The separator is paid for once per page, by whichever note reaches it first.
-        if (flows.Count > 0 && _pageFootnotes.Count == 0)
-            height += SeparatorFlow()?.Height ?? 0;
+        if (flows.Count == 0) return new Prepared([], 0, 0);
 
-        return (flows, height);
+        // The separator is paid for once per page, by whichever note reaches it first.
+        var separator = _pageFootnotes.Count == 0 ? SeparatorFlow()?.Height ?? 0 : 0;
+
+        // A note that will not fit whole is divided rather than moved, so what the page has to
+        // find room for is not the note but its first line. Nothing is gained by dividing a note
+        // that has nowhere to put even that much: the line referring to it moves instead.
+        return new Prepared(flows, height + separator, separator + flows[0].FirstLineHeight);
     }
 
-    /// <summary>Adds prepared footnotes to the page being filled and takes their space out of it.</summary>
-    private void CommitFootnotes(Cursor cursor, (List<DetachedFlow> Flows, double Height) prepared)
+    /// <summary>
+    /// Footnotes measured and waiting for the line that refers to them to be placed.
+    /// </summary>
+    /// <param name="Height">What they take altogether, including the separator where it is due.</param>
+    /// <param name="Least">
+    /// The least they can take on this page: the separator and the first line of the first note.
+    /// Where even that will not fit, the line referring to them belongs on the next page.
+    /// </param>
+    private readonly record struct Prepared(List<DetachedFlow> Flows, double Height, double Least)
+    {
+        public static readonly Prepared None = new([], 0, 0);
+    }
+
+    /// <summary>
+    /// Adds prepared footnotes to the page being filled and takes their space out of it, dividing
+    /// what will not fit and leaving the rest for the page after.
+    /// </summary>
+    /// <param name="lineHeight">
+    /// The height of the line that refers to them, which is going onto the page as well and so is
+    /// not room the notes can have.
+    /// </param>
+    private void CommitFootnotes(Cursor cursor, Prepared prepared, double lineHeight)
     {
         if (prepared.Flows.Count == 0) return;
 
-        _pageFootnotes.AddRange(prepared.Flows);
-        cursor.Reserved += prepared.Height;
+        var room = cursor.ContentLimit - (cursor.Y + lineHeight) - cursor.Reserved;
+
+        if (prepared.Height <= room + 0.001 || !cursor.Paginate)
+        {
+            _pageFootnotes.AddRange(prepared.Flows);
+            cursor.Reserved += prepared.Height;
+
+            return;
+        }
+
+        // What is left after the separator is what the notes themselves have.
+        var left = room - (prepared.Height - Total(prepared.Flows));
+
+        foreach (var flow in prepared.Flows)
+        {
+            if (_carriedFootnotes.Count > 0)
+            {
+                // Once one note has been divided, everything after it belongs with the remainder:
+                // a note cannot begin below one that has not finished.
+                _carriedFootnotes.Add(flow);
+                continue;
+            }
+
+            if (flow.Height <= left + 0.001)
+            {
+                _pageFootnotes.Add(flow);
+                left -= flow.Height;
+
+                continue;
+            }
+
+            var (fitted, remaining) = flow.SplitAt(left);
+
+            if (fitted.Height > 0) _pageFootnotes.Add(fitted);
+            _carriedFootnotes.Add(remaining);
+        }
+
+        // The notes now reach the bottom margin, so nothing else goes on this page.
+        cursor.Reserved = cursor.ContentLimit - (cursor.Y + lineHeight);
+    }
+
+    /// <summary>
+    /// Makes pages for what is left of a note once there is no more document to carry it. Each is
+    /// a page with nothing on it but the note, which is where Word puts it too.
+    /// </summary>
+    private void DrainFootnotes(Cursor cursor)
+    {
+        // Every page takes at least one line of what is left, so this ends; the bound is only
+        // there so that a note which somehow cannot be divided cannot spin for ever.
+        for (var guard = 0; _carriedFootnotes.Count > 0 && guard < 10_000; guard++)
+        {
+            var before = Total(_carriedFootnotes);
+
+            cursor.BreakPage();
+
+            if (Total(_carriedFootnotes) >= before - 0.001) break;
+        }
+    }
+
+    private static double Total(IEnumerable<DetachedFlow> flows)
+    {
+        var height = 0.0;
+        foreach (var flow in flows) height += flow.Height;
+
+        return height;
+    }
+
+    /// <summary>
+    /// Puts the rest of a divided note at the foot of the page that follows, before anything else
+    /// is placed on it — a note carried over is not something the page can be asked to find room
+    /// for later. Where it will not fit either, it is divided again.
+    /// </summary>
+    private void ResumeFootnotes(Cursor cursor)
+    {
+        if (_carriedFootnotes.Count == 0) return;
+
+        var carried = new List<DetachedFlow>(_carriedFootnotes);
+        _carriedFootnotes.Clear();
+
+        _footnotesContinue = true;
+
+        var room = cursor.ContentLimit - cursor.ContentTop - (ContinuationFlow()?.Height ?? 0);
+        var height = ContinuationFlow()?.Height ?? 0;
+
+        foreach (var flow in carried)
+        {
+            if (_carriedFootnotes.Count > 0)
+            {
+                _carriedFootnotes.Add(flow);
+                continue;
+            }
+
+            if (flow.Height <= room + 0.001)
+            {
+                _pageFootnotes.Add(flow);
+                room -= flow.Height;
+                height += flow.Height;
+
+                continue;
+            }
+
+            var (fitted, remaining) = flow.SplitAt(room);
+
+            if (fitted.Height > 0)
+            {
+                _pageFootnotes.Add(fitted);
+                height += fitted.Height;
+            }
+
+            _carriedFootnotes.Add(remaining);
+        }
+
+        cursor.Reserved += height;
     }
 
     /// <summary>Footnote ids referenced by the marks on a composed line, in order.</summary>
@@ -1276,15 +1435,21 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// </remarks>
     private void FlushFootnotes(LaidOutPage page)
     {
-        if (_pageFootnotes.Count == 0) return;
+        if (_pageFootnotes.Count == 0)
+        {
+            _footnotesContinue = false;
 
-        var height = 0.0;
-        foreach (var flow in _pageFootnotes) height += flow.Height;
+            return;
+        }
 
+        var height = Total(_pageFootnotes);
         var y = _footnoteBottom - height;
 
-        if (SeparatorFlow() is { } separator)
-            separator.PlaceOnto(page, _footnoteLeft, y - separator.Height);
+        // A page that opens with the rest of a note carries the other rule: right across the
+        // measure, so that a reader can see the note above it was not finished.
+        var rule = _footnotesContinue ? ContinuationFlow() : SeparatorFlow();
+
+        if (rule is not null) rule.PlaceOnto(page, _footnoteLeft, y - rule.Height);
 
         foreach (var flow in _pageFootnotes)
         {
@@ -1293,6 +1458,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         _pageFootnotes.Clear();
+        _footnotesContinue = false;
     }
 
     /// <summary>
@@ -1356,6 +1522,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         if (separator is not null) _separatorFlow = MeasureBlocks(separator.Body, _footnoteWidth);
 
         return _separatorFlow;
+    }
+
+    /// <summary>
+    /// The rule above a note carried over from the page before, which the document keeps as a note
+    /// of its own in the same way. Word draws it right across the measure rather than the two
+    /// inches of the ordinary one.
+    /// </summary>
+    private DetachedFlow? ContinuationFlow()
+    {
+        if (_continuationMeasured) return _continuationFlow;
+
+        _continuationMeasured = true;
+
+        var separator = _footnotes.Values.FirstOrDefault(n => n.Type == "continuationSeparator");
+        if (separator is not null) _continuationFlow = MeasureBlocks(separator.Body, _footnoteWidth);
+
+        // A document with no continuation separator of its own still needs the space, so the
+        // ordinary one stands in for it.
+        return _continuationFlow ??= SeparatorFlow();
     }
 
     /// <summary>
@@ -1866,7 +2051,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var rowFootnotes = cursor.FootnoteSink is null && rowFootnoteIds.Count > 0
                 ? PrepareFootnotes(rowFootnoteIds)
-                : ([], 0);
+                : Prepared.None;
 
             // A row too tall for what is left of the page is broken across the two unless it says
             // it may not be, and what will not fit follows on the next page as a row of its own —
@@ -1917,7 +2102,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight);
 
-            CommitFootnotes(cursor, rowFootnotes);
+            CommitFootnotes(cursor, rowFootnotes, placedEverything ? 0 : rowHeight);
             if (!placedEverything) cursor.Y += rowHeight;
 
             CloseMerges(merges, placed, cursor.Y);
@@ -3381,10 +3566,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                             ascent, naturalHeight, descent, link);
                         break;
 
-                    case SeparatorInline:
+                    case SeparatorInline separator:
                         atoms.Add(new SeparatorAtom
                         {
-                            Width = FootnoteSeparatorWidthPoints,
+                            // The rule above a note carried over runs right across the measure;
+                            // the one above a note that begins where it stands is two inches.
+                            Width = separator.Continuation ? _footnoteWidth : FootnoteSeparatorWidthPoints,
                             Thickness = FootnoteSeparatorThicknessPoints,
                             Ascent = ascent,
                             NaturalHeight = naturalHeight,
@@ -3886,6 +4073,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             Y = ContentTop;
             Reserved = 0;
 
+            // The rest of a note divided on the page before belongs at the foot of this one, and
+            // has to be given its room before anything else asks for any.
+            if (FootnoteSink is null) Engine.ResumeFootnotes(this);
+
             ColumnIndex = 0;
             MaxColumnUsed = 0;
             PageMaxY = 0;
@@ -3912,6 +4103,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             new(new LaidOutPage { WidthPoints = 0, HeightPoints = 0 }, 0);
 
         public double Height { get; } = height;
+
+        /// <summary>
+        /// How far down the first line of this content reaches, which is the least of it that can
+        /// be put anywhere: nothing fits until a whole line does.
+        /// </summary>
+        public double FirstLineHeight
+        {
+            get
+            {
+                var least = Height;
+
+                foreach (var line in page.Lines)
+                {
+                    least = Math.Min(least, line.BaselineY - line.Ascent + line.Height);
+                }
+
+                return page.Lines.Count == 0 ? Height : least;
+            }
+        }
 
         /// <summary>
         /// Footnotes referenced by this content, which belong to the page it is placed on rather

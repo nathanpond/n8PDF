@@ -108,7 +108,16 @@ public sealed class NoteMarkInline(NoteKind kind) : InlineElement
 /// Word stores the separator as a footnote of its own whose body is a paragraph holding this
 /// element, which is what gives the line its height and the space around it.
 /// </remarks>
-public sealed class SeparatorInline : InlineElement;
+/// <param name="continuation">
+/// Whether this is the rule above a note carried over from the page before, from
+/// <c>w:continuationSeparator</c>. Word draws that one right across the measure rather than the
+/// two inches it draws above a note that begins where it stands, which is how a reader can tell
+/// at a glance that what follows is the rest of something.
+/// </param>
+public sealed class SeparatorInline(bool continuation = false) : InlineElement
+{
+    public bool Continuation { get; } = continuation;
+}
 
 /// <summary>Where a hyperlink leads.</summary>
 /// <param name="RelationshipId">

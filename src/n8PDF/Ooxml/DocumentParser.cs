@@ -308,7 +308,7 @@ public static class DocumentParser
             }
             else if (child.Name == W.Main + "separator" || child.Name == W.Main + "continuationSeparator")
             {
-                run.Content.Add(new SeparatorInline());
+                run.Content.Add(new SeparatorInline(child.Name == W.Main + "continuationSeparator"));
             }
             else if (child.Name == W.Main + "noBreakHyphen")
             {

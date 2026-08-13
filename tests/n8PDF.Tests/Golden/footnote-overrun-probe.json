@@ -1,0 +1,762 @@
+{
+  "pageCount": 2,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 205.582, "font": "Times New Roman", "size": 12, "text": "The only paragraph, which carries the note"},
+            {"x": 277.582, "width": 3.624, "font": "Calibri", "size": 7.15, "text": "1"},
+            {"x": 281.206, "width": 3, "font": "Times New Roman", "size": 12, "text": "."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 107.598,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 119.888,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 3.294, "font": "Calibri", "size": 6.5, "text": "1"},
+            {"x": 75.294, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 1 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 131.387,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 2 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 142.886,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 3 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 154.385,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 4 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 165.884,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 5 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 177.383,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 6 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 188.882,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 7 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 200.381,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 8 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 211.88,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 9 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 223.379,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 10 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 234.878,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 11 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 246.377,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 12 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 257.876,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 13 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 269.375,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 14 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 280.874,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 15 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 292.373,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 16 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 303.872,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 17 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 315.371,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 18 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 326.87,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 19 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 338.369,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 20 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 349.868,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 21 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 361.367,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 22 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 372.866,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 23 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 384.365,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 24 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 24,
+          "baselineY": 395.864,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 25 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 407.363,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 26 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 418.862,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 27 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 430.361,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 28 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 441.86,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 29 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 453.359,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 30 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 464.858,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 31 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 31,
+          "baselineY": 476.357,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 32 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 487.856,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 33 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 499.355,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 34 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 510.854,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 35 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 522.354,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 36 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 533.853,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 37 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 545.352,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 38 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 556.851,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 39 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 568.35,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 40 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 579.849,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 41 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 591.348,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 42 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 602.847,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 43 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 614.346,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 44 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 44,
+          "baselineY": 625.845,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 45 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 637.344,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 46 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 46,
+          "baselineY": 648.843,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 47 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 660.342,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 48 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 671.841,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 49 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 683.34,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 50 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 50,
+          "baselineY": 694.839,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 51 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 51,
+          "baselineY": 706.338,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 52 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 52,
+          "baselineY": 717.837,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 53 of a note that outlasts the document it belongs to."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 291.582,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 53,
+          "baselineY": 303.872,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 54 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 54,
+          "baselineY": 315.371,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 55 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 55,
+          "baselineY": 326.87,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 56 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 56,
+          "baselineY": 338.369,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 57 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 57,
+          "baselineY": 349.868,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 58 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 58,
+          "baselineY": 361.367,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 59 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 59,
+          "baselineY": 372.866,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 60 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 60,
+          "baselineY": 384.365,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 61 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 61,
+          "baselineY": 395.864,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 62 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 62,
+          "baselineY": 407.363,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 63 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 63,
+          "baselineY": 418.862,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 64 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 64,
+          "baselineY": 430.361,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 65 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 65,
+          "baselineY": 441.86,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 66 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 66,
+          "baselineY": 453.359,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 67 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 67,
+          "baselineY": 464.858,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 68 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 68,
+          "baselineY": 476.357,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 69 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 69,
+          "baselineY": 487.856,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 70 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 70,
+          "baselineY": 499.355,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 71 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 71,
+          "baselineY": 510.854,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 72 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 72,
+          "baselineY": 522.354,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 73 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 73,
+          "baselineY": 533.853,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 74 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 74,
+          "baselineY": 545.352,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 75 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 75,
+          "baselineY": 556.851,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 76 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 76,
+          "baselineY": 568.35,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 77 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 77,
+          "baselineY": 579.849,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 78 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 78,
+          "baselineY": 591.348,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 79 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 79,
+          "baselineY": 602.847,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 80 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 80,
+          "baselineY": 614.346,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 81 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 81,
+          "baselineY": 625.845,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 82 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 82,
+          "baselineY": 637.344,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 83 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 83,
+          "baselineY": 648.843,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 84 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 84,
+          "baselineY": 660.342,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 85 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 85,
+          "baselineY": 671.841,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 86 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 86,
+          "baselineY": 683.34,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 87 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 87,
+          "baselineY": 694.839,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 88 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 88,
+          "baselineY": 706.338,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 89 of a note that outlasts the document it belongs to."}
+          ]
+        },
+        {
+          "paragraph": 89,
+          "baselineY": 717.837,
+          "height": 11.499,
+          "runs": [
+            {"x": 72, "width": 229.956, "font": "Times New Roman", "size": 10, "text": "Line 90 of a note that outlasts the document it belongs to."}
+          ]
+        }
+      ]
+    }
+  ]
+}

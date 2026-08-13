@@ -147,7 +147,8 @@ page size, orientation and margins, running heads inherited per kind from the se
 one says nothing), multiple text columns (evenly divided or individually stated, column breaks, and
 the rule down the gap where the document asks for one), footnotes and endnotes (numbered in reference order, arabic for footnotes and roman
 for endnotes unless the document says otherwise; a footnote goes to the foot of the page its
-reference lands on and takes that space out of the body above it, an endnote carries on after the
+reference lands on and takes that space out of the body above it, dividing between that page and
+the next where it is too long for the room left under it, an endnote carries on after the
 body like ordinary content, and both are ruled off by the separator), hyperlinks (external addresses as clickable regions, internal links to bookmarks
 anywhere in the document, with the regions placed and padded the way Word places them), headers
 and footers (per page, with separate first-page and even-page variants, and
@@ -441,8 +442,24 @@ nothing installed here writes one, so that path is transcribed from libjpeg's ow
 than checked against a file, and it is the one thing in these formats that has never met a real
 example.
 
+A note too long for the room left under the page its reference falls on is divided rather than
+moved: a note belongs to the page its mark is on, so what will not fit goes to the foot of the page
+after. Where it divides was read off Word's export of `footnote-split-probe`, and it is simpler
+than it looks — the note takes everything left under the line that refers to it, the body stops
+there, and the rest carries over. Nineteen of that note's twenty lines fit, which is what this
+produces, with every line of both pages within half a point of Word's.
+
+Two things follow from it that are worth stating. The rule above a carried note is drawn right
+across the measure rather than the two inches drawn above a note that begins where it stands, which
+is Word's way of saying without words that what follows is the end of something; the document keeps
+that second rule as a note of its own, in the same way as the first. And a note may outlast the
+document it belongs to — one referenced near the end and long enough to fill several pages has no
+body text left to carry it — so pages are made for the rest of it, holding nothing else. Word does
+the same, which `footnote-overrun-probe` is there to have asked: its second page has no body at all
+and the last thirty-seven lines of the note at the foot of it.
+
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is splitting a note across pages, restarting note numbering per page or per
+remains elsewhere is restarting note numbering per page or per
 section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex

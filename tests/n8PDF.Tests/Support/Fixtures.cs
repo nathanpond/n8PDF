@@ -1813,6 +1813,70 @@ public static class Fixtures
                     $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
             },
 
+            // A note too long for the room left under the page its reference falls on, which Word
+            // divides between that page and the next. What is measured here is where it divides:
+            // how much of the page the notes are allowed to take, how many lines of the note stay
+            // with the reference, and what stands above the rest of it on the page after.
+            ["footnote-split-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                var body = string.Join("", Enumerable.Range(1, 20).Select(i =>
+                    $"<w:p><w:pPr><w:pStyle w:val=\"FootnoteText\"/>{ZeroSpacing}</w:pPr>" +
+                    (i == 1
+                        ? $"<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/></w:rPr><w:footnoteRef/></w:r>"
+                        : string.Empty) +
+                    $"<w:r><w:rPr>{Times10}</w:rPr><w:t xml:space=\"preserve\">" +
+                    $"Line {i} of a note far too long for the foot of one page." +
+                    "</w:t></w:r></w:p>"));
+
+                var note = builder.AddFootnote(body);
+
+                for (var i = 1; i <= 40; i++)
+                {
+                    if (i == 30)
+                    {
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Body paragraph {i}, which carries the long note</w:t></w:r>" +
+                            DocxBuilder.FootnoteReference(note) +
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                        continue;
+                    }
+
+                    builder.AddParagraph($"Body paragraph {i} of forty.", ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
+
+            // A note that outlasts the document: one short paragraph carrying a note so long that
+            // it cannot be finished on the page the reference is on, nor on the page after, with
+            // no body text left to carry the pages. What is measured is whether Word makes pages
+            // for the rest of it and what it puts on them.
+            ["footnote-overrun-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                var body = string.Join("", Enumerable.Range(1, 90).Select(i =>
+                    $"<w:p><w:pPr><w:pStyle w:val=\"FootnoteText\"/>{ZeroSpacing}</w:pPr>" +
+                    (i == 1
+                        ? "<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/></w:rPr><w:footnoteRef/></w:r>"
+                        : string.Empty) +
+                    $"<w:r><w:rPr>{Times10}</w:rPr><w:t xml:space=\"preserve\">" +
+                    $"Line {i} of a note that outlasts the document it belongs to." +
+                    "</w:t></w:r></w:p>"));
+
+                var note = builder.AddFootnote(body);
+
+                return builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">The only paragraph, which carries the note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(note) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+            },
+
             // External and internal links, the latter pointing across a page break at a bookmark.
             // The links carry the blue underline directly rather than through the Hyperlink
             // character style, because what is under test here is the target, not the cascade.

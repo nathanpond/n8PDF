@@ -246,6 +246,230 @@ public class FootnoteTests
         Assert.Contains(LinesOf(layout.Pages[0]), line => line.StartsWith("A sentence with a note"));
     }
 
+    // ----- a note too long for the page it belongs to -----
+
+    /// <summary>A note of as many numbered lines as asked for, each its own paragraph.</summary>
+    private static string LongNote(int lines) =>
+        string.Join("", Enumerable.Range(1, lines).Select(i =>
+            "<w:p><w:pPr><w:pStyle w:val=\"FootnoteText\"/>" +
+            "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/></w:pPr>" +
+            (i == 1 ? "<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/></w:rPr><w:footnoteRef/></w:r>" : "") +
+            $"<w:r><w:rPr>{Times10}</w:rPr><w:t xml:space=\"preserve\">" +
+            $"Line {i} of a note far too long for the foot of one page." +
+            "</w:t></w:r></w:p>"));
+
+    /// <summary>A document whose note is too long for the page its reference falls on.</summary>
+    private static DocxBuilder WithLongNote(int noteLines, int paragraphs, int referenceAt)
+    {
+        var builder = new DocxBuilder();
+        var note = builder.AddFootnote(LongNote(noteLines));
+
+        const string spacing = "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>";
+
+        for (var i = 1; i <= paragraphs; i++)
+        {
+            if (i == referenceAt)
+            {
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{spacing}</w:pPr>" +
+                    Run($"Body paragraph {i}, which carries the long note") +
+                    DocxBuilder.FootnoteReference(note) +
+                    Run(".") + "</w:p>");
+
+                continue;
+            }
+
+            builder.AddRawParagraph($"<w:p><w:pPr>{spacing}</w:pPr>{Run($"Body paragraph {i} of forty.")}</w:p>");
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// A note too long for the room left under the page its reference falls on is divided between
+    /// that page and the next, rather than moved off the page its reference is on or run over the
+    /// bottom of it.
+    /// </summary>
+    /// <remarks>
+    /// Where it divides is Word's answer, read off its export of <c>footnote-split-probe</c>: the
+    /// note takes everything left under the line that refers to it, the body stops there, and the
+    /// remainder goes to the foot of the page after. Nineteen of that note's twenty lines fit.
+    /// </remarks>
+    [Fact]
+    public void A_note_too_long_for_its_page_is_divided_between_two_of_them()
+    {
+        var layout = LayoutOf(WithLongNote(20, 40, 30));
+
+        Assert.Equal(2, layout.Pages.Count);
+
+        var first = LinesOf(layout.Pages[0]);
+        var second = LinesOf(layout.Pages[1]);
+
+        // The reference stays with the beginning of its note.
+        Assert.Contains(first, line => line.StartsWith("Body paragraph 30,"));
+        Assert.Contains(first, line => line.Contains("Line 1 of a note"));
+
+        // Nineteen lines of it fit under that page; the twentieth is on the next.
+        Assert.Contains(first, line => line.Contains("Line 19 of a note"));
+        Assert.DoesNotContain(first, line => line.Contains("Line 20 of a note"));
+        Assert.Contains(second, line => line.Contains("Line 20 of a note"));
+
+        // The body stops where the note begins, and carries on over the page.
+        Assert.DoesNotContain(first, line => line.StartsWith("Body paragraph 31"));
+        Assert.Contains(second, line => line.StartsWith("Body paragraph 31"));
+
+        // Both pages' notes are bottom-aligned, so each ends on the same line of the page.
+        Assert.Equal(Bottom(layout.Pages[0], "Line 19 of a note"), Bottom(layout.Pages[1], "Line 20 of a note"), 2);
+    }
+
+    /// <summary>Where the last line holding some text sits, down the page.</summary>
+    private static double Bottom(LaidOutPage page, string text) =>
+        page.Lines
+            .Where(line => string.Concat(line.Texts.Select(t => t.Text)).Contains(text))
+            .Select(line => line.BaselineY)
+            .Max();
+
+    /// <summary>
+    /// A note longer than a whole page is divided again on the page after, and again, until there
+    /// is none of it left.
+    /// </summary>
+    [Fact]
+    public void A_note_longer_than_a_page_is_divided_again()
+    {
+        var layout = LayoutOf(WithLongNote(120, 6, 3));
+
+        var pages = layout.Pages
+            .Select((page, index) => (Index: index, Lines: LinesOf(page)))
+            .Where(page => page.Lines.Any(line => line.Contains("of a note far too long")))
+            .ToList();
+
+        // Twenty lines to a page at most, so a note of a hundred and twenty needs several.
+        Assert.True(pages.Count >= 3, $"the note was divided over only {pages.Count} page(s)");
+
+        // Every line of it, once, in order, and nothing missing in the middle.
+        var found = layout.Pages
+            .SelectMany(LinesOf)
+            .Where(line => line.Contains("of a note far too long"))
+            // The first line of the note opens with the note's own number, so what follows the
+            // word "Line" is the line's number either way.
+            .Select(line => int.Parse(line.Split(' ')[1]))
+            .ToList();
+
+        Assert.Equal(Enumerable.Range(1, 120), found);
+    }
+
+    /// <summary>
+    /// A note begins on the page its reference is on, whatever else has to move for it. Where
+    /// there is no room under the reference for even the rule and one line of the note, it is the
+    /// line carrying the reference that goes to the next page rather than the note leaving it.
+    /// </summary>
+    /// <remarks>
+    /// Swept across a range of body lengths rather than aimed at one, since which line the
+    /// reference lands on is the whole question and a single document only asks it once.
+    /// </remarks>
+    [Theory]
+    [InlineData(38)]
+    [InlineData(39)]
+    [InlineData(40)]
+    [InlineData(41)]
+    [InlineData(42)]
+    [InlineData(43)]
+    [InlineData(44)]
+    [InlineData(45)]
+    [InlineData(46)]
+    public void A_note_always_begins_on_the_page_its_reference_is_on(int referenceAt)
+    {
+        var layout = LayoutOf(WithLongNote(20, referenceAt + 6, referenceAt));
+
+        var reference = layout.Pages
+            .Select(LinesOf)
+            .Select((lines, index) => (Index: index, Lines: lines))
+            .Single(page => page.Lines.Any(line => line.StartsWith($"Body paragraph {referenceAt},")));
+
+        Assert.Contains(reference.Lines, line => line.Contains("Line 1 of a note"));
+    }
+
+    /// <summary>
+    /// A note may outlast the document it belongs to: one referenced near the end and long enough
+    /// to fill several pages has no body text left to carry it onto them. Word makes the pages
+    /// anyway, each holding nothing but the rest of the note, bottom-aligned as ever — its export
+    /// of <c>footnote-overrun-probe</c> gives a second page with no body at all and the last
+    /// thirty-seven lines of the note at the foot of it.
+    /// </summary>
+    [Fact]
+    public void A_note_that_outlasts_the_document_is_finished_on_pages_of_its_own()
+    {
+        var layout = LayoutOf(WithLongNote(90, 1, 1));
+
+        Assert.True(layout.Pages.Count >= 2, "the note was not carried past the page its reference is on");
+
+        var lines = layout.Pages.Select(LinesOf).ToList();
+
+        // The body is one paragraph, on the first page and nowhere else.
+        Assert.Contains(lines[0], line => line.StartsWith("Body paragraph 1,"));
+        for (var i = 1; i < lines.Count; i++)
+        {
+            Assert.DoesNotContain(lines[i], line => line.StartsWith("Body paragraph"));
+        }
+
+        // And every line of the note is there, in order, ending on the last page.
+        var found = lines
+            .SelectMany(page => page)
+            .Where(line => line.Contains("of a note far too long"))
+            .Select(line => int.Parse(line.Split(' ')[1]))
+            .ToList();
+
+        Assert.Equal(Enumerable.Range(1, 90), found);
+        Assert.Contains(lines[^1], line => line.Contains("Line 90 of a note"));
+    }
+
+    /// <summary>
+    /// The rest of a note is ruled off right across the measure rather than by the two inches
+    /// drawn above a note that begins where it stands. That is Word's way of saying, without
+    /// words, that what follows the rule is the end of something begun on the page before.
+    /// </summary>
+    [Fact]
+    public void The_rest_of_a_note_is_ruled_off_right_across_the_measure()
+    {
+        var referencePath = Path.Combine(TestPaths.ReferencePdfs, "footnote-split-probe.pdf");
+        Assert.True(File.Exists(referencePath), $"No Word reference PDF at {referencePath}");
+
+        var ours = RulesOf(PdfPathExtractor.Extract(
+            Converter.Convert(Fixtures.Build("footnote-split-probe"), Options())));
+
+        var theirs = RulesOf(PdfPathExtractor.ExtractFile(referencePath));
+
+        Assert.Equal(2, theirs.Count);
+        Assert.Equal(theirs.Count, ours.Count);
+
+        for (var i = 0; i < ours.Count; i++)
+        {
+            Assert.Equal(theirs[i].PageIndex, ours[i].PageIndex);
+            Assert.Equal(theirs[i].Left, ours[i].Left, 1);
+            Assert.Equal(theirs[i].Width, ours[i].Width, 1);
+        }
+
+        // The first page's rule is the usual two inches and the second's is the whole measure.
+        Assert.Equal(144, ours[0].Width, 1);
+        Assert.Equal(468, ours[1].Width, 1);
+
+        // The rule above the carried part is within a hundredth of a point of Word's. The one on
+        // the page before is a little further out, and for a reason worth knowing: the notes are
+        // bottom-aligned, so nineteen lines of the difference between our line height and Word's
+        // quantised one accumulate upwards from the foot of the page to the rule above them.
+        Assert.Equal(theirs[1].Top, ours[1].Top, 1);
+        Assert.True(Math.Abs(ours[0].Top - theirs[0].Top) < 1,
+            $"the first page's rule is at {ours[0].Top:0.###} against Word's {theirs[0].Top:0.###}");
+    }
+
+    /// <summary>The separator rules of a document, of either width, in the order they are drawn.</summary>
+    private static List<ExtractedRectangle> RulesOf(IEnumerable<ExtractedRectangle> rectangles) =>
+        rectangles
+            .Where(r => r is { Width: > 100, Height: > 0 and < 2 })
+            .OrderBy(r => r.PageIndex)
+            .ThenBy(r => r.Top)
+            .ToList();
+
     /// <summary>
     /// Compares the separator against the one Word draws. The rule is the one part of a footnote
     /// that carries no text, so nothing else in the harness can see whether it is in the right
