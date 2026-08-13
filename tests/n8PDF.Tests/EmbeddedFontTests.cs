@@ -37,15 +37,15 @@ public class EmbeddedFontTests
         var shaped = n8PDF.Fonts.TextShaper.Shape(face, text);
 
         var glyphs = new ushort[shaped.Count];
-        var codePoints = new int[shaped.Count];
+        var texts = new string[shaped.Count];
 
         for (var i = 0; i < shaped.Count; i++)
         {
             glyphs[i] = shaped.Glyphs[i].Glyph;
-            codePoints[i] = shaped.CodePointOf(i);
+            texts[i] = shaped.TextOf(i);
         }
 
-        return font.EncodeGlyphs(glyphs, codePoints);
+        return font.EncodeGlyphs(glyphs, texts);
     }
 
     /// <summary>The two-byte codes of an encoded string.</summary>

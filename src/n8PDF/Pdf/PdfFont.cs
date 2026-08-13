@@ -16,7 +16,7 @@ namespace n8PDF.Pdf;
 /// </remarks>
 public sealed class PdfFont
 {
-    private readonly Dictionary<ushort, int> _glyphToUnicode = [];
+    private readonly Dictionary<ushort, string> _glyphToUnicode = [];
 
     // The glyphs of the embedded font, in the order they were first used: the code a glyph is
     // written as is where it sits here, counting from one.
@@ -45,13 +45,13 @@ public sealed class PdfFont
     private bool Renumbers => !Font.HasCffOutlines;
 
     /// <summary>Encodes already-mapped glyphs, recording each one's originating character.</summary>
-    public byte[] EncodeGlyphs(ReadOnlySpan<ushort> glyphs, ReadOnlySpan<int> codePoints)
+    public byte[] EncodeGlyphs(ReadOnlySpan<ushort> glyphs, ReadOnlySpan<string> texts)
     {
         var bytes = new byte[glyphs.Length * 2];
 
         for (var i = 0; i < glyphs.Length; i++)
         {
-            RegisterGlyph(glyphs[i], i < codePoints.Length ? codePoints[i] : 0);
+            RegisterGlyph(glyphs[i], i < texts.Length ? texts[i] : string.Empty);
 
             var code = CodeFor(glyphs[i]);
             bytes[i * 2] = (byte)(code >> 8);
@@ -93,13 +93,13 @@ public sealed class PdfFont
         return code;
     }
 
-    private void RegisterGlyph(ushort glyph, int codePoint)
+    private void RegisterGlyph(ushort glyph, string text)
     {
         // .notdef carries no meaningful character, and mapping it would put a spurious entry in
         // the ToUnicode table.
         if (glyph == 0) return;
 
-        _glyphToUnicode.TryAdd(glyph, codePoint);
+        _glyphToUnicode.TryAdd(glyph, text);
     }
 
     /// <summary>Writes the font's object graph into the document and returns the Type0 reference.</summary>
@@ -107,8 +107,11 @@ public sealed class PdfFont
     {
         var glyphs = _glyphToUnicode.Keys.ToList();
 
+        // The embedded font's own character map holds one character to a glyph, so a ligature is
+        // filed under the first of the several it stands for.
         var characters = _glyphToUnicode
-            .Select(pair => (CodePoint: pair.Value, Glyph: pair.Key))
+            .Where(pair => pair.Value.Length > 0)
+            .Select(pair => (CodePoint: char.ConvertToUtf32(pair.Value, 0), Glyph: pair.Key))
             .ToList();
 
         var program = Renumbers
@@ -240,8 +243,8 @@ public sealed class PdfFont
                   """);
 
         var entries = _glyphToUnicode
-            .Where(pair => pair.Value > 0)
-            .Select(pair => new KeyValuePair<ushort, int>(CodeFor(pair.Key), pair.Value))
+            .Where(pair => pair.Value.Length > 0)
+            .Select(pair => new KeyValuePair<ushort, string>(CodeFor(pair.Key), pair.Value))
             .OrderBy(pair => pair.Key)
             .ToList();
 
@@ -251,21 +254,14 @@ public sealed class PdfFont
             var chunk = entries.Skip(offset).Take(100).ToList();
             sb.Append(chunk.Count.ToString(CultureInfo.InvariantCulture)).Append(" beginbfchar\n");
 
-            foreach (var (glyph, codePoint) in chunk)
+            foreach (var (glyph, text) in chunk)
             {
                 sb.Append('<').Append(glyph.ToString("X4", CultureInfo.InvariantCulture)).Append("> <");
 
-                // Values are UTF-16BE, so anything outside the BMP is written as a surrogate pair.
-                if (codePoint > 0xffff)
-                {
-                    var text = char.ConvertFromUtf32(codePoint);
-                    foreach (var unit in text)
-                        sb.Append(((int)unit).ToString("X4", CultureInfo.InvariantCulture));
-                }
-                else
-                {
-                    sb.Append(codePoint.ToString("X4", CultureInfo.InvariantCulture));
-                }
+                // Values are UTF-16BE: anything outside the BMP is written as a surrogate pair,
+                // and a glyph standing for several characters as all of them in turn.
+                foreach (var unit in text)
+                    sb.Append(((int)unit).ToString("X4", CultureInfo.InvariantCulture));
 
                 sb.Append(">\n");
             }

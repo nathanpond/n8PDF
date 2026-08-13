@@ -11,7 +11,7 @@
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 278.924, "font": "Times New Roman", "size": 12, "text": "Times New Roman, which has the Latin and the Hebrew: "},
-            {"x": 350.924, "width": 21.938, "font": "Times New Roman", "size": 12, "text": "םולש"}
+            {"x": 350.924, "width": 21.938, "font": "Times New Roman", "size": 12, "text": "שלום"}
           ]
         },
         {
@@ -35,7 +35,7 @@
             {"x": 247.472, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
             {"x": 250.808, "width": 11.256, "font": "Calibri", "size": 12, "text": "all"},
             {"x": 262.064, "width": 6.18, "font": "Arial Hebrew", "size": 12, "text": ": "},
-            {"x": 268.244, "width": 24.036, "font": "Arial Hebrew", "size": 12, "text": "םולש"}
+            {"x": 268.244, "width": 24.036, "font": "Arial Hebrew", "size": 12, "text": "שלום"}
           ]
         },
         {
@@ -61,7 +61,7 @@
             {"x": 316.832, "width": 3.336, "font": "Arial Hebrew", "size": 12, "text": " "},
             {"x": 320.168, "width": 23.871, "font": "Calibri", "size": 12, "text": "Latin"},
             {"x": 344.039, "width": 6.18, "font": "Arial Hebrew", "size": 12, "text": ": "},
-            {"x": 350.219, "width": 24.036, "font": "Arial Hebrew", "size": 12, "text": "םולש"}
+            {"x": 350.219, "width": 24.036, "font": "Arial Hebrew", "size": 12, "text": "שלום"}
           ]
         }
       ]

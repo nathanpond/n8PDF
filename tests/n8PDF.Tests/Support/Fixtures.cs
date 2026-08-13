@@ -1079,6 +1079,34 @@ public static class Fixtures
                 return builder;
             },
 
+            // Arabic, whose letters join to one another and take a different shape according to
+            // what stands beside them. The lines are the cases that decide it: a word of letters
+            // that all join, one holding a letter that joins on the right only and so breaks in
+            // the middle, the pair that may not be written as two, and a word with vowel marks,
+            // which stand between letters without breaking the join.
+            ["arabic"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                var arial = "<w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:cs=\"Arial\"/><w:sz w:val=\"24\"/>";
+
+                void Line(string text, bool rightToLeft = true)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(rightToLeft ? "<w:bidi/>" : string.Empty)}{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{arial}</w:rPr><w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Arabic below, joined and read from the right.", false);
+                Line("مرحبا بالعالم");
+                Line("كتاب ودار");
+                Line("لا إله");
+                Line("بِسْمِ اللَّهِ");
+                Line("العربية 1445 and Latin");
+
+                return builder;
+            },
+
             // Pointed Hebrew, whose vowel points are marks with no place of their own: the font
             // says where each attaches, and a converter that draws them where the pen happens to
             // be puts the meaning of the words somewhere else. The Latin line carries an accent

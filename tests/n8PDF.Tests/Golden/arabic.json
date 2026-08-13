@@ -1,0 +1,62 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.256,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 235.465, "font": "Arial", "size": 12, "text": "Arabic below, joined and read from the right."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.055,
+          "height": 13.799,
+          "runs": [
+            {"x": 491.842, "width": 48.158, "font": "Arial", "size": 12, "text": "مرحبا بالعالم"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.854,
+          "height": 13.799,
+          "runs": [
+            {"x": 500.109, "width": 39.891, "font": "Arial", "size": 12, "text": "كتاب ودار"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.652,
+          "height": 13.799,
+          "runs": [
+            {"x": 520.67, "width": 19.33, "font": "Arial", "size": 12, "text": "لا إله"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.451,
+          "height": 13.799,
+          "runs": [
+            {"x": 513.797, "width": 26.203, "font": "Arial", "size": 12, "text": "بِسْمِ اللَّهِ"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.25,
+          "height": 13.799,
+          "runs": [
+            {"x": 431.338, "width": 49.377, "font": "Arial", "size": 12, "text": "and Latin"},
+            {"x": 480.715, "width": 3.334, "font": "Arial", "size": 12, "text": " "},
+            {"x": 484.049, "width": 26.695, "font": "Arial", "size": 12, "text": "1445"},
+            {"x": 510.744, "width": 29.256, "font": "Arial", "size": 12, "text": "العربية "}
+          ]
+        }
+      ]
+    }
+  ]
+}

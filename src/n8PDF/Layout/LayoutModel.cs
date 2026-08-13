@@ -45,6 +45,13 @@ public sealed class PositionedText
     /// </summary>
     public bool Kerned { get; init; }
 
+    /// <summary>
+    /// Whether this run is drawn from the right. The text is kept in the order it is read, which
+    /// is the only order it can be shaped in — which letter joins to which is a fact about the
+    /// text — and the writer turns the glyphs round.
+    /// </summary>
+    public bool RightToLeft { get; init; }
+
     public double FontSizePoints => Format.EffectiveFontSizePoints;
 
     /// <summary>
@@ -65,7 +72,8 @@ public sealed class PositionedText
         Width = Width,
         WordSpacing = WordSpacing,
         Link = Link,
-        Kerned = Kerned
+        Kerned = Kerned,
+        RightToLeft = RightToLeft
     };
 
     public override string ToString() => $"({X:0.##}, {BaselineY:0.##}) \"{Text}\"";

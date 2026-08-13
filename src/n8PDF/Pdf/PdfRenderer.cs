@@ -360,21 +360,21 @@ internal static class PdfRenderer
         var shaped = TextShaper.Shape(face, text);
 
         var glyphs = new ushort[shaped.Count];
-        var codePoints = new int[shaped.Count];
+        var texts = new string[shaped.Count];
 
         for (var i = 0; i < shaped.Count; i++)
         {
             glyphs[i] = shaped.Glyphs[i].Glyph;
-            codePoints[i] = shaped.CodePointOf(i);
+            texts[i] = shaped.TextOf(i);
         }
 
-        return font.EncodeGlyphs(glyphs, codePoints);
+        return font.EncodeGlyphs(glyphs, texts);
     }
 
     private static void ShowText(ContentStreamBuilder content, PdfFont font, PositionedText text, double size)
     {
         var face = text.Font.Font;
-        var shaped = TextShaper.Shape(face, text.Text, text.Kerned);
+        var shaped = TextShaper.Shape(face, text.Text, text.Kerned, text.RightToLeft);
 
         if (shaped.Count == 0) return;
 
@@ -385,7 +385,7 @@ internal static class PdfRenderer
         var segments = new List<(byte[] Encoded, double Adjustment)>();
 
         var glyphs = new List<ushort>(shaped.Count);
-        var codePoints = new List<int>(shaped.Count);
+        var texts = new List<string>(shaped.Count);
 
         // What the glyphs so far have been raised by. A mark drawn above or below what it belongs
         // to is the only thing that asks for this, and it has to be put back afterwards.
@@ -393,9 +393,9 @@ internal static class PdfRenderer
 
         void Cut(double adjustment)
         {
-            segments.Add((font.EncodeGlyphs([.. glyphs], [.. codePoints]), adjustment));
+            segments.Add((font.EncodeGlyphs([.. glyphs], [.. texts]), adjustment));
             glyphs.Clear();
-            codePoints.Clear();
+            texts.Clear();
         }
 
         void Flush()
@@ -432,7 +432,7 @@ internal static class PdfRenderer
             }
 
             glyphs.Add(glyph.Glyph);
-            codePoints.Add(shaped.CodePointOf(i));
+            texts.Add(shaped.TextOf(i));
 
             var adjustment = 0.0;
 

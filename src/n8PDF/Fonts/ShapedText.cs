@@ -20,7 +20,21 @@ namespace n8PDF.Fonts;
 /// cluster and several characters may share a glyph, which is why this is an index into the text
 /// rather than a count of glyphs.
 /// </param>
-public readonly record struct ShapedGlyph(ushort Glyph, int Advance, int XOffset, int YOffset, int Cluster);
+/// <param name="Component">
+/// Which letter of a ligature a mark was written over, counted from the first. Nought for
+/// everything else, and for a mark on a letter that is only itself. A shape standing for several
+/// letters offers a place for a mark over each of them, and this is what says which.
+/// </param>
+/// <param name="Merged">
+/// Where in the text the other letters this glyph stands for came from, where it stands for
+/// several. A ligature is one glyph for several characters, and a map from the page back to the
+/// text that named only the first of them would lose the rest: a reader searching for the word
+/// would not find it, and a reader copying the line would copy something shorter than what is
+/// drawn.
+/// </param>
+public readonly record struct ShapedGlyph(
+    ushort Glyph, int Advance, int XOffset, int YOffset, int Cluster, int Component = 0,
+    int[]? Merged = null);
 
 /// <summary>
 /// Text turned into the glyphs that draw it.
@@ -63,9 +77,9 @@ public sealed class ShapedText
     public int Count => Glyphs.Count;
 
     /// <summary>
-    /// The code point a glyph stands for, for the map a PDF carries so that its text can be
-    /// searched and copied. A glyph standing for several characters is named by the first of
-    /// them, which is what a reader needs to find the word again.
+    /// The code point a glyph stands for, for the places one is all that can be carried: the
+    /// character map of an embedded font, which maps a character to a glyph and not the reverse.
+    /// A glyph standing for several characters is named by the first of them.
     /// </summary>
     public int CodePointOf(int index)
     {
@@ -76,5 +90,32 @@ public sealed class ShapedText
                char.IsLowSurrogate(Source[at + 1])
             ? char.ConvertToUtf32(Source[at], Source[at + 1])
             : Source[at];
+    }
+
+    /// <summary>
+    /// What a glyph stands for, for the map a PDF carries so that its text can be searched and
+    /// copied. Usually one character, and all of them where a ligature has written several as one
+    /// shape — which is what lets a reader copy the word out of the page and get the word.
+    /// </summary>
+    public string TextOf(int index)
+    {
+        var glyph = Glyphs[index];
+
+        if (glyph.Merged is not { Length: > 1 } merged) return At(glyph.Cluster);
+
+        var text = new System.Text.StringBuilder();
+        foreach (var cluster in merged) text.Append(At(cluster));
+
+        return text.ToString();
+    }
+
+    private string At(int cluster)
+    {
+        if (cluster < 0 || cluster >= Source.Length) return string.Empty;
+
+        return char.IsHighSurrogate(Source[cluster]) && cluster + 1 < Source.Length &&
+               char.IsLowSurrogate(Source[cluster + 1])
+            ? Source.Substring(cluster, 2)
+            : Source[cluster].ToString();
     }
 }

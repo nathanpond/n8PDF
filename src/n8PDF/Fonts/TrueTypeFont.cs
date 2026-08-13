@@ -15,6 +15,8 @@ public sealed class TrueTypeFont
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, short>? _kerning;
     private readonly GlyphPositioning? _positioning;
+    private GlyphSubstitution? _substitution;
+    private bool _substitutionRead;
 
     private TrueTypeFont(
         byte[] data,
@@ -94,6 +96,25 @@ public sealed class TrueTypeFont
     /// shipped this century put it — Calibri has no legacy table at all — and the old <c>kern</c>
     /// table answers for the fonts that predate it. Zero either way when neither kerns the pair.
     /// </summary>
+    /// <summary>
+    /// What the font says a glyph should be swapped for, or null where it says nothing. Read when
+    /// first asked, since most documents never ask.
+    /// </summary>
+    internal GlyphSubstitution? Substitution
+    {
+        get
+        {
+            if (_substitutionRead) return _substitution;
+
+            _substitutionRead = true;
+
+            if (Tables.TryGetValue("GSUB", out var gsub))
+                _substitution = GlyphSubstitution.Read(_data, gsub.Offset, gsub.Length);
+
+            return _substitution;
+        }
+    }
+
     /// <summary>Whether the font treats this glyph as a mark drawn on something else.</summary>
     public bool IsMark(ushort glyph) => _positioning?.IsMark(glyph) ?? false;
 
@@ -101,8 +122,9 @@ public sealed class TrueTypeFont
     /// Where a mark goes on the glyph it is drawn on, in design units, or null where the font says
     /// nothing about the pair.
     /// </summary>
-    public (short X, short Y)? GetMarkOffset(ushort mark, ushort attachTo, bool onMark) =>
-        _positioning?.GetMarkOffset(mark, attachTo, onMark);
+    public (short X, short Y, bool OnMark)? GetMarkOffset(
+        ushort mark, ushort? attachTo, ushort? onMark, int component = 0) =>
+        _positioning?.GetMarkOffset(mark, attachTo, onMark, component);
 
     public short GetKerning(ushort left, ushort right)
     {

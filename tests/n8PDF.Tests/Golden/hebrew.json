@@ -18,7 +18,7 @@
           "baselineY": 97.002,
           "height": 13.799,
           "runs": [
-            {"x": 72, "width": 45, "font": "Times New Roman", "size": 12, "text": "םלוע םולש"}
+            {"x": 72, "width": 45, "font": "Times New Roman", "size": 12, "text": "שלום עולם"}
           ]
         },
         {
@@ -26,7 +26,7 @@
           "baselineY": 110.801,
           "height": 13.799,
           "runs": [
-            {"x": 495, "width": 45, "font": "Times New Roman", "size": 12, "text": "םלוע םולש"}
+            {"x": 495, "width": 45, "font": "Times New Roman", "size": 12, "text": "שלום עולם"}
           ]
         },
         {
@@ -34,9 +34,9 @@
           "baselineY": 124.6,
           "height": 13.799,
           "runs": [
-            {"x": 472.664, "width": 23.062, "font": "Times New Roman", "size": 12, "text": "םלוע "},
+            {"x": 472.664, "width": 23.062, "font": "Times New Roman", "size": 12, "text": " עולם"},
             {"x": 495.727, "width": 19.336, "font": "Times New Roman", "size": 12, "text": "ISO"},
-            {"x": 515.062, "width": 24.938, "font": "Times New Roman", "size": 12, "text": " םולש"}
+            {"x": 515.062, "width": 24.938, "font": "Times New Roman", "size": 12, "text": "שלום "}
           ]
         },
         {
@@ -44,9 +44,9 @@
           "baselineY": 138.398,
           "height": 13.799,
           "runs": [
-            {"x": 468, "width": 23.062, "font": "Times New Roman", "size": 12, "text": "םלוע "},
+            {"x": 468, "width": 23.062, "font": "Times New Roman", "size": 12, "text": " עולם"},
             {"x": 491.062, "width": 24, "font": "Times New Roman", "size": 12, "text": "8601"},
-            {"x": 515.062, "width": 24.938, "font": "Times New Roman", "size": 12, "text": " םולש"}
+            {"x": 515.062, "width": 24.938, "font": "Times New Roman", "size": 12, "text": "שלום "}
           ]
         },
         {
@@ -54,7 +54,7 @@
           "baselineY": 152.197,
           "height": 13.799,
           "runs": [
-            {"x": 462.07, "width": 77.93, "font": "Times New Roman", "size": 12, "text": "םולש (םלוע) םולש"}
+            {"x": 462.07, "width": 77.93, "font": "Times New Roman", "size": 12, "text": "שלום )עולם( שלום"}
           ]
         },
         {
@@ -62,7 +62,7 @@
           "baselineY": 165.996,
           "height": 13.799,
           "runs": [
-            {"x": 460.066, "width": 79.934, "font": "Times New Roman", "size": 12, "text": "!םולש .םלוע ,םולש"}
+            {"x": 460.066, "width": 79.934, "font": "Times New Roman", "size": 12, "text": "שלום, עולם. שלום!"}
           ]
         },
         {

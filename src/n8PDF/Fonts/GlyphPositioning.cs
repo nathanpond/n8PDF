@@ -57,20 +57,36 @@ internal sealed class GlyphPositioning
     /// where that glyph began. Null where the font says nothing about the pair.
     /// </summary>
     /// <param name="onMark">
-    /// Whether it is being drawn on another mark rather than on a letter, which the font answers
-    /// from a different set of anchors.
+    /// The mark standing next to it, where there is one. A mark may be drawn on a mark, which is
+    /// how a letter carries two.
     /// </param>
-    public (short X, short Y)? GetMarkOffset(ushort mark, ushort attachTo, bool onMark)
+    /// <param name="component">
+    /// Which part of what it is drawn on the mark belongs to, where that is a ligature. A shape
+    /// standing for several letters offers a place for each of them — the vowel over the second
+    /// lam of the name of God is not the vowel over the first — and a glyph that is not a
+    /// ligature has the one part.
+    /// </param>
+    /// <returns>
+    /// The movement, and whether it was measured from the mark beside it rather than from the
+    /// letter. Which of the two it is drawn on is not decided by which stands nearer: it is
+    /// decided by the font, and the answer is whichever of its tables speaks first.
+    /// </returns>
+    public (short X, short Y, bool OnMark)? GetMarkOffset(
+        ushort mark, ushort? attachTo, ushort? onMark, int component = 0)
     {
         // The subtables are tried in the order the font lists them, and the first that knows
         // about both the mark and what it is drawn on is the one that decides — which is how the
-        // lookups themselves are applied.
+        // lookups themselves are applied. A mark written after the last letter of a ligature is
+        // placed on that letter by a table the font lists before the one that would have placed
+        // it on the mark beside it, and following the order is what gets it there.
         foreach (var attachment in _attachments)
         {
-            if (attachment.OnMark != onMark) continue;
-            if (attachment.Offset(mark, attachTo) is not { } offset) continue;
+            var target = attachment.OnMark ? onMark : attachTo;
+            if (target is null) continue;
 
-            return offset;
+            if (attachment.Offset(mark, target.Value, component) is not { } offset) continue;
+
+            return (offset.X, offset.Y, attachment.OnMark);
         }
 
         return null;
@@ -80,14 +96,19 @@ internal sealed class GlyphPositioning
     private sealed class MarkAttachment(
         bool onMark,
         Dictionary<ushort, (ushort Class, short X, short Y)> marks,
-        Dictionary<ushort, (short X, short Y)?[]> places)
+        Dictionary<ushort, (short X, short Y)?[][]> places)
     {
         public bool OnMark { get; } = onMark;
 
-        public (short X, short Y)? Offset(ushort mark, ushort attachTo)
+        public (short X, short Y)? Offset(ushort mark, ushort attachTo, int component)
         {
             if (!marks.TryGetValue(mark, out var held)) return null;
-            if (!places.TryGetValue(attachTo, out var offered)) return null;
+            if (!places.TryGetValue(attachTo, out var parts) || parts.Length == 0) return null;
+
+            // A mark past the last part of a ligature belongs to that last part: the vowel written
+            // after the final letter of a shape is written on that letter.
+            var offered = parts[Math.Clamp(component, 0, parts.Length - 1)];
+
             if (held.Class >= offered.Length || offered[held.Class] is not { } place) return null;
 
             return ((short)(place.X - held.X), (short)(place.Y - held.Y));
@@ -213,6 +234,10 @@ internal sealed class GlyphPositioning
                     ReadMarkAttachment(data, subtable, onMark: false);
                     break;
 
+                case 5:
+                    ReadMarkAttachment(data, subtable, onMark: false, toLigature: true);
+                    break;
+
                 case 6:
                     ReadMarkAttachment(data, subtable, onMark: true);
                     break;
@@ -236,6 +261,10 @@ internal sealed class GlyphPositioning
 
                         case 4:
                             ReadMarkAttachment(data, target, onMark: false);
+                            break;
+
+                        case 5:
+                            ReadMarkAttachment(data, target, onMark: false, toLigature: true);
                             break;
 
                         case 6:
@@ -369,7 +398,11 @@ internal sealed class GlyphPositioning
     /// table under different names. One side holds the marks and the place each wants; the other
     /// holds, for every glyph a mark may go on, a place for each kind of mark.
     /// </summary>
-    private void ReadMarkAttachment(byte[] data, int offset, bool onMark)
+    /// <param name="toLigature">
+    /// Whether what the marks go on is a ligature, whose table holds not one place for each kind
+    /// of mark but one for each letter the shape stands for.
+    /// </param>
+    private void ReadMarkAttachment(byte[] data, int offset, bool onMark, bool toLigature = false)
     {
         var reader = new BigEndianReader(data, offset);
 
@@ -386,7 +419,7 @@ internal sealed class GlyphPositioning
         var baseGlyphs = ReadCoverage(data, offset + baseCoverageOffset);
 
         var marks = new Dictionary<ushort, (ushort Class, short X, short Y)>();
-        var places = new Dictionary<ushort, (short X, short Y)?[]>();
+        var places = new Dictionary<ushort, (short X, short Y)?[][]>();
 
         // The marks: each says which kind of place it wants and where its own anchor sits.
         var markArray = new BigEndianReader(data, offset + markArrayOffset);
@@ -405,27 +438,65 @@ internal sealed class GlyphPositioning
         }
 
         // And what they are drawn on: a place for each kind of mark, or nothing where that glyph
-        // offers none of that kind.
+        // offers none of that kind. A ligature says it once for each letter it stands for, behind
+        // a further offset, since which place a mark wants depends on which letter it was written
+        // over.
         var baseArray = new BigEndianReader(data, offset + baseArrayOffset);
         int baseCount = baseArray.ReadUInt16();
 
-        for (var i = 0; i < baseCount && i < baseGlyphs.Count; i++)
+        if (toLigature)
         {
-            var offered = new (short X, short Y)?[classCount];
+            var attachOffsets = new int[baseCount];
+            for (var i = 0; i < baseCount; i++) attachOffsets[i] = baseArray.ReadUInt16();
 
-            for (var c = 0; c < classCount; c++)
+            for (var i = 0; i < baseCount && i < baseGlyphs.Count; i++)
             {
-                int anchorOffset = baseArray.ReadUInt16();
-                if (anchorOffset == 0) continue;
+                if (attachOffsets[i] == 0) continue;
 
-                offered[c] = ReadAnchor(data, offset + baseArrayOffset + anchorOffset);
+                var attachAt = offset + baseArrayOffset + attachOffsets[i];
+                var attach = new BigEndianReader(data, attachAt);
+
+                int componentCount = attach.ReadUInt16();
+                if (componentCount is < 1 or > 64) continue;
+
+                var parts = new (short X, short Y)?[componentCount][];
+
+                for (var part = 0; part < componentCount; part++)
+                {
+                    parts[part] = ReadAnchors(data, ref attach, attachAt, classCount);
+                }
+
+                places[baseGlyphs[i]] = parts;
             }
-
-            places[baseGlyphs[i]] = offered;
+        }
+        else
+        {
+            for (var i = 0; i < baseCount && i < baseGlyphs.Count; i++)
+            {
+                places[baseGlyphs[i]] =
+                    [ReadAnchors(data, ref baseArray, offset + baseArrayOffset, classCount)];
+            }
         }
 
         if (marks.Count > 0 && places.Count > 0)
             _attachments.Add(new MarkAttachment(onMark, marks, places));
+    }
+
+    /// <summary>One place for each kind of mark, read where the reader stands.</summary>
+    private static (short X, short Y)?[] ReadAnchors(
+        byte[] data, ref BigEndianReader reader, int from, int classCount)
+    {
+        var offered = new (short X, short Y)?[classCount];
+
+        for (var c = 0; c < classCount; c++)
+        {
+            int anchorOffset = reader.ReadUInt16();
+            if (anchorOffset == 0) continue;
+
+            offered[c] = ReadAnchor(data, from + anchorOffset);
+        }
+
+        return offered;
     }
 
     /// <summary>

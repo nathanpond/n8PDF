@@ -79,6 +79,12 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         ["hebrew"] = "Word encodes a line of Hebrew as runs this reader cannot reassemble exactly",
         ["marks"] = "the same, and its Hebrew carries points, which Word encodes the same way",
 
+        // Word writes Arabic as the presentation forms, one glyph to a run, and the name of God as
+        // the single glyph the font holds for it — which comes back out of Word's own file as the
+        // letter J. Where the text goes is compared like any other fixture's, and its lines begin
+        // where Word begins them; what the runs say is two spellings of the same line.
+        ["arabic"] = "Word encodes Arabic as the presentation forms, which is not what was typed",
+
         // And this one for a second reason as well: which face is borrowed for a character the
         // run's own cannot draw is a choice rather than a fact, Word's is not discoverable, and
         // the two are not the same width. Where the text goes is compared like any other fixture's

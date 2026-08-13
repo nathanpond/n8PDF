@@ -3101,7 +3101,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Width = segment.Width,
                 WordSpacing = segment.WordSpacing,
                 Link = segment.Link,
-                Kerned = segment.Kerned
+                Kerned = segment.Kerned,
+                RightToLeft = (segment.Level & 1) != 0
             };
 
             laidOut.Texts.Add(text);
@@ -3563,7 +3564,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Equals(current.Link, textAtom.Link) &&
                 Math.Abs(current.X + current.Width - (indentLeft + offset + pen)) < 0.001)
             {
-                current.Text += textAtom.Text;
+                // The words arrive in the order they are drawn, and a segment holds the order they
+                // are read in — the two are the same only one way round. A word joined onto a
+                // right-to-left segment goes on the front of it, because what is drawn further
+                // left was read later.
+                current.Text = (textAtom.Level & 1) != 0
+                    ? textAtom.Text + current.Text
+                    : current.Text + textAtom.Text;
+
                 current.Width += width + extra;
                 current.SpaceCount += textAtom.IsSpace ? 1 : 0;
             }
@@ -4284,9 +4292,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var slice = text[start..index];
 
-            // A run that goes right to left is drawn from its far end, marks kept with the
-            // letters they belong to and brackets facing the way the reader is going.
-            if ((level & 1) != 0) slice = Text.BidiText.Drawn(slice, level);
+            // A run that goes right to left keeps the order it is read in, which is the order it
+            // has to be shaped in; what changes here is only the brackets, which face the way the
+            // reader is going. Turning it round happens to the glyphs, on the way to the page.
+            if ((level & 1) != 0) slice = Text.BidiText.Mirrored(slice, level);
 
             // Splitting at spaces puts the pair straddling each split into neither atom, and Word
             // kerns those like any other — a V before a space is drawn tighter to it. The pair is

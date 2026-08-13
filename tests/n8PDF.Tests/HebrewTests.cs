@@ -31,23 +31,29 @@ public class HebrewTests(ITestOutputHelper output)
     private static ConversionOptions Options() => new() { Fonts = TestFonts.CreatePinnedLibrary() };
 
     /// <summary>One paragraph of the given text, running whichever way is asked.</summary>
-    private static LaidOutPage Page(string text, bool rightToLeft)
+    private static byte[] Page(string text, bool rightToLeft)
     {
         var builder = new DocxBuilder().AddRawParagraph(
             $"<w:p><w:pPr>{(rightToLeft ? "<w:bidi/>" : string.Empty)}{Spacing}</w:pPr>" +
             $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{text}</w:t></w:r></w:p>");
 
-        using var stream = builder.BuildStream();
-
-        return Converter.LayoutDocument(stream, Options()).Pages[0];
+        return Converter.Convert(builder.Build(), Options());
     }
 
-    /// <summary>What is drawn on a line, in the order it is drawn: leftmost first.</summary>
-    private static List<(double X, string Text)> Drawn(LaidOutPage page) =>
-        page.Lines
-            .SelectMany(line => line.Texts)
-            .OrderBy(text => text.X)
-            .Select(text => (text.X, text.Text))
+    /// <summary>
+    /// What is drawn on the page, in the order it is drawn: leftmost first.
+    /// </summary>
+    /// <remarks>
+    /// Read back out of the PDF rather than off the layout, because the layout no longer holds the
+    /// answer. A run is stored in the order it is read — the only order it can be shaped in, since
+    /// which letter joins to which and which mark belongs to which letter are facts about the text
+    /// — and it is the glyphs that are turned round on their way to the page. What is drawn is
+    /// therefore only visible where the drawing is.
+    /// </remarks>
+    private static List<(double X, string Text)> Drawn(byte[] pdf) =>
+        Support.PdfReading.PdfTextExtractor.Extract(pdf)
+            .OrderBy(run => run.X)
+            .Select(run => (run.X, run.Text))
             .ToList();
 
     /// <summary>
@@ -74,6 +80,8 @@ public class HebrewTests(ITestOutputHelper output)
     public void The_first_word_of_a_hebrew_line_is_drawn_furthest_right()
     {
         var drawn = Drawn(Page($"{Shalom} {Olam}", rightToLeft: true));
+
+        foreach (var piece in drawn) output.WriteLine($"{piece.X:0.##} \"{piece.Text}\"");
 
         var text = string.Concat(drawn.Select(piece => piece.Text));
 

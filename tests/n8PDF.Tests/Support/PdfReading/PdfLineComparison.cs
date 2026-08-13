@@ -121,13 +121,61 @@ public static class PdfLineComparison
     /// Groups runs into lines. Runs on the same baseline belong to the same line; the tolerance
     /// absorbs the sub-point baseline jitter produced by superscripts and mixed font sizes.
     /// </summary>
+    /// <remarks>
+    /// A run that advances the pen by nothing is a mark drawn on the letter beside it — a vowel
+    /// point, an accent — and it belongs to that letter's line however far above or below the
+    /// baseline it is drawn. It is set aside and given to the nearest line afterwards rather than
+    /// being allowed to start one of its own, because the two producers place marks by different
+    /// conventions: Word draws Arabic from glyphs whose outlines carry their own height and so
+    /// leaves the pen near the baseline, while this converter moves each mark to the anchor its
+    /// font names. Both put the ink in the same place, and a line-level comparison that let the
+    /// difference in origins split a line into three would be measuring the conventions rather
+    /// than the page.
+    /// </remarks>
+    /// <summary>
+    /// The baseline of the run a mark is drawn on: the nearest one that advances the pen, judged
+    /// by how far away it is on the page rather than by which comes first in the file.
+    /// </summary>
+    private static double? Nearest(ExtractedTextRun mark, List<ExtractedTextRun> letters)
+    {
+        double? found = null;
+        var best = double.MaxValue;
+
+        foreach (var letter in letters)
+        {
+            var distance = Math.Abs(letter.BaselineY - mark.BaselineY) +
+                           (mark.X < letter.X || mark.X > letter.X + letter.Width
+                               ? Math.Min(Math.Abs(mark.X - letter.X),
+                                   Math.Abs(mark.X - (letter.X + letter.Width)))
+                               : 0);
+
+            if (distance >= best) continue;
+
+            best = distance;
+            found = letter.BaselineY;
+        }
+
+        return found;
+    }
+
     public static List<TextLine> GroupIntoLines(IEnumerable<ExtractedTextRun> runs, double tolerance = 1.0)
     {
         var lines = new List<TextLine>();
 
         foreach (var pageGroup in runs.GroupBy(r => r.PageIndex).OrderBy(g => g.Key))
         {
-            var remaining = pageGroup.OrderBy(r => r.BaselineY).ThenBy(r => r.X).ToList();
+            var marks = pageGroup.Where(run => run.Width <= 0.01).ToList();
+
+            var remaining = pageGroup.Where(run => run.Width > 0.01)
+                .OrderBy(r => r.BaselineY).ThenBy(r => r.X).ToList();
+
+            // A page of nothing but marks is not a thing, but a line of one would be lost.
+            if (remaining.Count == 0)
+            {
+                remaining = marks.OrderBy(r => r.BaselineY).ThenBy(r => r.X).ToList();
+                marks = [];
+            }
+
             var index = 0;
 
             while (index < remaining.Count)
@@ -140,6 +188,14 @@ public static class PdfLineComparison
                     cluster.Add(remaining[index]);
                     index++;
                 }
+
+                // The marks whose nearest line is this one, drawn on the letters it holds.
+                var top = cluster.Min(run => run.BaselineY);
+                var bottom = cluster.Max(run => run.BaselineY);
+
+                cluster.AddRange(marks.Where(mark =>
+                    Nearest(mark, remaining) is { } nearest &&
+                    nearest >= top - tolerance && nearest <= bottom + tolerance));
 
                 var ordered = cluster.OrderBy(r => r.X).ToList();
 
@@ -194,9 +250,15 @@ public static class PdfLineComparison
                 // real lines reports a difference where there is no visible one.
                 if (string.IsNullOrWhiteSpace(text.ToString())) continue;
 
+                // Where the line sits is where its letters sit. A mark is drawn above or below
+                // them by however much its font says, and a line whose baseline came from a vowel
+                // point would be reported as sitting wherever that vowel was hung.
+                var written = ordered.Where(run => run.Width > 0.01).ToList();
+                if (written.Count == 0) written = ordered;
+
                 lines.Add(new TextLine(
                     pageGroup.Key,
-                    Math.Round(ordered.Min(r => r.BaselineY), 4),
+                    Math.Round(written.Min(r => r.BaselineY), 4),
                     Math.Round(ordered.Min(r => r.X), 4),
                     Math.Round(ordered.Max(r => r.X + r.Width) - trailingWidth, 4),
                     text.ToString().TrimEnd()));

@@ -545,9 +545,9 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is the scripts that join or reorder their letters — Arabic, and the Indic and
-South-East Asian families — which need the substitutions of a font's `GSUB` table as well as the
-positioning of its `GPOS`.
+remains elsewhere is the scripts that reorder their letters — the Indic and South-East Asian
+families — which need reordering rules of their own on top of the substitution and positioning
+tables that Arabic already uses here.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -576,7 +576,14 @@ is a rule that matters to anything that draws rather than merely reorders.
 Hebrew is laid out with all of that behind it. A paragraph that says `w:bidi` begins at the right
 margin; the words of a line are placed in the order they are drawn rather than the order they are
 stored; a word that runs right to left is drawn from its own far end, with the marks kept on the
-letters they belong to and the brackets facing the way the reader is going. What has a direction of
+letters they belong to and the brackets facing the way the reader is going.
+
+A run is stored in the order it is read all the way to the writer, and turned round there, as
+glyphs. That is not a detail of where the reversal happens. Which letter joins to which, which mark
+belongs to which letter, and which letters may be written as one shape are all questions about the
+text, and a shaper handed a word backwards answers all three backwards. What can be turned round
+safely is the glyphs, because each carries its own advance and its own offset and both are measured
+from where that glyph itself begins. What has a direction of
 its own keeps it: a number inside a Hebrew sentence reads as it was written, and so does a Latin
 name. Hebrew inside an ordinary left-to-right paragraph is turned round too — which way a paragraph
 runs says where its lines begin, not which way its characters go.
@@ -620,19 +627,49 @@ it with.
 
 There is a reference implementation for this too, and it is used the same way. HarfBuzz shapes text
 for nearly everything that draws it and shares nothing with this; asked for the same characters in
-the same face it gives the same glyphs and the same offsets, to the design unit, for Latin accents
-and Hebrew points alike. Comparing the two takes a moment's care — HarfBuzz writes a right-to-left
-run in the order it draws it, so a mark's offset is measured from a different place — and what is
-compared is therefore where each glyph's ink lands rather than the numbers on it.
+the same face it gives the same glyphs, the same advances and the same offsets, to the design unit,
+for Latin accents, Hebrew points and pointed Arabic alike — including the marks written over a
+shape that stands for four letters. Both are asked for the run in the order it is drawn, so the
+numbers are compared as they are rather than translated first.
+
+Arabic joins its letters, which makes the shape of a letter a fact about its neighbours rather than
+about itself. Most letters have four — alone, opening a word, inside one, ending one — and a
+handful join only on the right, which is why a word can end in the middle of itself: nothing after
+alef or dal joins back to them. A mark written over a letter must not break the join, and the four
+shapes are four glyphs of the same character, chosen through the font's `isol`, `init`, `medi` and
+`fina` features. Some pairs may not be written as two at all: lam followed by alef is one shape,
+and drawing them apart is a spelling mistake rather than an ugly line.
+
+Two things about ligatures took measuring rather than guessing. A font says, per lookup, whether a
+match may reach across the marks between the letters, and both answers are needed in the same
+font and the same word: the lookup that writes lam, lam and heh as the one shape for the name of
+God reaches across the vowels written over them, while the lookup that combines a shadda with the
+vowel beside it is matching marks and must not skip them. And a mark on such a shape is placed by a
+further table again — the ligature offers a place for each of the letters it stands for, and a
+vowel over the second lam is not a vowel over the first. Which letter it belongs to is how many of
+the shape's letters stand before it in the text.
+
+What is drawn as one shape is still read as four characters. A ligature is written into the PDF's
+map back to text as everything it stands for, so a word joined on the page can still be searched
+for and copied out as the word.
+
+Word's export of the `arabic` fixture agrees on all of it: every line begins within four tenths of
+a point of Word's, and along the line each glyph stands where Word stands it to a hundredth. What
+that comparison cannot say is what the lines say, for a nearer reason than Hebrew's — Word writes
+Arabic as the presentation forms, one glyph to a run, so its file reads back as characters nobody
+typed, and the name of God, which it draws as the single glyph the font holds for it, reads back
+out of Word's own file as the letter J.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and
 the character it came from. Everything downstream reads that — a line's width is the sum of its
 glyphs' advances, and what is written into the page is those same glyphs.
 
-What the shaper does today is what Latin, Greek and Cyrillic need and no more: a character takes
-the glyph the font's character map gives it, and a pair is drawn closer together where the face
-says so. The point of it is not cleverness but shape. A character is not a glyph — one may need
+What the shaper does is decided by the writing in front of it: a character takes the glyph the
+font's character map gives it; a letter of a script that joins takes the shape its neighbours call
+for; letters the font says may not be written apart are written as one; a pair is drawn closer
+together where the face says so; and a mark is moved onto what it belongs to. The point of it is
+not cleverness but shape. A character is not a glyph — one may need
 several, several may need one, and which glyph a character takes can depend on its neighbours —
 and a pipeline that carries characters as far as the page cannot be told the difference. This one
 carries glyphs, so it can be.
