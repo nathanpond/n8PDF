@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""Writes the table of line-breaking classes.
+
+Where a line may be broken is not a question about spaces. Chinese and Japanese are written with no
+spaces at all and break between one character and the next; Thai and its neighbours are written
+without them too and break between syllables; and even in English there are places a space may not
+be broken at and places without a space where a break is allowed. The Unicode line breaking
+algorithm decides all of it from a property of each character, and this turns that property into
+source, since the library carries no dependencies and the answer must not depend on a file being
+present at run time.
+
+    curl -O https://www.unicode.org/Public/15.0.0/ucd/LineBreak.txt
+    curl -O https://www.unicode.org/Public/15.0.0/ucd/EastAsianWidth.txt
+    curl -O https://www.unicode.org/Public/15.0.0/ucd/UnicodeData.txt
+    curl -O https://www.unicode.org/Public/15.0.0/ucd/emoji/emoji-data.txt
+    tools/make-linebreak-tables.py LineBreak.txt EastAsianWidth.txt UnicodeData.txt \
+        emoji-data.txt > src/n8PDF/Text/LineBreakTables.cs
+"""
+
+import sys
+import unicodedata
+
+# The classes the algorithm resolves before it starts, which are therefore never written out.
+# Anything unknown, ambiguous or surrogate is treated as an ordinary letter; conditional Japanese
+# starters as the small kana they stand for.
+RESOLVED = {
+    "AI": "AL", "SG": "AL", "XX": "AL",
+    "CJ": "NS",
+}
+
+NAMES = {
+    "BK": "MandatoryBreak", "CR": "CarriageReturn", "LF": "LineFeed", "CM": "CombiningMark",
+    "NL": "NextLine", "SP": "Space", "ZW": "ZeroWidthSpace", "GL": "Glue", "WJ": "WordJoiner",
+    "ZWJ": "ZeroWidthJoiner",
+    "B2": "BreakBoth", "BA": "BreakAfter", "BB": "BreakBefore", "HY": "Hyphen",
+    "IN": "Inseparable", "NS": "Nonstarter", "OP": "OpenPunctuation", "CL": "ClosePunctuation",
+    "CP": "CloseParenthesis", "EX": "Exclamation", "SY": "SymbolAllowingBreak",
+    "IS": "InfixNumeric", "PR": "PrefixNumeric", "PO": "PostfixNumeric", "NU": "Numeric",
+    "AL": "Alphabetic", "HL": "HebrewLetter", "ID": "Ideographic", "H2": "HangulLvSyllable",
+    "H3": "HangulLvtSyllable", "JL": "HangulLJamo", "JV": "HangulVJamo", "JT": "HangulTJamo",
+    "SA": "ComplexContext", "QU": "Quotation", "EB": "EmojiBase", "EM": "EmojiModifier",
+    "RI": "RegionalIndicator", "CB": "ContingentBreak",
+}
+
+
+def read(path):
+    values = {}
+
+    for line in open(path, encoding="utf-8"):
+        line = line.split("#")[0].strip()
+        if not line:
+            continue
+
+        fields = [f.strip() for f in line.split(";")]
+        if len(fields) < 2:
+            continue
+
+        codes = fields[0].split("..")
+        kind = RESOLVED.get(fields[1], fields[1])
+
+        if kind not in NAMES:
+            continue
+
+        for code in range(int(codes[0], 16), int(codes[-1], 16) + 1):
+            values[code] = kind
+
+    return values
+
+
+def ranges(values):
+    out = []
+    start = last = None
+    held = None
+
+    for code in sorted(values):
+        if held == values[code] and code == last + 1:
+            last = code
+            continue
+
+        if held is not None:
+            out.append((start, last, held))
+
+        start = last = code
+        held = values[code]
+
+    out.append((start, last, held))
+    return out
+
+
+values = read(sys.argv[1])
+rows = [row for row in ranges(values) if row[2] != "AL"]
+
+# One rule about brackets asks how wide they are: the wide ones are written among characters that
+# are themselves wide, where the rule would only add a break that is not wanted.
+widths = {}
+for line in open(sys.argv[2], encoding="utf-8"):
+    line = line.split("#")[0].strip()
+    if not line:
+        continue
+
+    fields = [f.strip() for f in line.split(";")]
+    codes = fields[0].split("..")
+
+    for code in range(int(codes[0], 16), int(codes[-1], 16) + 1):
+        widths[code] = fields[1]
+
+wide = sorted(c for c, k in values.items()
+              if k in ("OP", "CP") and widths.get(c) in ("F", "W", "H"))
+
+# And one rule is about the code points set aside for emoji that do not exist yet: a skin tone
+# after one of them belongs to it, the same as a skin tone after an emoji that does exist.
+assigned = set()
+first = None
+
+for line in open(sys.argv[3], encoding="utf-8"):
+    fields = line.split(";")
+    code = int(fields[0], 16)
+
+    if fields[1].endswith("First>"):
+        first = code
+    elif fields[1].endswith("Last>"):
+        assigned.update(range(first, code + 1))
+    else:
+        assigned.add(code)
+
+pictographic = set()
+
+for line in open(sys.argv[4], encoding="utf-8"):
+    line = line.split("#")[0].strip()
+    if not line:
+        continue
+
+    fields = [f.strip() for f in line.split(";")]
+    if fields[1] != "Extended_Pictographic":
+        continue
+
+    codes = fields[0].split("..")
+    pictographic.update(range(int(codes[0], 16), int(codes[-1], 16) + 1))
+
+reserved = ranges({c: "R" for c in sorted(pictographic - assigned)})
+
+print(f"""// Generated by tools/make-linebreak-tables.py from Unicode {unicodedata.unidata_version}.
+// Do not edit.
+
+namespace n8PDF.Text;
+
+/// <summary>
+/// Which line-breaking class each character belongs to, from the Unicode character database.
+/// </summary>
+/// <remarks>
+/// Generated rather than written. The ordinary-letter class is left out and used for everything the
+/// table does not name, which is most of the characters there are — including the ones the database
+/// calls ambiguous, unknown or surrogate, since the algorithm resolves all three to it before it
+/// starts.
+/// </remarks>
+internal static class LineBreakTables
+{{
+    /// <summary>Where each run of characters of one class begins and ends.</summary>
+    internal static readonly int[] Starts =
+    [""")
+
+
+def emit(values, per_line):
+    for i in range(0, len(values), per_line):
+        print("        " + " ".join(values[i:i + per_line]))
+
+
+emit([f"0x{start:X}," for start, _, _ in rows], 12)
+
+print("    ];\n\n    internal static readonly int[] Ends =\n    [")
+emit([f"0x{end:X}," for _, end, _ in rows], 12)
+
+print("""    ];
+
+    /// <summary>What class the characters of each run are in.</summary>
+    internal static readonly LineBreakClass[] Kinds =
+    [""")
+emit([f"LineBreakClass.{NAMES[kind]}," for _, _, kind in rows], 4)
+
+print("""    ];
+
+    /// <summary>The brackets that are as wide as the characters they are written among.</summary>
+    internal static readonly int[] WideBrackets =
+    [""")
+emit([f"0x{c:X}," for c in wide], 8)
+
+print("""    ];
+
+    /// <summary>Where each run of code points set aside for emoji not yet drawn begins.</summary>
+    internal static readonly int[] ReservedStarts =
+    [""")
+emit([f"0x{start:X}," for start, _, _ in reserved], 8)
+
+print("    ];\n\n    internal static readonly int[] ReservedEnds =\n    [")
+emit([f"0x{end:X}," for _, end, _ in reserved], 8)
+print("    ];\n}")

@@ -1,0 +1,107 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 84.234,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 36, "font": "MS Mincho", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 99.844,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 36, "font": "MS Mincho", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 115.453,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 36, "font": "MS Gothic", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 131.062,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 36, "font": "MS Gothic", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 146.672,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 36, "font": "KaiTi", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 162.281,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 36, "font": "KaiTi", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 177.188,
+          "height": 15.598,
+          "runs": [
+            {"x": 72, "width": 36, "font": "MingLiU", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 192.785,
+          "height": 15.598,
+          "runs": [
+            {"x": 72, "width": 36, "font": "MingLiU", "size": 12, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 217.242,
+          "height": 26.016,
+          "runs": [
+            {"x": 72, "width": 60, "font": "MS Mincho", "size": 20, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 243.258,
+          "height": 26.016,
+          "runs": [
+            {"x": 72, "width": 60, "font": "MS Mincho", "size": 20, "text": "日本語"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 261.117,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 30, "font": "MS Mincho", "size": 12, "text": "Latin"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 276.727,
+          "height": 15.609,
+          "runs": [
+            {"x": 72, "width": 30, "font": "MS Mincho", "size": 12, "text": "Latin"}
+          ]
+        }
+      ]
+    }
+  ]
+}

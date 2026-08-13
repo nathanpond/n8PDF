@@ -100,8 +100,8 @@ public class FontFallbackTests(ITestOutputHelper output)
     [Fact]
     public void A_character_nothing_can_draw_leaves_the_run_as_it_was()
     {
-        // None of the pinned faces has Japanese.
-        var drawn = Drawn("Times New Roman", "Japanese: 日本語");
+        // None of the pinned faces has Syriac.
+        var drawn = Drawn("Times New Roman", "Syriac: \u0710\u0712\u0713");
 
         Assert.All(drawn, piece => Assert.Equal("Times New Roman", piece.Family));
     }
@@ -124,8 +124,8 @@ public class FontFallbackTests(ITestOutputHelper output)
         Assert.Same(hebrewOnly, library.ResolveForCharacter(Hebrew[0], hebrewOnly, false, false));
         Assert.NotSame(hebrewOnly, library.ResolveForCharacter('A', hebrewOnly, false, false));
 
-        // Nothing pinned has Japanese, and saying so is better than pretending otherwise.
-        Assert.Null(library.ResolveForCharacter(0x65E5, times, false, false));
+        // Nothing pinned has Syriac, and saying so is better than pretending otherwise.
+        Assert.Null(library.ResolveForCharacter(0x0710, times, false, false));
     }
 
     /// <summary>

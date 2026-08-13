@@ -4260,6 +4260,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var kerned = Kerned(format);
         var previous = '\0';
 
+        // Where a line may be broken, which is not the same question as where the spaces are:
+        // Chinese and Japanese have none, Thai has none between its words, and English has both
+        // spaces that may not be broken at and breaks where there is no space.
+        var breaks = Text.LineBreaker.Opportunities(text);
+
         // Which face draws each character. Nearly always the run's own; where that face has no
         // glyph for a character, another that has.
         FontSelection FaceAt(int index) => FaceFor(text, index, format, font);
@@ -4284,7 +4289,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // The faces are compared by what they are rather than by which object they are: two
             // borrowed faces of one family are two selections of one font, and a word set in a
             // borrowed face would otherwise come apart at every character.
-            while (index < text.Length && (text[index] == ' ') == isSpace &&
+            // And it is broken wherever a line may be, since the line filler takes atoms whole and
+            // an atom it cannot break is one it has to carry over entire.
+            index++;
+
+            while (index < text.Length && !breaks[index] && (text[index] == ' ') == isSpace &&
                    LevelAt(index) == level && Equals(FaceAt(index), face))
             {
                 index++;

@@ -7,50 +7,66 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
-          "height": 14.891,
+          "baselineY": 83.256,
+          "height": 13.799,
           "runs": [
-            {"x": 72, "width": 447.562, "font": "Times New Roman", "size": 12, "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."}
+            {"x": 72, "width": 240.129, "font": "Arial", "size": 12, "text": "Lines broken where no space says they may."}
           ]
         },
         {
-          "paragraph": 0,
-          "baselineY": 98.094,
-          "height": 14.891,
+          "paragraph": 1,
+          "baselineY": 98.033,
+          "height": 15.609,
           "runs": [
-            {"x": 72, "width": 447.562, "font": "Times New Roman", "size": 12, "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."}
+            {"x": 72, "width": 468, "font": "MS Mincho", "size": 12, "text": "日本語の文章は単語の区切りに空白を置かないので、行の折り返しは文字と文字のあい"}
           ]
         },
         {
-          "paragraph": 0,
-          "baselineY": 112.986,
-          "height": 14.891,
+          "paragraph": 1,
+          "baselineY": 113.643,
+          "height": 15.609,
           "runs": [
-            {"x": 72, "width": 447.562, "font": "Times New Roman", "size": 12, "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."}
+            {"x": 72, "width": 468, "font": "MS Mincho", "size": 12, "text": "だで起こります。ただし句読点や閉じ括弧を行頭に置くことはできません（このような"}
           ]
         },
         {
-          "paragraph": 0,
-          "baselineY": 127.877,
-          "height": 14.891,
+          "paragraph": 1,
+          "baselineY": 129.252,
+          "height": 15.609,
           "runs": [
-            {"x": 72, "width": 447.562, "font": "Times New Roman", "size": 12, "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."}
+            {"x": 72, "width": 360, "font": "MS Mincho", "size": 12, "text": "括弧のことです）。長い文章を組むときはそこが問題になります。"}
           ]
         },
         {
-          "paragraph": 0,
-          "baselineY": 142.768,
-          "height": 14.891,
+          "paragraph": 2,
+          "baselineY": 144.861,
+          "height": 15.609,
           "runs": [
-            {"x": 72, "width": 447.562, "font": "Times New Roman", "size": 12, "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."}
+            {"x": 72, "width": 468, "font": "KaiTi", "size": 12, "text": "中文的排版也不使用空格来分隔词语，所以换行发生在字与字之间。标点符号不能出现在"}
           ]
         },
         {
-          "paragraph": 0,
-          "baselineY": 157.659,
-          "height": 14.891,
+          "paragraph": 2,
+          "baselineY": 160.471,
+          "height": 15.609,
           "runs": [
-            {"x": 72, "width": 447.562, "font": "Times New Roman", "size": 12, "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."}
+            {"x": 72, "width": 420, "font": "KaiTi", "size": 12, "text": "一行的开头，这一点和日文相同。这段文字足够长，需要折成好几行才能排下。"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 176.651,
+          "height": 16.657,
+          "runs": [
+            {"x": 72, "width": 463.543, "font": "Ayuthaya", "size": 12, "text": "ประเทศไทยมีประชากรประมาณเจ็ดสิบล้านคนและกรุงเทพมหานครเป็นเมืองหลวงที่ใหญ่ที่สุ"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 193.309,
+          "height": 16.657,
+          "runs": [
+            {"x": 72, "width": 349.44, "font": "Ayuthaya", "size": 12, "text": "ดของประเทศและเป็นศูนย์กลางการค้าและการปกครองมาตั้งแต่อดีต"}
           ]
         }
       ]

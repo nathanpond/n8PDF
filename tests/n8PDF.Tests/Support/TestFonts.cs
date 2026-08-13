@@ -18,6 +18,20 @@ public static class TestFonts
     public static string CalibriPath => Path.Combine(OfficeFonts, "Calibri.ttf");
     public static string CalibriBoldPath => Path.Combine(OfficeFonts, "Calibrib.ttf");
 
+    /// <summary>
+    /// The Japanese and Chinese faces, taken from Word's own font folder rather than the system's.
+    /// Asked for a Japanese face macOS has and Word has not, Word draws the line in one of these
+    /// instead — so these are the faces the reference exports are set in, and pinning them is what
+    /// makes the two sides comparable at all.
+    /// </summary>
+    public static string Mincho => Path.Combine(OfficeFonts, "msmincho.ttc");
+
+    public static string Gothic => Path.Combine(OfficeFonts, "msgothic.ttc");
+
+    public static string Kaiti => Path.Combine(OfficeFonts, "Kaiti.ttf");
+
+    public static string MingLiu => Path.Combine(OfficeFonts, "mingliu.ttc");
+
     /// <summary>A font collection, for exercising the <c>.ttc</c> path.</summary>
     public const string HelveticaCollectionPath = "/System/Library/Fonts/Helvetica.ttc";
 
@@ -79,7 +93,8 @@ public static class TestFonts
         foreach (var path in new[]
                  {
                      TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath,
-                     ArialPath, CalibriPath, CalibriBoldPath, ArialHebrewPath
+                     ArialPath, CalibriPath, CalibriBoldPath, ArialHebrewPath,
+                     Mincho, Gothic, Kaiti, MingLiu
                  }.Concat(ComplexScriptPaths))
         {
             if (File.Exists(path)) library.RegisterFile(path);

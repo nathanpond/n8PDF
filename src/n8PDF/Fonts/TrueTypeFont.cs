@@ -422,6 +422,7 @@ public sealed class TrueTypeFont
             TypoLineGap = os2.TypoLineGap,
             WinAscent = os2.WinAscent,
             WinDescent = os2.WinDescent,
+            IsEastAsian = os2.IsEastAsian,
             UseTypoMetrics = os2.UseTypoMetrics,
             CapHeight = os2.CapHeight != 0 ? os2.CapHeight : (int)(unitsPerEm * 0.7),
             XHeight = os2.XHeight != 0 ? os2.XHeight : (int)(unitsPerEm * 0.5),
@@ -489,6 +490,11 @@ public sealed class TrueTypeFont
         int winAscent = reader.ReadUInt16();
         int winDescent = reader.ReadUInt16();
 
+        // Which code pages the face says it is for. Only the East Asian ones are asked about,
+        // and only because Word gives a face that declares one a taller line than its own
+        // metrics ask for. Bits 17 to 21 are Japanese, the two Chinese and the two Korean.
+        var codePages = version >= 1 && os2.Offset + 82 <= data.Length ? reader.ReadUInt32() : 0;
+
         var capHeight = 0;
         var xHeight = 0;
         if (version >= 2 && os2.Offset + 90 <= data.Length)
@@ -509,6 +515,7 @@ public sealed class TrueTypeFont
             TypoLineGap = typoLineGap,
             WinAscent = winAscent,
             WinDescent = winDescent,
+            IsEastAsian = (codePages & 0x3E0000) != 0,
             CapHeight = capHeight,
             XHeight = xHeight
         };
@@ -686,6 +693,7 @@ public sealed class TrueTypeFont
         public int TypoLineGap { get; init; }
         public int WinAscent { get; init; }
         public int WinDescent { get; init; }
+        public bool IsEastAsian { get; init; }
         public int CapHeight { get; init; }
         public int XHeight { get; init; }
     }

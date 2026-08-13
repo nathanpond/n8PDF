@@ -71,8 +71,8 @@ Four tiers, cheapest and most diagnostic first.
 
    Both PDFs are read through one content-stream parser and compared line by line in points.
    Across the fixtures, line start positions match Word exactly and every baseline agrees to
-   within 0.46pt, and to within 0.29pt in every document that does not raise or lower a run —
-   close to Word's own vertical quantum of 1/300 inch. `Fidelity_report` writes
+   within 0.62pt, and to within 0.35pt in every document that neither raises a run nor sets one
+   in an East Asian face — close to Word's own vertical quantum of 1/300 inch. `Fidelity_report` writes
    the full per-line table to `artifacts/test-output/fidelity-report.txt`.
 
 4. **Structural validation** — `qpdf --check` over every converted fixture, verifying the
@@ -99,6 +99,15 @@ each with a fixture built so that only one candidate model survives:
 - A line-spacing multiple's **extra leading goes below** the baseline, so the first line of a
   paragraph sits at its natural ascent whatever the multiple.
 - The font's **line gap belongs above the ascent**, not below the descent.
+- An **East Asian face gets three tenths of an em of extra leading**, whatever its own metrics
+  say. Word gives MS Mincho, MS Gothic, KaiTi and MingLiU at 12pt a line of exactly 15.6pt,
+  although those four faces ask for 1.0, 1.0, 1.14 and 1.20 em between them — and although Core
+  Text reads those four values back from the files just as this reader does. It does the same for
+  a line of Latin letters set in one of them, so the height belongs to the face rather than to the
+  script written in it, and a face is taken to be East Asian when `OS/2` declares one of the five
+  East Asian code pages. Measured by `east-asian-line-box-probe`; sixteen hundredths of the
+  leading go above the ascent and the rest below the descent, which is as close as Word's own
+  vertical quantum allows.
 - Word **fills in what a document's styles leave unstated** from its own built-in definitions —
   see `WordBuiltInStyles`. These sit *below* the document's `docDefaults` in precedence: they are
   a fallback for what nothing states, not an override. Set
@@ -186,7 +195,9 @@ four-channel pictures a printing press wants, as either a JPEG or a TIFF; transp
 pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
 from `sectPr`, paragraphs and runs, `xml:space` handling,
-line and page breaks, tabs (left-aligned stops), font family via theme resolution, size, bold,
+line and page breaks, line breaking by the Unicode algorithm (so the scripts written without
+spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wraps them), tabs
+(left-aligned stops), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, caps, super/subscript, character spacing and scaling,
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
@@ -796,6 +807,38 @@ at the end — left in place, they sit between the pair the next machine is look
 comes out with its shapes half made. And which way round a subtable reads the run is decided by a
 flag saying so, not by comparing the flag that says "logical order" against the direction of the
 text: getting that wrong shapes Arabic with every letter's join one place out.
+
+Where a line may be broken is not a question about spaces. Chinese and Japanese are written with
+none at all and break between one character and the next; Thai, Lao, Khmer and Burmese have none
+between their words either; and even English has spaces that may not be broken at — the one in
+"10 kg" — and places without a space where a break is allowed, as after a hyphen. A converter that
+looks for spaces draws a line of Japanese straight off the edge of the page, which is what this one
+did.
+
+The Unicode line breaking algorithm decides it from a property of each character and a list of rules
+about pairs, applied in order, the first that matches winning. The property is generated from the
+database by `tools/make-linebreak-tables.py`, and the rules are checked against the file Unicode
+publishes for exactly that purpose: 7310 of its 7654 cases, every one that does not turn on a script
+needing a dictionary, and all of them pass. Half of what that file caught was rules read backwards
+or applied to the wrong side of a pair — no break *before* an opening bracket rather than after one,
+glue looked for past the spaces rather than beside them — and the sort of thing no amount of reading
+the text again would have shown.
+
+The 344 it does not answer are the scripts written without spaces *and* without a break between
+every character. For those the algorithm says to consult a dictionary of the language, which this
+converter has not got. What it does instead is what Word does with the same paragraph: break between
+one syllable and the next. The marks are folded into the letters they are written on, along with the
+handful of Thai and Lao vowels that are letters in their own right but sound after a consonant and
+cannot begin a line; the four vowels those two scripts write *before* the consonant they are sounded
+after keep hold of it, as does the Khmer sign that turns the letter following it into a subscript;
+and what is left standing is a letter that may begin a syllable, and so a place a line may be
+broken. It is a coarser answer than a dictionary would give — more places than a Thai reader would
+choose — but every place it offers is one, and a greedy filler picks the last that fits.
+
+Which is where the measurement is. Given the `wrapping` fixture — a paragraph of Japanese, one of
+Chinese and one of Thai, none with a space in it — Word and this converter break all three into the
+same lines, to a hundredth of a point in width, kinsoku and all: no line begins with a full stop, a
+comma or a closing bracket, and the Thai breaks where Word breaks it, in the middle of a word.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and

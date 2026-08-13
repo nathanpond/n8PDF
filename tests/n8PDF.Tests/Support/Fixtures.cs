@@ -1141,6 +1141,85 @@ public static class Fixtures
                 return builder;
             },
 
+            // How tall a line of East Asian text is. The wrapping fixture showed Word giving two
+            // faces whose own metrics differ the same line height, so the height is measured here
+            // the way line-box-probe measures a Latin one: zero spacing everywhere, two lines of
+            // a face, and the gap between the baselines is that face's ascent plus its descent.
+            //
+            // Four faces, chosen because their metrics disagree. Mincho and Gothic call an em
+            // exactly one line; KaiTi asks for 1.14 of one; MingLiU for 1.20 and at a different
+            // number of units to the em. If Word gives all four the same height, the height is a
+            // rule about the script; if it gives each a different one, it is read from the face.
+            ["east-asian-line-box-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Pair(string family, int halfPoints, string text = "日本語")
+                {
+                    for (var line = 0; line < 2; line++)
+                    {
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
+                            $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" " +
+                            $"w:cs=\"{family}\" w:eastAsia=\"{family}\"/>" +
+                            $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/>" +
+                            $"</w:rPr><w:t>{text}</w:t></w:r></w:p>");
+                    }
+                }
+
+                Pair("MS Mincho", 24);
+                Pair("MS Gothic", 24);
+                Pair("KaiTi", 24);
+                Pair("MingLiU", 24);
+
+                // And one face twice over, to say whether the height is a multiple of the size.
+                Pair("MS Mincho", 40);
+
+                // The same face drawing Latin letters, which says whether the height belongs to
+                // the face or to the script written in it.
+                Pair("MS Mincho", 24, "Latin");
+
+                return builder;
+            },
+
+            // The scripts that are written without spaces between the words, and so cannot be
+            // broken into lines by looking for one. Each paragraph is long enough to need three
+            // or four lines of it.
+            ["wrapping"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string text, string family, int halfPoints = 24)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
+                        $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\" " +
+                        $"w:eastAsia=\"{family}\"/>" +
+                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/></w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Lines broken where no space says they may.", "Arial");
+
+                // Japanese: broken between characters, but not before a full stop or a closing
+                // bracket, and not after an opening one.
+                Line("日本語の文章は単語の区切りに空白を置かないので、行の折り返しは文字と文字の" +
+                     "あいだで起こります。ただし句読点や閉じ括弧を行頭に置くことはできません" +
+                     "（このような括弧のことです）。長い文章を組むときはそこが問題になります。",
+                    "MS Mincho");
+
+                // Chinese, the same rules and a different set of characters.
+                Line("中文的排版也不使用空格来分隔词语，所以换行发生在字与字之间。" +
+                     "标点符号不能出现在一行的开头，这一点和日文相同。" +
+                     "这段文字足够长，需要折成好几行才能排下。", "KaiTi");
+
+                Line("ประเทศไทยมีประชากรประมาณเจ็ดสิบล้านคนและกรุงเทพมหานครเป็นเมืองหลวง" +
+                     "ที่ใหญ่ที่สุดของประเทศและเป็นศูนย์กลางการค้าและการปกครองมาตั้งแต่อดีต",
+                    "Ayuthaya");
+
+                return builder;
+            },
+
             // Faces that describe their shaping in Apple's tables and carry no OpenType tables
             // at all. There are a hundred and sixty of them on this machine, and a converter that
             // reads only OpenType draws their scripts as rows of unjoined letters.
