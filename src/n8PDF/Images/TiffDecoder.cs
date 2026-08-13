@@ -41,10 +41,18 @@ public static class TiffDecoder
         var bits = tags.TryGetValue(258, out var bitsTag) ? (int)Numbers(reader, bitsTag)[0] : 1;
         var compression = (int)Value(reader, tags, 259, 1);
         var photometric = (int)Value(reader, tags, 262, bits == 1 ? 0 : 1);
+
+        // The fax encodings say nothing about colour: a set bit is black in all of them, whatever
+        // a photometric tag written beside them claims.
+        if (compression is 2 or 3 or 4) photometric = 0;
         var planar = (int)Value(reader, tags, 284, 1);
         var predictor = (int)Value(reader, tags, 317, 1);
         var fillOrder = (int)Value(reader, tags, 266, 1);
         var rowsPerStrip = (int)Value(reader, tags, 278, height);
+
+        // What a fax strip says about how it was written: whether its lines are written against
+        // the ones above them, and whether each begins on a byte.
+        var faxOptions = (int)Value(reader, tags, compression == 4 ? 293 : 292, 0);
 
         if (planar != 1)
             throw new ImageFormatException("TIFF keeps its channels in separate planes, which is not handled.");
@@ -73,7 +81,13 @@ public static class TiffDecoder
             var stripRows = Math.Min(rowsPerStrip, height - strip * rowsPerStrip);
             if (stripRows <= 0) break;
 
-            var unpacked = Unpack(data, offset, length, compression, rowBytes * stripRows);
+            var unpacked = compression is 2 or 3 or 4
+                ? CcittDecoder.Decode(
+                    data, offset, length, width, stripRows,
+                    twoDimensional: compression == 4 || (faxOptions & 1) != 0,
+                    pureTwoDimensional: compression == 4,
+                    byteAligned: compression == 2 || (faxOptions & 4) != 0)
+                : Unpack(data, offset, length, compression, rowBytes * stripRows);
 
             if (fillOrder == 2) Reverse(unpacked);
             if (predictor == 2) Undo(unpacked, width, samples, bits, rowBytes, stripRows);

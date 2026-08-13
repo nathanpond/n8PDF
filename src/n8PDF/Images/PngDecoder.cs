@@ -132,7 +132,9 @@ public static class PngDecoder
         if (bitDepth is not (1 or 2 or 4 or 8 or 16))
             throw new ImageFormatException($"Unsupported PNG bit depth {bitDepth}.");
 
-        if (bitDepth != 8 && colorType != 3 && bitDepth != 16)
+        // Fewer than eight bits a sample is only ever a palette index or a shade of grey; the
+        // colour types that carry three channels or an alpha have at least a byte each.
+        if (bitDepth < 8 && colorType is not (0 or 3))
             throw new ImageFormatException($"Unsupported PNG bit depth {bitDepth} for colour type {colorType}.");
 
         var bitsPerPixel = channels * bitDepth;
@@ -292,6 +294,23 @@ public static class PngDecoder
             }
 
             return new ImageData(width, height, rgb, ImageEncoding.Raw, ImageColorSpace.Rgb, alpha);
+        }
+
+        // Grey written in fewer than eight bits a pixel: the samples are packed several to the
+        // byte, like a palette's indexes, and each is spread back out over the whole range — one
+        // bit of grey is black and white rather than black and very nearly black.
+        if (bitDepth < 8)
+        {
+            var shades = new byte[width * height];
+            var top = (1 << bitDepth) - 1;
+
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                    shades[y * width + x] = (byte)(ReadPackedSample(raw, y * rowBytes, x, bitDepth) * 255 / top);
+            }
+
+            return new ImageData(width, height, shades, ImageEncoding.Raw, ImageColorSpace.Gray);
         }
 
         // 16-bit samples are reduced to 8; PDF supports 16 but nothing here needs the precision.

@@ -278,7 +278,24 @@ are unpacked to samples by decoders written here: a bitmap of one to thirty-two 
 written from the foot up or the top down and run-length packed or not; a GIF through its colour
 table, interlaced or not, with the colour it treats as transparent becoming the mask a PDF carries
 separately; a TIFF at either end, in grey, colour or a palette, its rows in strips packed with
-nothing, LZW, PackBits or Deflate.
+nothing, LZW, PackBits, Deflate or one of the fax encodings.
+
+A fax is not written as pixels at all. A page of black on white is sent as the lengths of the runs
+its lines fall into, in a Huffman code the standard fixes rather than one built from the page — and
+a line may be written against the line above it instead, saying how far each change of colour has
+moved rather than where it is, which on a page of text is far shorter. All three encodings are
+read: lines written on their own, lines written either way with a bit each saying which, and lines
+written against one another throughout.
+
+Getting that right took the two-way check further than anywhere else here. The tables are large and
+mechanical, so a file is written with the library's own tables and handed to macOS's `sips` to
+read: if a single code were wrong it could not read it. Then the same file is read back here. The
+first version of the writer took the easy way and wrote every group 4 line in full, spelling out
+its runs — legal, and passed. Rewriting it to write lines the way a fax actually does, against one
+another, immediately produced a file `sips` read perfectly and this one got 171 pixels of 480
+wrong: the reader was starting each line at its first pixel where the standard starts one pixel
+before it, so a change at the very start of a line could never be found. No amount of round-tripping
+against the easy encoding would have shown it.
 
 An interlaced PNG is not one picture but seven, each a coarser or finer sieve of the whole — the
 first every eighth pixel of every eighth row, the last every pixel of every other row — and each is
@@ -333,9 +350,8 @@ in the *fixture* rather than the reader: a metafile says how big it is twice ove
 declares and in the resolution of the device it was recorded for, and the test's writer had been
 writing the two at odds. Word believed one and this believed the other, and both were right.
 
-Not yet: nothing of what a document usually holds. What is left is the parts of these formats that
-documents do not use — the fax encodings in TIFF, tiled and planar TIFFs, and 16-bit PNG samples
-kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: nothing of what a document usually holds. What is left is tiled and planar TIFFs, JPEG
+carried inside a TIFF, and 16-bit PNG samples kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

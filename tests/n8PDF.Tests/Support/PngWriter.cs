@@ -177,6 +177,54 @@ public static class PngWriter
         return output.ToArray();
     }
 
+    /// <summary>
+    /// Grey written in fewer than eight bits a pixel, which is how a black and white page is kept.
+    /// The shades given are rounded to what the depth can name.
+    /// </summary>
+    public static byte[] WriteGrey(int width, int height, byte[] shades, int bits)
+    {
+        using var output = new MemoryStream();
+        output.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+
+        var header = new byte[13];
+        WriteInt32(header, 0, width);
+        WriteInt32(header, 4, height);
+        header[8] = (byte)bits;
+        header[9] = 0;                      // grey, with no palette and no alpha
+        WriteChunk(output, "IHDR", header);
+
+        var top = (1 << bits) - 1;
+        var rowBytes = (width * bits + 7) / 8;
+        var raw = new List<byte>();
+
+        for (var y = 0; y < height; y++)
+        {
+            raw.Add(0);
+
+            var row = new byte[rowBytes];
+
+            for (var x = 0; x < width; x++)
+            {
+                var value = shades[y * width + x] * top / 255;
+                var perByte = 8 / bits;
+                var shift = 8 - bits * (x % perByte + 1);
+
+                row[x / perByte] |= (byte)((value & top) << shift);
+            }
+
+            raw.AddRange(row);
+        }
+
+        using var deflated = new MemoryStream();
+        using (var zlib = new ZLibStream(deflated, CompressionLevel.Optimal, leaveOpen: true))
+            zlib.Write([.. raw], 0, raw.Count);
+
+        WriteChunk(output, "IDAT", deflated.ToArray());
+        WriteChunk(output, "IEND", []);
+
+        return output.ToArray();
+    }
+
     /// <summary>A solid rectangle, the simplest thing whose colour can be checked after decoding.</summary>
     public static byte[] Solid(int width, int height, byte red, byte green, byte blue)
     {

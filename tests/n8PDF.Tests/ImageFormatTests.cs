@@ -305,6 +305,201 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.Equal(0, Difference(expected.Data, actual));
     }
 
+    // ----- the fax encodings -----
+
+    /// <summary>
+    /// A page of black on white with runs of several lengths, and a block that makes the lines
+    /// differ from one another — which is what a line written against the one above it needs.
+    /// </summary>
+    private static byte[] Bilevel(int width, int height) =>
+        [.. Enumerable.Range(0, width * height).Select(i =>
+        {
+            var (x, y) = (i % width, i / width);
+
+            return (byte)((x / 3 + y) % 2 == 0 || (x > 20 && x < 30 && y > 2 && y < 8) ? 1 : 0);
+        })];
+
+    private static void AssertReadsAsBilevel(byte[] tiff, byte[] pixels, int width, int height)
+    {
+        var image = ImageReader.Read(tiff);
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+        Assert.Equal(ImageColorSpace.Gray, image.ColorSpace);
+
+        for (var i = 0; i < width * height; i++)
+        {
+            var black = image.Data[i] < 128;
+
+            Assert.True(black == (pixels[i] != 0),
+                $"pixel {i % width},{i / width} came out {(black ? "black" : "white")}");
+        }
+    }
+
+    /// <summary>
+    /// The three fax encodings: a line written on its own, lines written either way with a bit
+    /// each saying which, and lines written against one another throughout.
+    /// </summary>
+    [Theory]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(4, true)]
+    public void A_fax_is_read_from_the_runs_it_was_written_as(int compression, bool byteAligned)
+    {
+        const int width = 40;
+        const int height = 12;
+
+        var pixels = Bilevel(width, height);
+
+        AssertReadsAsBilevel(
+            CcittWriter.Tiff(pixels, width, height, compression, byteAligned), pixels, width, height);
+    }
+
+    /// <summary>
+    /// The plainest group 4 there is, where every line spells out its runs rather than saying how
+    /// far they have moved. It is legal and it is what a reader has to get right first, but it is
+    /// not what a fax looks like — which is why the test above matters more than this one.
+    /// </summary>
+    [Fact]
+    public void A_group_four_page_written_the_long_way_reads_the_same()
+    {
+        const int width = 40;
+        const int height = 12;
+
+        var pixels = Bilevel(width, height);
+
+        AssertReadsAsBilevel(
+            CcittWriter.Tiff(pixels, width, height, 4, plain: true), pixels, width, height);
+    }
+
+    /// <summary>
+    /// A run longer than sixty-three is written as two codes — one for the multiple of sixty-four
+    /// below it and one for the remainder — and a run longer than 1728 needs one of the codes both
+    /// colours share.
+    /// </summary>
+    [Fact]
+    public void The_long_runs_are_read_as_the_pairs_of_codes_they_are_written_as()
+    {
+        const int width = 2000;
+        const int height = 3;
+
+        // A white run of 1900 and a black one of 100, which reaches past every table there is.
+        var pixels = new byte[width * height];
+
+        for (var y = 0; y < height; y++)
+        for (var x = 1900; x < width; x++)
+            pixels[y * width + x] = 1;
+
+        AssertReadsAsBilevel(CcittWriter.Tiff(pixels, width, height, 2), pixels, width, height);
+        AssertReadsAsBilevel(CcittWriter.Tiff(pixels, width, height, 4), pixels, width, height);
+    }
+
+    /// <summary>
+    /// The fax encodings say nothing about colour: a set bit is black in all of them, whatever a
+    /// photometric tag written beside them claims.
+    /// </summary>
+    [Fact]
+    public void A_fax_is_black_where_its_bits_are_set()
+    {
+        var pixels = new byte[8 * 2];
+        for (var i = 0; i < 8; i++) pixels[i] = 1;
+
+        var image = ImageReader.Read(CcittWriter.Tiff(pixels, 8, 2, 4));
+
+        // The first row was written black and the second white.
+        Assert.True(image.Data[0] < 128);
+        Assert.True(image.Data[8] > 128);
+    }
+
+    /// <summary>
+    /// And the same files read by another program, which is what says the code tables are the
+    /// standard's rather than merely this library's own. The tables are shared with the writer on
+    /// purpose: a file written with them is handed to something else to read, and if a code in
+    /// them were wrong that program would not be able to.
+    /// </summary>
+    [Theory]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(4, true)]
+    public void A_fax_this_wrote_is_read_the_same_by_another_program(int compression, bool byteAligned)
+    {
+        const int width = 40;
+        const int height = 12;
+
+        var pixels = Bilevel(width, height);
+        var tiff = CcittWriter.Tiff(pixels, width, height, compression, byteAligned);
+
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        Directory.CreateDirectory(directory);
+
+        var source = Path.Combine(directory, $"fax-{compression}.tiff");
+        File.WriteAllBytes(source, tiff);
+
+        var converted = Path.Combine(directory, $"fax-{compression}.png");
+        File.Delete(converted);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("sips",
+                ["-s", "format", "png", source, "--out", converted])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process?.WaitForExit(30_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            _output.WriteLine("sips was not found; the fax was not read back by anything else.");
+            return;
+        }
+
+        if (!File.Exists(converted))
+        {
+            _output.WriteLine($"sips would not read the group {compression} fax.");
+            return;
+        }
+
+        var theirs = PngDecoder.Decode(File.ReadAllBytes(converted));
+
+        _output.WriteLine($"group {compression}: {tiff.Length:N0} bytes, read back as " +
+                          $"{theirs.Width}x{theirs.Height} {theirs.ColorSpace}");
+
+        Assert.Equal(width, theirs.Width);
+        Assert.Equal(height, theirs.Height);
+
+        for (var i = 0; i < width * height; i++)
+        {
+            var black = theirs.Data[i * theirs.ComponentCount] < 128;
+
+            Assert.True(black == (pixels[i] != 0),
+                $"pixel {i % width},{i / width} came out {(black ? "black" : "white")} in the other reader");
+        }
+    }
+
+    /// <summary>
+    /// Grey written in fewer than eight bits a pixel, which is what another program writes a fax
+    /// back out as — and what this could not read until it was asked to.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void A_png_of_few_bits_a_pixel_is_read_as_the_shades_it_names(int bits)
+    {
+        var top = (1 << bits) - 1;
+        var shades = new byte[8 * 4];
+
+        for (var i = 0; i < shades.Length; i++) shades[i] = (byte)(i % (top + 1) * 255 / top);
+
+        var image = ImageReader.Read(PngWriter.WriteGrey(8, 4, shades, bits));
+
+        Assert.Equal(ImageColorSpace.Gray, image.ColorSpace);
+        Assert.Equal(shades.Length, image.Data.Length);
+        Assert.Equal(shades, image.Data);
+    }
+
     // ----- interlaced PNG -----
 
     /// <summary>
