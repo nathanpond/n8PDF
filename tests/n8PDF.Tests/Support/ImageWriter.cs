@@ -467,6 +467,125 @@ public static class ImageWriter
     }
 
     /// <summary>
+    /// A TIFF holding a JPEG the newer way: the tables every scan shares in a tag of their own,
+    /// and the scan itself in the strip.
+    /// </summary>
+    public static byte[] JpegTiff(int width, int height, byte[] jpeg, bool separateTables = true)
+    {
+        var (tables, scan) = separateTables ? SplitJpeg(jpeg) : ([], jpeg);
+
+        var body = new List<byte>(scan);
+        var extra = new List<byte>(tables);
+
+        return Assemble(
+            body, 1,
+            tags: (pixelsAt, arraysAt) =>
+            [
+                (256, 3, 1, width),
+                (257, 3, 1, height),
+                (258, 3, 1, 8),
+                (259, 3, 1, 7),                       // packed as a JPEG, the newer way
+                (262, 3, 1, 6),                       // in the colours a JPEG keeps
+                (273, 4, 1, pixelsAt),
+                (277, 3, 1, 3),
+                (278, 3, 1, height),
+                (279, 4, 1, scan.Length),
+                (284, 3, 1, 1),
+                (347, 7, tables.Length, tables.Length > 4 ? arraysAt : 0)
+            ],
+            arrays: extra);
+    }
+
+    /// <summary>A TIFF holding a JPEG the older way: the whole file, in a tag of its own.</summary>
+    public static byte[] OldJpegTiff(int width, int height, byte[] jpeg)
+    {
+        var body = new List<byte>(jpeg);
+
+        return Assemble(
+            body, 1,
+            tags: (pixelsAt, _) =>
+            [
+                (256, 3, 1, width),
+                (257, 3, 1, height),
+                (258, 3, 1, 8),
+                (259, 3, 1, 6),                       // packed as a JPEG, the older way
+                (262, 3, 1, 6),
+                (277, 3, 1, 3),
+                (278, 3, 1, height),
+                (284, 3, 1, 1),
+                (513, 4, 1, pixelsAt),                // where the whole file is
+                (514, 4, 1, jpeg.Length)
+            ],
+            arrays: []);
+    }
+
+    /// <summary>
+    /// The same file with a different number of rows to a strip, which is how a picture is made to
+    /// say it is divided into more of them than it is.
+    /// </summary>
+    public static byte[] WithRowsPerStrip(byte[] tiff, int rows)
+    {
+        var copy = (byte[])tiff.Clone();
+
+        var directoryAt = copy[4] | (copy[5] << 8) | (copy[6] << 16) | (copy[7] << 24);
+        var count = copy[directoryAt] | (copy[directoryAt + 1] << 8);
+
+        for (var i = 0; i < count; i++)
+        {
+            var at = directoryAt + 2 + i * 12;
+            var id = copy[at] | (copy[at + 1] << 8);
+
+            if (id != 278) continue;
+
+            copy[at + 8] = (byte)rows;
+            copy[at + 9] = (byte)(rows >> 8);
+            break;
+        }
+
+        return copy;
+    }
+
+    /// <summary>
+    /// Divides a JPEG the way a TIFF does: the tables that describe how it is packed on one side,
+    /// and the picture itself on the other.
+    /// </summary>
+    private static (byte[] Tables, byte[] Scan) SplitJpeg(byte[] jpeg)
+    {
+        var tables = new List<byte> { 0xff, 0xd8 };
+        var scan = new List<byte> { 0xff, 0xd8 };
+
+        var at = 2;
+
+        while (at + 3 < jpeg.Length)
+        {
+            if (jpeg[at] != 0xff) break;
+
+            var marker = jpeg[at + 1];
+            var length = (jpeg[at + 2] << 8) | jpeg[at + 3];
+
+            // The scan itself runs to the end of the file, so it and everything after it goes
+            // over whole.
+            if (marker == 0xda)
+            {
+                scan.AddRange(jpeg[at..]);
+                break;
+            }
+
+            var segment = jpeg[at..Math.Min(jpeg.Length, at + 2 + length)];
+
+            // The quantisation and Huffman tables are what a TIFF keeps apart; everything else
+            // belongs to the picture.
+            (marker is 0xdb or 0xc4 ? tables : scan).AddRange(segment);
+
+            at += 2 + length;
+        }
+
+        tables.AddRange([0xff, 0xd9]);
+
+        return ([.. tables], [.. scan]);
+    }
+
+    /// <summary>
     /// Puts a TIFF together: the pixels, then whatever arrays the tags point at, then the tags.
     /// </summary>
     private static byte[] Assemble(

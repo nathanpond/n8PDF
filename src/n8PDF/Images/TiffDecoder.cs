@@ -67,6 +67,11 @@ public static class TiffDecoder
 
         var tiled = tags.ContainsKey(322) && tags.ContainsKey(324);
 
+        // A TIFF may hold a JPEG rather than pixels, and a PDF carries JPEG as it stands: so what
+        // is wanted is not to decode it but to put the file back together.
+        if (compression is 6 or 7)
+            return Jpeg(data, reader, tags, width, height, samples, tiled, rowsPerStrip);
+
         var rowBytes = (width * perPlane * bits + 7) / 8;
         var gathered = new byte[planes][];
 
@@ -177,6 +182,95 @@ public static class TiffDecoder
                 _ => tag.Offset
             }
             : fallback;
+
+    /// <summary>
+    /// A TIFF whose pixels are a JPEG.
+    /// </summary>
+    /// <remarks>
+    /// The picture is not unpacked here at all. A PDF carries a JPEG as the file it already is —
+    /// decoding one only to encode it again would cost quality for nothing — so what this does is
+    /// put the file back together, which a TIFF has taken apart in one of two ways.
+    ///
+    /// The older way keeps a whole JPEG in a tag of its own and the tags around it describe it.
+    /// The newer way keeps the tables that every scan of the picture shares in one tag and the
+    /// scan itself in the strip, so that a picture in many strips need not repeat them: the file
+    /// is the one without its end, then the other without its beginning.
+    ///
+    /// A picture in more than one strip cannot be put back together this way — the strips are
+    /// separate JPEGs, and joining them would need both to be decoded, which is the one thing
+    /// this set out not to do.
+    /// </remarks>
+    private static ImageData Jpeg(
+        byte[] data, Reader reader, Dictionary<int, Tag> tags, int width, int height, int samples,
+        bool tiled, int rowsPerStrip)
+    {
+        // The older way: the whole file, in a tag.
+        var wholeAt = (int)Value(reader, tags, 513, 0);
+        var wholeLength = (int)Value(reader, tags, 514, 0);
+
+        if (wholeAt > 0 && wholeLength > 0 && wholeAt + wholeLength <= data.Length)
+            return Read(data[wholeAt..(wholeAt + wholeLength)]);
+
+        var offsets = tags.TryGetValue(tiled ? 324 : 273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
+        var counts = tags.TryGetValue(tiled ? 325 : 279, out var countTag) ? Numbers(reader, countTag) : [];
+
+        if (offsets.Count == 0) throw new ImageFormatException("TIFF says where none of its pixels are.");
+
+        if (offsets.Count > 1 || (!tiled && rowsPerStrip < height))
+        {
+            throw new ImageFormatException(
+                "TIFF holds a JPEG divided into several strips, which would have to be decoded to be joined.");
+        }
+
+        var offset = (int)offsets[0];
+        var length = Math.Min(
+            counts.Count > 0 ? (int)counts[0] : data.Length - offset, Math.Max(0, data.Length - offset));
+
+        if (offset <= 0 || length <= 0) throw new ImageFormatException("TIFF holds an empty JPEG.");
+
+        var scan = data[offset..(offset + length)];
+
+        // The tables the strips share, where there are any: the file is those without their end,
+        // then the scan without its beginning.
+        if (tags.TryGetValue(347, out var tablesTag) && tablesTag.Count > 2)
+        {
+            var tables = Bytes(data, reader, tablesTag);
+
+            if (tables.Length > 2 && EndsWithMarker(tables, 0xd9) && scan.Length > 2 && StartsWithMarker(scan, 0xd8))
+                return Read([.. tables[..^2], .. scan[2..]]);
+        }
+
+        return Read(scan);
+
+        ImageData Read(byte[] jpeg)
+        {
+            var image = ImageReader.TryRead(jpeg);
+
+            if (image is null || image.Encoding != ImageEncoding.Jpeg)
+                throw new ImageFormatException("TIFF holds something that is not a JPEG after all.");
+
+            // The TIFF's own idea of the size is the one its tags declare, and the JPEG's own
+            // agrees in every file worth reading.
+            return image;
+        }
+    }
+
+    private static bool StartsWithMarker(byte[] data, byte marker) =>
+        data.Length > 1 && data[0] == 0xff && data[1] == marker;
+
+    private static bool EndsWithMarker(byte[] data, byte marker) =>
+        data.Length > 1 && data[^2] == 0xff && data[^1] == marker;
+
+    /// <summary>The bytes a tag holds, which lie elsewhere in the file where there are many.</summary>
+    private static byte[] Bytes(byte[] data, Reader reader, Tag tag)
+    {
+        if (tag.Count <= 4) return tag.Inline[..Math.Min(tag.Count, 4)];
+
+        var at = tag.Offset;
+        if (at < 0 || at >= data.Length) return [];
+
+        return data[at..Math.Min(data.Length, at + tag.Count)];
+    }
 
     /// <summary>
     /// Gathers one plane written in strips: runs of whole rows, each packed on its own.

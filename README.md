@@ -359,8 +359,21 @@ in the *fixture* rather than the reader: a metafile says how big it is twice ove
 declares and in the resolution of the device it was recorded for, and the test's writer had been
 writing the two at odds. Word believed one and this believed the other, and both were right.
 
-Not yet: nothing of what a document usually holds. What is left is JPEG carried inside a TIFF, and
-16-bit PNG samples kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
+A TIFF may also hold a JPEG rather than pixels, and that one is not decoded at all: a PDF carries a
+JPEG as the file it already is, so the work is putting the file back together rather than taking it
+apart. A TIFF divides one in two ways — the older keeps the whole file in a tag of its own, and the
+newer keeps the tables every scan shares apart from the scan itself, so that a picture in many
+strips need not repeat them, which makes the file the tables without their end followed by the scan
+without its beginning. What comes out is handed to `sips` to read, because a file put back together
+wrongly still parses as far as its header: reading its size back would prove nothing.
+
+A picture divided into several JPEGs is reported rather than half-read. The strips are separate
+files and joining them would mean decoding them, which is the one thing this set out not to do.
+The older way is also the only thing here with no second opinion behind it: `sips` will not read a
+file written that way at all, so what is tested is that the JPEG comes back, and no more than that.
+
+Not yet: nothing of what a document usually holds. What is left is 16-bit PNG samples kept at 16
+bits rather than reduced to 8, and a TIFF whose JPEG is divided into several strips., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

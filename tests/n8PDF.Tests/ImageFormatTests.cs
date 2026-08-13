@@ -408,6 +408,182 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.Equal(0, Difference(pixels, theirs));
     }
 
+    // ----- a JPEG inside a TIFF -----
+
+    /// <summary>A JPEG of the sample picture, made by a program that can make one.</summary>
+    private static byte[]? Jpeg(int width, int height)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        Directory.CreateDirectory(directory);
+
+        var png = Path.Combine(directory, "jpeg-source.png");
+        File.WriteAllBytes(png, PngWriter.Write(width, height,
+            ImageWriter.Pixels(width, height, (x, y) => ((byte)(x * 6), (byte)(y * 7), (byte)128)),
+            hasAlpha: false));
+
+        var jpeg = Path.Combine(directory, "jpeg-source.jpg");
+        File.Delete(jpeg);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("sips",
+                ["-s", "format", "jpeg", png, "--out", jpeg])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process?.WaitForExit(30_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            return null;
+        }
+
+        return File.Exists(jpeg) ? File.ReadAllBytes(jpeg) : null;
+    }
+
+    /// <summary>
+    /// A TIFF may hold a JPEG rather than pixels, and a PDF carries a JPEG as the file it already
+    /// is — so it is put back together rather than decoded, and comes out as the JPEG it was.
+    /// </summary>
+    /// <remarks>
+    /// The newer way keeps the tables every scan shares in a tag of their own so a picture in many
+    /// strips need not repeat them, which makes the file the tables without their end followed by
+    /// the scan without its beginning. A file that keeps them together is the same picture written
+    /// the simpler way, and both have to come back whole.
+    /// </remarks>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_tiff_holding_a_jpeg_gives_back_the_jpeg(bool separateTables)
+    {
+        const int width = 32;
+        const int height = 24;
+
+        if (Jpeg(width, height) is not { } jpeg)
+        {
+            _output.WriteLine("sips did not make a JPEG; nothing to put inside a TIFF.");
+            return;
+        }
+
+        var image = ImageReader.Read(ImageWriter.JpegTiff(width, height, jpeg, separateTables));
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+
+        // Handed on as the JPEG it is, not unpacked into samples: a PDF carries one as it stands.
+        Assert.Equal(ImageEncoding.Jpeg, image.Encoding);
+        Assert.Equal(ImageColorSpace.Rgb, image.ColorSpace);
+
+        _output.WriteLine(
+            $"{(separateTables ? "tables apart" : "tables together")}: {image.Data.Length:N0} bytes of JPEG");
+    }
+
+    /// <summary>
+    /// And what comes out is a JPEG another program will read: a file put back together wrongly
+    /// parses as far as its header and then falls apart, which reading its size would not show.
+    /// </summary>
+    [Fact]
+    public void The_jpeg_a_tiff_gives_back_is_one_another_program_reads()
+    {
+        const int width = 32;
+        const int height = 24;
+
+        if (Jpeg(width, height) is not { } jpeg)
+        {
+            _output.WriteLine("sips did not make a JPEG; nothing to put inside a TIFF.");
+            return;
+        }
+
+        var image = ImageReader.Read(ImageWriter.JpegTiff(width, height, jpeg));
+
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        var ours = Path.Combine(directory, "rebuilt.jpg");
+        File.WriteAllBytes(ours, image.Data);
+
+        var converted = Path.Combine(directory, "rebuilt.png");
+        File.Delete(converted);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("sips",
+                ["-s", "format", "png", ours, "--out", converted])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process?.WaitForExit(30_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            _output.WriteLine("sips was not found; the rebuilt JPEG was not read back.");
+            return;
+        }
+
+        Assert.True(File.Exists(converted), "the JPEG put back together was not one sips would read");
+
+        var theirs = PngDecoder.Decode(File.ReadAllBytes(converted));
+        var original = PngDecoder.Decode(File.ReadAllBytes(Path.Combine(directory, "jpeg-source.png")));
+
+        Assert.Equal(width, theirs.Width);
+        Assert.Equal(height, theirs.Height);
+
+        // JPEG is lossy, so this is the picture it was rather than the picture exactly.
+        var worst = 0;
+        for (var i = 0; i < Math.Min(theirs.Data.Length, original.Data.Length); i++)
+            worst = Math.Max(worst, Math.Abs(theirs.Data[i] - original.Data[i]));
+
+        _output.WriteLine($"the rebuilt JPEG is the picture to within {worst}");
+
+        Assert.True(worst < 40, $"the rebuilt JPEG is {worst} away from the picture it should hold");
+    }
+
+    /// <summary>
+    /// The older way of holding a JPEG keeps the whole file in a tag of its own. It is deprecated,
+    /// and it is the one thing here no other program would make for this to check against: sips
+    /// will not read a file written that way at all, so what is asserted is only that the file
+    /// this reads gives its JPEG back.
+    /// </summary>
+    [Fact]
+    public void The_older_way_of_holding_a_jpeg_gives_it_back_too()
+    {
+        const int width = 32;
+        const int height = 24;
+
+        if (Jpeg(width, height) is not { } jpeg)
+        {
+            _output.WriteLine("sips did not make a JPEG; nothing to put inside a TIFF.");
+            return;
+        }
+
+        var image = ImageReader.Read(ImageWriter.OldJpegTiff(width, height, jpeg));
+
+        Assert.Equal(ImageEncoding.Jpeg, image.Encoding);
+        Assert.Equal(jpeg.Length, image.Data.Length);
+    }
+
+    /// <summary>
+    /// A picture divided into several JPEGs is reported rather than half-read: the strips are
+    /// separate files, and joining them would mean decoding them.
+    /// </summary>
+    [Fact]
+    public void A_jpeg_in_several_strips_is_reported()
+    {
+        if (Jpeg(32, 24) is not { } jpeg)
+        {
+            _output.WriteLine("sips did not make a JPEG; nothing to put inside a TIFF.");
+            return;
+        }
+
+        // The same file, but the tags say it is only the first eight rows of a taller picture.
+        var tiff = ImageWriter.JpegTiff(32, 24, jpeg);
+        var altered = ImageWriter.WithRowsPerStrip(tiff, 8);
+
+        Assert.Null(ImageReader.TryRead(altered));
+    }
+
     // ----- the fax encodings -----
 
     /// <summary>
