@@ -1647,6 +1647,40 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
             },
 
+            // A metafile written the way anything modern writes one: the same drawing recorded
+            // twice over, once in the old records and once in the newer ones that travel inside
+            // their comments. A reader must draw it once — the old ones, which are the half Word
+            // draws too, so that this and Word agree on the file every chart in a document is.
+            ["images-metafile-plus"] = () =>
+            {
+                var writer = new EmfWriter(200, 120);
+
+                // The newer records first, which say they are one of two ways to draw this.
+                writer.PlusHeader(dual: true);
+                writer.PlusFillRectangle(40, 90, 200, 10, 10, 85, 60);
+                writer.PlusPen(1, 180, 20, 30, 2);
+                writer.PlusDrawLines(1, closed: false, (10, 85), (190, 110));
+                writer.PlusFont(2, "Times New Roman", 14);
+                writer.PlusString(2, 0, 110, 60, 12, 100, "Drawn the newer way");
+
+                // And the same drawing in the old ones.
+                var pen = writer.CreatePen(180, 20, 30, 2);
+                var brush = writer.CreateBrush(40, 90, 200);
+                writer.Select(pen).Select(brush).Rectangle(10, 10, 95, 70);
+                writer.MoveTo(10, 85).LineTo(190, 110);
+
+                var font = writer.CreateFont("Times New Roman", 14);
+                writer.Select(font).TextColor(0, 110, 60).Text(12, 100, "Drawn the older way");
+
+                var builder = new DocxBuilder();
+                var metafile = builder.AddImagePart(writer.Build(), "emf");
+
+                return builder
+                    .AddParagraph("Paragraph before the drawing.", ZeroSpacing, Times12)
+                    .AddImageParagraph(metafile, 200, 120, ZeroSpacing)
+                    .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
+            },
+
             // A table row taller than what is left of the page, which Word breaks across the two
             // unless it is told not to. The borders at the break are what this really asks about:
             // nothing else says whether a row that continues is closed off where it stops.

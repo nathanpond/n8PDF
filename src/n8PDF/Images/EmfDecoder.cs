@@ -15,10 +15,14 @@ namespace n8PDF.Images;
 ///
 /// What is handled is what a picture in a document is made of: paths and the shapes that are
 /// shorthand for them, the pens and brushes that colour them, text, and the bitmaps a drawing can
-/// carry. What is not is the rest of an interface designed to drive a screen — raster operations,
-/// clipping regions, palettes, and EMF+, which is a second format carried inside the comments of
-/// the first. A file that draws only in EMF+ records comes back as nothing, which is reported
-/// rather than drawn blank.
+/// carry. What is not is the rest of an interface designed to drive a screen: raster operations,
+/// clipping regions and palettes.
+///
+/// A metafile written by anything modern carries a second drawing as well, in the newer format
+/// that travels inside the comments of this one. The two are alternatives rather than halves, and
+/// the old records are the ones taken where a file has both: they are what every reader of a
+/// metafile has always understood, and they are the half whose reading can be checked against
+/// another implementation. The new ones are read only where they are all there is.
 /// </remarks>
 public static class EmfDecoder
 {
@@ -34,6 +38,17 @@ public static class EmfDecoder
 
         var drawing = new Interpreter(data).Run();
 
+        // A file carrying both formats draws one picture, not two, and the old records are the
+        // ones taken: they are what every reader of a metafile has always understood, and they are
+        // the half that can be checked against another implementation. The new records are read
+        // only where they are all there is — which is a file that would otherwise draw nothing.
+        if (drawing.Operations.Count == 0 && EmfPlusRecords(data) is { Count: > 0 } records)
+        {
+            var operations = EmfPlusInterpreter.Read([.. records], drawing.Width / Math.Max(1, Units(data)));
+
+            if (operations.Count > 0) drawing = drawing with { Operations = operations };
+        }
+
         if (drawing.Operations.Count == 0)
             throw new ImageFormatException("The metafile draws nothing this can read.");
 
@@ -46,6 +61,55 @@ public static class EmfDecoder
         {
             Drawing = drawing
         };
+    }
+
+    /// <summary>
+    /// The second format's records, joined: they travel inside the comments of the first, and one
+    /// of them may begin in a comment and end in the next.
+    /// </summary>
+    private static List<byte>? EmfPlusRecords(byte[] data)
+    {
+        List<byte>? records = null;
+        var at = 0;
+
+        while (at + 8 <= data.Length)
+        {
+            var type = (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
+            var size = data[at + 4] | (data[at + 5] << 8) | (data[at + 6] << 16) | (data[at + 7] << 24);
+
+            if (size < 8 || at + size > data.Length) break;
+
+            // A comment, whose data opens with the letters that say it is not one.
+            if (type == 70 && at + 16 <= data.Length)
+            {
+                var length = data[at + 8] | (data[at + 9] << 8) | (data[at + 10] << 16) | (data[at + 11] << 24);
+
+                if (EmfPlusInterpreter.IsEmfPlusComment(data, at + 12, length))
+                {
+                    records ??= [];
+
+                    var from = at + 16;
+                    var to = Math.Min(at + 12 + length, at + size);
+
+                    if (to > from) records.AddRange(data[from..to]);
+                }
+            }
+
+            if (type == 14) break;
+
+            at += size;
+        }
+
+        return records;
+    }
+
+    /// <summary>How many of its own units a metafile is across, which is what its bounds say.</summary>
+    private static int Units(byte[] data)
+    {
+        var left = data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24);
+        var right = data[16] | (data[17] << 8) | (data[18] << 16) | (data[19] << 24);
+
+        return Math.Max(1, right - left + 1);
     }
 
     /// <summary>

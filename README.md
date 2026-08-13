@@ -300,9 +300,24 @@ out stays a drawing all the way to the PDF, whose own operators write it out aga
 chart sharp at any size a reader looks at it, and it keeps the text inside one selectable. What is
 handled is what a picture in a document is made of: paths and the shapes that are shorthand for
 them, the pens and brushes that colour them, the fonts and the text, and the bitmaps a drawing can
-carry. What is not is the rest of an interface built to drive a screen — raster operations,
-clipping regions, palettes, and EMF+, which is a second format carried inside the comments of the
-first. A file that draws only in EMF+ records is reported as unreadable rather than drawn blank.
+carry. What is not is the rest of an interface built to drive a screen: raster operations, clipping
+regions and palettes.
+
+A metafile written by anything modern carries the same drawing twice — once in those records, and
+once in the newer GDI+ ones that travel inside their comments, a format smuggled through a format.
+Both are read. The two are alternatives rather than halves, so a file carrying both is drawn from
+the old records: they are what every reader of a metafile has always understood, and they are the
+half whose reading can be checked against another implementation. The newer records are read only
+where they are all a file has, which is a file that would otherwise draw nothing at all.
+
+That order is deliberate, and the reason is worth stating plainly. Word for Mac renders classic
+metafile records and draws nothing whatever for EMF+ ones — its export of a file holding only
+those is a blank space — so there is no second implementation on this machine to read EMF+ against.
+Everything else here is measured against Word; this one part is not, and is tested only against a
+writer built from the same reading of the specification, which is precisely the kind of agreement
+this project distrusts everywhere else. Preferring the old records keeps that uncertainty off the
+files documents are actually made of: a chart pasted out of a spreadsheet carries both, and is
+drawn the way Word draws it, to within a point.
 
 Its text needed one measurement. A drawing says where the *top* of its text goes and a PDF says
 where the baseline goes, and the distance between them is the height of the characters themselves:
@@ -319,8 +334,8 @@ declares and in the resolution of the device it was recorded for, and the test's
 writing the two at odds. Word believed one and this believed the other, and both were right.
 
 Not yet: nothing of what a document usually holds. What is left is the parts of these formats that
-documents do not use — EMF+, the fax encodings in TIFF, tiled and planar TIFFs, and 16-bit PNG
-samples kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
+documents do not use — the fax encodings in TIFF, tiled and planar TIFFs, and 16-bit PNG samples
+kept at 16 bits rather than reduced to 8., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

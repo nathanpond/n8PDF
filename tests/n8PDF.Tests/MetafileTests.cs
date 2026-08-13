@@ -181,6 +181,144 @@ public class MetafileTests(ITestOutputHelper output)
         Assert.Null(ImageReader.TryRead(empty));
     }
 
+    // ----- the newer records, which travel inside the comments of the old -----
+
+    /// <summary>A drawing recorded only the newer way, with no old records to fall back on.</summary>
+    private static byte[] Plus(Action<EmfWriter> draw)
+    {
+        var writer = new EmfWriter(200, 120);
+        writer.PlusHeader();
+
+        draw(writer);
+
+        return writer.Build();
+    }
+
+    /// <summary>
+    /// The newer records draw the same kinds of thing, and are read into the same drawing.
+    /// </summary>
+    [Fact]
+    public void The_newer_records_draw_what_the_old_ones_draw()
+    {
+        var drawing = Drawing(Plus(writer =>
+        {
+            writer.PlusFillRectangle(40, 90, 200, 10, 10, 85, 60);
+            writer.PlusPen(1, 180, 20, 30, 2);
+            writer.PlusDrawLines(1, closed: false, (10, 85), (190, 110));
+            writer.PlusFillEllipse(230, 180, 20, 105, 10, 85, 60);
+            writer.PlusFont(2, "Times New Roman", 14);
+            writer.PlusString(2, 0, 110, 60, 12, 100, "Drawn the newer way");
+        }));
+
+        var paths = drawing.Operations.OfType<PathOperation>().ToList();
+
+        Assert.Equal(3, paths.Count);
+
+        // The rectangle is filled and not stroked, since a fill names no pen.
+        Assert.Equal(new DrawingColor(40, 90, 200), paths[0].Fill);
+        Assert.Null(paths[0].Stroke);
+        Assert.Equal(10, paths[0].Steps[0].Points[0].X, 0);
+
+        // The line is stroked with the pen it names, at the width that pen was given.
+        Assert.Equal(new DrawingColor(180, 20, 30), paths[1].Stroke);
+        Assert.Equal(2, paths[1].StrokeWidth, 1);
+
+        // And the ellipse is four curves, as it is either way round.
+        Assert.Equal(4, paths[2].Steps.Count(step => step.Kind == PathStepKind.Curve));
+
+        var text = drawing.Operations.OfType<TextOperation>().Single();
+
+        Assert.Equal("Drawn the newer way", text.Text);
+        Assert.Equal("Times New Roman", text.FontFamily);
+        Assert.Equal(14, text.SizePoints, 0);
+        Assert.Equal(new DrawingColor(0, 110, 60), text.Color);
+    }
+
+    /// <summary>
+    /// A path is an object of its own in the newer records: its points, and a byte for each of
+    /// them saying whether it begins a figure, continues one, or is part of a curve.
+    /// </summary>
+    [Fact]
+    public void A_path_object_is_read_from_its_points_and_their_kinds()
+    {
+        var drawing = Drawing(Plus(writer =>
+        {
+            writer.PlusPath(3, (10, 10, 0), (90, 10, 1), (50, 80, 0x81));
+            writer.PlusFillPath(3, 20, 40, 60);
+        }));
+
+        var path = drawing.Operations.OfType<PathOperation>().Single();
+
+        Assert.Equal(new DrawingColor(20, 40, 60), path.Fill);
+        Assert.Equal(PathStepKind.Move, path.Steps[0].Kind);
+        Assert.Equal(PathStepKind.Line, path.Steps[1].Kind);
+        Assert.Equal(PathStepKind.Close, path.Steps[^1].Kind);
+    }
+
+    /// <summary>
+    /// The newer records are properly transformed: a point goes through the transform the drawing
+    /// has set before it is anywhere, and the transforms compose.
+    /// </summary>
+    [Fact]
+    public void The_transform_a_drawing_sets_moves_what_follows_it()
+    {
+        var plain = Drawing(Plus(writer => writer.PlusFillRectangle(10, 20, 30, 10, 10, 20, 20)));
+        var moved = Drawing(Plus(writer =>
+        {
+            writer.PlusTranslate(40, 25);
+            writer.PlusFillRectangle(10, 20, 30, 10, 10, 20, 20);
+        }));
+
+        var from = plain.Operations.OfType<PathOperation>().Single().Steps[0].Points[0];
+        var to = moved.Operations.OfType<PathOperation>().Single().Steps[0].Points[0];
+
+        Assert.Equal(from.X + 40, to.X, 0);
+        Assert.Equal(from.Y + 25, to.Y, 0);
+
+        // And a scale multiplies what a translation has already moved.
+        var scaled = Drawing(Plus(writer =>
+        {
+            writer.PlusScale(2, 3);
+            writer.PlusFillRectangle(10, 20, 30, 10, 10, 20, 20);
+        }));
+
+        var bigger = scaled.Operations.OfType<PathOperation>().Single().Steps[0].Points[0];
+
+        Assert.Equal(from.X * 2, bigger.X, 0);
+        Assert.Equal(from.Y * 3, bigger.Y, 0);
+    }
+
+    /// <summary>
+    /// A file carrying both formats draws one picture, not two, and it is the old records that
+    /// draw it: they are the half another reader can be asked about, and Word draws them too.
+    /// </summary>
+    [Fact]
+    public void A_file_written_both_ways_is_drawn_the_old_way()
+    {
+        var drawing = Drawing(MetafileOf(Fixtures.Build("images-metafile-plus")));
+
+        var text = drawing.Operations.OfType<TextOperation>().Single();
+
+        Assert.Equal("Drawn the older way", text.Text);
+
+        // Once, not twice: the newer records drew a rectangle and a line of their own.
+        Assert.Equal(2, drawing.Operations.OfType<PathOperation>().Count());
+    }
+
+    /// <summary>The metafile a document carries, taken back out of it.</summary>
+    private static byte[] MetafileOf(byte[] docx)
+    {
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(docx));
+
+        var part = archive.Entries.Single(entry => entry.FullName.EndsWith(".emf"));
+
+        using var stream = part.Open();
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+
+        return buffer.ToArray();
+    }
+
     // ----- the whole way through -----
 
     [Fact]

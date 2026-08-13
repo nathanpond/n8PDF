@@ -276,8 +276,208 @@ public sealed class EmfWriter(int width, int height)
         return this;
     }
 
+    // ----- the second format, which travels inside the comments of the first -----
+
+    private readonly List<byte> _plus = [];
+
+    /// <summary>The version every EMF+ record carries, which names the format and its version.</summary>
+    private const uint PlusVersion = 0xdbc01002;
+
+    /// <summary>Opens the second format's records, which every file using it begins with.</summary>
+    public EmfWriter PlusHeader(bool dual = false)
+    {
+        // The flag says the file also draws itself the old way, so a reader may take either.
+        PlusRecord(0x4001, dual ? 1 : 0,
+            Int32(unchecked((int)PlusVersion)), Int32(dual ? 1 : 0), Single(96), Single(96));
+
+        // A unit of the drawing is a pixel of a ninety-six-to-the-inch device, which is what the
+        // header just said it was recorded for.
+        PlusRecord(0x4030, 2, Single(1));
+
+        return this;
+    }
+
+    public EmfWriter PlusBrush(int id, byte red, byte green, byte blue)
+    {
+        PlusRecord(0x4008, id | (0 << 8),
+            Int32(unchecked((int)PlusVersion)), Int32(0), Argb(red, green, blue));
+
+        return this;
+    }
+
+    public EmfWriter PlusPen(int id, byte red, byte green, byte blue, float lineWidth = 1)
+    {
+        PlusRecord(0x4008, id | (1 << 8),
+            Int32(unchecked((int)PlusVersion)),
+            Int32(0),                                  // a pen of the ordinary kind
+            Int32(0),                                  // no optional data follows
+            Int32(2),                                  // its width is in the drawing's own units
+            Single(lineWidth),
+            // Then the brush it paints with, which is an object in its own right.
+            Int32(unchecked((int)PlusVersion)), Int32(0), Argb(red, green, blue));
+
+        return this;
+    }
+
+    public EmfWriter PlusFont(int id, string family, float size, bool bold = false, bool italic = false)
+    {
+        var name = new List<byte>();
+        foreach (var character in family) name.AddRange(UInt16(character));
+
+        PlusRecord(0x4008, id | (5 << 8),
+            Int32(unchecked((int)PlusVersion)),
+            Single(size),
+            Int32(3),                                  // the size is in points
+            Int32((bold ? 1 : 0) | (italic ? 2 : 0)),
+            Int32(0),
+            Int32(family.Length),
+            [.. name]);
+
+        return this;
+    }
+
+    /// <summary>A path object: its points, and what each of them does.</summary>
+    public EmfWriter PlusPath(int id, params (int X, int Y, byte Type)[] points)
+    {
+        var body = new List<byte>();
+        body.AddRange(Int32(unchecked((int)PlusVersion)));
+        body.AddRange(Int32(points.Length));
+        body.AddRange(Int32(0));                       // written as whole floats
+
+        foreach (var (x, y, _) in points)
+        {
+            body.AddRange(Single(x));
+            body.AddRange(Single(y));
+        }
+
+        foreach (var (_, _, kind) in points) body.Add(kind);
+
+        while (body.Count % 4 != 0) body.Add(0);
+
+        PlusRecord(0x4008, id | (2 << 8), [.. body]);
+
+        return this;
+    }
+
+    public EmfWriter PlusFillRectangle(byte red, byte green, byte blue, float x, float y, float w, float h)
+    {
+        // The high flag says the colour is written here rather than named as an object.
+        PlusRecord(0x400B, 0x8000, Argb(red, green, blue), Int32(1),
+            Single(x), Single(y), Single(w), Single(h));
+
+        return this;
+    }
+
+    public EmfWriter PlusFillEllipse(byte red, byte green, byte blue, float x, float y, float w, float h)
+    {
+        PlusRecord(0x400F, 0x8000, Argb(red, green, blue), Single(x), Single(y), Single(w), Single(h));
+        return this;
+    }
+
+    public EmfWriter PlusDrawLines(int pen, bool closed, params (float X, float Y)[] points)
+    {
+        var body = new List<byte>();
+        body.AddRange(Int32(points.Length));
+
+        foreach (var (x, y) in points)
+        {
+            body.AddRange(Single(x));
+            body.AddRange(Single(y));
+        }
+
+        PlusRecord(0x400E, pen | (closed ? 0x2000 : 0), [.. body]);
+
+        return this;
+    }
+
+    public EmfWriter PlusFillPath(int path, byte red, byte green, byte blue)
+    {
+        PlusRecord(0x4015, path | 0x8000, Argb(red, green, blue));
+        return this;
+    }
+
+    public EmfWriter PlusDrawPath(int path, int pen)
+    {
+        PlusRecord(0x4016, path, Int32(pen));
+        return this;
+    }
+
+    public EmfWriter PlusString(int font, byte red, byte green, byte blue, float x, float y, string text)
+    {
+        var body = new List<byte>();
+        body.AddRange(Argb(red, green, blue));
+        body.AddRange(Int32(0));                       // no format object
+        body.AddRange(Int32(text.Length));
+        body.AddRange(Single(x));                      // where the text is laid out
+        body.AddRange(Single(y));
+        body.AddRange(Single(1000));
+        body.AddRange(Single(100));
+
+        foreach (var character in text) body.AddRange(UInt16(character));
+
+        while (body.Count % 4 != 0) body.Add(0);
+
+        PlusRecord(0x401D, font | 0x8000, [.. body]);
+
+        return this;
+    }
+
+    public EmfWriter PlusTranslate(float dx, float dy)
+    {
+        PlusRecord(0x402D, 0, Single(dx), Single(dy));
+        return this;
+    }
+
+    public EmfWriter PlusScale(float sx, float sy)
+    {
+        PlusRecord(0x402E, 0, Single(sx), Single(sy));
+        return this;
+    }
+
+    private void PlusRecord(int type, int flags, params byte[][] parts)
+    {
+        var body = new List<byte>();
+        foreach (var part in parts) body.AddRange(part);
+
+        while (body.Count % 4 != 0) body.Add(0);
+
+        _plus.AddRange(UInt16(type));
+        _plus.AddRange(UInt16(flags));
+        _plus.AddRange(Int32(12 + body.Count));
+        _plus.AddRange(Int32(body.Count));
+        _plus.AddRange(body);
+    }
+
+    /// <summary>A colour, which the second format writes with its opacity in front.</summary>
+    private static byte[] Argb(byte red, byte green, byte blue) => [blue, green, red, 255];
+
+    /// <summary>
+    /// Wraps the second format's records in the comments of the first, which is how they travel.
+    /// </summary>
+    private void CloseThePlusRecords()
+    {
+        if (_plus.Count == 0) return;
+
+        // The end of them, and then the whole run as one comment.
+        _plus.AddRange(UInt16(0x4002));
+        _plus.AddRange(UInt16(0));
+        _plus.AddRange(Int32(12));
+        _plus.AddRange(Int32(0));
+
+        var body = new List<byte>();
+        body.AddRange(Int32(_plus.Count + 4));         // the comment's own length
+        body.AddRange([0x45, 0x4D, 0x46, 0x2B]);       // "EMF+"
+        body.AddRange(_plus);
+
+        while (body.Count % 4 != 0) body.Add(0);
+
+        _records.Add(Record(70, [.. body]));
+    }
+
     public byte[] Build()
     {
+        CloseThePlusRecords();
+
         var body = new List<byte>();
         foreach (var record in _records) body.AddRange(record);
 
