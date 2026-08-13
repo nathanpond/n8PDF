@@ -1,0 +1,114 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 87.322, "font": "Times New Roman", "size": 12, "text": "Plain twelve point"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 97.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 70.646, "font": "Times New Roman", "size": 12, "text": "Raised twelve "},
+            {"x": 142.646, "width": 11.7, "font": "Times New Roman", "size": 7.8, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.801,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 80.631, "font": "Times New Roman", "size": 12, "text": "Lowered twelve "},
+            {"x": 152.631, "width": 11.7, "font": "Times New Roman", "size": 7.8, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 132.068,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 71.32, "font": "Times New Roman", "size": 12, "text": "Raised twenty "},
+            {"x": 143.32, "width": 19.5, "font": "Times New Roman", "size": 13, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 147.598,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 53.654, "font": "Times New Roman", "size": 12, "text": "Plain again"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 161.396,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 86.326, "font": "Times New Roman", "size": 12, "text": "Same digits plain "},
+            {"x": 158.326, "width": 18, "font": "Times New Roman", "size": 12, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 182.664,
+          "height": 22.998,
+          "runs": [
+            {"x": 72, "width": 112.207, "font": "Times New Roman", "size": 20, "text": "Twenty point "},
+            {"x": 184.207, "width": 11.7, "font": "Times New Roman", "size": 7.8, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 198.193,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 44.332, "font": "Times New Roman", "size": 12, "text": "Plain last"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 238.133,
+          "height": 45.996,
+          "runs": [
+            {"x": 72, "width": 61.986, "font": "Times New Roman", "size": 12, "text": "Raised forty "},
+            {"x": 133.986, "width": 39, "font": "Times New Roman", "size": 26, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 257.988,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 67.646, "font": "Times New Roman", "size": 12, "text": "Plain between"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 297.928,
+          "height": 45.996,
+          "runs": [
+            {"x": 72, "width": 71.971, "font": "Times New Roman", "size": 12, "text": "Lowered forty "},
+            {"x": 143.971, "width": 39, "font": "Times New Roman", "size": 26, "text": "888"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 317.783,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 49.646, "font": "Times New Roman", "size": 12, "text": "Plain after"}
+          ]
+        }
+      ]
+    }
+  ]
+}

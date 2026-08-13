@@ -61,11 +61,36 @@ public sealed record ResolvedRunFormat
     public double EffectiveFontSizePoints =>
         VerticalAlignment == VerticalTextAlignment.Baseline ? FontSizePoints : FontSizePoints * 0.65;
 
-    /// <summary>Baseline shift in points; positive raises the text.</summary>
+    /// <summary>
+    /// The size the line box is measured from, which is the size the run declares rather than the
+    /// size it is drawn at.
+    /// </summary>
+    /// <remarks>
+    /// A raised or lowered run keeps the line box of the size it was given: Word draws the glyphs
+    /// smaller and moves them within that box, and the line is neither taller nor shorter for it.
+    /// Measured from its export of <c>superscript-probe</c>, where a twenty point superscript in a
+    /// twelve point line makes the line as tall as a twenty point one — above the baseline and
+    /// below it, the descent being a twenty point run's rather than the drawn size's — while a
+    /// twelve point superscript in a twelve point line changes nothing at all.
+    /// </remarks>
+    public double LineBoxFontSizePoints => FontSizePoints;
+
+    /// <summary>
+    /// Baseline shift in points; positive raises the text.
+    /// </summary>
+    /// <remarks>
+    /// Both were measured from Word's export of <c>superscript-probe</c>, which carries each at
+    /// twelve, twenty and forty point so that neither is a ratio fitted to one number. A lowered
+    /// run drops about a twelfth of its size — 0.96pt at twelve point and 3.12 at forty — which is
+    /// far less than it looks like it should, and was nearly twice that here until it was
+    /// measured. A raised one rises about a third: Word's own is 4.08, 6.96 and 14.40 against the
+    /// 4.20, 6.97 and 13.94 this gives, which is inside its own rounding of 1/300 inch at the two
+    /// sizes a document is actually set in.
+    /// </remarks>
     public double BaselineShiftPoints => VerticalAlignment switch
     {
         VerticalTextAlignment.Superscript => FontSizePoints * 0.35,
-        VerticalTextAlignment.Subscript => FontSizePoints * -0.14,
+        VerticalTextAlignment.Subscript => FontSizePoints * -0.08,
         _ => 0
     };
 

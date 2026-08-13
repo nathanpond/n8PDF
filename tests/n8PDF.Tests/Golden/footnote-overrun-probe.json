@@ -8,7 +8,7 @@
         {
           "paragraph": 0,
           "baselineY": 83.203,
-          "height": 13.799,
+          "height": 14.157,
           "runs": [
             {"x": 72, "width": 205.582, "font": "Times New Roman", "size": 12, "text": "The only paragraph, which carries the note"},
             {"x": 277.582, "width": 3.624, "font": "Calibri", "size": 7.15, "text": "1"},
@@ -17,15 +17,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 107.598,
+          "baselineY": 106.89,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 119.888,
-          "height": 11.499,
+          "baselineY": 119.365,
+          "height": 12.207,
           "runs": [
             {"x": 72, "width": 3.294, "font": "Calibri", "size": 6.5, "text": "1"},
             {"x": 75.294, "width": 224.956, "font": "Times New Roman", "size": 10, "text": "Line 1 of a note that outlasts the document it belongs to."}

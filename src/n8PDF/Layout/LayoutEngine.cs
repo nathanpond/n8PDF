@@ -710,7 +710,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     {
         var mark = format.MarkFormat;
         var selection = _fonts.Resolve(mark.FontFamily, mark.Bold, mark.Italic);
-        var size = mark.EffectiveFontSizePoints;
+        var size = mark.LineBoxFontSizePoints;
 
         return (TextMeasurer.GetAscent(selection.Font, size),
             TextMeasurer.GetNaturalLineHeight(selection.Font, size));
@@ -3332,6 +3332,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             pen += width + extra;
 
+            if (!textAtom.InLineBox) continue;
+
             maxTextAscent = Math.Max(maxTextAscent, textAtom.Ascent);
             maxTextDescent = Math.Max(maxTextDescent, textAtom.Descent);
             maxTextNatural = Math.Max(maxTextNatural, textAtom.NaturalHeight);
@@ -3346,7 +3348,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         var ascent = Math.Max(maxTextAscent, maxImageAscent);
-        var natural = Math.Max(maxTextNatural, maxImageAscent + maxTextDescent);
+
+        // The line box is the tallest ascent over the deepest descent, which is not the same as
+        // the tallest of the runs' own boxes: a line of twelve point Times with an eleven point
+        // Calibri mark at the end of it takes the Times ascent and the Calibri descent, and is
+        // deeper than either font would make it alone. Word measured a line that way in every
+        // fixture here that mixes two fonts on one line.
+        var natural = Math.Max(maxTextAscent + maxTextDescent, maxImageAscent + maxTextDescent);
+
+        // Nothing about a run's own box is lost by that: a single-font line is the same either
+        // way, since one run's ascent and descent are its natural height.
+        natural = Math.Max(natural, maxTextNatural);
 
         ApplyLineMetrics(line, format, ascent, natural);
     }
@@ -3549,8 +3561,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var selection = _fonts.Resolve(runFormat.FontFamily, runFormat.Bold, runFormat.Italic);
             var size = runFormat.EffectiveFontSizePoints;
-            var ascent = TextMeasurer.GetAscent(selection.Font, size);
-            var naturalHeight = TextMeasurer.GetNaturalLineHeight(selection.Font, size);
+
+            // The line is measured from the size the run declares, not the size it is drawn at: a
+            // raised or lowered run keeps the box of its own size and moves inside it.
+            var box = runFormat.LineBoxFontSizePoints;
+            var ascent = TextMeasurer.GetAscent(selection.Font, box);
+            var naturalHeight = TextMeasurer.GetNaturalLineHeight(selection.Font, box);
             var descent = naturalHeight - ascent;
 
             foreach (var inline in run.Content)
@@ -3806,11 +3822,20 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var selection = _fonts.Resolve(labelFormat.FontFamily, labelFormat.Bold, labelFormat.Italic);
         var size = labelFormat.EffectiveFontSizePoints;
 
-        var ascent = TextMeasurer.GetAscent(selection.Font, size);
-        var naturalHeight = TextMeasurer.GetNaturalLineHeight(selection.Font, size);
+        var box = labelFormat.LineBoxFontSizePoints;
+        var ascent = TextMeasurer.GetAscent(selection.Font, box);
+        var naturalHeight = TextMeasurer.GetNaturalLineHeight(selection.Font, box);
         var descent = naturalHeight - ascent;
 
+        var from = atoms.Count;
+
         AddTextAtoms(atoms, label, labelFormat, selection, ascent, naturalHeight, descent);
+
+        // The number is drawn on the line but is not part of its box.
+        for (var i = from; i < atoms.Count; i++)
+        {
+            if (atoms[i] is TextAtom text) atoms[i] = text.OutsideTheLineBox();
+        }
 
         switch (definition?.Suffix ?? NumberSuffix.Tab)
         {
@@ -4494,6 +4519,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// descent — taking the tallest of the two whole boxes loses the descent entirely.
         /// </summary>
         public double Descent { get; init; }
+
+        /// <summary>
+        /// Whether this atom's own box is part of the line's. A list's number is the one thing
+        /// that is not: Word draws it in the paragraph mark's font, which may be a different one
+        /// from the text's, and sizes the line from the text alone — the numbering fixture has an
+        /// eleven point Calibri number against twelve point Times text, and its lines are the
+        /// height of the Times alone. A note's mark in the same two fonts does count, so this is
+        /// about the number rather than about mixing fonts.
+        /// </summary>
+        public bool InLineBox { get; init; } = true;
     }
 
     private sealed class TextAtom : Atom
@@ -4530,6 +4565,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// is nothing when it opens a line.
         /// </summary>
         public double LeadingKern { get; init; }
+
+        /// <summary>The same atom, drawn on the line but taking no part in its box.</summary>
+        public TextAtom OutsideTheLineBox() => new()
+        {
+            Text = Text,
+            FootnoteId = FootnoteId,
+            FieldOccurrence = FieldOccurrence,
+            IsSpace = IsSpace,
+            Format = Format,
+            Font = Font,
+            Link = Link,
+            Kerned = Kerned,
+            Width = Width,
+            LeadingKern = LeadingKern,
+            Ascent = Ascent,
+            NaturalHeight = NaturalHeight,
+            Descent = Descent,
+            InLineBox = false
+        };
     }
 
     /// <summary>

@@ -240,7 +240,7 @@
         {
           "paragraph": 29,
           "baselineY": 483.369,
-          "height": 13.799,
+          "height": 14.157,
           "runs": [
             {"x": 72, "width": 227.93, "font": "Times New Roman", "size": 12, "text": "Body paragraph 30, which carries the long note"},
             {"x": 299.93, "width": 3.624, "font": "Calibri", "size": 7.15, "text": "1"},
@@ -249,15 +249,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 498.564,
+          "baselineY": 497.856,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 510.854,
-          "height": 11.499,
+          "baselineY": 510.332,
+          "height": 12.207,
           "runs": [
             {"x": 72, "width": 3.294, "font": "Calibri", "size": 6.5, "text": "1"},
             {"x": 75.294, "width": 211.597, "font": "Times New Roman", "size": 10, "text": "Line 1 of a note far too long for the foot of one page."}

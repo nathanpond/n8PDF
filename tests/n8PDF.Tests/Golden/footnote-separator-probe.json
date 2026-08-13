@@ -8,7 +8,7 @@
         {
           "paragraph": 0,
           "baselineY": 83.203,
-          "height": 13.799,
+          "height": 14.157,
           "runs": [
             {"x": 72, "width": 109.295, "font": "Times New Roman", "size": 12, "text": "A sentence with a note"},
             {"x": 181.295, "width": 3.624, "font": "Calibri", "size": 7.15, "text": "1"},

@@ -70,7 +70,8 @@ Four tiers, cheapest and most diagnostic first.
 
    Both PDFs are read through one content-stream parser and compared line by line in points.
    Across the fixtures, line start positions match Word exactly and every baseline agrees to
-   within 0.29pt — close to Word's own vertical quantum of 1/300 inch. `Fidelity_report` writes
+   within 0.46pt, and to within 0.29pt in every document that does not raise or lower a run —
+   close to Word's own vertical quantum of 1/300 inch. `Fidelity_report` writes
    the full per-line table to `artifacts/test-output/fidelity-report.txt`.
 
 4. **Structural validation** — `qpdf --check` over every converted fixture, verifying the
@@ -109,6 +110,20 @@ anchor too. The one case where that shows — a float whose top clearance reache
 previous paragraph's last line — is handled by moving those lines down, which is correct because
 a full-width float does not change their width. A partial-width float reaching backwards would
 need the line broken again, and is not handled.
+
+Three rules about how tall a line is were settled by `superscript-probe` and `numbering`, and none
+of them is what the code did before it was asked. A raised or lowered run keeps the line box of the
+size it was *given*, not the smaller size it is *drawn* at: a twenty point superscript in a twelve
+point line makes that line as tall as a twenty point one, above the baseline and below it, while a
+twelve point superscript in a twelve point line changes nothing at all. A line's box is the tallest
+ascent over the deepest descent across its runs, which is not the tallest of the runs' own boxes —
+twelve point Times with an eleven point Calibri mark on the end takes the Times ascent and the
+Calibri descent, and is deeper than either font alone would make it. And a list's number is drawn
+on its line without being part of its box, which is the one thing on a line that is not.
+
+The shifts themselves were measured at three sizes rather than fitted to one. A lowered run drops
+about a twelfth of its size, which is far less than it looks like it should be and was nearly twice
+that here; a raised one rises about a third.
 
 Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented — our
 residuals are already smaller than one quantum — but it is the floor on how closely anything can
@@ -473,14 +488,6 @@ section needs none of that, since a mark is composed inside the section it belon
 restart by section too, and are still gathered at the end of the document, so their numbers repeat
 down the one list — which looks wrong until you check, and is exactly what Word does with the same
 document.
-
-One difference from Word came out of the fixtures those last two needed, and is left standing
-rather than folded in: a line carrying a raised mark is about 0.36pt shorter here than in Word,
-which is invisible in a document with a note or two and accumulates to 2.8pt down a page holding
-eight of them. It is the raise that does it — Word grows the line box by what stands above the
-text and this sizes the line from the run's own metrics — and it has nothing to do with notes:
-any superscript would do the same. `TextPositionComparisonTests` records it as a known divergence
-with that reasoning beside it, so it is measured every run rather than forgotten.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
 remains elsewhere is notes

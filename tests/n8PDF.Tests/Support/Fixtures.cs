@@ -1839,6 +1839,56 @@ public static class Fixtures
                 return builder;
             },
 
+            // What a raised or lowered run does to the line that holds it, and how far it is
+            // raised. Each line is a plain run and a shifted one, so the difference from the
+            // control line is the whole of what the shift did; the shifted run's own baseline
+            // comes out of the export beside it, which is the raise itself. The sizes are chosen
+            // so that the raise cannot be a fraction of any one of them by coincidence.
+            ["superscript-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                string Line(string label, string shifted, string? shiftedProperties) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{label} </w:t></w:r>" +
+                    (shiftedProperties is null
+                        ? string.Empty
+                        : $"<w:r><w:rPr>{shiftedProperties}</w:rPr><w:t>{shifted}</w:t></w:r>") +
+                    "</w:p>";
+
+                var super12 = Times12 + "<w:vertAlign w:val=\"superscript\"/>";
+                var sub12 = Times12 + "<w:vertAlign w:val=\"subscript\"/>";
+                var super20 = Times(40) + "<w:vertAlign w:val=\"superscript\"/>";
+
+                builder.AddRawParagraph(Line("Plain twelve point", "", null));
+                builder.AddRawParagraph(Line("Raised twelve", "888", super12));
+                builder.AddRawParagraph(Line("Lowered twelve", "888", sub12));
+                builder.AddRawParagraph(Line("Raised twenty", "888", super20));
+                builder.AddRawParagraph(Line("Plain again", "", null));
+                builder.AddRawParagraph(Line("Same digits plain", "888", Times12));
+
+                // A raised run beside text far larger than it, where the raise cannot reach above
+                // the big run's own ascent: the line should be the big run's and nothing more.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(40)}</w:rPr><w:t xml:space=\"preserve\">Twenty point </w:t></w:r>" +
+                    $"<w:r><w:rPr>{super12}</w:rPr><w:t>888</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(Line("Plain last", "", null));
+
+                // The same two shifts at a size far enough from the first to say what they are a
+                // fraction of, rather than fitting a ratio to one measurement.
+                var super40 = Times(80) + "<w:vertAlign w:val=\"superscript\"/>";
+                var sub40 = Times(80) + "<w:vertAlign w:val=\"subscript\"/>";
+
+                builder.AddRawParagraph(Line("Raised forty", "888", super40));
+                builder.AddRawParagraph(Line("Plain between", "", null));
+                builder.AddRawParagraph(Line("Lowered forty", "888", sub40));
+                builder.AddRawParagraph(Line("Plain after", "", null));
+
+                return builder;
+            },
+
             // Notes numbered again from one on every page, which is what a document of many notes
             // a page usually asks for. What is measured is which page a note counts as being on,
             // since a reference near a page's edge may be moved by the line that carries it.
