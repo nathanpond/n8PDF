@@ -514,6 +514,109 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.InRange(colour.B, 0x40 - 8, 0x40 + 8);
     }
 
+    /// <summary>
+    /// A TIFF of sixteen bits a sample keeps them too, and reads them the way round its own file
+    /// is written — which is the half of this that could go wrong without showing: a picture read
+    /// from the wrong end still looks like a picture, only the wrong one.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_tiff_of_sixteen_bits_a_sample_keeps_them(bool little)
+    {
+        const int width = 4;
+        const int height = 3;
+
+        var samples = new ushort[width * height * 3];
+        for (var i = 0; i < samples.Length; i++) samples[i] = (ushort)(0x1200 + i * 7);
+
+        var image = ImageReader.Read(ImageWriter.DeepTiff(width, height, samples, little));
+
+        Assert.Equal(16, image.BitsPerComponent);
+        Assert.Equal(samples.Length * 2, image.Data.Length);
+
+        for (var i = 0; i < samples.Length; i++)
+        {
+            // Whatever way round the file was written, a PDF wants the bigger half first.
+            var value = (image.Data[i * 2] << 8) | image.Data[i * 2 + 1];
+
+            Assert.Equal(samples[i], value);
+        }
+    }
+
+    /// <summary>
+    /// And the same file read by another program, which is what says a sample is being read from
+    /// the end it was written at: reading one backwards gives a picture whose colours are wrong
+    /// rather than a file that will not open.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_deep_tiff_is_the_same_picture_to_another_reader(bool little)
+    {
+        const int width = 8;
+        const int height = 6;
+
+        // Colours whose halves differ, so that reading them backwards is a different picture.
+        var samples = new ushort[width * height * 3];
+
+        for (var i = 0; i < width * height; i++)
+        {
+            samples[i * 3] = 0x2010;
+            samples[i * 3 + 1] = 0x90f0;
+            samples[i * 3 + 2] = 0x4080;
+        }
+
+        var tiff = ImageWriter.DeepTiff(width, height, samples, little);
+
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        Directory.CreateDirectory(directory);
+
+        var source = Path.Combine(directory, $"deep-{little}.tiff");
+        File.WriteAllBytes(source, tiff);
+
+        var converted = Path.Combine(directory, $"deep-{little}.png");
+        File.Delete(converted);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("sips",
+                ["-s", "format", "png", source, "--out", converted])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            process?.WaitForExit(30_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            _output.WriteLine("sips was not found; the file was not read back by anything else.");
+            return;
+        }
+
+        if (!File.Exists(converted))
+        {
+            _output.WriteLine("sips would not read the deep TIFF.");
+            return;
+        }
+
+        var theirs = PngDecoder.Decode(File.ReadAllBytes(converted));
+        var ours = ImageReader.Read(tiff);
+
+        _output.WriteLine(
+            $"{(little ? "little" : "big")} end first: they read {theirs.BitsPerComponent} bits a sample, " +
+            $"we read {ours.BitsPerComponent}");
+
+        // Whichever precision the other reader kept, the top half of each sample must agree.
+        var size = theirs.BitsPerComponent / 8;
+
+        for (var i = 0; i < width * height * 3; i++)
+        {
+            Assert.Equal(ours.Data[i * 2], theirs.Data[i * size]);
+        }
+    }
+
     // ----- a JPEG inside a TIFF -----
 
     /// <summary>A JPEG of the sample picture, made by a program that can make one.</summary>

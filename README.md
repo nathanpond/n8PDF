@@ -312,9 +312,14 @@ written as an image in its own right, with its own rows and its own filters over
 is unfiltered on its own and its pixels are then put where they belong, a few bits at a time where
 four of them share a byte.
 
-A PNG written with sixteen bits a sample keeps them. A PDF carries either precision, so reducing
-one to eight would throw away exactly what it was written to keep, and both formats write the
-bigger half of a sample first — so the two bytes go through as they lie. What says the halves have
+A picture written with sixteen bits a sample keeps them, in a PNG or in a TIFF. A PDF carries
+either precision, so reducing one to eight would throw away exactly what it was written to keep. A
+PNG and a PDF both write the bigger half of a sample first, so those two bytes go through as they
+lie; a TIFF writes them the way round the rest of its numbers go, which has to be read from the
+file rather than assumed — a sample read from the wrong end is still a picture, only the wrong one.
+The single thing still reduced to eight bits is the colour table of a TIFF written through a
+palette, where the index is what the depth describes and the table is a few hundred entries whose
+lower halves no document has ever needed. What says the halves have
 not been transposed or the precision misdeclared is the page itself: a picture written at sixteen
 bits and described as eight comes out as noise, so the check is that a reader which shares nothing
 with this one draws the colour that went in.
@@ -380,8 +385,7 @@ The older way is also the only thing here with no second opinion behind it: `sip
 file written that way at all, so what is tested is that the JPEG comes back, and no more than that.
 
 Not yet: nothing of what a document usually holds. What is left is a TIFF whose JPEG is divided
-into several strips, and a TIFF's own sixteen-bit samples, which are still halved on the way in
-where a PNG's are not., splitting a note across pages, restarting note numbering per page or per section, notes
+into several strips, which would have to be decoded to be joined., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

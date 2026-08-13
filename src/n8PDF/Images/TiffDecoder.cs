@@ -117,7 +117,7 @@ public static class TiffDecoder
         var colourSamples = photometric == 2 ? 3 : 1;
         var hasAlpha = samples > colourSamples && extras.Count > 0 && extras[0] != 0;
 
-        return Expand(raw, width, height, rowBytes, bits, samples, photometric, palette, hasAlpha);
+        return Expand(raw, width, height, rowBytes, bits, samples, photometric, palette, hasAlpha, little);
     }
 
     // ----- the tags -----
@@ -596,27 +596,42 @@ public static class TiffDecoder
         }
     }
 
+    /// <summary>
+    /// Turns the samples into what a PDF carries.
+    /// </summary>
+    /// <remarks>
+    /// Sixteen-bit samples are kept at sixteen, written the way a PDF writes them, which is the
+    /// bigger half of each first however the file itself had them. A picture through a palette is
+    /// the one thing reduced to eight: the index is what its depth describes, and the colours it
+    /// looks up are a table of at most a few hundred entries whose lower halves no document has
+    /// ever needed.
+    /// </remarks>
     private static ImageData Expand(
         byte[] raw, int width, int height, int rowBytes, int bits, int samples, int photometric,
-        List<long>? palette, bool hasAlpha)
+        List<long>? palette, bool hasAlpha, bool little)
     {
         var colour = photometric == 2 ? 3 : 1;
-        var pixels = new byte[width * height * (photometric == 3 ? 3 : colour)];
-        byte[]? alpha = hasAlpha ? new byte[width * height] : null;
-
         var components = photometric == 3 ? 3 : colour;
+
+        // A palette is a lookup rather than a sample, so it comes out at a byte a channel however
+        // deep the index into it was.
+        var deep = bits == 16 && photometric != 3;
+        var size = deep ? 2 : 1;
+
+        var pixels = new byte[width * height * components * size];
+        byte[]? alpha = hasAlpha ? new byte[width * height * size] : null;
 
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
-                var target = (y * width + x) * components;
+                var target = (y * width + x) * components * size;
 
                 if (photometric == 3)
                 {
                     // A palette holds its three channels one after another, each a whole
                     // sixteen-bit number however few of them are used.
-                    var index = Sample(raw, y * rowBytes, x * samples, bits);
+                    var index = Sample(raw, y * rowBytes, x * samples, bits, little);
                     var count = (palette?.Count ?? 0) / 3;
 
                     for (var c = 0; c < 3; c++)
@@ -631,24 +646,46 @@ public static class TiffDecoder
                 {
                     for (var c = 0; c < colour; c++)
                     {
-                        var value = Sample(raw, y * rowBytes, x * samples + c, bits);
-                        var scaled = Scale(value, bits);
+                        var value = Sample(raw, y * rowBytes, x * samples + c, bits, little);
 
                         // Where nought is white the samples run the other way round.
-                        pixels[target + c] = photometric == 0 ? (byte)(255 - scaled) : scaled;
+                        if (photometric == 0) value = (deep ? 0xffff : (1 << bits) - 1) - value;
+
+                        Write(pixels, target + c * size, value, deep, bits);
                     }
                 }
 
                 if (alpha is not null)
                 {
-                    var value = Sample(raw, y * rowBytes, x * samples + colour, bits);
-                    alpha[y * width + x] = Scale(value, bits);
+                    var value = Sample(raw, y * rowBytes, x * samples + colour, bits, little);
+
+                    Write(alpha, (y * width + x) * size, value, deep, bits);
                 }
             }
         }
 
         return new ImageData(width, height, pixels, ImageEncoding.Raw,
-            components == 1 ? ImageColorSpace.Gray : ImageColorSpace.Rgb, alpha);
+            components == 1 ? ImageColorSpace.Gray : ImageColorSpace.Rgb, alpha)
+        {
+            BitsPerComponent = deep ? 16 : 8
+        };
+    }
+
+    /// <summary>
+    /// Writes one sample out: as it stands where the picture is deep, and spread over a whole byte
+    /// where it is not — one bit of grey is black and white rather than black and nearly black.
+    /// </summary>
+    private static void Write(byte[] target, int at, int value, bool deep, int bits)
+    {
+        if (deep)
+        {
+            target[at] = (byte)(value >> 8);
+            target[at + 1] = (byte)value;
+
+            return;
+        }
+
+        target[at] = Scale(value, bits);
     }
 
     private static byte Scale(int value, int bits) => bits switch
@@ -659,7 +696,13 @@ public static class TiffDecoder
         _ => (byte)(value == 0 ? 0 : 255)
     };
 
-    private static int Sample(byte[] raw, int rowStart, int index, int bits)
+    /// <summary>
+    /// One sample of a row. A sample of two bytes is written the same way round as every other
+    /// number in the file, so which way that is has to be known to read one: a file written little
+    /// end first and read big end first gives a picture of noise, or — where only the top half of
+    /// each sample was ever used — a picture made of the wrong halves.
+    /// </summary>
+    private static int Sample(byte[] raw, int rowStart, int index, int bits, bool little = false)
     {
         switch (bits)
         {
@@ -672,7 +715,9 @@ public static class TiffDecoder
             case 16:
             {
                 var at = rowStart + index * 2;
-                return at + 1 < raw.Length ? (raw[at] << 8) | raw[at + 1] : 0;
+                if (at + 1 >= raw.Length) return 0;
+
+                return little ? raw[at] | (raw[at + 1] << 8) : (raw[at] << 8) | raw[at + 1];
             }
 
             default:

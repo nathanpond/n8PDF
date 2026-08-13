@@ -520,6 +520,61 @@ public static class ImageWriter
     }
 
     /// <summary>
+    /// A TIFF of sixteen bits a sample, written from whichever end is asked for. A sample of two
+    /// bytes goes the same way round as every other number in the file, which is the whole point
+    /// of writing one of these both ways.
+    /// </summary>
+    public static byte[] DeepTiff(int width, int height, ushort[] samples, bool little = true)
+    {
+        var body = new List<byte>();
+
+        foreach (var sample in samples) body.AddRange(Number(sample, 2, little));
+
+        return AssembleWith(
+            body, little,
+            [
+                (256, 3, 1, width),
+                (257, 3, 1, height),
+                (258, 3, 1, 16),
+                (259, 3, 1, 1),
+                (262, 3, 1, 2),
+                (273, 4, 1, 8),
+                (277, 3, 1, 3),
+                (278, 3, 1, height),
+                (279, 4, 1, body.Count),
+                (284, 3, 1, 1)
+            ]);
+    }
+
+    /// <summary>Puts a TIFF together whose tags point at nothing but the pixels.</summary>
+    private static byte[] AssembleWith(
+        List<byte> body, bool little, List<(int Id, int Type, int Count, int Value)> tags)
+    {
+        var file = new List<byte>();
+        file.AddRange(little ? "II"u8.ToArray() : "MM"u8.ToArray());
+        file.AddRange(Number(42, 2, little));
+        file.AddRange(Number(8 + body.Count, 4, little));
+        file.AddRange(body);
+
+        file.AddRange(Number(tags.Count, 2, little));
+
+        foreach (var (id, type, count, value) in tags)
+        {
+            file.AddRange(Number(id, 2, little));
+            file.AddRange(Number(type, 2, little));
+            file.AddRange(Number(count, 4, little));
+
+            file.AddRange(type == 3 && count == 1
+                ? [.. Number(value, 2, little), 0, 0]
+                : Number(value, 4, little));
+        }
+
+        file.AddRange(Number(0, 4, little));
+
+        return [.. file];
+    }
+
+    /// <summary>
     /// The same file with a different number of rows to a strip, which is how a picture is made to
     /// say it is divided into more of them than it is.
     /// </summary>
