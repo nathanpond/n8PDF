@@ -49,13 +49,15 @@ public static class ImageReader
     /// Reads a JPEG's dimensions and component count from its start-of-frame marker.
     /// </summary>
     /// <remarks>
-    /// A JPEG is a sequence of marker segments. Only the frame header is of interest; it carries
-    /// the size and the number of components, which is what decides the PDF colour space. Every
-    /// other segment is skipped by its declared length.
+    /// A JPEG is a sequence of marker segments. Two are of interest. The frame header carries the
+    /// size and the number of channels, which is what decides the PDF colour space; and the marker
+    /// Adobe's tools write says, of a file of four channels, that its ink is written the other way
+    /// up. Every other segment is skipped by its declared length.
     /// </remarks>
     private static ImageData ReadJpeg(byte[] data)
     {
         var position = 2;
+        var adobe = false;
 
         while (position + 3 < data.Length)
         {
@@ -73,6 +75,12 @@ public static class ImageReader
 
             if (position + 1 >= data.Length) break;
             var length = (data[position] << 8) | data[position + 1];
+
+            if (marker == 0xee && position + 6 < data.Length &&
+                data.AsSpan(position + 2, 5).SequenceEqual("Adobe"u8))
+            {
+                adobe = true;
+            }
 
             // SOF0 through SOF15, excluding the two that are not frame headers.
             if (marker is >= 0xc0 and <= 0xcf && marker != 0xc4 && marker != 0xc8 && marker != 0xcc)
@@ -93,7 +101,10 @@ public static class ImageReader
                 if (width <= 0 || height <= 0)
                     throw new ImageFormatException("JPEG frame header declares an empty image.");
 
-                return new ImageData(width, height, data, ImageEncoding.Jpeg, colorSpace);
+                return new ImageData(width, height, data, ImageEncoding.Jpeg, colorSpace)
+                {
+                    InvertedInk = adobe && components == 4
+                };
             }
 
             position += length;

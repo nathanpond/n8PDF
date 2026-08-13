@@ -188,12 +188,14 @@ public class ImageFormatTests(ITestOutputHelper output)
 
     // ----- against another reader's idea of the same picture -----
 
-    private static string? Convert(string format, byte[] png, string? tool = null, string? option = null)
+    private static string? Convert(
+        string format, byte[] png, string? tool = null, string? option = null,
+        string sourceName = "source.png")
     {
         var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
         Directory.CreateDirectory(directory);
 
-        var source = Path.Combine(directory, "source.png");
+        var source = Path.Combine(directory, sourceName);
         File.WriteAllBytes(source, png);
 
         var output = Path.Combine(directory, $"converted{option}.{format}");
@@ -818,6 +820,208 @@ public class ImageFormatTests(ITestOutputHelper output)
         _output.WriteLine($"{name}: {new FileInfo(coded).Length} bytes, worst {worst}");
 
         Assert.Equal(0, worst);
+    }
+
+    // ----- four channels of ink -----
+
+    /// <summary>The four inks the fixture was written with, one to each quarter of it.</summary>
+    private static readonly (int X, int Y, byte[] Ink)[] Quarters =
+    [
+        (16, 16, [255, 0, 0, 0]),
+        (48, 16, [0, 255, 0, 0]),
+        (16, 48, [0, 0, 255, 0]),
+        (48, 48, [32, 64, 128, 192])
+    ];
+
+    /// <summary>
+    /// A picture bound for a printing press holds four channels rather than three: not the light a
+    /// screen adds up to a colour but the ink a press lays down to take light away — cyan, magenta,
+    /// yellow, and black, because the first three together make a muddy brown rather than black.
+    /// </summary>
+    /// <remarks>
+    /// Adobe's tools write such a JPEG with its ink the other way up, nought standing for all of an
+    /// ink rather than none of it, and every one in practice is written that way. Nothing warns a
+    /// reader but a marker beside it, and reading one without noticing gives a picture in exactly
+    /// the wrong colours — which is easy to write and, in a document of photographs, not always
+    /// easy to see.
+    ///
+    /// The file is committed rather than written here because nothing installed alongside these
+    /// tests will produce one on demand: <c>sips</c> converts to a profile without changing the
+    /// channels, and <c>cjpeg</c> takes no such picture in. It was written by libjpeg with four
+    /// quarters of known ink, chosen so that no channel holds the same value as another — a
+    /// channel read in the wrong place, or upside down, cannot come out looking right. To make it
+    /// again: build a 64-square image in CMYK with those four quarters and save it as a JPEG, from
+    /// anything that writes one through libjpeg.
+    /// </remarks>
+    [Fact]
+    public void A_jpeg_of_four_channels_is_read_as_the_ink_it_holds()
+    {
+        var image = JpegDecoder.Decode(
+            File.ReadAllBytes(Path.Combine(TestPaths.ImageFixtures, "inks.jpg")));
+
+        Assert.Equal(ImageColorSpace.Cmyk, image.ColorSpace);
+        Assert.Equal(4, image.ComponentCount);
+
+        foreach (var (x, y, ink) in Quarters)
+        {
+            var at = (y * image.Width + x) * 4;
+            var read = image.Data[at..(at + 4)];
+
+            _output.WriteLine($"wrote {string.Join(",", ink)}, read {string.Join(",", read)}");
+
+            for (var c = 0; c < 4; c++) Assert.InRange(read[c], ink[c] - 3, ink[c] + 3);
+        }
+    }
+
+    /// <summary>
+    /// A JPEG passes into the PDF as the file it already is, so it cannot be turned the right way
+    /// up on the way through. The PDF is told instead, which is what its decode array is for — and
+    /// it is told only where the marker says so, since a file of four channels without one holds
+    /// its ink the way everything else does.
+    /// </summary>
+    [Fact]
+    public void A_four_channel_jpeg_passing_through_says_which_way_up_its_ink_is()
+    {
+        var inks = ImageReader.Read(
+            File.ReadAllBytes(Path.Combine(TestPaths.ImageFixtures, "inks.jpg")));
+
+        Assert.Equal(ImageEncoding.Jpeg, inks.Encoding);
+        Assert.Equal(ImageColorSpace.Cmyk, inks.ColorSpace);
+        Assert.True(inks.InvertedInk);
+
+        if (Convert("jpeg", PngWriter.Write(Width, Height, Sample(), false)) is not { } colour)
+        {
+            _output.WriteLine("sips was not found, so no three-channel JPEG was compared against.");
+            return;
+        }
+
+        var ordinary = ImageReader.Read(File.ReadAllBytes(colour));
+
+        Assert.Equal(ImageColorSpace.Rgb, ordinary.ColorSpace);
+        Assert.False(ordinary.InvertedInk);
+    }
+
+    /// <summary>
+    /// A TIFF holds the same four channels the plain way up, nought meaning none of that ink laid
+    /// down, so what it holds is what comes out.
+    /// </summary>
+    /// <remarks>
+    /// Written here rather than found, so that every sample is known — and read back by
+    /// <c>sips</c> as well, which is what says the file is a separated TIFF as anything else
+    /// understands one rather than only as this does. Two readers cannot be compared on the
+    /// colours themselves: turning ink into light is a measured property of paper and ink that
+    /// each does through its own profile. What they can be compared on is which ink is which,
+    /// which is the half that could silently be wrong.
+    /// </remarks>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_tiff_of_separated_inks_is_read_as_ink(bool little)
+    {
+        const int width = 8;
+        const int height = 4;
+
+        var inks = new byte[width * height * 4];
+
+        for (var i = 0; i < width * height; i++)
+        {
+            inks[i * 4] = (byte)(i * 8);
+            inks[i * 4 + 1] = (byte)(255 - i * 8);
+            inks[i * 4 + 2] = (byte)(i * 3);
+            inks[i * 4 + 3] = (byte)(i % 5 * 60);
+        }
+
+        var file = ImageWriter.CmykTiff(width, height, inks, little);
+        var image = ImageReader.Read(file);
+
+        Assert.Equal(ImageColorSpace.Cmyk, image.ColorSpace);
+        Assert.Equal(inks, image.Data);
+
+        if (Convert("png", file, sourceName: "inks.tif") is not { } back)
+        {
+            _output.WriteLine("sips was not found, so the separated TIFF had no second reader.");
+            return;
+        }
+
+        var theirs = PngDecoder.Decode(File.ReadAllBytes(back));
+
+        Assert.Equal(width, theirs.Width);
+        Assert.Equal(height, theirs.Height);
+
+        // The second pixel is nearly all magenta and the last is nearly all cyan, so whatever
+        // profile turned them into light, the one has to come out redder than the other and the
+        // other bluer than the one.
+        var magenta = Pixel(theirs, 1);
+        var cyan = Pixel(theirs, width * height - 1);
+
+        _output.WriteLine($"sips reads mostly-magenta ink as {magenta} and mostly-cyan ink as {cyan}");
+
+        Assert.True(magenta.R > cyan.R, "the magenta ink came out no redder than the cyan");
+        Assert.True(cyan.B > magenta.B, "the cyan ink came out no bluer than the magenta");
+    }
+
+    private static (int R, int G, int B) Pixel(ImageData image, int index)
+    {
+        var at = index * image.ComponentCount;
+
+        return (image.Data[at], image.Data[at + 1], image.Data[at + 2]);
+    }
+
+    /// <summary>
+    /// A press may run inks of its own rather than the four, and a TIFF says which it holds. There
+    /// is no way to hand those to a PDF as this, and no way to guess what they look like, so such
+    /// a file is reported rather than drawn in colours that are not its own.
+    /// </summary>
+    [Fact]
+    public void A_tiff_of_a_presss_own_inks_is_reported()
+    {
+        var inks = new byte[4 * 4 * 4];
+
+        Assert.Throws<ImageFormatException>(() => ImageReader.Read(ImageWriter.CmykTiff(4, 4, inks, inkSet: 2)));
+    }
+
+    /// <summary>
+    /// And the ink reaches the page as the colour it stands for, drawn by a reader that shares
+    /// nothing with this one. This is the half that no amount of reading samples can settle: get
+    /// the way up wrong and every sample still reads back as it was written, while the page comes
+    /// out in the colours nobody meant.
+    /// </summary>
+    [Fact]
+    public void A_picture_of_ink_reaches_the_page_as_the_colour_it_stands_for()
+    {
+        var builder = new DocxBuilder();
+        var id = builder.AddImagePart(
+            File.ReadAllBytes(Path.Combine(TestPaths.ImageFixtures, "inks.jpg")));
+
+        builder.AddImageParagraph(id, 64, 64);
+
+        var pdf = n8PDF.Converter.Convert(builder.Build(),
+            new n8PDF.ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        var text = System.Text.Encoding.Latin1.GetString(pdf);
+
+        Assert.Contains("/DeviceCMYK", text);
+        Assert.Contains("/Decode [1 0 1 0 1 0 1 0]", text);
+
+        if (PdfRasterizer.Render(pdf, scale: 2) is not { } rendered)
+        {
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        // The picture sits at the top left of the text area, so its quarters are a quarter of its
+        // width in from each corner of it.
+        var cyan = rendered.At(72 + 16, 72 + 16, 2);
+        var magenta = rendered.At(72 + 48, 72 + 16, 2);
+        var yellow = rendered.At(72 + 16, 72 + 48, 2);
+
+        _output.WriteLine($"cyan {cyan}, magenta {magenta}, yellow {yellow}");
+
+        // Whatever the profile makes of each, an ink takes away the light of its own colour and
+        // leaves the rest: cyan is what is left with the red gone, and so on round.
+        Assert.True(cyan.R < cyan.G && cyan.R < cyan.B, $"the cyan quarter came out {cyan}");
+        Assert.True(magenta.G < magenta.R && magenta.G < magenta.B, $"the magenta quarter came out {magenta}");
+        Assert.True(yellow.B < yellow.R && yellow.B < yellow.G, $"the yellow quarter came out {yellow}");
     }
 
     /// <summary>The kinds of JPEG this still does not decode are reported rather than half-read.</summary>

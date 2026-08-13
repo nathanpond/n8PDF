@@ -112,9 +112,22 @@ public static class TiffDecoder
             ? Numbers(reader, mapTag)
             : null;
 
+        // A picture of separated inks is the one a printing press wants: not the light a screen
+        // adds up to a colour but the ink a press lays down to take light away, four of them, and
+        // the fourth is black because three inks together make a muddy brown rather than black.
+        if (photometric == 5)
+        {
+            if (samples < 4) throw new ImageFormatException("TIFF of separated inks has too few channels.");
+
+            // Which inks, where a file says: four is cyan, magenta, yellow and black, and anything
+            // else is a press's own inks, which a PDF has no way to be handed as this.
+            if (Value(reader, tags, 332, 1) != 1)
+                throw new ImageFormatException("TIFF holds inks of its own, which are not handled.");
+        }
+
         // An extra sample beyond the colours is transparency, which is the only kind a TIFF has.
         var extras = tags.TryGetValue(338, out var extraTag) ? Numbers(reader, extraTag) : [];
-        var colourSamples = photometric == 2 ? 3 : 1;
+        var colourSamples = Channels(photometric);
         var hasAlpha = samples > colourSamples && extras.Count > 0 && extras[0] != 0;
 
         return Expand(raw, width, height, rowBytes, bits, samples, photometric, palette, hasAlpha, little);
@@ -664,6 +677,14 @@ public static class TiffDecoder
         }
     }
 
+    /// <summary>How many channels a picture of the given kind holds, beyond any transparency.</summary>
+    private static int Channels(int photometric) => photometric switch
+    {
+        2 => 3,
+        5 => 4,
+        _ => 1
+    };
+
     /// <summary>
     /// Turns the samples into what a PDF carries.
     /// </summary>
@@ -678,7 +699,7 @@ public static class TiffDecoder
         byte[] raw, int width, int height, int rowBytes, int bits, int samples, int photometric,
         List<long>? palette, bool hasAlpha, bool little)
     {
-        var colour = photometric == 2 ? 3 : 1;
+        var colour = Channels(photometric);
         var components = photometric == 3 ? 3 : colour;
 
         // A palette is a lookup rather than a sample, so it comes out at a byte a channel however
@@ -732,8 +753,12 @@ public static class TiffDecoder
             }
         }
 
-        return new ImageData(width, height, pixels, ImageEncoding.Raw,
-            components == 1 ? ImageColorSpace.Gray : ImageColorSpace.Rgb, alpha)
+        return new ImageData(width, height, pixels, ImageEncoding.Raw, components switch
+            {
+                1 => ImageColorSpace.Gray,
+                4 => ImageColorSpace.Cmyk,
+                _ => ImageColorSpace.Rgb
+            }, alpha)
         {
             BitsPerComponent = deep ? 16 : 8
         };

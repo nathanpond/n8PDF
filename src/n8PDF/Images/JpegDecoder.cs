@@ -121,6 +121,11 @@ internal static class JpegDecoder
         private bool _progressive;
         private bool _arithmetic;
 
+        /// <summary>Whether the file carries Adobe's marker, and what it says of the channels.</summary>
+        private bool _adobe;
+
+        private int _transform;
+
         // What the arithmetic coder has learned so far, kept apart for each table the scan names,
         // and the conditioning the file asks for.
         private readonly byte[][] _dcStatistics = [new byte[64], new byte[64], new byte[64], new byte[64]];
@@ -210,6 +215,10 @@ internal static class JpegDecoder
                         _restartInterval = body + 1 < data.Length ? (data[body] << 8) | data[body + 1] : 0;
                         break;
 
+                    case 0xee:
+                        ReadAdobe(body, end);
+                        break;
+
                     case 0xda:
                         at = ReadScan(body, end);
                         continue;
@@ -219,6 +228,21 @@ internal static class JpegDecoder
             }
 
             return Finish();
+        }
+
+        /// <summary>
+        /// Reads the marker Adobe's tools write, which says what the channels of a file of four
+        /// hold: ink as it stands, or ink turned into brightness and colour the way three channels
+        /// usually are.
+        /// </summary>
+        private void ReadAdobe(int at, int end)
+        {
+            if (end - at < 12) return;
+            if (data[at] != 'A' || data[at + 1] != 'd' || data[at + 2] != 'o' ||
+                data[at + 3] != 'b' || data[at + 4] != 'e') return;
+
+            _adobe = true;
+            _transform = data[at + 11];
         }
 
         private void ReadQuantization(int at, int end)
@@ -319,7 +343,7 @@ internal static class JpegDecoder
 
             if (_width <= 0 || _height <= 0) throw new ImageFormatException("JPEG declares an empty image.");
 
-            if (_components.Count is not (1 or 3))
+            if (_components.Count is not (1 or 3 or 4))
                 throw new ImageFormatException($"A JPEG of {_components.Count} channels is not handled.");
 
             var maxH = _components.Max(c => c.HorizontalSampling);
@@ -898,36 +922,71 @@ internal static class JpegDecoder
 
         private ImageData Combine()
         {
-            var grey = _components.Count == 1;
-            var pixels = new byte[_width * _height * (grey ? 1 : 3)];
+            var channels = _components.Count;
+            var pixels = new byte[_width * _height * channels];
 
             var maxH = _components.Max(c => c.HorizontalSampling);
             var maxV = _components.Max(c => c.VerticalSampling);
 
+            // A file of four channels holds ink, and one of three holds colour. Either may have
+            // had its first three channels turned into brightness and colour first, which is what
+            // saves the room: the eye notices detail in brightness and not much in colour, so the
+            // colour can be written at half the width and half the height.
+            var separated = channels switch
+            {
+                1 => true,
+                3 => false,
+                _ => !_adobe || _transform != 2
+            };
+
             for (var y = 0; y < _height; y++)
             for (var x = 0; x < _width; x++)
             {
-                if (grey)
+                var at = (y * _width + x) * channels;
+
+                if (separated)
                 {
-                    pixels[y * _width + x] = At(_components[0], x, y, maxH, maxV);
+                    for (var c = 0; c < channels; c++) pixels[at + c] = At(_components[c], x, y, maxH, maxV);
                     continue;
                 }
 
-                // The colours are kept apart from the brightness, and often at half the detail:
-                // a channel written smaller is read by taking the sample the pixel falls into.
+                // A channel written smaller is read by taking the sample the pixel falls into.
                 var luma = At(_components[0], x, y, maxH, maxV);
                 var blue = At(_components[1], x, y, maxH, maxV) - 128;
                 var red = At(_components[2], x, y, maxH, maxV) - 128;
 
-                var at = (y * _width + x) * 3;
-
                 pixels[at] = Clamp(luma + 1.402 * red);
                 pixels[at + 1] = Clamp(luma - 0.344136 * blue - 0.714136 * red);
                 pixels[at + 2] = Clamp(luma + 1.772 * blue);
+
+                // The fourth channel of such a file is black, which is left as it stands: only the
+                // three colours were ever turned round.
+                if (channels == 4) pixels[at + 3] = At(_components[3], x, y, maxH, maxV);
             }
 
-            return new ImageData(_width, _height, pixels, ImageEncoding.Raw,
-                grey ? ImageColorSpace.Gray : ImageColorSpace.Rgb);
+            // Adobe's tools write the ink of a file of four the other way up — nought for all of
+            // it, not none of it — and every file of four in practice is one of theirs. What comes
+            // out here is ink as a PDF means it, so a file written that way is turned back.
+            if (channels == 4 && _adobe)
+            {
+                // Where the colours were turned into brightness first, that was done to ink
+                // already the other way up, so undoing it has turned them back as well and only
+                // the black is left.
+                var first = _transform == 2 ? 3 : 0;
+
+                for (var i = 0; i < pixels.Length; i += 4)
+                for (var c = first; c < 4; c++)
+                {
+                    pixels[i + c] = (byte)(255 - pixels[i + c]);
+                }
+            }
+
+            return new ImageData(_width, _height, pixels, ImageEncoding.Raw, channels switch
+            {
+                1 => ImageColorSpace.Gray,
+                4 => ImageColorSpace.Cmyk,
+                _ => ImageColorSpace.Rgb
+            });
         }
 
         private static byte At(Component component, int x, int y, int maxH, int maxV)

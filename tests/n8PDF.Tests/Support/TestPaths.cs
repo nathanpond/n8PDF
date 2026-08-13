@@ -20,6 +20,13 @@ public static class TestPaths
 
     public static string ReferencePdfs => Path.Combine(TestProject, "Fixtures", "Reference");
 
+    /// <summary>
+    /// Pictures committed as files rather than written by the tests. Only what nothing on this
+    /// machine can produce on demand belongs here — a JPEG of separated inks, which no converter
+    /// installed alongside these tests will write.
+    /// </summary>
+    public static string ImageFixtures => Path.Combine(TestProject, "Fixtures", "Images");
+
     public static string Golden => Path.Combine(TestProject, "Golden");
 
     /// <summary>

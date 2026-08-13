@@ -33,8 +33,10 @@ public sealed class PdfImage
             ((PdfStream)stream).Compress = false;
             stream.Set("Filter", "DCTDecode");
 
-            // Adobe's CMYK JPEGs are written inverted, and are the only kind in practice.
-            if (Image.ColorSpace == ImageColorSpace.Cmyk)
+            // A four-channel JPEG of Adobe's writing holds its ink the other way up, and is told
+            // apart by the marker they write beside it. What decodes here is turned back as it is
+            // read, but a file passing through untouched cannot be, so the PDF is told instead.
+            if (Image.InvertedInk)
             {
                 stream.Set("Decode", new PdfArray()
                     .Add(1).Add(0).Add(1).Add(0).Add(1).Add(0).Add(1).Add(0));

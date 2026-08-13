@@ -351,6 +351,33 @@ public static class ImageWriter
     }
 
     /// <summary>
+    /// A TIFF of separated inks: four samples a pixel, nought meaning none of that ink laid down.
+    /// </summary>
+    /// <param name="inks">Cyan, magenta, yellow and black for each pixel, in that order.</param>
+    /// <param name="inkSet">
+    /// Which inks the four are. One is cyan, magenta, yellow and black; two is a press's own,
+    /// which is a different picture altogether and has to be refused rather than read as this.
+    /// </param>
+    public static byte[] CmykTiff(int width, int height, byte[] inks, bool little = true, int inkSet = 1)
+    {
+        return AssembleWith(
+            [.. inks], little,
+            [
+                (256, 3, 1, width),
+                (257, 3, 1, height),
+                (258, 3, 1, 8),
+                (259, 3, 1, 1),
+                (262, 3, 1, 5),
+                (273, 4, 1, 8),
+                (277, 3, 1, 4),
+                (278, 3, 1, height),
+                (279, 4, 1, inks.Length),
+                (284, 3, 1, 1),
+                (332, 3, 1, inkSet)
+            ]);
+    }
+
+    /// <summary>
     /// A TIFF written in tiles rather than in strips: rectangles in reading order, each the full
     /// tile size however little of the picture it covers.
     /// </summary>

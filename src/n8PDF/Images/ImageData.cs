@@ -47,6 +47,14 @@ public sealed record ImageData(
     public int BitsPerComponent { get; init; } = 8;
 
     /// <summary>
+    /// Whether the ink of a four-channel picture is written the other way up — nought standing for
+    /// all of an ink rather than none of it, which is how Adobe's tools write one and how every
+    /// such file in practice is written. It is true only where the picture passes through as the
+    /// JPEG it already is: what this decodes itself comes out as a PDF means it, ink upwards.
+    /// </summary>
+    public bool InvertedInk { get; init; }
+
+    /// <summary>
     /// The commands this picture is drawn with, where it is a drawing rather than pixels. A
     /// metafile keeps its commands all the way to the PDF, which has commands of its own to write
     /// them out as.
