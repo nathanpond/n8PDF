@@ -496,6 +496,49 @@ public static class ImageWriter
             arrays: extra);
     }
 
+    /// <summary>
+    /// A TIFF holding a picture as several JPEGs, one to a strip — which is what a scanner writes
+    /// for a page too big to hold in one.
+    /// </summary>
+    public static byte[] StrippedJpegTiff(int width, int height, int rowsPerStrip, List<byte[]> strips)
+    {
+        var body = new List<byte>();
+        var offsets = new List<int>();
+        var lengths = new List<int>();
+
+        foreach (var strip in strips)
+        {
+            offsets.Add(body.Count);
+            lengths.Add(strip.Length);
+            body.AddRange(strip);
+        }
+
+        var extra = new List<byte>();
+
+        return Assemble(
+            body, strips.Count,
+            tags: (pixelsAt, arraysAt) =>
+            {
+                foreach (var offset in offsets) extra.AddRange(Number(pixelsAt + offset, 4, true));
+                foreach (var length in lengths) extra.AddRange(Number(length, 4, true));
+
+                return
+                [
+                    (256, 3, 1, width),
+                    (257, 3, 1, height),
+                    (258, 3, 1, 8),
+                    (259, 3, 1, 7),
+                    (262, 3, 1, 6),
+                    (273, 4, strips.Count, arraysAt),
+                    (277, 3, 1, 3),
+                    (278, 3, 1, rowsPerStrip),
+                    (279, 4, strips.Count, arraysAt + strips.Count * 4),
+                    (284, 3, 1, 1)
+                ];
+            },
+            arrays: extra);
+    }
+
     /// <summary>A TIFF holding a JPEG the older way: the whole file, in a tag of its own.</summary>
     public static byte[] OldJpegTiff(int width, int height, byte[] jpeg)
     {
@@ -572,32 +615,6 @@ public static class ImageWriter
         file.AddRange(Number(0, 4, little));
 
         return [.. file];
-    }
-
-    /// <summary>
-    /// The same file with a different number of rows to a strip, which is how a picture is made to
-    /// say it is divided into more of them than it is.
-    /// </summary>
-    public static byte[] WithRowsPerStrip(byte[] tiff, int rows)
-    {
-        var copy = (byte[])tiff.Clone();
-
-        var directoryAt = copy[4] | (copy[5] << 8) | (copy[6] << 16) | (copy[7] << 24);
-        var count = copy[directoryAt] | (copy[directoryAt + 1] << 8);
-
-        for (var i = 0; i < count; i++)
-        {
-            var at = directoryAt + 2 + i * 12;
-            var id = copy[at] | (copy[at + 1] << 8);
-
-            if (id != 278) continue;
-
-            copy[at + 8] = (byte)rows;
-            copy[at + 9] = (byte)(rows >> 8);
-            break;
-        }
-
-        return copy;
     }
 
     /// <summary>

@@ -196,9 +196,8 @@ public static class TiffDecoder
     /// scan itself in the strip, so that a picture in many strips need not repeat them: the file
     /// is the one without its end, then the other without its beginning.
     ///
-    /// A picture in more than one strip cannot be put back together this way — the strips are
-    /// separate JPEGs, and joining them would need both to be decoded, which is the one thing
-    /// this set out not to do.
+    /// A picture in more than one strip is the one case where a JPEG here is decoded rather than
+    /// handed on: the strips are separate files, and nothing but their pixels is common to them.
     /// </remarks>
     private static ImageData Jpeg(
         byte[] data, Reader reader, Dictionary<int, Tag> tags, int width, int height, int samples,
@@ -209,17 +208,19 @@ public static class TiffDecoder
         var wholeLength = (int)Value(reader, tags, 514, 0);
 
         if (wholeAt > 0 && wholeLength > 0 && wholeAt + wholeLength <= data.Length)
-            return Read(data[wholeAt..(wholeAt + wholeLength)]);
+            return Whole(data[wholeAt..(wholeAt + wholeLength)]);
 
         var offsets = tags.TryGetValue(tiled ? 324 : 273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
         var counts = tags.TryGetValue(tiled ? 325 : 279, out var countTag) ? Numbers(reader, countTag) : [];
 
         if (offsets.Count == 0) throw new ImageFormatException("TIFF says where none of its pixels are.");
 
+        // A picture in more than one piece has to be decoded to be joined: the pieces are
+        // separate files, and nothing but pixels is common to them.
         if (offsets.Count > 1 || (!tiled && rowsPerStrip < height))
         {
-            throw new ImageFormatException(
-                "TIFF holds a JPEG divided into several strips, which would have to be decoded to be joined.");
+            return Join(
+                data, reader, tags, offsets, counts, width, height, tiled, rowsPerStrip, Rebuild);
         }
 
         var offset = (int)offsets[0];
@@ -228,31 +229,98 @@ public static class TiffDecoder
 
         if (offset <= 0 || length <= 0) throw new ImageFormatException("TIFF holds an empty JPEG.");
 
-        var scan = data[offset..(offset + length)];
+        return Whole(Rebuild(data[offset..(offset + length)]));
 
-        // The tables the strips share, where there are any: the file is those without their end,
-        // then the scan without its beginning.
-        if (tags.TryGetValue(347, out var tablesTag) && tablesTag.Count > 2)
-        {
-            var tables = Bytes(data, reader, tablesTag);
-
-            if (tables.Length > 2 && EndsWithMarker(tables, 0xd9) && scan.Length > 2 && StartsWithMarker(scan, 0xd8))
-                return Read([.. tables[..^2], .. scan[2..]]);
-        }
-
-        return Read(scan);
-
-        ImageData Read(byte[] jpeg)
+        // A JPEG whole, which a PDF carries as the file it already is.
+        static ImageData Whole(byte[] jpeg)
         {
             var image = ImageReader.TryRead(jpeg);
 
             if (image is null || image.Encoding != ImageEncoding.Jpeg)
                 throw new ImageFormatException("TIFF holds something that is not a JPEG after all.");
 
-            // The TIFF's own idea of the size is the one its tags declare, and the JPEG's own
-            // agrees in every file worth reading.
             return image;
         }
+
+        // A strip is not a whole file where the tables every strip shares are kept apart from it:
+        // the file is those without their end, then the strip without its beginning.
+        byte[] Rebuild(byte[] scan)
+        {
+            if (!tags.TryGetValue(347, out var tablesTag) || tablesTag.Count <= 2) return scan;
+
+            var tables = Bytes(data, reader, tablesTag);
+
+            return tables.Length > 2 && EndsWithMarker(tables, 0xd9) &&
+                   scan.Length > 2 && StartsWithMarker(scan, 0xd8)
+                ? [.. tables[..^2], .. scan[2..]]
+                : scan;
+        }
+    }
+
+    /// <summary>
+    /// Joins a picture written as several JPEGs, one to a strip or to a tile.
+    /// </summary>
+    /// <remarks>
+    /// This is the one place a JPEG is decoded rather than handed on as it stands. There is no
+    /// choice about it: the pieces are separate files with nothing in common but the picture they
+    /// are parts of, and a PDF has no way to be given several of them as one image.
+    /// </remarks>
+    private static ImageData Join(
+        byte[] data, Reader reader, Dictionary<int, Tag> tags, List<long> offsets, List<long> counts,
+        int width, int height, bool tiled, int rowsPerStrip, Func<byte[], byte[]> rebuild)
+    {
+        var tileWidth = tiled ? (int)Value(reader, tags, 322, 0) : width;
+        var tileHeight = tiled ? (int)Value(reader, tags, 323, 0) : rowsPerStrip;
+
+        if (tileWidth <= 0 || tileHeight <= 0)
+            throw new ImageFormatException("TIFF holds a JPEG in pieces of no size.");
+
+        var across = tiled ? (width + tileWidth - 1) / tileWidth : 1;
+
+        byte[]? pixels = null;
+        var components = 3;
+        var colour = ImageColorSpace.Rgb;
+
+        for (var piece = 0; piece < offsets.Count; piece++)
+        {
+            var offset = (int)offsets[piece];
+            if (offset < 0 || offset >= data.Length) continue;
+
+            var length = Math.Min(
+                piece < counts.Count ? (int)counts[piece] : data.Length - offset, data.Length - offset);
+
+            if (length <= 0) continue;
+
+            var part = JpegDecoder.Decode(rebuild(data[offset..(offset + length)]));
+
+            if (pixels is null)
+            {
+                components = part.ComponentCount;
+                colour = part.ColorSpace;
+                pixels = new byte[width * height * components];
+            }
+
+            if (part.ComponentCount != components)
+                throw new ImageFormatException("The pieces of the TIFF's JPEG are not alike.");
+
+            var left = tiled ? piece % across * tileWidth : 0;
+            var top = tiled ? piece / across * tileHeight : piece * rowsPerStrip;
+
+            for (var y = 0; y < part.Height && top + y < height; y++)
+            {
+                var columns = Math.Min(part.Width, width - left);
+                if (columns <= 0) break;
+
+                Array.Copy(
+                    part.Data, y * part.Width * components,
+                    pixels, ((top + y) * width + left) * components,
+                    columns * components);
+            }
+        }
+
+        if (pixels is null) throw new ImageFormatException("TIFF holds a JPEG this could not read.");
+
+        return new ImageData(width, height, pixels, ImageEncoding.Raw, colour);
     }
 
     private static bool StartsWithMarker(byte[] data, byte marker) =>

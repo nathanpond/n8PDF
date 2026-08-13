@@ -379,13 +379,24 @@ strips need not repeat them, which makes the file the tables without their end f
 without its beginning. What comes out is handed to `sips` to read, because a file put back together
 wrongly still parses as far as its header: reading its size back would prove nothing.
 
-A picture divided into several JPEGs is reported rather than half-read. The strips are separate
-files and joining them would mean decoding them, which is the one thing this set out not to do.
-The older way is also the only thing here with no second opinion behind it: `sips` will not read a
-file written that way at all, so what is tested is that the JPEG comes back, and no more than that.
+A picture divided into several JPEGs, one to a strip, is the one case that has to be decoded: the
+strips are separate files with nothing in common but the picture they are parts of, and a PDF has
+no way to be handed several of them as one image. So there is a baseline JPEG decoder here after
+all, used for that alone — a JPEG holds not the picture but a description of it, each block of
+eight by eight pixels written as how much of each of sixty-four waves it is made of, and reading
+one is that in reverse. Two decoders never agree to the sample, since they round the same sums
+differently, but ours and the one macOS uses agree to within six levels of 255 on the same file,
+and a strip put in the wrong place would be out by far more than that. Progressive JPEGs, arithmetic
+coding and four-channel files are reported rather than half-read.
 
-Not yet: nothing of what a document usually holds. What is left is a TIFF whose JPEG is divided
-into several strips, which would have to be decoded to be joined., splitting a note across pages, restarting note numbering per page or per section, notes
+The older way of holding a JPEG is the only thing here with no second opinion behind it: `sips`
+will not read a file written that way at all, so what is tested is that the JPEG comes back, and no
+more than that.
+
+Not yet: for pictures, nothing a document holds and nothing this has found worth naming. What is
+left of these formats is the parts written for machines that no longer exist — progressive and
+arithmetic-coded JPEGs, the four-channel files a printing press wants, and EMF+ preferred over the
+records Word itself draws, which is explained above., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

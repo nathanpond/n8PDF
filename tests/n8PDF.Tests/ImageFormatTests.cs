@@ -408,6 +408,193 @@ public class ImageFormatTests(ITestOutputHelper output)
         Assert.Equal(0, Difference(pixels, theirs));
     }
 
+    /// <summary>
+    /// The one place a JPEG is decoded rather than handed on. Everywhere else a PDF is given the
+    /// file as it stands, but a picture written as several JPEGs cannot be: they are separate
+    /// files, and the only way to make one picture of them is to decode each.
+    /// </summary>
+    [Fact]
+    public void A_tiff_holding_a_jpeg_in_several_strips_joins_them()
+    {
+        const int width = 32;
+        const int height = 24;
+        const int rows = 8;
+
+        var pixels = ImageWriter.Pixels(width, height,
+            (x, y) => ((byte)(x * 7), (byte)(y * 9), (byte)((x + y) * 3)));
+
+        if (Strips(pixels, width, height, rows) is not { } strips)
+        {
+            _output.WriteLine("sips did not make the strips; nothing to join.");
+            return;
+        }
+
+        var image = ImageReader.Read(ImageWriter.StrippedJpegTiff(width, height, rows, strips));
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+
+        // Decoded rather than handed on, since there is no other way to join them.
+        Assert.Equal(ImageEncoding.Raw, image.Encoding);
+        Assert.Equal(ImageColorSpace.Rgb, image.ColorSpace);
+
+        // The picture it holds, to within what the encoding itself costs. A strip put in the wrong
+        // place would be out by far more than that.
+        var worst = 0;
+        for (var i = 0; i < pixels.Length; i++) worst = Math.Max(worst, Math.Abs(pixels[i] - image.Data[i]));
+
+        _output.WriteLine($"{strips.Count} strips joined, {worst} from the picture they were made of");
+
+        Assert.True(worst < 30, $"the joined picture is {worst} away from the one that went in");
+    }
+
+    /// <summary>The bands of a picture, each made into a JPEG of its own by another program.</summary>
+    private static List<byte[]>? Strips(byte[] pixels, int width, int height, int rows)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        Directory.CreateDirectory(directory);
+
+        var strips = new List<byte[]>();
+
+        for (var band = 0; band < height / rows; band++)
+        {
+            var slice = new byte[width * rows * 3];
+            Array.Copy(pixels, band * rows * width * 3, slice, 0, slice.Length);
+
+            var png = Path.Combine(directory, $"band-{band}.png");
+            File.WriteAllBytes(png, PngWriter.Write(width, rows, slice, hasAlpha: false));
+
+            var jpeg = Path.Combine(directory, $"band-{band}.jpg");
+            File.Delete(jpeg);
+
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo("sips",
+                    ["-s", "format", "jpeg", png, "--out", jpeg])
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                process?.WaitForExit(30_000);
+            }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+            {
+                return null;
+            }
+
+            if (!File.Exists(jpeg)) return null;
+
+            strips.Add(File.ReadAllBytes(jpeg));
+        }
+
+        return strips;
+    }
+
+    /// <summary>
+    /// The decoder behind that, on its own and against the one macOS uses. Two decoders never
+    /// agree to the sample — they round the same sums differently — but they agree to a few levels
+    /// of 255, and anything read wrongly is out by far more.
+    /// </summary>
+    [Theory]
+    [InlineData(40, 24)]
+    [InlineData(17, 9)]
+    [InlineData(8, 8)]
+    public void A_jpeg_decodes_to_what_another_decoder_makes_of_it(int width, int height)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+        Directory.CreateDirectory(directory);
+
+        var pixels = ImageWriter.Pixels(width, height,
+            (x, y) => ((byte)(x * 6), (byte)(y * 9), (byte)((x + y) * 4)));
+
+        var png = Path.Combine(directory, "decode-source.png");
+        File.WriteAllBytes(png, PngWriter.Write(width, height, pixels, hasAlpha: false));
+
+        var jpeg = Path.Combine(directory, "decode-source.jpg");
+        var back = Path.Combine(directory, "decode-back.png");
+        File.Delete(jpeg);
+        File.Delete(back);
+
+        try
+        {
+            using (var toJpeg = Process.Start(new ProcessStartInfo("sips",
+                       ["-s", "format", "jpeg", png, "--out", jpeg])
+                   { RedirectStandardOutput = true, RedirectStandardError = true }))
+            {
+                toJpeg?.WaitForExit(30_000);
+            }
+
+            if (!File.Exists(jpeg))
+            {
+                _output.WriteLine("sips did not make a JPEG; nothing to decode.");
+                return;
+            }
+
+            using var toPng = Process.Start(new ProcessStartInfo("sips",
+                ["-s", "format", "png", jpeg, "--out", back])
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+
+            toPng?.WaitForExit(30_000);
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+        {
+            _output.WriteLine("sips was not found; the JPEG was not decoded by anything else.");
+            return;
+        }
+
+        if (!File.Exists(back))
+        {
+            _output.WriteLine("sips did not decode its own JPEG.");
+            return;
+        }
+
+        var theirs = PngDecoder.Decode(File.ReadAllBytes(back));
+        var ours = JpegDecoder.Decode(File.ReadAllBytes(jpeg));
+
+        Assert.Equal(theirs.Width, ours.Width);
+        Assert.Equal(theirs.Height, ours.Height);
+
+        var worst = 0;
+        var total = 0.0;
+
+        for (var i = 0; i < Math.Min(ours.Data.Length, theirs.Data.Length); i++)
+        {
+            var difference = Math.Abs(ours.Data[i] - theirs.Data[i]);
+
+            worst = Math.Max(worst, difference);
+            total += difference;
+        }
+
+        _output.WriteLine(
+            $"{width}x{height}: worst {worst}, mean {total / Math.Max(1, ours.Data.Length):0.##}");
+
+        Assert.True(worst <= 12, $"the two decoders differ by {worst}");
+    }
+
+    /// <summary>
+    /// The kinds of JPEG this does not decode are reported rather than half-read. A progressive
+    /// one is written as several passes over the whole picture rather than block by block, and a
+    /// reader that took its first pass for the picture would show a blurred one.
+    /// </summary>
+    [Fact]
+    public void A_jpeg_this_cannot_decode_is_reported()
+    {
+        // A header that says the picture is written progressively, and nothing more.
+        byte[] progressive =
+        [
+            0xff, 0xd8,
+            0xff, 0xc2, 0x00, 0x11, 0x08, 0x00, 0x10, 0x00, 0x10, 0x03,
+            0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
+            0xff, 0xd9
+        ];
+
+        Assert.Throws<ImageFormatException>(() => JpegDecoder.Decode(progressive));
+    }
+
     // ----- sixteen bits a sample -----
 
     /// <summary>
@@ -771,26 +958,6 @@ public class ImageFormatTests(ITestOutputHelper output)
 
         Assert.Equal(ImageEncoding.Jpeg, image.Encoding);
         Assert.Equal(jpeg.Length, image.Data.Length);
-    }
-
-    /// <summary>
-    /// A picture divided into several JPEGs is reported rather than half-read: the strips are
-    /// separate files, and joining them would mean decoding them.
-    /// </summary>
-    [Fact]
-    public void A_jpeg_in_several_strips_is_reported()
-    {
-        if (Jpeg(32, 24) is not { } jpeg)
-        {
-            _output.WriteLine("sips did not make a JPEG; nothing to put inside a TIFF.");
-            return;
-        }
-
-        // The same file, but the tags say it is only the first eight rows of a taller picture.
-        var tiff = ImageWriter.JpegTiff(32, 24, jpeg);
-        var altered = ImageWriter.WithRowsPerStrip(tiff, 8);
-
-        Assert.Null(ImageReader.TryRead(altered));
     }
 
     // ----- the fax encodings -----
