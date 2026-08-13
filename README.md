@@ -386,17 +386,27 @@ all, used for that alone — a JPEG holds not the picture but a description of i
 eight by eight pixels written as how much of each of sixty-four waves it is made of, and reading
 one is that in reverse. Two decoders never agree to the sample, since they round the same sums
 differently, but ours and the one macOS uses agree to within six levels of 255 on the same file,
-and a strip put in the wrong place would be out by far more than that. Progressive JPEGs, arithmetic
-coding and four-channel files are reported rather than half-read.
+and a strip put in the wrong place would be out by far more than that.
+
+A JPEG's numbers may be written all at once or a little at a time, and both are read. A sequential
+file gives every wave of a block before moving to the next; a progressive one gives the coarsest
+waves of the whole picture first and returns for the rest, and may send the high bits of a number
+in one pass and its low bits in another — so the numbers are gathered and turned into pixels only
+once the last pass has been read. A progressive file is where a JPEG is most easily read *nearly*
+right: a pass misread leaves a picture that is still a picture, only softer or blockier than it
+should be. So these are tested against real ones rather than any this could write — macOS ships
+several, written by encoders that had no idea this existed — and read against its decoder they
+agree to three levels of 255, mean under a tenth, at sizes up to 2048 square. Arithmetic coding and
+four-channel files are reported rather than half-read.
 
 The older way of holding a JPEG is the only thing here with no second opinion behind it: `sips`
 will not read a file written that way at all, so what is tested is that the JPEG comes back, and no
 more than that.
 
-Not yet: for pictures, nothing a document holds and nothing this has found worth naming. What is
-left of these formats is the parts written for machines that no longer exist — progressive and
-arithmetic-coded JPEGs, the four-channel files a printing press wants, and EMF+ preferred over the
-records Word itself draws, which is explained above., splitting a note across pages, restarting note numbering per page or per section, notes
+Not yet: for pictures, nothing a document holds. What is left of these formats is arithmetic-coded
+JPEGs, which almost nothing has ever written, and the four-channel files a printing press wants —
+and the one judgement call above, where a metafile carrying both kinds of records is drawn from the
+older ones., splitting a note across pages, restarting note numbering per page or per section, notes
 positioned beneath the text rather than at the foot of the page, endnotes gathered at the end of
 each section rather than of the document, RTL and complex
 scripts, balancing the columns of a section's last page, footnotes under the column that refers to

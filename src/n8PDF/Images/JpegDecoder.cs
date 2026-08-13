@@ -1,7 +1,7 @@
 namespace n8PDF.Images;
 
 /// <summary>
-/// Decodes a baseline JPEG into samples.
+/// Decodes a JPEG into samples.
 /// </summary>
 /// <remarks>
 /// A JPEG normally passes through this converter untouched, because a PDF carries one as the file
@@ -11,24 +11,22 @@ namespace n8PDF.Images;
 /// them one above another.
 ///
 /// What a JPEG holds is not the picture but a description of it: each block of eight by eight
-/// pixels is written as how much of each of sixty-four waves it is made of, the finer waves
-/// divided by larger numbers before rounding so that what is lost is what the eye minds least.
-/// Reading one is therefore that in reverse — unpack the numbers, multiply them back up, turn the
-/// waves into pixels — with the colours kept apart from the brightness and often at half the
-/// detail, since the eye minds that less as well.
+/// pixels is written as how much of each of sixty-four waves it is made of, the finer waves divided
+/// by larger numbers before rounding so that what is lost is what the eye minds least. Reading one
+/// is therefore that in reverse — unpack the numbers, multiply them back up, turn the waves into
+/// pixels — with the colours kept apart from the brightness and often at half the detail, since the
+/// eye minds that less as well.
 ///
-/// Baseline only: the sequential encoding every camera and scanner writes. Progressive JPEGs, the
-/// arithmetic coding almost nothing uses, and the four-channel files a printer makes are not
-/// handled, and are reported rather than half-read.
+/// The numbers may be written all at once or a little at a time. A sequential file gives every wave
+/// of a block before moving to the next; a progressive one gives the coarsest waves of the whole
+/// picture first and returns for the rest, so that something recognisable appears before all of it
+/// has arrived — and may even send the high bits of a number in one pass and its low bits in
+/// another. So the numbers are gathered first and turned into pixels only when the last pass has
+/// been read, which is the one structural difference between the two.
 /// </remarks>
 internal static class JpegDecoder
 {
-    public static ImageData Decode(byte[] data)
-    {
-        var jpeg = new Reader(data);
-
-        return jpeg.Run();
-    }
+    public static ImageData Decode(byte[] data) => new Reader(data).Run();
 
     private sealed class Component
     {
@@ -39,15 +37,24 @@ internal static class JpegDecoder
         public int DcTable;
         public int AcTable;
 
-        /// <summary>The samples of this channel, at whatever detail it was written in.</summary>
-        public byte[] Samples = [];
+        /// <summary>The blocks of this channel across the whole picture, as they were written.</summary>
+        public int[] Coefficients = [];
 
+        public int BlocksPerLine;
+        public int BlocksPerColumn;
+
+        /// <summary>How many blocks hold picture rather than the padding out to whole blocks.</summary>
+        public int RealBlocksPerLine;
+
+        public int RealBlocksPerColumn;
+
+        public int Predictor;
+
+        public byte[] Samples = [];
         public int Width;
         public int Height;
-        public int Predictor;
     }
 
-    /// <summary>A Huffman table, as the codes of each length and what each stands for.</summary>
     private sealed class HuffmanTable
     {
         private readonly int[] _minimum = new int[17];
@@ -76,7 +83,7 @@ internal static class JpegDecoder
         }
 
         /// <summary>Reads one code, a bit at a time until it is one this table knows.</summary>
-        public int Read(ref BitReader bits)
+        public int Read(BitReader bits)
         {
             var code = 0;
 
@@ -98,13 +105,20 @@ internal static class JpegDecoder
     private sealed class Reader(byte[] data)
     {
         private readonly List<Component> _components = [];
-        private readonly int[][] _quantization = new int[4][];
+        private readonly int[]?[] _quantization = new int[4][];
         private readonly HuffmanTable?[] _dc = new HuffmanTable?[4];
         private readonly HuffmanTable?[] _ac = new HuffmanTable?[4];
 
         private int _width;
         private int _height;
         private int _restartInterval;
+        private bool _progressive;
+        private int _mcusAcross;
+        private int _mcusDown;
+
+        // What a scan carries over from one block to the next: how many blocks are known to be
+        // nothing but what has already been sent.
+        private int _endOfBandRun;
 
         public ImageData Run()
         {
@@ -124,10 +138,8 @@ internal static class JpegDecoder
                 var marker = data[at + 1];
                 at += 2;
 
-                // The markers that stand alone carry nothing after them.
                 if (marker is 0xd8 or 0x01 || marker is >= 0xd0 and <= 0xd7) continue;
                 if (marker == 0xd9) break;
-
                 if (at + 1 >= data.Length) break;
 
                 var length = (data[at] << 8) | data[at + 1];
@@ -146,11 +158,12 @@ internal static class JpegDecoder
 
                     case 0xc0:
                     case 0xc1:
-                        ReadFrame(body, end);
+                        ReadFrame(body, end, progressive: false);
                         break;
 
                     case 0xc2:
-                        throw new ImageFormatException("Progressive JPEGs are not handled.");
+                        ReadFrame(body, end, progressive: true);
+                        break;
 
                     case 0xc3:
                     case 0xc5:
@@ -216,17 +229,19 @@ internal static class JpegDecoder
                 var values = data[at..Math.Min(data.Length, at + total)];
                 at += total;
 
-                var table = new HuffmanTable(counts, values);
-
                 if (id >= 4) continue;
+
+                var table = new HuffmanTable(counts, values);
 
                 if (kind == 0) _dc[id] = table;
                 else _ac[id] = table;
             }
         }
 
-        private void ReadFrame(int at, int end)
+        private void ReadFrame(int at, int end, bool progressive)
         {
+            _progressive = progressive;
+
             _height = (data[at + 1] << 8) | data[at + 2];
             _width = (data[at + 3] << 8) | data[at + 4];
 
@@ -250,13 +265,40 @@ internal static class JpegDecoder
 
             if (_components.Count is not (1 or 3))
                 throw new ImageFormatException($"A JPEG of {_components.Count} channels is not handled.");
+
+            var maxH = _components.Max(c => c.HorizontalSampling);
+            var maxV = _components.Max(c => c.VerticalSampling);
+
+            _mcusAcross = (_width + maxH * 8 - 1) / (maxH * 8);
+            _mcusDown = (_height + maxV * 8 - 1) / (maxV * 8);
+
+            foreach (var component in _components)
+            {
+                component.BlocksPerLine = _mcusAcross * component.HorizontalSampling;
+                component.BlocksPerColumn = _mcusDown * component.VerticalSampling;
+
+                // A scan of one channel walks the blocks the picture really has rather than the
+                // ones it was padded out to, and the two differ wherever the picture does not
+                // divide evenly.
+                var channelWidth = (_width * component.HorizontalSampling + maxH - 1) / maxH;
+                var channelHeight = (_height * component.VerticalSampling + maxV - 1) / maxV;
+
+                component.RealBlocksPerLine = (channelWidth + 7) / 8;
+                component.RealBlocksPerColumn = (channelHeight + 7) / 8;
+
+                component.Width = component.BlocksPerLine * 8;
+                component.Height = component.BlocksPerColumn * 8;
+                component.Coefficients = new int[component.BlocksPerLine * component.BlocksPerColumn * 64];
+            }
         }
 
-        /// <summary>Reads the scan, which is the picture itself.</summary>
+        /// <summary>Reads one scan, which may be all of the picture or one pass over part of it.</summary>
         private int ReadScan(int at, int end)
         {
             var count = data[at];
             at++;
+
+            var scan = new List<Component>();
 
             for (var i = 0; i < count && at + 1 < end; i++, at += 2)
             {
@@ -265,121 +307,296 @@ internal static class JpegDecoder
 
                 component.DcTable = data[at + 1] >> 4;
                 component.AcTable = data[at + 1] & 0x0f;
+
+                scan.Add(component);
             }
 
-            // Three bytes of spectral selection, which a baseline scan does not use.
-            at = end;
+            // Which of the sixty-four waves this pass carries, and which bits of them.
+            var from = at < end ? data[at] : 0;
+            var to = at + 1 < end ? data[at + 1] : 63;
+            var previous = at + 2 < end ? data[at + 2] >> 4 : 0;
+            var point = at + 2 < end ? data[at + 2] & 0x0f : 0;
 
-            var maxH = _components.Max(c => c.HorizontalSampling);
-            var maxV = _components.Max(c => c.VerticalSampling);
-
-            var mcusAcross = (_width + maxH * 8 - 1) / (maxH * 8);
-            var mcusDown = (_height + maxV * 8 - 1) / (maxV * 8);
-
-            foreach (var component in _components)
+            if (!_progressive)
             {
-                component.Width = mcusAcross * component.HorizontalSampling * 8;
-                component.Height = mcusDown * component.VerticalSampling * 8;
-                component.Samples = new byte[component.Width * component.Height];
-                component.Predictor = 0;
+                from = 0;
+                to = 63;
+                previous = 0;
+                point = 0;
             }
 
-            var bits = new BitReader(data, at);
-            var block = new int[64];
-            var pixels = new byte[64];
+            var bits = new BitReader(data, end);
+
+            foreach (var component in scan) component.Predictor = 0;
+            _endOfBandRun = 0;
 
             var untilRestart = _restartInterval;
 
-            for (var mcuY = 0; mcuY < mcusDown; mcuY++)
-            for (var mcuX = 0; mcuX < mcusAcross; mcuX++)
+            void Restart()
             {
-                // A scan may be broken into runs that can each be read on their own, so that a
-                // fault in one does not carry into the rest.
-                if (_restartInterval > 0 && untilRestart == 0)
+                if (_restartInterval <= 0 || untilRestart > 0) return;
+
+                bits.Restart();
+
+                foreach (var component in scan) component.Predictor = 0;
+
+                _endOfBandRun = 0;
+                untilRestart = _restartInterval;
+            }
+
+            if (scan.Count == 1)
+            {
+                // One channel at a time: its own blocks, in reading order, and no padding.
+                var component = scan[0];
+
+                for (var row = 0; row < component.RealBlocksPerColumn; row++)
+                for (var column = 0; column < component.RealBlocksPerLine; column++)
                 {
-                    bits.Restart();
+                    Restart();
 
-                    foreach (var component in _components) component.Predictor = 0;
+                    ReadBlock(bits, component, (row * component.BlocksPerLine + column) * 64,
+                        from, to, previous, point);
 
-                    untilRestart = _restartInterval;
+                    untilRestart--;
                 }
-
-                foreach (var component in _components)
+            }
+            else
+            {
+                for (var mcuY = 0; mcuY < _mcusDown; mcuY++)
+                for (var mcuX = 0; mcuX < _mcusAcross; mcuX++)
                 {
-                    for (var v = 0; v < component.VerticalSampling; v++)
-                    for (var h = 0; h < component.HorizontalSampling; h++)
+                    Restart();
+
+                    foreach (var component in scan)
                     {
-                        ReadBlock(ref bits, component, block);
-                        Idct(block, pixels);
-
-                        var x = (mcuX * component.HorizontalSampling + h) * 8;
-                        var y = (mcuY * component.VerticalSampling + v) * 8;
-
-                        for (var row = 0; row < 8; row++)
+                        for (var v = 0; v < component.VerticalSampling; v++)
+                        for (var h = 0; h < component.HorizontalSampling; h++)
                         {
-                            var target = (y + row) * component.Width + x;
-                            if (target + 8 > component.Samples.Length) break;
+                            var row = mcuY * component.VerticalSampling + v;
+                            var column = mcuX * component.HorizontalSampling + h;
 
-                            Array.Copy(pixels, row * 8, component.Samples, target, 8);
+                            ReadBlock(bits, component, (row * component.BlocksPerLine + column) * 64,
+                                from, to, previous, point);
                         }
                     }
-                }
 
-                untilRestart--;
+                    untilRestart--;
+                }
             }
 
             return bits.Position;
         }
 
         /// <summary>
-        /// One block: a difference from the block before for the flat part of it, then runs of
-        /// nothing and the waves between them, in the order that puts the coarsest first.
+        /// One block of one pass. A sequential file gives the whole of it at once; a progressive
+        /// one gives the flat part and the waves in separate passes, and may give the high bits of
+        /// a number before its low ones.
         /// </summary>
-        private void ReadBlock(ref BitReader bits, Component component, int[] block)
+        private void ReadBlock(
+            BitReader bits, Component component, int block, int from, int to, int previous, int point)
         {
-            Array.Clear(block);
+            var coefficients = component.Coefficients;
+            if (block + 63 >= coefficients.Length) return;
 
-            var quantization = _quantization[component.QuantizationTable & 3] ?? Default;
+            if (from == 0)
+            {
+                if (previous == 0) ReadDc(bits, component, coefficients, block, point);
+                else if (bits.Bit() == 1) coefficients[block] |= 1 << point;
 
-            var dc = _dc[component.DcTable & 3];
-            var ac = _ac[component.AcTable & 3];
+                if (!_progressive) ReadAc(bits, component, coefficients, block, 1, 63, 0);
 
-            if (dc is null || ac is null) throw new ImageFormatException("JPEG scan names a table it has not.");
+                return;
+            }
 
-            var category = dc.Read(ref bits);
+            if (previous == 0) ReadAc(bits, component, coefficients, block, from, to, point);
+            else RefineAc(bits, component, coefficients, block, from, to, point);
+        }
+
+        /// <summary>The flat part of a block, written as the difference from the block before it.</summary>
+        private void ReadDc(BitReader bits, Component component, int[] coefficients, int block, int point)
+        {
+            var table = _dc[component.DcTable & 3] ??
+                        throw new ImageFormatException("JPEG scan names a table it has not.");
+
+            var category = table.Read(bits);
             var difference = category == 0 ? 0 : Extend(bits.Read(category), category);
 
             component.Predictor += difference;
-            block[0] = component.Predictor * quantization[0];
+            coefficients[block] = component.Predictor << point;
+        }
 
-            for (var i = 1; i < 64;)
+        /// <summary>
+        /// The waves of a block: runs of nothing and the numbers between them, ending where the
+        /// rest of the block is nothing at all.
+        /// </summary>
+        private void ReadAc(
+            BitReader bits, Component component, int[] coefficients, int block, int from, int to, int point)
+        {
+            if (_endOfBandRun > 0)
             {
-                var symbol = ac.Read(ref bits);
+                _endOfBandRun--;
+                return;
+            }
+
+            var table = _ac[component.AcTable & 3] ??
+                        throw new ImageFormatException("JPEG scan names a table it has not.");
+
+            for (var k = from; k <= to;)
+            {
+                var symbol = table.Read(bits);
                 var run = symbol >> 4;
                 var size = symbol & 0x0f;
 
                 if (size == 0)
                 {
-                    // Sixteen of nothing, or nothing at all to the end of the block.
-                    if (run != 15) break;
+                    if (run < 15)
+                    {
+                        // The rest of this block, and of as many after it as the run says, is
+                        // nothing more than has already been sent.
+                        _endOfBandRun = (1 << run) - 1;
 
-                    i += 16;
+                        if (run > 0) _endOfBandRun += bits.Read(run);
+
+                        break;
+                    }
+
+                    k += 16;
                     continue;
                 }
 
-                i += run;
-                if (i > 63) break;
+                k += run;
+                if (k > to) break;
 
-                block[Zigzag[i]] = Extend(bits.Read(size), size) * quantization[i];
-                i++;
+                coefficients[block + Zigzag[k]] = Extend(bits.Read(size), size) << point;
+                k++;
             }
         }
 
+        /// <summary>
+        /// A pass that adds a bit to numbers already sent. Every number the block already has gets
+        /// one bit of correction, and the runs count only the places that are still nothing — which
+        /// is what makes this the fiddliest reading in the format.
+        /// </summary>
+        private void RefineAc(
+            BitReader bits, Component component, int[] coefficients, int block, int from, int to, int point)
+        {
+            var table = _ac[component.AcTable & 3] ??
+                        throw new ImageFormatException("JPEG scan names a table it has not.");
+
+            var step = 1 << point;
+            var k = from;
+
+            if (_endOfBandRun <= 0)
+            {
+                while (k <= to)
+                {
+                    var symbol = table.Read(bits);
+                    var run = symbol >> 4;
+                    var size = symbol & 0x0f;
+                    var value = 0;
+
+                    if (size == 0)
+                    {
+                        if (run < 15)
+                        {
+                            _endOfBandRun = (1 << run) - 1;
+
+                            if (run > 0) _endOfBandRun += bits.Read(run);
+
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // A number arriving now can only be one step either side of nothing.
+                        value = bits.Bit() == 1 ? step : -step;
+                    }
+
+                    while (k <= to)
+                    {
+                        var at = block + Zigzag[k];
+
+                        if (coefficients[at] != 0)
+                        {
+                            // A number already there is corrected rather than replaced.
+                            if (bits.Bit() == 1 && (coefficients[at] & step) == 0)
+                                coefficients[at] += coefficients[at] >= 0 ? step : -step;
+                        }
+                        else
+                        {
+                            if (run == 0)
+                            {
+                                if (value != 0) coefficients[at] = value;
+
+                                k++;
+                                break;
+                            }
+
+                            run--;
+                        }
+
+                        k++;
+                    }
+                }
+            }
+
+            if (_endOfBandRun <= 0) return;
+
+            // Even a block with nothing new in it has its numbers corrected.
+            while (k <= to)
+            {
+                var at = block + Zigzag[k];
+
+                if (coefficients[at] != 0 && bits.Bit() == 1 && (coefficients[at] & step) == 0)
+                    coefficients[at] += coefficients[at] >= 0 ? step : -step;
+
+                k++;
+            }
+
+            _endOfBandRun--;
+        }
+
+        /// <summary>
+        /// Turns the numbers into pixels, once every pass over them has been read.
+        /// </summary>
         private ImageData Finish()
         {
-            if (_components.Count == 0 || _components[0].Samples.Length == 0)
+            if (_components.Count == 0 || _components[0].Coefficients.Length == 0)
                 throw new ImageFormatException("JPEG holds no scan.");
 
+            var block = new int[64];
+            var pixels = new byte[64];
+
+            foreach (var component in _components)
+            {
+                var quantization = _quantization[component.QuantizationTable & 3] ?? Flat;
+                component.Samples = new byte[component.Width * component.Height];
+
+                for (var row = 0; row < component.BlocksPerColumn; row++)
+                for (var column = 0; column < component.BlocksPerLine; column++)
+                {
+                    var at = (row * component.BlocksPerLine + column) * 64;
+
+                    for (var i = 0; i < 64; i++)
+                        block[Zigzag[i]] = component.Coefficients[at + Zigzag[i]] * quantization[i];
+
+                    Idct(block, pixels);
+
+                    for (var y = 0; y < 8; y++)
+                    {
+                        var target = (row * 8 + y) * component.Width + column * 8;
+                        if (target + 8 > component.Samples.Length) break;
+
+                        Array.Copy(pixels, y * 8, component.Samples, target, 8);
+                    }
+                }
+            }
+
+            return Combine();
+        }
+
+        private ImageData Combine()
+        {
             var grey = _components.Count == 1;
             var pixels = new byte[_width * _height * (grey ? 1 : 3)];
 
@@ -412,7 +629,6 @@ internal static class JpegDecoder
                 grey ? ImageColorSpace.Gray : ImageColorSpace.Rgb);
         }
 
-        /// <summary>The sample of a channel that a pixel of the picture falls into.</summary>
         private static byte At(Component component, int x, int y, int maxH, int maxV)
         {
             var sx = x * component.HorizontalSampling / maxH;
@@ -432,7 +648,7 @@ internal static class JpegDecoder
         private static int Extend(int value, int size) =>
             size == 0 ? 0 : value < 1 << (size - 1) ? value - (1 << size) + 1 : value;
 
-        private static readonly int[] Default = Enumerable.Repeat(1, 64).ToArray();
+        private static readonly int[] Flat = [.. Enumerable.Repeat(1, 64)];
     }
 
     /// <summary>
@@ -499,13 +715,13 @@ internal static class JpegDecoder
     /// Reads the bits of a scan, biggest first, stepping over the way a scan writes a byte that
     /// would otherwise look like a marker.
     /// </summary>
-    private ref struct BitReader(byte[] data, int at)
+    private sealed class BitReader(byte[] data, int at)
     {
         private int _at = at;
         private int _bits;
         private int _count;
 
-        public readonly int Position => _at;
+        public int Position => _at;
 
         public int Bit()
         {
@@ -513,19 +729,22 @@ internal static class JpegDecoder
             {
                 if (_at >= data.Length) return 0;
 
-                var value = data[_at++];
+                var value = data[_at];
 
-                // A 0xff inside a scan is written with a nought after it, so that it cannot be
-                // mistaken for a marker; the nought is not part of the picture.
+                // A marker ends the scan: a reader that ran on into one would read the next scan's
+                // header as though it were picture.
                 if (value == 0xff)
                 {
-                    if (_at < data.Length && data[_at] == 0x00) _at++;
-                    else if (_at < data.Length && data[_at] >= 0xd0 && data[_at] <= 0xd7)
-                    {
-                        // A restart marker, which the reader steps over when it is told to.
-                    }
+                    var next = _at + 1 < data.Length ? data[_at + 1] : 0;
+
+                    if (next != 0x00) return 0;
+
+                    // A 0xff inside a scan is written with a nought after it, which is not part of
+                    // the picture.
+                    _at++;
                 }
 
+                _at++;
                 _bits = value;
                 _count = 8;
             }

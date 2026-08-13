@@ -576,23 +576,175 @@ public class ImageFormatTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The kinds of JPEG this does not decode are reported rather than half-read. A progressive
-    /// one is written as several passes over the whole picture rather than block by block, and a
-    /// reader that took its first pass for the picture would show a blurred one.
+    /// A progressive JPEG is written as several passes over the whole picture rather than block by
+    /// block: the coarsest waves of all of it first, then the rest, and a number's high bits may
+    /// arrive in one pass and its low bits in another. So the numbers are gathered and turned into
+    /// pixels only at the end.
     /// </summary>
+    /// <remarks>
+    /// These are read against real ones rather than any this could write. A progressive file is
+    /// where a JPEG is most easily read nearly right — a pass misread leaves a picture that is
+    /// still a picture, only softer or blockier than it should be — so what it is worth testing
+    /// against is files written by encoders that had no idea this existed, decoded by a reader
+    /// that shares nothing with it. macOS ships several; where it does not, this reports and skips.
+    /// </remarks>
+    [Fact]
+    public void A_progressive_jpeg_is_read_as_another_decoder_reads_it()
+    {
+        var found = ProgressiveJpegs().Take(3).ToList();
+
+        if (found.Count == 0)
+        {
+            _output.WriteLine("No progressive JPEG was found on this machine to read.");
+            return;
+        }
+
+        foreach (var path in found)
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "n8pdf-image-tests");
+            Directory.CreateDirectory(directory);
+
+            var back = Path.Combine(directory, "progressive.png");
+            File.Delete(back);
+
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo("sips",
+                    ["-s", "format", "png", path, "--out", back])
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                });
+
+                process?.WaitForExit(60_000);
+            }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException)
+            {
+                _output.WriteLine("sips was not found; the progressive JPEGs were not read back.");
+                return;
+            }
+
+            if (!File.Exists(back)) continue;
+
+            var theirs = PngDecoder.Decode(File.ReadAllBytes(back));
+            var ours = JpegDecoder.Decode(File.ReadAllBytes(path));
+
+            Assert.Equal(theirs.Width, ours.Width);
+            Assert.Equal(theirs.Height, ours.Height);
+
+            var channels = Math.Min(ours.ComponentCount, theirs.ComponentCount);
+            var worst = 0;
+            var total = 0.0;
+
+            for (var i = 0; i < ours.Width * ours.Height; i++)
+            for (var c = 0; c < channels; c++)
+            {
+                var difference = Math.Abs(
+                    ours.Data[i * ours.ComponentCount + c] - theirs.Data[i * theirs.ComponentCount + c]);
+
+                worst = Math.Max(worst, difference);
+                total += difference;
+            }
+
+            var mean = total / (ours.Width * ours.Height * channels);
+
+            _output.WriteLine(
+                $"{Path.GetFileName(path)} {ours.Width}x{ours.Height}: worst {worst}, mean {mean:0.###}");
+
+            // A pass misread shows as a picture that is softer or blockier, which is worth far
+            // more than the rounding two decoders differ by.
+            Assert.True(worst <= 12, $"{Path.GetFileName(path)} differs by {worst}");
+            Assert.True(mean < 1, $"{Path.GetFileName(path)} differs by {mean:0.###} on average");
+        }
+    }
+
+    /// <summary>The progressive JPEGs this machine happens to have, if it has any.</summary>
+    private static IEnumerable<string> ProgressiveJpegs()
+    {
+        string[] roots =
+        [
+            "/System/Applications", "/System/Library/CoreServices", "/System/Library/Desktop Pictures"
+        ];
+
+        foreach (var root in roots)
+        {
+            if (!Directory.Exists(root)) continue;
+
+            IEnumerable<string> files;
+
+            try
+            {
+                files = Directory.EnumerateFiles(root, "*.jpg", SearchOption.AllDirectories);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            foreach (var path in files)
+            {
+                if (IsProgressive(path)) yield return path;
+            }
+        }
+    }
+
+    /// <summary>Whether a JPEG says it is written in passes rather than block by block.</summary>
+    private static bool IsProgressive(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+
+            var data = new byte[(int)Math.Min(200_000, stream.Length)];
+            stream.ReadExactly(data);
+
+            if (data.Length < 4 || data[0] != 0xff || data[1] != 0xd8) return false;
+
+            var at = 2;
+
+            while (at + 3 < data.Length)
+            {
+                if (data[at] != 0xff)
+                {
+                    at++;
+                    continue;
+                }
+
+                var marker = data[at + 1];
+
+                if (marker is 0xc0 or 0xc1 or 0xda) return false;
+                if (marker == 0xc2) return true;
+
+                if (marker is 0xd8 or 0x01 || marker is >= 0xd0 and <= 0xd7)
+                {
+                    at += 2;
+                    continue;
+                }
+
+                at += 2 + ((data[at + 2] << 8) | data[at + 3]);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        return false;
+    }
+
+    /// <summary>The kinds of JPEG this still does not decode are reported rather than half-read.</summary>
     [Fact]
     public void A_jpeg_this_cannot_decode_is_reported()
     {
-        // A header that says the picture is written progressively, and nothing more.
-        byte[] progressive =
+        // A header that says the picture is coded arithmetically, which almost nothing writes.
+        byte[] arithmetic =
         [
             0xff, 0xd8,
-            0xff, 0xc2, 0x00, 0x11, 0x08, 0x00, 0x10, 0x00, 0x10, 0x03,
+            0xff, 0xc9, 0x00, 0x11, 0x08, 0x00, 0x10, 0x00, 0x10, 0x03,
             0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
             0xff, 0xd9
         ];
 
-        Assert.Throws<ImageFormatException>(() => JpegDecoder.Decode(progressive));
+        Assert.Throws<ImageFormatException>(() => JpegDecoder.Decode(arithmetic));
     }
 
     // ----- sixteen bits a sample -----
