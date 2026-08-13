@@ -122,10 +122,23 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
     /// The character sequence still identifies the document unambiguously, which is all this
     /// check needs.
     /// </remarks>
+    /// <summary>
+    /// The text of a document in reading order, for comparing two renderings of it.
+    /// </summary>
+    /// <remarks>
+    /// Runs are gathered into lines by how close their baselines are rather than sorted on the
+    /// number itself. Two renderings of one page put a line within a fraction of a point of each
+    /// other but not on the same number, and where a page has columns the lines of one column sit
+    /// a quantum away from the other's — so ordering by the number puts the columns one way here
+    /// and the other way there, and two identical pages read differently. Gathering by proximity
+    /// is what the per-line comparison does with the same runs, for the same reason.
+    /// </remarks>
     private static string Normalize(IEnumerable<ExtractedTextRun> runs) =>
-        new(string.Concat(runs
-                .OrderBy(r => r.PageIndex).ThenBy(r => r.BaselineY).ThenBy(r => r.X)
-                .Select(r => r.Text))
+        new(string.Concat(PdfLineComparison
+                .GroupIntoLines(runs, tolerance: 2)
+                .OrderBy(line => line.PageIndex)
+                .ThenBy(line => line.BaselineY)
+                .Select(line => line.Text))
             .Where(c => !char.IsWhiteSpace(c)).ToArray());
 
     private static string Truncate(string text) => text.Length <= 90 ? text : text[..90] + "…";

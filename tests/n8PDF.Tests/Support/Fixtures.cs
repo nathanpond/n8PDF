@@ -1049,6 +1049,41 @@ public static class Fixtures
                 return builder.AddParagraph("Third section, the last paragraph.", ZeroSpacing, Times12);
             },
 
+            // Notes in a section of two columns, with a reference in each of them and a third in
+            // the first column of the second page. What is measured is which measure a note is
+            // set to and where it sits: under the column that refers to it, or across the page.
+            ["footnote-columns"] = () =>
+            {
+                var builder = new DocxBuilder().WithSection(
+                    DocxBuilder.Section(columns: 2, columnSeparator: true));
+
+                string WithNote(int i, int id) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Paragraph {i}, with a note</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(id) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>";
+
+                var note = 0;
+
+                for (var i = 1; i <= 90; i++)
+                {
+                    // Two notes in the first column and one in the second, so that the columns
+                    // cannot stop in the same place if their notes are set under them separately.
+                    if (i is 3 or 6 or 50)
+                    {
+                        builder.AddRawParagraph(WithNote(i,
+                            builder.AddFootnote(DocxBuilder.FootnoteBody(
+                                $"Note {++note}, which belongs under one column.", Times10))));
+
+                        continue;
+                    }
+
+                    builder.AddParagraph($"Paragraph {i} of ninety.", ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
+
             // Footnotes on two pages, over enough body text that the space the notes take out of
             // the page decides where the text breaks.
             ["footnotes"] = () =>

@@ -389,6 +389,95 @@ public class FootnoteTests(ITestOutputHelper output)
             new[] { "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "i", "ii", "iii" }, marks);
     }
 
+    // ----- under the column that refers to them -----
+
+    /// <summary>
+    /// In a section of columns a note goes under the column its reference is in, set to that
+    /// column's measure, with a rule of its own above it. Each column keeps its own area, so what
+    /// one column gives up for its notes is not taken out of the next.
+    /// </summary>
+    /// <remarks>
+    /// Measured from Word's export of <c>footnote-columns</c>, whose first column carries two
+    /// notes and second one: the columns stop in different places, 13.44pt apart, which is what
+    /// says the space comes out of the column rather than the page.
+    /// </remarks>
+    [Fact]
+    public void A_note_goes_under_the_column_that_refers_to_it()
+    {
+        var layout = LayoutOf(Fixtures.All["footnote-columns"]());
+
+        var page = layout.Pages[0];
+
+        // The two columns of a two-column section, split down the middle of the page.
+        var middle = page.WidthPoints / 2;
+
+        double BottomOf(bool left, Func<string, bool> match) =>
+            page.Lines
+                .Where(line => line.Texts.Count > 0 &&
+                               (line.Texts[0].X < middle) == left &&
+                               match(string.Concat(line.Texts.Select(text => text.Text))))
+                .Select(line => line.BaselineY)
+                .DefaultIfEmpty(0)
+                .Max();
+
+        var leftBody = BottomOf(true, text => text.StartsWith("Paragraph"));
+        var rightBody = BottomOf(false, text => text.StartsWith("Paragraph"));
+
+        var leftNote = BottomOf(true, text => text.Contains("belongs under"));
+        var rightNote = BottomOf(false, text => text.Contains("belongs under"));
+
+        _output.WriteLine($"left: body to {leftBody:0.##}, notes to {leftNote:0.##}");
+        _output.WriteLine($"right: body to {rightBody:0.##}, notes to {rightNote:0.##}");
+
+        // Each column has notes of its own, under its own text.
+        Assert.True(leftNote > leftBody, "the first column's notes are not under its text");
+        Assert.True(rightNote > rightBody, "the second column's notes are not under its text");
+
+        // The column carrying two notes gives up more of itself than the one carrying one, which
+        // it could not do if the notes came out of the page.
+        Assert.True(rightBody - leftBody > 10,
+            $"the columns stop {rightBody - leftBody:0.##}pt apart, so their notes are not their own");
+
+        // And both columns' notes reach the same foot.
+        Assert.Equal(leftNote, rightNote, 1);
+    }
+
+    /// <summary>
+    /// The note is set to the column's measure rather than the page's, which is what keeps it
+    /// under the column it belongs to rather than running across the one beside it.
+    /// </summary>
+    [Fact]
+    public void A_note_under_a_column_is_set_to_that_columns_measure()
+    {
+        var layout = LayoutOf(Fixtures.All["footnote-columns"]());
+
+        var page = layout.Pages[0];
+        var middle = page.WidthPoints / 2;
+
+        var rule = page.Rules.Where(r => r.Width is > 100 and < 200).OrderBy(r => r.X).ToList();
+
+        // One rule to a column, each at its own column's left edge.
+        Assert.Equal(2, rule.Count);
+        Assert.True(rule[0].X < middle && rule[1].X > middle,
+            $"the rules are at {rule[0].X:0.##} and {rule[1].X:0.##}, not one to a column");
+
+        // And no note reaches across the gap into the column beside it.
+        var notes = page.Lines
+            .Where(line => string.Concat(line.Texts.Select(text => text.Text)).Contains("belongs under"))
+            .ToList();
+
+        Assert.NotEmpty(notes);
+
+        foreach (var note in notes)
+        {
+            var left = note.Texts.Min(text => text.X);
+            var right = note.Texts.Max(text => text.X + text.Width);
+
+            Assert.True(left < middle == right < middle,
+                $"a note runs from {left:0.##} to {right:0.##}, across the gap between the columns");
+        }
+    }
+
     // ----- set under the text rather than at the foot -----
 
     /// <summary>
@@ -650,6 +739,7 @@ public class FootnoteTests(ITestOutputHelper output)
     [InlineData("footnote-separator-probe")]
     [InlineData("endnotes")]
     [InlineData("notes-mixed")]
+    [InlineData("footnote-columns")]
     public void Separator_matches_word(string name)
     {
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, name + ".pdf");

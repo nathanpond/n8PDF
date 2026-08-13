@@ -476,6 +476,12 @@ body text left to carry it — so pages are made for the rest of it, holding not
 the same, which `footnote-overrun-probe` is there to have asked: its second page has no body at all
 and the last thirty-seven lines of the note at the foot of it.
 
+In a section of columns a note goes under the column its reference is in, set to that column's
+measure and ruled off by a separator of its own. Each column keeps its own area, so what one column
+gives up for its notes is not taken out of the next: in `footnote-columns`, whose first column
+carries two notes and second one, the columns stop 13.4pt apart, and that difference is what says
+the space comes out of the column rather than the page.
+
 A section may also ask for its notes under the last line of text rather than at the foot of the
 page. On a page whose text reaches the bottom margin the two are the same place, which is most
 pages; on one whose text stops early — the last page of nearly every document — the notes come up
@@ -526,9 +532,7 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is RTL and complex
-scripts, balancing the columns of a section's last page, and footnotes under the column that refers to
-them rather than under the whole measure.
+remains elsewhere is RTL and complex scripts, and balancing the columns of a section's last page.
 
 Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
 subset they embed. It cannot be subset in any case — control values are reached by index and

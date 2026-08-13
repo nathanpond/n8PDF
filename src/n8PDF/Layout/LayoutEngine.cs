@@ -87,10 +87,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>Where the endnotes are gathered, which the document says.</summary>
     private EndnotePosition _endnotePosition;
 
-    private readonly Dictionary<int, DetachedFlow> _measuredFootnotes = [];
+    /// <summary>Notes already laid out, by the note and the measure it was set to.</summary>
+    private readonly Dictionary<(int Id, double Width), DetachedFlow> _measuredFootnotes = [];
+
+    /// <summary>The separators, by kind and measure.</summary>
+    private readonly Dictionary<(string Type, double Width), DetachedFlow?> _separatorFlows = [];
 
     // Footnotes waiting to be written into the foot of the page being filled.
-    private readonly List<DetachedFlow> _pageFootnotes = [];
+    /// <summary>
+    /// The notes collected for the page being filled, kept by the column they belong under. Word
+    /// sets a note under the column that refers to it rather than across the measure, so a page of
+    /// two columns has two footnote areas and each takes its space out of its own column.
+    /// </summary>
+    private readonly Dictionary<int, List<DetachedFlow>> _pageFootnotes = [];
 
     /// <summary>
     /// What is left of a note too long for the foot of the page its reference fell on, waiting for
@@ -100,16 +109,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     /// <summary>Whether the page being filled opened with the rest of a note from the page before.</summary>
     private bool _footnotesContinue;
-    private DetachedFlow? _separatorFlow;
 
-    private DetachedFlow? _continuationFlow;
-
-    private bool _continuationMeasured;
-    private bool _separatorMeasured;
 
     // Where the footnote area sits, fixed for the document by its section.
-    private double _footnoteLeft;
-    private double _footnoteWidth;
+    /// <summary>
+    /// The measure a separator is being laid out against, which the wide rule spans. Set only
+    /// while one is measured, since it is the one thing on a line whose width is the line's.
+    /// </summary>
+    private double _separatorMeasure;
     private double _footnoteBottom;
 
     // The label of the note whose body is being laid out, for the w:footnoteRef or w:endnoteRef
@@ -207,10 +214,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _pageFootnotes.Clear();
         _carriedFootnotes.Clear();
         _footnotesContinue = false;
-        _separatorFlow = null;
-        _separatorMeasured = false;
-        _continuationFlow = null;
-        _continuationMeasured = false;
+        _separatorFlows.Clear();
         _currentNoteLabel = null;
         _decodedImages.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
@@ -240,8 +244,6 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
 
-        _footnoteLeft = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
-        _footnoteWidth = section.ContentWidthPoints;
         _footnoteBottom = contentTop + section.ContentHeightPoints;
 
         var cursor = new Cursor
@@ -472,10 +474,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         _footnoteRestart = section.FootnoteNumberRestart ?? NoteNumberRestart.Continuous;
         _endnoteRestart = section.EndnoteNumberRestart ?? NoteNumberRestart.Continuous;
 
-        // Footnotes sit under the whole measure rather than under the column that refers to them,
-        // which is not what Word does in a multi-column section.
-        _footnoteLeft = cursor.SectionLeft;
-        _footnoteWidth = cursor.SectionWidth;
+        // A note sits under the column that refers to it, so where it goes across the page is
+        // read from that column when it is written rather than settled here. What is settled here
+        // is how far down the page they reach, which is the same for every column of it.
         _footnoteBottom = cursor.ContentLimit;
     }
 
@@ -608,7 +609,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (cursor.FootnoteSink is not null) cursor.FootnoteSink.AddRange(footnoteIds);
 
             var footnotes = cursor.FootnoteSink is null && footnoteIds.Count > 0
-                ? PrepareFootnotes(footnoteIds)
+                ? PrepareFootnotes(cursor, footnoteIds)
                 : Prepared.None;
 
             // A line that does not fit moves to the next column, or off the page when it was in
@@ -637,7 +638,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
                 // The new page carries no separator yet, so what the notes cost is not what they
                 // cost on the page just left behind.
-                if (footnotes.Flows.Count > 0) footnotes = PrepareFootnotes(footnoteIds);
+                if (footnotes.Flows.Count > 0) footnotes = PrepareFootnotes(cursor, footnoteIds);
             }
 
             if (firstLine && _result is not null)
@@ -847,7 +848,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         if (flows > 0)
         {
-            _pageFootnotes.RemoveRange(_pageFootnotes.Count - flows, flows);
+            var column = FootnotesOfColumn(cursor.ColumnIndex);
+            column.RemoveRange(column.Count - flows, flows);
             cursor.Reserved -= height;
         }
 
@@ -872,7 +874,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             cursor.Y = top + (line.Top - origin);
 
             var footnotes = line.FootnoteIds.Count > 0 && cursor.FootnoteSink is null
-                ? PrepareFootnotes(line.FootnoteIds)
+                ? PrepareFootnotes(cursor, line.FootnoteIds)
                 : Prepared.None;
 
             Place(cursor, line.Line, line.ParagraphIndex, line.ParagraphOrdinal, line.KeepNext,
@@ -1301,11 +1303,19 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     private const double FootnoteSeparatorGapPoints = 5.07;
 
+    /// <summary>The notes gathered under one column of the page being filled.</summary>
+    private List<DetachedFlow> FootnotesOfColumn(int column)
+    {
+        if (_pageFootnotes.TryGetValue(column, out var flows)) return flows;
+
+        return _pageFootnotes[column] = [];
+    }
+
     /// <summary>
-    /// Measures the footnotes some content refers to and reports how much more of the page they
-    /// need, so the content can be fitted against what is left rather than against the whole page.
+    /// Measures the footnotes some content refers to and reports how much more of the column they
+    /// need, so the content can be fitted against what is left rather than against the whole of it.
     /// </summary>
-    private Prepared PrepareFootnotes(IEnumerable<int> ids)
+    private Prepared PrepareFootnotes(Cursor cursor, IEnumerable<int> ids)
     {
         var flows = new List<DetachedFlow>();
         var height = 0.0;
@@ -1314,15 +1324,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             if (!_footnotes.TryGetValue(id, out var footnote) || footnote.IsSeparator) continue;
 
-            var flow = MeasureFootnote(id, footnote);
+            var flow = MeasureFootnote(id, footnote, cursor.Width);
             flows.Add(flow);
             height += flow.Height;
         }
 
         if (flows.Count == 0) return Prepared.None;
 
-        // The separator is paid for once per page, by whichever note reaches it first.
-        var separator = _pageFootnotes.Count == 0 ? SeparatorFlow()?.Height ?? 0 : 0;
+        // The separator is paid for once per column, by whichever note reaches it first.
+        var separator = FootnotesOfColumn(cursor.ColumnIndex).Count == 0
+            ? SeparatorFlow(cursor.Width)?.Height ?? 0
+            : 0;
 
         return new Prepared(flows, height + separator);
     }
@@ -1350,9 +1362,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var room = cursor.ContentLimit - (cursor.Y + lineHeight) - cursor.Reserved;
 
+        var column = FootnotesOfColumn(cursor.ColumnIndex);
+
         if (prepared.Height <= room + 0.001 || !cursor.Paginate)
         {
-            _pageFootnotes.AddRange(prepared.Flows);
+            column.AddRange(prepared.Flows);
             cursor.Reserved += prepared.Height;
 
             return;
@@ -1373,7 +1387,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             if (flow.Height <= left + 0.001)
             {
-                _pageFootnotes.Add(flow);
+                column.Add(flow);
                 left -= flow.Height;
 
                 continue;
@@ -1381,7 +1395,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             var (fitted, remaining) = flow.SplitAt(left);
 
-            if (fitted.Height > 0) _pageFootnotes.Add(fitted);
+            if (fitted.Height > 0) column.Add(fitted);
             _carriedFootnotes.Add(remaining);
         }
 
@@ -1429,8 +1443,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         _footnotesContinue = true;
 
-        var room = cursor.ContentLimit - cursor.ContentTop - (ContinuationFlow()?.Height ?? 0);
-        var height = ContinuationFlow()?.Height ?? 0;
+        var column = FootnotesOfColumn(cursor.ColumnIndex);
+
+        var separator = ContinuationFlow(cursor.Width)?.Height ?? 0;
+        var room = cursor.ContentLimit - cursor.ContentTop - separator;
+        var height = separator;
 
         foreach (var flow in carried)
         {
@@ -1442,7 +1459,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             if (flow.Height <= room + 0.001)
             {
-                _pageFootnotes.Add(flow);
+                column.Add(flow);
                 room -= flow.Height;
                 height += flow.Height;
 
@@ -1453,7 +1470,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             if (fitted.Height > 0)
             {
-                _pageFootnotes.Add(fitted);
+                column.Add(fitted);
                 height += fitted.Height;
             }
 
@@ -1488,54 +1505,83 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// page whose text reaches the bottom margin — which is most pages — and a long way above it
     /// on one whose text stops early, which is what the last page of a document usually does.
     /// </remarks>
-    private void FlushFootnotes(LaidOutPage page, double textBottom)
+    private void FlushFootnotes(LaidOutPage page, IReadOnlyDictionary<int, double> textBottoms)
     {
-        if (_pageFootnotes.Count == 0)
-        {
-            _footnotesContinue = false;
-
-            return;
-        }
-
-        var height = Total(_pageFootnotes);
-        var separatorHeight = (_footnotesContinue ? ContinuationFlow() : SeparatorFlow())?.Height ?? 0;
-
-        var y = _footnotePosition == NotePosition.BeneathText
-            ? Math.Min(textBottom + separatorHeight, _footnoteBottom - height)
-            : _footnoteBottom - height;
-
-        // A page that opens with the rest of a note carries the other rule: right across the
-        // measure, so that a reader can see the note above it was not finished.
-        var rule = _footnotesContinue ? ContinuationFlow() : SeparatorFlow();
-
-        if (rule is not null) rule.PlaceOnto(page, _footnoteLeft, y - rule.Height);
-
-        foreach (var flow in _pageFootnotes)
-        {
-            flow.PlaceOnto(page, _footnoteLeft, y);
-            y += flow.Height;
-        }
+        foreach (var index in _pageFootnotes.Keys.OrderBy(key => key).ToList())
+            FlushColumnFootnotes(page, index, textBottoms.GetValueOrDefault(index));
 
         _pageFootnotes.Clear();
         _footnotesContinue = false;
     }
 
     /// <summary>
+    /// Writes one column's notes under it, which happens as that column is finished rather than
+    /// when the page is: Word writes a column's text and then its notes before going on to the
+    /// next column, and a PDF that says the same things in a different order is a different file
+    /// to anything comparing the two.
+    /// </summary>
+    private void FlushColumnFootnotes(LaidOutPage page, int index, double textBottom)
+    {
+        if (!_pageFootnotes.TryGetValue(index, out var flows) || flows.Count == 0) return;
+
+        _pageFootnotes.Remove(index);
+
+        {
+            var (left, width) = ColumnOf(page, index);
+
+            var height = Total(flows);
+
+            // A column that opens with the rest of a note carries the other rule: right across the
+            // measure it is set to, so that a reader can see the note above it was not finished.
+            var continued = _footnotesContinue && index == 0;
+            var rule = continued ? ContinuationFlow(width) : SeparatorFlow(width);
+
+            var y = _footnotePosition == NotePosition.BeneathText
+                ? Math.Min(textBottom + (rule?.Height ?? 0), _footnoteBottom - height)
+                : _footnoteBottom - height;
+
+            rule?.PlaceOnto(page, left, y - rule.Height);
+
+            foreach (var flow in flows)
+            {
+                flow.PlaceOnto(page, left, y);
+                y += flow.Height;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Where one column of a page begins and how wide it is, which is the measure the notes under
+    /// it are set to. A section of one column is the whole measure, as it always was.
+    /// </summary>
+    private static (double Left, double Width) ColumnOf(LaidOutPage page, int index)
+    {
+        var section = page.Section;
+        var columns = section.GetColumns();
+        var at = Math.Clamp(index, 0, columns.Count - 1);
+
+        return (Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips) + columns[at].Left,
+            columns[at].Width);
+    }
+
+    /// <summary>
     /// Lays out one footnote's body, once. A note is referenced from one place and appears once,
     /// so measuring it again would only repeat the work.
     /// </summary>
-    private DetachedFlow MeasureFootnote(int id, Note footnote)
+    private DetachedFlow MeasureFootnote(int id, Note footnote, double width)
     {
-        if (_measuredFootnotes.TryGetValue(id, out var cached)) return cached;
+        // Keyed by the measure as well as by the note: a note under a column is set to that
+        // column's width, and a section may hold columns of different widths.
+        if (_measuredFootnotes.TryGetValue((id, width), out var cached)) return cached;
 
         // The note's own number opens its text, and it is the number the reference was given.
         var previous = _currentNoteLabel;
         _currentNoteLabel = _footnoteLabels.GetValueOrDefault(id);
 
-        var flow = MeasureBlocks(footnote.Body, _footnoteWidth);
+        var flow = MeasureBlocks(footnote.Body, width);
 
         _currentNoteLabel = previous;
-        _measuredFootnotes[id] = flow;
+        _measuredFootnotes[(id, width)] = flow;
         return flow;
     }
 
@@ -1585,16 +1631,22 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// The separator's own content, or null when the document has none. Measured once: it is the
     /// same on every page.
     /// </summary>
-    private DetachedFlow? SeparatorFlow()
+    private DetachedFlow? SeparatorFlow(double width) => Separator("separator", width);
+
+    /// <summary>The rule of the given kind, measured against the width it is drawn over.</summary>
+    private DetachedFlow? Separator(string type, double width)
     {
-        if (_separatorMeasured) return _separatorFlow;
+        if (_separatorFlows.TryGetValue((type, width), out var cached)) return cached;
 
-        _separatorMeasured = true;
+        var separator = _footnotes.Values.FirstOrDefault(note => note.Type == type);
 
-        var separator = _footnotes.Values.FirstOrDefault(n => n.Type == "separator");
-        if (separator is not null) _separatorFlow = MeasureBlocks(separator.Body, _footnoteWidth);
+        if (separator is null) return _separatorFlows[(type, width)] = null;
 
-        return _separatorFlow;
+        _separatorMeasure = width;
+        var flow = MeasureBlocks(separator.Body, width);
+        _separatorMeasure = 0;
+
+        return _separatorFlows[(type, width)] = flow;
     }
 
     /// <summary>
@@ -1602,19 +1654,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// of its own in the same way. Word draws it right across the measure rather than the two
     /// inches of the ordinary one.
     /// </summary>
-    private DetachedFlow? ContinuationFlow()
-    {
-        if (_continuationMeasured) return _continuationFlow;
-
-        _continuationMeasured = true;
-
-        var separator = _footnotes.Values.FirstOrDefault(n => n.Type == "continuationSeparator");
-        if (separator is not null) _continuationFlow = MeasureBlocks(separator.Body, _footnoteWidth);
-
+    private DetachedFlow? ContinuationFlow(double width) =>
         // A document with no continuation separator of its own still needs the space, so the
         // ordinary one stands in for it.
-        return _continuationFlow ??= SeparatorFlow();
-    }
+        Separator("continuationSeparator", width) ?? SeparatorFlow(width);
 
     /// <summary>
     /// Chooses which of the three header and footer kinds applies to a page.
@@ -2153,7 +2196,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (cursor.FootnoteSink is not null) cursor.FootnoteSink.AddRange(rowFootnoteIds);
 
             var rowFootnotes = cursor.FootnoteSink is null && rowFootnoteIds.Count > 0
-                ? PrepareFootnotes(rowFootnoteIds)
+                ? PrepareFootnotes(cursor, rowFootnoteIds)
                 : Prepared.None;
 
             // A row too tall for what is left of the page is broken across the two unless it says
@@ -2200,7 +2243,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 foreach (var merge in merges.Values) merge.CarryOver(cursor);
 
                 rowHeight = HeightOf(placed);
-                if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(rowFootnoteIds);
+                if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(cursor, rowFootnoteIds);
             }
 
             if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight);
@@ -3696,7 +3739,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                         {
                             // The rule above a note carried over runs right across the measure;
                             // the one above a note that begins where it stands is two inches.
-                            Width = separator.Continuation ? _footnoteWidth : FootnoteSeparatorWidthPoints,
+                            Width = separator.Continuation ? _separatorMeasure : FootnoteSeparatorWidthPoints,
                             Thickness = FootnoteSeparatorThicknessPoints,
                             Ascent = ascent,
                             NaturalHeight = naturalHeight,
@@ -4095,10 +4138,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// Called with the page being left behind, so that whatever was reserved on it can be
         /// filled in before the cursor moves on.
         /// </summary>
-        /// <param name="textBottom">
-        /// How far down the page its text reached, which is where notes set under the text go.
+        /// <param name="textBottoms">
+        /// How far down each column of the page its text reached, which is where notes set under
+        /// the text go.
         /// </param>
-        public Action<LaidOutPage, double>? OnPageComplete { get; init; }
+        public Action<LaidOutPage, IReadOnlyDictionary<int, double>>? OnPageComplete { get; init; }
+
+        /// <summary>How far down each column of this page has been filled.</summary>
+        public Dictionary<int, double> ColumnBottoms { get; } = [];
 
         /// <summary>
         /// Where footnotes found while composing are collected instead of being placed. Set while
@@ -4206,9 +4253,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 return;
             }
 
+            // Each column keeps its own footnote area, so what one column reserved for its notes
+            // is not taken out of the next — and its notes are written under it before the next
+            // column's text is, which is the order Word writes them in.
+            ColumnBottoms[ColumnIndex] = Math.Max(ColumnBottoms.GetValueOrDefault(ColumnIndex), Y);
+
+            if (FootnoteSink is null) Engine.FlushColumnFootnotes(Page, ColumnIndex, Y);
+
             ColumnIndex++;
             MaxColumnUsed = Math.Max(MaxColumnUsed, ColumnIndex);
             Y = ContentTop;
+            Reserved = 0;
             ColumnLines.Clear();
             ApplyColumn();
         }
@@ -4237,7 +4292,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             AlignPageVertically(this);
             DrawColumnSeparators(this);
-            OnPageComplete?.Invoke(Page, PageMaxY);
+            ColumnBottoms[ColumnIndex] = Math.Max(ColumnBottoms.GetValueOrDefault(ColumnIndex), Y);
+
+            OnPageComplete?.Invoke(Page, ColumnBottoms);
         }
 
         /// <summary>Moves to a fresh page, leaving the one behind as it stands.</summary>
@@ -4255,6 +4312,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             MaxColumnUsed = 0;
             PageMaxY = 0;
             ColumnLines.Clear();
+            ColumnBottoms.Clear();
             ApplyColumn();
 
             // A float belongs to the page its anchor landed on; it does not follow the text.
