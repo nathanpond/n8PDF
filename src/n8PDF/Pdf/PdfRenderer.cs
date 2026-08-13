@@ -275,7 +275,7 @@ internal static class PdfRenderer
                     content.BeginText();
                     content.SetFont(font.ResourceName, size);
                     content.SetTextPosition(X(text.X), Y(text.Y) - toBaseline);
-                    content.ShowGlyphs(font.Encode(text.Text));
+                    content.ShowGlyphs(Encode(font, selection.Font, text.Text));
                     content.EndText();
                     content.Restore();
 
@@ -354,53 +354,78 @@ internal static class PdfRenderer
     /// splits its text at spaces but folds the pair straddling each split back in, so a run's
     /// width already accounts for them.
     /// </remarks>
-    private static void ShowText(ContentStreamBuilder content, PdfFont font, PositionedText text, double size)
+    /// <summary>Shapes a run and encodes its glyphs, for text that needs no adjustments.</summary>
+    private static byte[] Encode(PdfFont font, TrueTypeFont face, string text)
     {
-        var justifying = text.WordSpacing > 0 && text.Text.Contains(' ');
+        var shaped = TextShaper.Shape(face, text);
 
-        if (!justifying && !text.Kerned)
+        var glyphs = new ushort[shaped.Count];
+        var codePoints = new int[shaped.Count];
+
+        for (var i = 0; i < shaped.Count; i++)
         {
-            content.ShowGlyphs(font.Encode(text.Text));
-            return;
+            glyphs[i] = shaped.Glyphs[i].Glyph;
+            codePoints[i] = shaped.CodePointOf(i);
         }
 
+        return font.EncodeGlyphs(glyphs, codePoints);
+    }
+
+    private static void ShowText(ContentStreamBuilder content, PdfFont font, PositionedText text, double size)
+    {
+        var face = text.Font.Font;
+        var shaped = TextShaper.Shape(face, text.Text, text.Kerned);
+
+        if (shaped.Count == 0) return;
+
+        var justifying = text.WordSpacing > 0 && text.Text.Contains(' ');
         var spaceAdjustment = -text.WordSpacing * 1000.0 / size;
-        var units = text.Font.Font.Metrics.UnitsPerEm;
+        var units = face.Metrics.UnitsPerEm;
 
         var segments = new List<(byte[] Encoded, double Adjustment)>();
-        var start = 0;
 
-        for (var i = 0; i < text.Text.Length; i++)
+        var glyphs = new List<ushort>(shaped.Count);
+        var codePoints = new List<int>(shaped.Count);
+
+        void Flush(double adjustment)
         {
+            segments.Add((font.EncodeGlyphs([.. glyphs], [.. codePoints]), adjustment));
+            glyphs.Clear();
+            codePoints.Clear();
+        }
+
+        for (var i = 0; i < shaped.Count; i++)
+        {
+            var glyph = shaped.Glyphs[i];
+
+            glyphs.Add(glyph.Glyph);
+            codePoints.Add(shaped.CodePointOf(i));
+
             var adjustment = 0.0;
 
-            if (justifying && text.Text[i] == ' ') adjustment += spaceAdjustment;
+            // Justification widens the spaces, which is a property of the line rather than of the
+            // text, so it is added here and not by the shaper.
+            if (justifying && glyph.Cluster < text.Text.Length && text.Text[glyph.Cluster] == ' ')
+                adjustment += spaceAdjustment;
 
-            if (text.Kerned && i + 1 < text.Text.Length &&
-                !char.IsSurrogate(text.Text[i]) && !char.IsSurrogate(text.Text[i + 1]))
-            {
-                var kerning = text.Font.Font.GetKerning(
-                    text.Font.Font.GetGlyphIndex(text.Text[i]),
-                    text.Font.Font.GetGlyphIndex(text.Text[i + 1]));
+            // Wherever a glyph advances the pen by something other than its own width — which is
+            // what kerning is, and what every other kind of positioning will be — the difference
+            // is written into the page as a movement between glyphs.
+            var natural = face.GetAdvanceWidth(glyph.Glyph);
 
-                if (kerning != 0 && units > 0) adjustment += -kerning * 1000.0 / units;
-            }
+            if (glyph.Advance != natural && units > 0)
+                adjustment += -(glyph.Advance - natural) * 1000.0 / units;
 
-            if (adjustment == 0) continue;
-
-            // The character the adjustment follows goes in the chunk before it.
-            segments.Add((font.Encode(text.Text[start..(i + 1)]), adjustment));
-            start = i + 1;
+            if (adjustment != 0) Flush(adjustment);
         }
 
         if (segments.Count == 0)
         {
-            content.ShowGlyphs(font.Encode(text.Text));
+            content.ShowGlyphs(font.EncodeGlyphs([.. glyphs], [.. codePoints]));
             return;
         }
 
-        if (start < text.Text.Length)
-            segments.Add((font.Encode(text.Text[start..]), 0));
+        if (glyphs.Count > 0) Flush(0);
 
         content.ShowGlyphsAdjusted(segments);
     }

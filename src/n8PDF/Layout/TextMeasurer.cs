@@ -30,44 +30,16 @@ public static class TextMeasurer
     {
         if (string.IsNullOrEmpty(text)) return 0;
 
-        var units = 0;
-        ushort previous = 0;
-        var count = 0;
-
-        foreach (var (glyph, _) in EnumerateGlyphs(font, text))
-        {
-            units += font.GetAdvanceWidth(glyph);
-            if (applyKerning && previous != 0) units += font.GetKerning(previous, glyph);
-
-            previous = glyph;
-            count++;
-        }
-
-        return font.Metrics.ToPoints(units, fontSizePoints) + characterSpacingPoints * count;
+        return Measure(TextShaper.Shape(font, text, applyKerning), font, fontSizePoints, characterSpacingPoints);
     }
-
-    /// <summary>Measures a single character in points.</summary>
-    public static double MeasureCharacter(TrueTypeFont font, int codePoint, double fontSizePoints) =>
-        font.Metrics.ToPoints(font.GetAdvanceWidth(font.GetGlyphIndex(codePoint)), fontSizePoints);
 
     /// <summary>
-    /// Walks a string as glyph/code-point pairs, combining surrogate pairs into single code
-    /// points so that characters outside the BMP are measured once rather than twice.
+    /// Measures text already shaped, which is how a width and the glyphs written for it come to
+    /// be the same walk over the same text rather than two walks that have to agree.
     /// </summary>
-    public static IEnumerable<(ushort Glyph, int CodePoint)> EnumerateGlyphs(TrueTypeFont font, string text)
-    {
-        for (var i = 0; i < text.Length; i++)
-        {
-            int codePoint = text[i];
-            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
-            {
-                codePoint = char.ConvertToUtf32(text[i], text[i + 1]);
-                i++;
-            }
-
-            yield return (font.GetGlyphIndex(codePoint), codePoint);
-        }
-    }
+    public static double Measure(
+        ShapedText shaped, TrueTypeFont font, double fontSizePoints, double characterSpacingPoints = 0) =>
+        font.Metrics.ToPoints(shaped.AdvanceUnits, fontSizePoints) + characterSpacingPoints * shaped.Count;
 
     /// <summary>
     /// The natural height of one line of text in this font at this size: the distance Word

@@ -24,7 +24,7 @@ src/n8PDF/
   Packaging/     OPC container: zip, content types, relationships
   Ooxml/         WordprocessingML model and parsers, plus Units
   Styling/       the formatting cascade, producing Resolved*Format
-  Fonts/         SFNT parsing, metrics, font resolution
+  Fonts/         SFNT parsing, metrics, font resolution, shaping
   Images/        PNG, GIF, BMP, TIFF, EMF and JPEG decoding
   Layout/        measurement, line breaking, page composition, list counters
   Pdf/           object model, writer, content streams, Type0 font embedding
@@ -545,6 +545,25 @@ document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
 remains elsewhere is RTL and complex scripts.
+
+Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
+takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and
+the character it came from. Everything downstream reads that — a line's width is the sum of its
+glyphs' advances, and what is written into the page is those same glyphs.
+
+What the shaper does today is what Latin, Greek and Cyrillic need and no more: a character takes
+the glyph the font's character map gives it, and a pair is drawn closer together where the face
+says so. The point of it is not cleverness but shape. A character is not a glyph — one may need
+several, several may need one, and which glyph a character takes can depend on its neighbours —
+and a pipeline that carries characters as far as the page cannot be told the difference. This one
+carries glyphs, so it can be.
+
+It also puts right something that was true before it: a line's width and the kerning written into
+the page were worked out by two separate walks over the same text, one in the measurer and one in
+the writer. Two walks that must agree are two walks that can disagree. There is one now.
+
+Every fixture's PDF is byte-for-byte what it was before the change, which is the whole of what this
+step claims.
 
 Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
 subset they embed. It cannot be subset in any case — control values are reached by index and

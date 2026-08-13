@@ -14,9 +14,10 @@ public class EmbeddedFontTests
     public void Encoding_produces_two_bytes_of_glyph_index_per_character()
     {
         var builder = new PdfBuilder();
-        var font = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanPath));
+        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
+        var font = builder.UseFont(typeface);
 
-        var encoded = font.Encode("ABA");
+        var encoded = Encode(font, typeface, "ABA");
 
         Assert.Equal(6, encoded.Length);
 
@@ -25,6 +26,26 @@ public class EmbeddedFontTests
         var codes = Codes(encoded);
 
         Assert.Equal([1, 2, 1], codes);
+    }
+
+    /// <summary>
+    /// Shapes text and encodes its glyphs, which is the road the converter itself takes: nothing
+    /// turns characters into glyphs but the shaper.
+    /// </summary>
+    private static byte[] Encode(PdfFont font, n8PDF.Fonts.TrueTypeFont face, string text)
+    {
+        var shaped = n8PDF.Fonts.TextShaper.Shape(face, text);
+
+        var glyphs = new ushort[shaped.Count];
+        var codePoints = new int[shaped.Count];
+
+        for (var i = 0; i < shaped.Count; i++)
+        {
+            glyphs[i] = shaped.Glyphs[i].Glyph;
+            codePoints[i] = shaped.CodePointOf(i);
+        }
+
+        return font.EncodeGlyphs(glyphs, codePoints);
     }
 
     /// <summary>The two-byte codes of an encoded string.</summary>
@@ -40,15 +61,16 @@ public class EmbeddedFontTests
     public void Surrogate_pairs_encode_to_a_single_glyph()
     {
         var builder = new PdfBuilder();
-        var font = builder.UseFont(TestFonts.Load(TestFonts.ArialPath));
+        var typeface = TestFonts.Load(TestFonts.ArialPath);
+        var font = builder.UseFont(typeface);
 
         // U+1D400 is outside the BMP, so it arrives as two chars but is one code point and must
         // map to one glyph, not two.
         const string beyondBmp = "\U0001D400";
         Assert.Equal(2, beyondBmp.Length);
 
-        Assert.Single(font.MapToGlyphs(beyondBmp));
-        Assert.Equal(2, font.Encode(beyondBmp).Length);
+        Assert.Single(n8PDF.Fonts.TextShaper.Shape(typeface, beyondBmp).Glyphs);
+        Assert.Equal(2, Encode(font, typeface, beyondBmp).Length);
     }
 
     [Fact]
@@ -72,12 +94,13 @@ public class EmbeddedFontTests
     {
         var builder = new PdfBuilder { Title = "Embedded font smoke test" };
         var page = builder.AddPage(612, 792);
-        var font = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanPath));
+        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
+        var font = builder.UseFont(typeface);
 
         page.Content.BeginText()
             .SetFont(font.ResourceName, 24)
             .SetTextPosition(72, 700)
-            .ShowGlyphs(font.Encode("Embedded Times New Roman"))
+            .ShowGlyphs(Encode(font, typeface, "Embedded Times New Roman"))
             .EndText();
 
         var bytes = builder.ToArray();
@@ -102,10 +125,11 @@ public class EmbeddedFontTests
     {
         var builder = new PdfBuilder();
         var page = builder.AddPage(612, 792);
-        var font = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanPath));
+        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
+        var font = builder.UseFont(typeface);
 
         page.Content.BeginText().SetFont(font.ResourceName, 12).SetTextPosition(72, 700)
-            .ShowGlyphs(font.Encode("abc")).EndText();
+            .ShowGlyphs(Encode(font, typeface, "abc")).EndText();
 
         // Three distinct characters were shown, so three glyphs should be described even though
         // the embedded program holds thousands.
@@ -128,7 +152,7 @@ public class EmbeddedFontTests
         var font = builder.UseFont(typeface);
 
         page.Content.BeginText().SetFont(font.ResourceName, 12).SetTextPosition(72, 700)
-            .ShowGlyphs(font.Encode("A")).EndText();
+            .ShowGlyphs(Encode(font, typeface, "A")).EndText();
 
         // The ToUnicode stream is compressed in the output, so check the mapping by decoding it.
         var text = Encoding.Latin1.GetString(builder.ToArray());
@@ -165,22 +189,22 @@ public class EmbeddedFontTests
         var builder = new PdfBuilder { Title = "n8PDF embedded font" };
         var page = builder.AddPage(612, 792);
 
-        var regular = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanPath));
-        var bold = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanBoldPath));
-        var italic = builder.UseFont(TestFonts.Load(TestFonts.TimesNewRomanItalicPath));
+        var regular = TestFonts.Load(TestFonts.TimesNewRomanPath);
+        var boldFace = TestFonts.Load(TestFonts.TimesNewRomanBoldPath);
+        var italicFace = TestFonts.Load(TestFonts.TimesNewRomanItalicPath);
 
         var y = 720.0;
-        foreach (var (font, label) in new[]
+        foreach (var (face, font, label) in new[]
                  {
-                     (regular, "Regular — the quick brown fox jumps over the lazy dog"),
-                     (bold, "Bold — the quick brown fox jumps over the lazy dog"),
-                     (italic, "Italic — the quick brown fox jumps over the lazy dog")
+                     (regular, builder.UseFont(regular), "Regular — the quick brown fox jumps over the lazy dog"),
+                     (boldFace, builder.UseFont(boldFace), "Bold — the quick brown fox jumps over the lazy dog"),
+                     (italicFace, builder.UseFont(italicFace), "Italic — the quick brown fox jumps over the lazy dog")
                  })
         {
             page.Content.BeginText()
                 .SetFont(font.ResourceName, 14)
                 .SetTextPosition(72, y)
-                .ShowGlyphs(font.Encode(label))
+                .ShowGlyphs(Encode(font, face, label))
                 .EndText();
             y -= 24;
         }

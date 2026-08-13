@@ -44,57 +44,6 @@ public sealed class PdfFont
     /// </summary>
     private bool Renumbers => !Font.HasCffOutlines;
 
-    /// <summary>
-    /// Maps text to glyph indices, expanding surrogate pairs so that characters outside the
-    /// basic multilingual plane map to a single glyph rather than two broken ones.
-    /// </summary>
-    public ushort[] MapToGlyphs(string text)
-    {
-        var glyphs = new List<ushort>(text.Length);
-
-        for (var i = 0; i < text.Length; i++)
-        {
-            int codePoint = text[i];
-            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
-            {
-                codePoint = char.ConvertToUtf32(text[i], text[i + 1]);
-                i++;
-            }
-
-            glyphs.Add(Font.GetGlyphIndex(codePoint));
-        }
-
-        return [.. glyphs];
-    }
-
-    /// <summary>
-    /// Encodes text for a show-text operator and records the glyph-to-character mapping needed
-    /// for text extraction.
-    /// </summary>
-    public byte[] Encode(string text)
-    {
-        var bytes = new List<byte>(text.Length * 2);
-
-        for (var i = 0; i < text.Length; i++)
-        {
-            int codePoint = text[i];
-            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
-            {
-                codePoint = char.ConvertToUtf32(text[i], text[i + 1]);
-                i++;
-            }
-
-            var glyph = Font.GetGlyphIndex(codePoint);
-            RegisterGlyph(glyph, codePoint);
-
-            var code = CodeFor(glyph);
-            bytes.Add((byte)(code >> 8));
-            bytes.Add((byte)code);
-        }
-
-        return [.. bytes];
-    }
-
     /// <summary>Encodes already-mapped glyphs, recording each one's originating character.</summary>
     public byte[] EncodeGlyphs(ReadOnlySpan<ushort> glyphs, ReadOnlySpan<int> codePoints)
     {
