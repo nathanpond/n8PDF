@@ -1,4 +1,5 @@
 using System.Text;
+using n8PDF.Fonts.Aat;
 using n8PDF.Fonts.OpenType;
 
 namespace n8PDF.Fonts;
@@ -19,6 +20,7 @@ public sealed class TrueTypeFont
     private LayoutTable? _gsub;
     private LayoutTable? _gpos;
     private GlyphClasses? _classes;
+    private Metamorphosis? _metamorphosis;
     private bool _layoutRead;
 
     private readonly Dictionary<int, short> _pairKerning = [];
@@ -126,6 +128,20 @@ public sealed class TrueTypeFont
         }
     }
 
+    /// <summary>
+    /// What the font does to a run of glyphs, where it says so in Apple's tables rather than in
+    /// OpenType's. Read only where there is no <c>GSUB</c> to read instead: a font that carries
+    /// both carries the same shaping twice, and the OpenType tables are the ones Word reads.
+    /// </summary>
+    internal Metamorphosis? Metamorphosis
+    {
+        get
+        {
+            ReadLayout();
+            return _gsub is null ? _metamorphosis : null;
+        }
+    }
+
     /// <summary>What the font says each of its glyphs is: a letter, a ligature, a mark.</summary>
     internal GlyphClasses? Classes
     {
@@ -149,6 +165,9 @@ public sealed class TrueTypeFont
 
         if (Tables.TryGetValue("GPOS", out var gpos))
             _gpos = LayoutTable.Read(_data, gpos.Offset, gpos.Length);
+
+        if (_gsub is null && Tables.TryGetValue("morx", out var morx))
+            _metamorphosis = Metamorphosis.Read(_data, morx.Offset, morx.Length, GlyphCount);
     }
 
     /// <summary>
@@ -549,21 +568,38 @@ public sealed class TrueTypeFont
         int stringOffset = reader.ReadUInt16();
 
         // Windows records win over Mac ones when both are present: they are UTF-16 and are what
-        // the document's font names were authored against.
+        // the document's font names were authored against. And an English record wins over the
+        // same name in another language, whichever platform it is on — a document naming
+        // "Gujarati MT" is naming the font by the name Word knows it by, and the face itself also
+        // carries that name written in Gujarati.
         var bestScore = new Dictionary<int, int>();
 
         for (var i = 0; i < recordCount; i++)
         {
             int platformId = reader.ReadUInt16();
             int encodingId = reader.ReadUInt16();
-            reader.ReadUInt16(); // languageId
+            int languageId = reader.ReadUInt16();
             int nameId = reader.ReadUInt16();
             int length = reader.ReadUInt16();
             int offset = reader.ReadUInt16();
 
             if (nameId is not (1 or 2 or 6 or 16 or 17)) continue;
 
-            var score = platformId switch { 3 => 2, 0 => 1, 1 => 1, _ => 0 };
+            var english = platformId switch
+            {
+                3 => languageId == 0x0409,
+                1 => languageId == 0,
+                _ => true
+            };
+
+            var score = platformId switch
+            {
+                3 => english ? 6 : 3,
+                0 => 4,
+                1 => english ? 5 : 1,
+                _ => 0
+            };
+
             if (score == 0) continue;
             if (bestScore.TryGetValue(nameId, out var existing) && existing >= score) continue;
 

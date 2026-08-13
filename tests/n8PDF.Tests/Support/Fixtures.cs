@@ -1141,6 +1141,37 @@ public static class Fixtures
                 return builder;
             },
 
+            // Faces that describe their shaping in Apple's tables and carry no OpenType tables
+            // at all. There are a hundred and sixty of them on this machine, and a converter that
+            // reads only OpenType draws their scripts as rows of unjoined letters.
+            //
+            // Thai is not here although Thonburi is one of these faces: asked for it, Word draws
+            // the line in a font of its own instead, so there would be nothing to compare. Nor is
+            // the word for kshatriya, which Word's own reading of these tables draws two points
+            // wider than HarfBuzz's. Both are checked against HarfBuzz in AppleLayoutTests.
+            ["apple"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string text, string family, int halfPoints = 28)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
+                        $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
+                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/></w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Faces with no OpenType tables at all.", "Arial", 24);
+
+                Line("नमस्ते", "Devanagari MT");       // a conjunct made by a state machine
+                Line("हिन्दी", "Devanagari MT");        // a vowel drawn before its consonant
+                Line("સંસ્કૃત", "Gujarati MT");         // Gujarati, the same machinery
+                Line("ਪੰਜਾਬੀ", "Gurmukhi MT");         // and Gurmukhi
+
+                return builder;
+            },
+
             // A script shaped by rules that belong to no script in particular. Sinhala rather than
             // one of the seventy others because Word can draw it: asked for Tibetan, Javanese or
             // Cham on this machine, Word draws the letters side by side without stacking or

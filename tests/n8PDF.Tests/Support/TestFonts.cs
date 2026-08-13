@@ -51,7 +51,13 @@ public static class TestFonts
         "/System/Library/Fonts/Supplemental/Sinhala Sangam MN.ttc",
         "/System/Library/Fonts/Supplemental/Kailasa.ttc",
         "/System/Library/Fonts/Supplemental/NotoSansJavanese-Regular.otf",
-        "/System/Library/Fonts/Supplemental/NotoSansCham-Regular.ttf"
+        "/System/Library/Fonts/Supplemental/NotoSansCham-Regular.ttf",
+
+        // And the faces that describe their shaping only in Apple's own tables.
+        "/System/Library/Fonts/Supplemental/DevanagariMT.ttc",
+        "/System/Library/Fonts/Supplemental/GujaratiMT.ttc",
+        "/System/Library/Fonts/Supplemental/Gurmukhi.ttf",
+        "/System/Library/Fonts/Supplemental/Thonburi.ttc"
     ];
 
     public static bool Exists(string path) => File.Exists(path);

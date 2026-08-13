@@ -93,6 +93,7 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         ["indic"] = "Word maps a shaped syllable back to nothing in particular",
         ["southeast-asian"] = "the same, for the scripts that stack and reorder",
         ["universal"] = "the same again, for the scripts shaped by no script's rules",
+        ["apple"] = "and again, for the faces whose shaping is written in Apple's tables",
 
         // And this one for a second reason as well: which face is borrowed for a character the
         // run's own cannot draw is a choice rather than a fact, Word's is not discoverable, and

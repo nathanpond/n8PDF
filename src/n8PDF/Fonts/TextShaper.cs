@@ -67,7 +67,11 @@ public static class TextShaper
 
         if (plan.DecomposesMarks) Decompose(font, buffer);
 
-        plan.Substitute(font, text, buffer);
+        // A face that describes its shaping only in Apple's tables is shaped from those. There is
+        // nothing to choose between: it carries no OpenType tables at all, and a converter that
+        // reads only those would draw its letters unjoined.
+        if (font.Metamorphosis is { } metamorphosis) metamorphosis.Apply(buffer, rightToLeft);
+        else plan.Substitute(font, text, buffer);
 
         // Whatever the glyphs have become, they advance the pen by their own widths until
         // positioning says otherwise.

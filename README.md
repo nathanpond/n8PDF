@@ -545,8 +545,9 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is the faces that describe their shaping only in Apple's state tables, with no
-OpenType tables to read — and Hangul, whose syllables are composed rather than shaped.
+remains elsewhere is Hangul, whose syllables are composed rather than shaped, and the positioning
+half of Apple's own tables — `kerx` and `ankr`, which a few of those faces use for kerning and for
+putting marks on letters.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -647,6 +648,19 @@ narrower. What those comparisons cannot say is what the lines say — a shaped s
 standing for several characters, and Word's file maps them back to whatever code the glyph happens to
 sit at, so a line of Devanagari comes out of it as "नम#$".
 
+For Apple's tables the same comparison holds: twenty-six words in ten faces, and Word agrees about
+the page on every line of the fixture to four hundredths of a point. Two words are kept out of it
+because Word does something else with them — asked for Thai in Thonburi it draws the line in a font
+of its own, and for one Devanagari cluster its reading of the same table comes out two points wider
+than HarfBuzz's. Which of the two Apple's own engine agrees with is not a question this machine can
+answer, so the difference is recorded rather than resolved.
+
+Reading those faces turned up a fault of ours that had nothing to do with shaping. They carry their
+family name several times over in several languages, and the first record of the right kind is not
+the English one: Gujarati MT calls itself ગુજરાતી એચટી. A document naming "Gujarati MT" then matched
+nothing at all, and its text was drawn in whichever face was borrowed for it. The English record now
+wins.
+
 For the universal engine the Word comparison covers one script rather than seventy, and that is
 Word's limit rather than a choice: asked for Tibetan, Javanese or Cham on this machine, Word draws
 the letters side by side without stacking or reordering anything. Sinhala it draws properly, and
@@ -744,6 +758,27 @@ Unicode character database by `tools/make-indic-tables.py` rather than typed. No
 where a matra ends up depends on the script as well as on the side it is written on, because the
 sorted order is a visual one and the scripts stack their parts differently. Those per-script answers
 are in the generator, from the OpenType script development specifications.
+
+Not every face describes its shaping in OpenType. A hundred and sixty of the ones on this machine
+carry Apple's `morx` table and no `GSUB` at all: Devanagari MT, Gujarati MT, Gurmukhi MT, Thonburi,
+Geeza Pro, Corsiva Hebrew, and the whole of Helvetica, Palatino and Optima. A converter that reads
+only OpenType draws those scripts as rows of unjoined letters, and there is nothing in the file to
+fall back on.
+
+It is the older idea and the more general one. Where OpenType says "these glyphs in this company
+become those glyphs", this says "in this state, a glyph of this class takes you to that state, and
+on the way you may mark this one, swap that one, or write several as one" — one machine expressing
+what OpenType needs four kinds of lookup for, and two more besides: rearranging glyphs, and
+inserting ones the text never held. All five kinds are read here, and the reading is used only where
+the font has no OpenType tables. A face carrying both carries the same shaping twice, and the
+OpenType half is the one every other reader of the file will use.
+
+Two things about it cost an afternoon each. A machine that writes several glyphs as one leaves the
+others behind marked as gone, and they have to be swept up before the next machine runs rather than
+at the end — left in place, they sit between the pair the next machine is looking for and the run
+comes out with its shapes half made. And which way round a subtable reads the run is decided by a
+flag saying so, not by comparing the flag that says "logical order" against the direction of the
+text: getting that wrong shapes Arabic with every letter's join one place out.
 
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and

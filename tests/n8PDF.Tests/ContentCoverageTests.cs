@@ -36,7 +36,7 @@ public class ContentCoverageTests(ITestOutputHelper output)
     private static readonly HashSet<string> Reorders =
             [
         "table-split", "table-vertical-merge", "table-merge-split",
-        "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal"
+        "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal", "apple"
     ];
 
     public static TheoryData<string> FixtureNames
