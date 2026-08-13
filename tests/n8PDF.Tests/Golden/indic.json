@@ -1,0 +1,75 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.256,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 202.113, "font": "Arial", "size": 12, "text": "Devanagari, Tamil and Bengali below."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 100.701,
+          "height": 20.877,
+          "runs": [
+            {"x": 72, "width": 29.825, "font": "Devanagari Sangam MN", "size": 14, "text": "नमस्ते"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 121.578,
+          "height": 20.877,
+          "runs": [
+            {"x": 72, "width": 25.956, "font": "Devanagari Sangam MN", "size": 14, "text": "हिन्दी"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 142.455,
+          "height": 20.877,
+          "runs": [
+            {"x": 72, "width": 30.796, "font": "Devanagari Sangam MN", "size": 14, "text": "क्षत्रिय"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 163.332,
+          "height": 20.877,
+          "runs": [
+            {"x": 72, "width": 18.765, "font": "Devanagari Sangam MN", "size": 14, "text": "कर्म"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 184.209,
+          "height": 20.877,
+          "runs": [
+            {"x": 72, "width": 49.807, "font": "Devanagari Sangam MN", "size": 14, "text": "मुंबई 400"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 199.344,
+          "height": 14.062,
+          "runs": [
+            {"x": 72, "width": 30.468, "font": "Tamil Sangam MN", "size": 14, "text": "தமிழ்"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 217.261,
+          "height": 18.266,
+          "runs": [
+            {"x": 72, "width": 31.397, "font": "Bangla Sangam MN", "size": 14, "text": "বাংলা"}
+          ]
+        }
+      ]
+    }
+  ]
+}

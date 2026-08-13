@@ -545,9 +545,9 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is the scripts that reorder their letters — the Indic and South-East Asian
-families — which need reordering rules of their own on top of the substitution and positioning
-tables that Arabic already uses here.
+remains elsewhere is the scripts shaped by the universal engine rather than by rules of their own —
+Sinhala, Tibetan, Javanese, Balinese and their neighbours — and the faces that describe their
+shaping only in Apple's state tables, with no OpenType tables to read.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -632,6 +632,22 @@ for Latin accents, Hebrew points and pointed Arabic alike — including the mark
 shape that stands for four letters. Both are asked for the run in the order it is drawn, so the
 numbers are compared as they are rather than translated first.
 
+For the Indic and South-East Asian scripts it is used with one thing to be careful about. Several of
+the faces macOS ships for them carry two complete descriptions of how to shape them: the OpenType
+tables every other platform reads, and Apple's own state tables. HarfBuzz prefers Apple's wherever a
+font has them, so asking it about one of those faces answers a question about a table this converter
+does not implement and Word does not read either. The tests therefore ask it about a copy of the
+face with those tables taken out. The two mostly agree; where they do not, the difference is worth
+seeing rather than hiding — Khmer Sangam MN's OpenType tables write a consonant and its vowel as a
+shape plus a blank, and its state machine deletes the blank instead.
+
+Thirty-one words across thirteen scripts are compared that way, glyph for glyph, advance for advance
+and offset for offset, and agree on all of it. Word's exports of the two fixtures agree about the
+page: every line begins exactly where Word begins it, and no line is more than a tenth of a point
+wider or narrower. What those comparisons cannot say is what the lines say — a shaped syllable is
+one glyph standing for several characters, and Word's file maps them back to whatever code the glyph
+happens to sit at, so a line of Devanagari comes out of it as "नम#$".
+
 Arabic joins its letters, which makes the shape of a letter a fact about its neighbours rather than
 about itself. Most letters have four — alone, opening a word, inside one, ending one — and a
 handful join only on the right, which is why a word can end in the middle of itself: nothing after
@@ -660,6 +676,43 @@ Arabic as the presentation forms, one glyph to a run, so its file reads back as 
 typed, and the name of God, which it draws as the single glyph the font holds for it, reads back
 out of Word's own file as the letter J.
 
+An Indic syllable is drawn neither in the order it is stored nor one shape to a letter. A vowel may
+be written to the left of the consonant it is pronounced after though it is stored after it;
+consonants with no vowel between them are written as one stacked shape; and an r at the head of a
+cluster is written as a small mark at the end of it. A converter that walks the characters and looks
+each one up does not draw an ugly line — it draws a different word.
+
+None of that can be settled character by character, and the syllable is the unit throughout. It is
+divided out of the run; the consonant the rest hangs from is found by asking the font what shapes it
+has — the rules are written in terms of what a font can do, so there is no way round asking; every
+part is given a place in the visual order and sorted into it; the font's rules for making conjuncts
+are applied one at a time; and then what those rules managed to make decides where the vowel and the
+r finally go. Sort, ask the font, sort again. Nine scripts follow it — Devanagari, Bengali,
+Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada and Malayalam — differing in where a repha ends
+up, how it is asked for, and which side of the base a below-base form may appear on.
+
+The specification for those scripts was rewritten, and a font says which set of rules it was drawn
+against by which of two names it files its script under. Both are implemented, because both are
+shipped: this machine has Shree Devanagari 714 and Arial Unicode MS written to the older rules, and
+Devanagari Sangam MN to the newer, and the two are shaped differently — under the older rules a
+joining mark after the base is moved to the end of the syllable, the below-base feature is not
+applied before the base, and what the font is asked about a pair of letters is asked of the pair in
+company rather than standing alone.
+
+Khmer and Myanmar descend from the same writing and reorder for the same reasons, more plainly.
+Khmer marks a stacked consonant with a character of its own rather than by the absence of a vowel,
+and moves an r written under a consonant to the front of the whole cluster; Myanmar decides which
+part of the syllable each character belongs to in one pass and sorts, with the medial r and the
+left-side vowel going before the consonant they are written on. Thai and Lao reorder nothing at all:
+they stack their vowels and tone marks above and below, and store every character in the order it is
+drawn, so what they need is the marks put where the font says.
+
+What each character is to a shaper, and where round its consonant it is drawn, is generated from the
+Unicode character database by `tools/make-indic-tables.py` rather than typed. Not all of it can be:
+where a matra ends up depends on the script as well as on the side it is written on, because the
+sorted order is a visual one and the scripts stack their parts differently. Those per-script answers
+are in the generator, from the OpenType script development specifications.
+
 Text reaches the page as glyphs rather than as characters. Between the two stands a shaper: it
 takes a run and a face and gives back the glyphs that draw it, each carrying its own advance and
 the character it came from. Everything downstream reads that — a line's width is the sum of its
@@ -678,8 +731,22 @@ It also puts right something that was true before it: a line's width and the ker
 the page were worked out by two separate walks over the same text, one in the measurer and one in
 the writer. Two walks that must agree are two walks that can disagree. There is one now.
 
-Every fixture's PDF is byte-for-byte what it was before the change, which is the whole of what this
-step claims.
+Underneath it is a reader for the two tables a font describes its own shaping in. `GSUB` says what
+glyphs a run becomes and `GPOS` says where they go, and the two are the same machine pointed at
+different ends of the problem: both walk a run, both pass over what a lookup says it cannot see,
+both have rules that match on what stands before and after, and in both a matched rule does not act
+itself but names other lookups to run at places inside the match. So the walking, the skipping, the
+matching and the nesting are written once, and only the acting is written twice — substitution of
+one glyph for another, of one for several and of several for one; adjustment of a single glyph, of
+a pair, and of a mark onto the letter, the ligature or the mark it belongs to.
+
+Two of its parts are what make a complex script work at all. The first is `GDEF`, which says what
+each glyph is: a rule about two letters that must still fire with a vowel written between them says
+"ignore marks", and which glyphs are marks is a question only the font can answer. The second is
+the script list, which had been passed over on the grounds that a lookup fires only on the glyphs
+it covers and those are its own script's. That is true of nearly every feature and false of the one
+whose whole purpose is to draw the same glyphs differently: `locl`, taken from every script at once,
+draws Hindi in Marathi's letters. The script a run is in is now asked for by name.
 
 Hinting is kept, because Word keeps it: its own exports carry `cvt`, `fpgm` and `prep` in every
 subset they embed. It cannot be subset in any case — control values are reached by index and

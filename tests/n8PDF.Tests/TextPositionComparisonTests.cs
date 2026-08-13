@@ -85,6 +85,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         // where Word begins them; what the runs say is two spellings of the same line.
         ["arabic"] = "Word encodes Arabic as the presentation forms, which is not what was typed",
 
+        // And these for the plainest reason of all: a shaped Indic syllable is drawn from glyphs
+        // that stand for no character in particular — a conjunct of three consonants is one shape
+        // — and Word's file maps them back to whatever code the glyph happens to sit at. A line of
+        // Devanagari comes out of it as "नम#$". Where the text goes is compared like any other
+        // fixture's, and agrees to the last decimal place.
+        ["indic"] = "Word maps a shaped syllable back to nothing in particular",
+        ["southeast-asian"] = "the same, for the scripts that stack and reorder",
+
         // And this one for a second reason as well: which face is borrowed for a character the
         // run's own cannot draw is a choice rather than a fact, Word's is not discoverable, and
         // the two are not the same width. Where the text goes is compared like any other fixture's

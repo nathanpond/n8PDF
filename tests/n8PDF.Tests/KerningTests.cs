@@ -53,12 +53,11 @@ public class KerningTests
     [Fact]
     public void Calibri_kerns_through_gpos()
     {
-        var positioning = PositioningOf(TestFonts.CalibriPath);
+        var value = GposKerning(TestFonts.CalibriPath, 'A', 'V');
 
-        Assert.NotNull(positioning);
+        Assert.NotNull(value);
 
         var font = Font("Calibri");
-        var value = positioning.GetAdjustment(font.GetGlyphIndex('A'), font.GetGlyphIndex('V'));
 
         Assert.True(value < 0, $"AV came back as {value}");
         Assert.Equal(value, Kerning(font, "AV"));
@@ -71,20 +70,23 @@ public class KerningTests
     [Fact]
     public void Times_kerns_through_the_legacy_table()
     {
-        var positioning = PositioningOf(TestFonts.TimesNewRomanPath);
-
         // The table is there, and has plenty to say about where marks go.
-        Assert.NotNull(positioning);
+        var value = GposKerning(TestFonts.TimesNewRomanPath, 'A', 'V');
+        Assert.NotNull(value);
 
         var font = Font("Times New Roman");
 
         // It says nothing about kerning, though, so the pair has to come from the old table.
-        Assert.Equal(0, positioning.GetAdjustment(font.GetGlyphIndex('A'), font.GetGlyphIndex('V')));
+        Assert.Equal(0, value.Value);
         Assert.True(Kerning(font, "AV") < 0);
     }
 
-    /// <summary>Reads a font file's GPOS kerning directly, so the source of a pair is not in doubt.</summary>
-    private static GlyphPositioning? PositioningOf(string path)
+    /// <summary>
+    /// Reads a font file's GPOS directly and asks it about one pair, so that where an answer came
+    /// from is not in doubt. The adjustment is what the kerning feature did to the first glyph's
+    /// advance, which is what kerning is.
+    /// </summary>
+    private static short? GposKerning(string path, char left, char right)
     {
         var data = File.ReadAllBytes(path);
         var reader = new BigEndianReader(data, 4);
@@ -99,7 +101,21 @@ public class KerningTests
             var offset = (int)reader.ReadUInt32();
             var length = (int)reader.ReadUInt32();
 
-            if (tag == "GPOS") return GlyphPositioning.Read(data, offset, length);
+            if (tag != "GPOS") continue;
+            if (n8PDF.Fonts.OpenType.LayoutTable.Read(data, offset, length) is not { } table) return null;
+
+            var font = TestFonts.Load(path);
+            var positioner = new n8PDF.Fonts.OpenType.Positioner(table, null);
+
+            var pair = new List<n8PDF.Fonts.OpenType.ShapeItem>
+            {
+                new(font.GetGlyphIndex(left), 0, 1),
+                new(font.GetGlyphIndex(right), 1, 1)
+            };
+
+            positioner.Apply(pair, "kern");
+
+            return (short)pair[0].Advance;
         }
 
         return null;

@@ -203,8 +203,18 @@ public static class PdfLineComparison
                 // default font rather than the run's. n8PDF drops trailing spaces because they
                 // are invisible and would make a justified line measure past the margin. Ignoring
                 // them on both sides keeps the comparison about the visible text.
-                while (ordered.Count > 1 && string.IsNullOrWhiteSpace(ordered[^1].Text))
-                    ordered.RemoveAt(ordered.Count - 1);
+                //
+                // The mark drawn on the last letter of the line stands at the same place as that
+                // space and may sort after it, so the space is looked for among the runs that
+                // advance the pen rather than at the very end.
+                while (ordered.Count > 1)
+                {
+                    var drawn = ordered.FindLastIndex(run => run.Width > 0.01);
+
+                    if (drawn < 0 || !string.IsNullOrWhiteSpace(ordered[drawn].Text)) break;
+
+                    ordered.RemoveAt(drawn);
+                }
 
                 // In a paragraph that runs right to left the mark is at the other end of the
                 // line, since that is where the line ends. It is told from a space that belongs to

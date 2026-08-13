@@ -98,7 +98,14 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // text goes rather than what it says.
         // Arabic is here for a neighbouring reason: Word writes it as the presentation forms, so
         // the text read back out of its file is spelled in characters nobody typed.
-        if (name is "hebrew" or "font-fallback" or "marks" or "arabic") return;
+        // The Indic and South-East Asian fixtures are here for the same reason and more so: a
+        // shaped syllable is one glyph standing for several characters, and Word's file names it
+        // by whatever code that glyph happens to sit at.
+        if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
+            or "southeast-asian")
+        {
+            return;
+        }
 
         // Word exports whichever document it considers current. When an earlier export failed and
         // left a document open, it silently exported that one instead and wrote it under this

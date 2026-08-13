@@ -1,4 +1,5 @@
 using System.Text;
+using n8PDF.Fonts.OpenType;
 
 namespace n8PDF.Fonts;
 
@@ -14,9 +15,13 @@ public sealed class TrueTypeFont
     private readonly CharacterMap _cmap;
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, short>? _kerning;
-    private readonly GlyphPositioning? _positioning;
-    private GlyphSubstitution? _substitution;
-    private bool _substitutionRead;
+
+    private LayoutTable? _gsub;
+    private LayoutTable? _gpos;
+    private GlyphClasses? _classes;
+    private bool _layoutRead;
+
+    private readonly Dictionary<int, short> _pairKerning = [];
 
     private TrueTypeFont(
         byte[] data,
@@ -24,7 +29,6 @@ public sealed class TrueTypeFont
         CharacterMap cmap,
         ushort[] advanceWidths,
         Dictionary<int, short>? kerning,
-        GlyphPositioning? positioning,
         FontMetrics metrics,
         int glyphCount,
         string familyName,
@@ -39,7 +43,6 @@ public sealed class TrueTypeFont
         _cmap = cmap;
         _advanceWidths = advanceWidths;
         _kerning = kerning;
-        _positioning = positioning;
         Metrics = metrics;
         GlyphCount = glyphCount;
         FamilyName = familyName;
@@ -97,41 +100,113 @@ public sealed class TrueTypeFont
     /// table answers for the fonts that predate it. Zero either way when neither kerns the pair.
     /// </summary>
     /// <summary>
-    /// What the font says a glyph should be swapped for, or null where it says nothing. Read when
-    /// first asked, since most documents never ask.
+    /// What the font says its glyphs should be swapped for, and where each of them goes, or null
+    /// where it says nothing. Read when first asked, since most documents never ask.
     /// </summary>
-    internal GlyphSubstitution? Substitution
+    /// <remarks>
+    /// A new one for each run rather than one kept on the font. What script a run is in and which
+    /// features it may use are properties of the run; the tables they are read from belong to the
+    /// font and are shared, which is where the work is.
+    /// </remarks>
+    internal Substitutor? Substitutor
     {
         get
         {
-            if (_substitutionRead) return _substitution;
-
-            _substitutionRead = true;
-
-            if (Tables.TryGetValue("GSUB", out var gsub))
-                _substitution = GlyphSubstitution.Read(_data, gsub.Offset, gsub.Length);
-
-            return _substitution;
+            ReadLayout();
+            return _gsub is null ? null : new Substitutor(_gsub, _classes);
         }
     }
 
-    /// <summary>Whether the font treats this glyph as a mark drawn on something else.</summary>
-    public bool IsMark(ushort glyph) => _positioning?.IsMark(glyph) ?? false;
+    internal Positioner? Positioner
+    {
+        get
+        {
+            ReadLayout();
+            return _gpos is null ? null : new Positioner(_gpos, _classes);
+        }
+    }
+
+    /// <summary>What the font says each of its glyphs is: a letter, a ligature, a mark.</summary>
+    internal GlyphClasses? Classes
+    {
+        get
+        {
+            ReadLayout();
+            return _classes;
+        }
+    }
+
+    private void ReadLayout()
+    {
+        if (_layoutRead) return;
+
+        _layoutRead = true;
+
+        if (Tables.TryGetValue("GDEF", out var gdef)) _classes = GlyphClasses.Read(_data, gdef.Offset);
+
+        if (Tables.TryGetValue("GSUB", out var gsub))
+            _gsub = LayoutTable.Read(_data, gsub.Offset, gsub.Length);
+
+        if (Tables.TryGetValue("GPOS", out var gpos))
+            _gpos = LayoutTable.Read(_data, gpos.Offset, gpos.Length);
+    }
 
     /// <summary>
-    /// Where a mark goes on the glyph it is drawn on, in design units, or null where the font says
-    /// nothing about the pair.
+    /// Whether the font treats this glyph as a mark drawn on something else.
     /// </summary>
-    public (short X, short Y, bool OnMark)? GetMarkOffset(
-        ushort mark, ushort? attachTo, ushort? onMark, int component = 0) =>
-        _positioning?.GetMarkOffset(mark, attachTo, onMark, component);
+    /// <remarks>
+    /// The <c>GDEF</c> table is the answer where a font has one. Where it has not, a glyph that
+    /// advances the pen by nothing and stands for a character that is a mark is treated as one,
+    /// which is what the rules that ignore marks are reaching for.
+    /// </remarks>
+    public bool IsMark(ushort glyph)
+    {
+        if (Classes is { } classes && classes.ClassOf(glyph) is var kind and not 0)
+            return kind == GlyphClasses.Mark;
 
+        return glyph < _advanceWidths.Length && _advanceWidths[glyph] == 0 && glyph != 0;
+    }
+
+    /// <summary>
+    /// What the font says about drawing this pair closer together, from either of the two places
+    /// it may say it.
+    /// </summary>
+    /// <remarks>
+    /// <c>GPOS</c> is asked first, being where fonts shipped this century put it — Calibri has no
+    /// legacy table at all — and the old <c>kern</c> table answers for the fonts that predate it.
+    /// The pair is put through the font's own kerning lookups, which is the only way to get an
+    /// answer that agrees with what a whole run would be given.
+    /// </remarks>
     public short GetKerning(ushort left, ushort right)
     {
-        if (_positioning?.GetAdjustment(left, right) is { } adjustment and not 0) return adjustment;
+        var key = (left << 16) | right;
 
-        if (_kerning is null) return 0;
-        return _kerning.GetValueOrDefault((left << 16) | right, (short)0);
+        lock (_pairKerning)
+        {
+            if (_pairKerning.TryGetValue(key, out var found)) return found;
+        }
+
+        short adjustment = 0;
+
+        if (Positioner is { } positioner && positioner.HasLookups("kern"))
+        {
+            var pair = new List<ShapeItem>
+            {
+                new(left, 0, uint.MaxValue) { Advance = GetAdvanceWidth(left) },
+                new(right, 1, uint.MaxValue) { Advance = GetAdvanceWidth(right) }
+            };
+
+            positioner.Apply(pair, "kern");
+
+            if (pair.Count == 2) adjustment = (short)(pair[0].Advance - GetAdvanceWidth(left));
+        }
+
+        if (adjustment == 0 && _kerning is not null)
+            adjustment = _kerning.GetValueOrDefault(key, (short)0);
+
+        lock (_pairKerning) _pairKerning[key] = adjustment;
+
+        return adjustment;
     }
 
     public bool HasTable(string tag) => _tables.ContainsKey(tag);
@@ -284,9 +359,6 @@ public sealed class TrueTypeFont
         var names = ReadNames(data, tables);
         var cmap = CharacterMap.Parse(data, Require(tables, "cmap").Offset);
         var kerning = ReadKerning(data, tables);
-        var positioning = tables.TryGetValue("GPOS", out var gpos)
-            ? GlyphPositioning.Read(data, gpos.Offset, gpos.Length)
-            : null;
 
         // macStyle bit 0 is bold and bit 1 is italic; OS/2 fsSelection says the same thing and
         // the two disagree often enough in the wild that either asserting the style is enough.
@@ -321,7 +393,7 @@ public sealed class TrueTypeFont
         };
 
         return new TrueTypeFont(
-            data, tables, cmap, advanceWidths, kerning, positioning, metrics, glyphCount,
+            data, tables, cmap, advanceWidths, kerning, metrics, glyphCount,
             familyName, subfamilyName, postScriptName, isBold, isItalic, hasCff);
     }
 

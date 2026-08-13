@@ -27,6 +27,29 @@ public static class TestFonts
     /// </summary>
     public const string ArialHebrewPath = "/System/Library/Fonts/ArialHB.ttc";
 
+    /// <summary>
+    /// The faces for the scripts that are shaped rather than merely drawn. Pinned like the rest,
+    /// and for a second reason as well: which face a machine happens to hold for a script it
+    /// cannot otherwise write is exactly the kind of thing that would make a golden differ from
+    /// one machine to the next.
+    /// </summary>
+    public static readonly string[] ComplexScriptPaths =
+    [
+        "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Tamil Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Bangla Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Gurmukhi Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Gujarati Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Oriya Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Telugu Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Kannada Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Malayalam Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Ayuthaya.ttf",
+        "/System/Library/Fonts/Supplemental/Lao Sangam MN.ttf",
+        "/System/Library/Fonts/Supplemental/Khmer Sangam MN.ttf",
+        "/System/Library/Fonts/NotoSansMyanmar.ttc"
+    ];
+
     public static bool Exists(string path) => File.Exists(path);
 
     public static TrueTypeFont Load(string path)
@@ -47,7 +70,7 @@ public static class TestFonts
                  {
                      TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath,
                      ArialPath, CalibriPath, CalibriBoldPath, ArialHebrewPath
-                 })
+                 }.Concat(ComplexScriptPaths))
         {
             if (File.Exists(path)) library.RegisterFile(path);
         }

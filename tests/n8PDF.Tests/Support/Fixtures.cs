@@ -1107,6 +1107,67 @@ public static class Fixtures
                 return builder;
             },
 
+            // The Indic scripts, which neither join their letters nor draw them in the order they
+            // are stored. A vowel written before the consonant it is pronounced after; consonants
+            // written as one conjunct shape; a mark that belongs to the start of a cluster and is
+            // drawn at the end of it. Each line below is one of those, and none of them can be
+            // drawn by a converter that walks the characters and looks each one up.
+            ["indic"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string text, string family, int halfPoints = 28)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
+                        $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
+                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/></w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                const string devanagari = "Devanagari Sangam MN";
+
+                Line("Devanagari, Tamil and Bengali below.", "Arial", 24);
+
+                Line("नमस्ते", devanagari);          // namaste: a conjunct in the middle
+                Line("हिन्दी", devanagari);           // hindi: a vowel drawn before the consonant
+                Line("क्षत्रिय", devanagari);          // kshatriya: a three-consonant conjunct
+                Line("कर्म", devanagari);            // karma: a repha, drawn at the end of the cluster
+                Line("मुंबई 400", devanagari);        // with digits, which are drawn as they are
+
+                Line("தமிழ்", "Tamil Sangam MN");   // tamil
+                Line("বাংলা", "Bangla Sangam MN");   // bangla
+
+                return builder;
+            },
+
+            // The South-East Asian scripts. Thai and Lao are written without spaces between
+            // words and stack their vowels and tone marks above and below the consonants; Khmer
+            // and Myanmar reorder like the Indic scripts they descend from.
+            ["southeast-asian"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string text, string family, int halfPoints = 28)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
+                        $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
+                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/></w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Thai, Lao, Khmer and Myanmar below.", "Arial", 24);
+
+                Line("สวัสดี", "Ayuthaya");          // sawatdi: a vowel above and one after
+                Line("ภาษาไทย", "Ayuthaya");        // phasa thai: a vowel written before its consonant
+                Line("ກະລຸນາ", "Lao Sangam MN");     // karuna, in Lao
+                Line("ភាសាខ្មែរ", "Khmer Sangam MN"); // the Khmer language, with a subscript consonant
+                Line("မြန်မာ", "Noto Sans Myanmar"); // myanmar, with a medial ra drawn before its base
+
+                return builder;
+            },
+
             // Pointed Hebrew, whose vowel points are marks with no place of their own: the font
             // says where each attaches, and a converter that draws them where the pen happens to
             // be puts the meaning of the words somewhere else. The Latin line carries an accent
