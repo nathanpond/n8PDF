@@ -1141,6 +1141,35 @@ public static class Fixtures
                 return builder;
             },
 
+            // A script shaped by rules that belong to no script in particular. Sinhala rather than
+            // one of the seventy others because Word can draw it: asked for Tibetan, Javanese or
+            // Cham on this machine, Word draws the letters side by side without stacking or
+            // reordering anything, so there would be nothing to compare against. What the engine
+            // does for the rest is compared against HarfBuzz instead, script by script.
+            ["universal"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Line(string text, string family, int halfPoints = 28)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>" +
+                        $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
+                        $"<w:sz w:val=\"{halfPoints}\"/><w:szCs w:val=\"{halfPoints}\"/></w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>");
+                }
+
+                Line("Sinhala below, shaped by rules no script owns.", "Arial", 24);
+
+                Line("සිංහල", "Sinhala Sangam MN");        // a vowel above and one after
+                Line("ශ්‍රී ලංකා", "Sinhala Sangam MN");     // with the joiner that asks for a conjunct
+                Line("ක්‍ෂ", "Sinhala Sangam MN");           // two letters written as one shape
+                Line("පොත", "Sinhala Sangam MN");          // a vowel written on both sides at once
+                Line("කෙටි", "Sinhala Sangam MN");          // one written to the left of its letter
+
+                return builder;
+            },
+
             // The South-East Asian scripts. Thai and Lao are written without spaces between
             // words and stack their vowels and tone marks above and below the consonants; Khmer
             // and Myanmar reorder like the Indic scripts they descend from.

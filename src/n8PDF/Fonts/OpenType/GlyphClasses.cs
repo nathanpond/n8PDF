@@ -31,6 +31,13 @@ internal sealed class GlyphClasses
         _markSets = markSets;
     }
 
+    /// <summary>
+    /// Whether the font says anything about what its glyphs are. Where it does, its silence about
+    /// one glyph is an answer — that glyph is not a mark — and where it does not, the question has
+    /// to be put to the character instead.
+    /// </summary>
+    public bool Classifies => _classDef != 0;
+
     public int ClassOf(ushort glyph) =>
         _classDef == 0 ? 0 : LayoutReaders.ClassOf(_data, _classDef, glyph);
 

@@ -82,13 +82,45 @@ internal static class ArabicJoining
     /// <summary>Whether a run holds anything that joins at all, and so needs any of this.</summary>
     public static bool Joins(string text)
     {
-        foreach (var character in text)
+        foreach (var type in Types(text))
         {
-            if (TypeOf(character) is Joining.Dual or Joining.Right or Joining.Left or Joining.Join)
-                return true;
+            if (type is Joining.Dual or Joining.Right or Joining.Left or Joining.Join) return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// The joining type of each unit of a run.
+    /// </summary>
+    /// <remarks>
+    /// A character outside the basic multilingual plane is stored as two units, and its type
+    /// belongs to the first of them. The second is treated as something that stands between
+    /// letters without breaking the join, which is what it is: not a letter of its own.
+    ///
+    /// Several of the scripts that join like Arabic live out there — Adlam, Hanifi Rohingya,
+    /// Sogdian, Old Uyghur — so reading the table one unit at a time answers "nothing here joins"
+    /// for every one of them.
+    /// </remarks>
+    private static Joining[] Types(string text)
+    {
+        var types = new Joining[text.Length];
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+            {
+                types[i] = TypeOf(char.ConvertToUtf32(text[i], text[i + 1]));
+                types[i + 1] = Joining.Transparent;
+
+                i++;
+                continue;
+            }
+
+            types[i] = TypeOf(text[i]);
+        }
+
+        return types;
     }
 
     /// <summary>
@@ -98,15 +130,14 @@ internal static class ArabicJoining
     public static JoiningForm[] Forms(string text)
     {
         var forms = new JoiningForm[text.Length];
-        var types = new Joining[text.Length];
-
-        for (var i = 0; i < text.Length; i++) types[i] = TypeOf(text[i]);
+        var types = Types(text);
 
         for (var i = 0; i < text.Length; i++)
         {
             forms[i] = JoiningForm.Isolated;
 
-            if (types[i] is not (Joining.Dual or Joining.Right or Joining.Join)) continue;
+            if (types[i] is not (Joining.Dual or Joining.Right or Joining.Left or Joining.Join))
+                continue;
 
             // What precedes it, passing over anything transparent: a letter joins backwards only
             // where what came before joins forwards.
@@ -116,9 +147,10 @@ internal static class ArabicJoining
             var joinedBefore = before is Joining.Dual or Joining.Left or Joining.Join;
             var joinedAfter = after is Joining.Dual or Joining.Right or Joining.Join;
 
-            // A letter that joins only on the right takes the shape that reaches back and no more,
-            // whatever follows it.
+            // A letter that joins on one side only takes the shape that reaches that way and no
+            // more, whatever stands on the other side of it.
             if (types[i] == Joining.Right) joinedAfter = false;
+            if (types[i] == Joining.Left) joinedBefore = false;
 
             forms[i] = (joinedBefore, joinedAfter) switch
             {

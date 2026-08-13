@@ -32,9 +32,15 @@ namespace n8PDF.Fonts;
 /// would not find it, and a reader copying the line would copy something shorter than what is
 /// drawn.
 /// </param>
+/// <param name="Standing">
+/// What this glyph stands for, where that is not what the text says at its cluster. A vowel
+/// written on both sides of its consonant is one character taken apart into two glyphs, and each
+/// half stands for the half it is: that is what Word writes into its own files, and it is what
+/// lets a reader copy a line of these scripts out of the page and get something readable.
+/// </param>
 public readonly record struct ShapedGlyph(
     ushort Glyph, int Advance, int XOffset, int YOffset, int Cluster, int Component = 0,
-    int[]? Merged = null);
+    int[]? Merged = null, string? Standing = null);
 
 /// <summary>
 /// Text turned into the glyphs that draw it.
@@ -100,6 +106,8 @@ public sealed class ShapedText
     public string TextOf(int index)
     {
         var glyph = Glyphs[index];
+
+        if (glyph.Standing is { } standing) return standing;
 
         if (glyph.Merged is not { Length: > 1 } merged) return At(glyph.Cluster);
 

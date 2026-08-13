@@ -26,6 +26,8 @@ internal sealed class KhmerPlan : ShapingPlan
 
     protected override string[] ScriptTags => ["khmr"];
 
+    public override bool DecomposesMarks => true;
+
     public override void Substitute(TrueTypeFont font, string text, List<ShapeItem> buffer)
     {
         var substitutor = font.Substitutor;
@@ -209,6 +211,8 @@ internal sealed class MyanmarPlan : ShapingPlan
     public static readonly MyanmarPlan Instance = new();
 
     protected override string[] ScriptTags => ["mym2", "mymr"];
+
+    public override bool DecomposesMarks => true;
 
     public override void Substitute(TrueTypeFont font, string text, List<ShapeItem> buffer)
     {

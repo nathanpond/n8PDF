@@ -78,6 +78,14 @@ internal sealed class IndicPlan : ShapingPlan
 
     protected override string[] ScriptTags => _tags;
 
+    /// <summary>
+    /// These scripts place their marks by their own rules, and a mark that carries a width carries
+    /// it.
+    /// </summary>
+    protected override MarkWidths Marks => MarkWidths.Never;
+
+    public override bool DecomposesMarks => true;
+
     private readonly int _virama;
     private readonly RephPosition _rephPosition;
     private readonly RephMode _rephMode;
@@ -118,7 +126,7 @@ internal sealed class IndicPlan : ShapingPlan
         new("Malayalam", ["mlm2", "mlym"], 0x0D4D, RephPosition.AfterMain, RephMode.Logical, false);
 
     /// <summary>The plan a character calls for, or null where it is not one of these scripts.</summary>
-    public static ShapingPlan? For(char character) =>
+    public static ShapingPlan? For(int character) =>
         character switch
         {
             >= 'ऀ' and <= 'ॿ' => Devanagari,

@@ -102,7 +102,7 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // shaped syllable is one glyph standing for several characters, and Word's file names it
         // by whatever code that glyph happens to sit at.
         if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
-            or "southeast-asian")
+            or "southeast-asian" or "universal")
         {
             return;
         }

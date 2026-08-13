@@ -45,6 +45,18 @@ internal sealed class ShapeItem
     /// <summary>Which letter of a ligature this glyph belongs to, where it is a mark on one.</summary>
     public int Component { get; set; }
 
+    /// <summary>
+    /// Whether this is a mark drawn on something else.
+    /// </summary>
+    /// <remarks>
+    /// The font's own table answers where it has one. Where it has not — and faces for these
+    /// scripts often have not — the character answers instead: what Unicode calls a mark is one.
+    /// Both answers are needed, because a mark whose glyph has a width of its own must still
+    /// advance the pen by nothing, and a face with nothing to say about its glyphs says nothing
+    /// about that either.
+    /// </remarks>
+    public bool IsMark { get; set; }
+
     /// <summary>What this glyph is to the shaper of its script, and where in a syllable it sits.</summary>
     public byte Category { get; set; }
 
@@ -71,6 +83,12 @@ internal sealed class ShapeItem
 
     /// <summary>What it was made of, where a lookup made it of several.</summary>
     public bool LigatedAndDidNotMultiply => Ligated && !Multiplied;
+
+    /// <summary>
+    /// What this glyph stands for, where that is not the character at its cluster: the half of a
+    /// vowel that was written on both sides of its consonant.
+    /// </summary>
+    public string? Standing { get; set; }
 
     // ----- what positioning has done to it -----
 

@@ -70,6 +70,38 @@ internal abstract class LookupEngine(LayoutTable table, GlyphClasses? classes)
         foreach (var index in lookups) ApplyLookup(buffer, index, mask);
     }
 
+    /// <summary>
+    /// Applies a group of features together, in the order the font lists their lookups rather than
+    /// in the order the features are named.
+    /// </summary>
+    /// <remarks>
+    /// Some features are meant to be applied as a group and some one at a time, and which is which
+    /// is part of each script's rules. Within a group the order is the font's: a face is free to
+    /// file its rules for two features in one run of lookups and expect them run in that order,
+    /// and several do. Applying feature by feature would run the second feature's first lookup
+    /// before the first feature's last one.
+    /// </remarks>
+    public void Apply(List<ShapeItem> buffer, IEnumerable<(string Feature, uint Mask)> group)
+    {
+        var lookups = new SortedDictionary<int, uint>();
+
+        foreach (var (feature, mask) in group)
+        {
+            if (!_features.TryGetValue(feature, out var indices)) continue;
+
+            foreach (var index in indices)
+            {
+                lookups[index] = lookups.TryGetValue(index, out var already) ? already | mask : mask;
+            }
+        }
+
+        foreach (var (index, mask) in lookups) ApplyLookup(buffer, index, mask);
+    }
+
+    /// <summary>The same, where every feature of the group applies everywhere.</summary>
+    public void Apply(List<ShapeItem> buffer, IEnumerable<string> group) =>
+        Apply(buffer, group.Select(feature => (feature, uint.MaxValue)));
+
     /// <summary>Whether a font says anything at all under this feature.</summary>
     public bool HasLookups(string feature) => _features.ContainsKey(feature);
 

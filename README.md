@@ -545,9 +545,8 @@ down the one list — which looks wrong until you check, and is exactly what Wor
 document.
 
 Not yet: for pictures, nothing a document holds, and nothing left of these formats at all. What
-remains elsewhere is the scripts shaped by the universal engine rather than by rules of their own —
-Sinhala, Tibetan, Javanese, Balinese and their neighbours — and the faces that describe their
-shaping only in Apple's state tables, with no OpenType tables to read.
+remains elsewhere is the faces that describe their shaping only in Apple's state tables, with no
+OpenType tables to read — and Hangul, whose syllables are composed rather than shaped.
 
 A line of Hebrew or Arabic is not a line drawn backwards. Text is stored in the order it is read
 and drawn in the order it appears, and the two part company the moment a line holds both
@@ -641,12 +640,19 @@ face with those tables taken out. The two mostly agree; where they do not, the d
 seeing rather than hiding — Khmer Sangam MN's OpenType tables write a consonant and its vowel as a
 shape plus a blank, and its state machine deletes the blank instead.
 
-Thirty-one words across thirteen scripts are compared that way, glyph for glyph, advance for advance
-and offset for offset, and agree on all of it. Word's exports of the two fixtures agree about the
-page: every line begins exactly where Word begins it, and no line is more than a tenth of a point
-wider or narrower. What those comparisons cannot say is what the lines say — a shaped syllable is
-one glyph standing for several characters, and Word's file maps them back to whatever code the glyph
-happens to sit at, so a line of Devanagari comes out of it as "नम#$".
+Eighty words across sixty-two scripts are compared that way, glyph for glyph, advance for advance and
+offset for offset, and agree on all of it. Word's exports of the three fixtures agree about the page:
+every line begins exactly where Word begins it, and no line is more than a tenth of a point wider or
+narrower. What those comparisons cannot say is what the lines say — a shaped syllable is one glyph
+standing for several characters, and Word's file maps them back to whatever code the glyph happens to
+sit at, so a line of Devanagari comes out of it as "नम#$".
+
+For the universal engine the Word comparison covers one script rather than seventy, and that is
+Word's limit rather than a choice: asked for Tibetan, Javanese or Cham on this machine, Word draws
+the letters side by side without stacking or reordering anything. Sinhala it draws properly, and
+agrees with this converter to four hundredths of a point on every line — including the line whose
+vowel is written on both sides of its letter. For the rest, HarfBuzz is the only reference there is,
+and it is the same reference Word's own engine was written against.
 
 Arabic joins its letters, which makes the shape of a letter a fact about its neighbours rather than
 about itself. Most letters have four — alone, opening a word, inside one, ending one — and a
@@ -698,6 +704,32 @@ Devanagari Sangam MN to the newer, and the two are shaped differently — under 
 joining mark after the base is moved to the end of the syllable, the below-base feature is not
 applied before the base, and what the font is asked about a pair of letters is asked of the pair in
 company rather than standing alone.
+
+Most of the writing systems descended from Brahmi are not given rules of their own at all. There are
+too many of them, they are alike enough, and what differs between them is what the font already
+describes — so one engine shapes all of them, working from what each character *is* rather than from
+which script it belongs to. Something to build on; a vowel drawn above, below, before or after; a
+consonant written under the one before it; a mark on a mark. Classify the characters, divide the run
+into clusters on that basis, ask the font for its shapes in a fixed order, and move the two things
+that are drawn away from where they are stored: an r at the head of a cluster, which is drawn as a
+mark at its end, and a vowel written to the left of the letters it is pronounced after. That is the
+whole of it, and it shapes some seventy scripts — Sinhala, Tibetan, Javanese, Balinese, Cham, Newa,
+Chakma, Adlam, Egyptian hieroglyphs — none of which has a line of code to itself.
+
+The classification is not a property in the database. It is worked out from five that are — what
+part of a syllable a character is, which side of its consonant it is drawn, whether it joins like
+Arabic, whether it is ignorable, and its general category — by rules Microsoft publishes, together
+with the overrides Microsoft publishes for the characters the database has not caught up with.
+`tools/make-use-tables.py` does that once and writes out the answer.
+
+Three things about it were only found by comparing. A joiner does not divide a cluster: the grammar
+is read over what is visible, or the very character written to ask for two letters to be joined
+would separate them. A font that files its rules under no script in particular is not written to
+this engine and must not be shaped by it — Noto Sans Tai Tham is such a font, and draws a left-side
+vowel by moving the glyph, so reordering the characters first moves it twice. And a vowel written on
+both sides of its consonant at once is stored as one character and cannot be drawn as one: it is
+taken apart first, into the two halves the database says it is made of, and only the left half is
+moved.
 
 Khmer and Myanmar descend from the same writing and reorder for the same reasons, more plainly.
 Khmer marks a stacked consonant with a character of its own rather than by the absence of a vowel,

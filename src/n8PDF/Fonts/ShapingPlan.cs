@@ -24,10 +24,16 @@ internal abstract class ShapingPlan
     /// <summary>The plan for the writing this run is in.</summary>
     public static ShapingPlan For(string text)
     {
-        foreach (var character in text)
+        for (var i = 0; i < text.Length; i++)
         {
-            var plan = ScriptOf(character);
-            if (plan is not null) return plan;
+            // A character outside the basic multilingual plane is stored as two, and several of
+            // the scripts that need the most work live out there.
+            var codePoint = char.IsHighSurrogate(text[i]) && i + 1 < text.Length &&
+                            char.IsLowSurrogate(text[i + 1])
+                ? char.ConvertToUtf32(text[i++], text[i])
+                : text[i];
+
+            if (ScriptOf(codePoint) is { } plan) return plan;
         }
 
         return Default;
@@ -51,7 +57,7 @@ internal abstract class ShapingPlan
     /// Which plan a character calls for, or null where it says nothing — a space, a digit, a
     /// Latin letter in the middle of a Hindi sentence.
     /// </summary>
-    private static ShapingPlan? ScriptOf(char character) =>
+    private static ShapingPlan? ScriptOf(int character) =>
         character switch
         {
             <= '\u036f' => null,          // Latin, and the marks that go on it
@@ -75,7 +81,7 @@ internal abstract class ShapingPlan
             >= 'ꧠ' and <= '꧿' => MyanmarPlan.Instance,
             >= 'ꩠ' and <= 'ꩿ' => MyanmarPlan.Instance,
 
-            _ => IndicPlan.For(character) ?? Unnamed(character)
+            _ => IndicPlan.For(character) ?? UsePlan.For(character) ?? Unnamed(character)
         };
 
     /// <summary>
@@ -83,8 +89,9 @@ internal abstract class ShapingPlan
     /// its script either: a font's features are taken as they come rather than from the list of
     /// some other script that happens to be in the same file.
     /// </summary>
-    private static ShapingPlan? Unnamed(char character) =>
-        character >= '\u0530' && !char.IsWhiteSpace(character) && !char.IsDigit(character)
+    private static ShapingPlan? Unnamed(int character) =>
+        character >= 0x0530 && character <= 0xffff &&
+        !char.IsWhiteSpace((char)character) && !char.IsDigit((char)character)
             ? Elsewhere
             : null;
 
@@ -95,6 +102,37 @@ internal abstract class ShapingPlan
     /// </summary>
     protected virtual string[] ScriptTags => ["latn"];
 
+    /// <summary>When a mark's own width is taken away from it.</summary>
+    protected enum MarkWidths
+    {
+        /// <summary>Never: the script's marks are drawn where the font's rules put them.</summary>
+        Never,
+
+        /// <summary>Before the glyphs are placed, so that a mark is placed from its letter.</summary>
+        BeforePlacing,
+
+        /// <summary>After, which leaves the placing to work from where the pen would have been.</summary>
+        AfterPlacing
+    }
+
+    /// <summary>
+    /// Whether a mark advances the pen by whatever width its glyph has.
+    /// </summary>
+    /// <remarks>
+    /// Most faces draw their marks with no width at all and the question does not arise. Some do
+    /// not — a subjoined consonant in Tibetan is as wide as the letter it is drawn under — and
+    /// then the width has to go, or the letters are spaced out by the width of everything written
+    /// on them. Which scripts take it away, and whether before or after the marks are placed, is
+    /// part of each script's rules rather than a thing to be decided here.
+    /// </remarks>
+    protected virtual MarkWidths Marks => MarkWidths.AfterPlacing;
+
+    /// <summary>
+    /// Whether a mark standing for two marks is written as the two before anything else happens.
+    /// The scripts that write a vowel on both sides of its consonant need it; nothing else does.
+    /// </summary>
+    public virtual bool DecomposesMarks => false;
+
     /// <summary>Turns the run into the glyphs that draw it.</summary>
     public abstract void Substitute(TrueTypeFont font, string text, List<ShapeItem> buffer);
 
@@ -103,6 +141,24 @@ internal abstract class ShapingPlan
     /// which no document has to ask for.
     /// </summary>
     public virtual void Position(TrueTypeFont font, List<ShapeItem> buffer, bool applyKerning)
+    {
+        if (Marks == MarkWidths.BeforePlacing) Flatten(buffer);
+
+        Place(font, buffer, applyKerning);
+
+        if (Marks == MarkWidths.AfterPlacing) Flatten(buffer);
+    }
+
+    /// <summary>Takes the width from every mark.</summary>
+    private static void Flatten(List<ShapeItem> buffer)
+    {
+        foreach (var item in buffer)
+        {
+            if (item.IsMark) item.Advance = 0;
+        }
+    }
+
+    private void Place(TrueTypeFont font, List<ShapeItem> buffer, bool applyKerning)
     {
         var positioner = font.Positioner;
 
@@ -148,6 +204,8 @@ internal abstract class ShapingPlan
 /// </remarks>
 internal sealed class DefaultPlan(string[] tags) : ShapingPlan
 {
+    public static readonly DefaultPlan Anywhere = new([]);
+
     protected override string[] ScriptTags { get; } = tags;
 
     public override void Substitute(TrueTypeFont font, string text, List<ShapeItem> buffer)

@@ -47,7 +47,11 @@ public static class TestFonts
         "/System/Library/Fonts/Supplemental/Ayuthaya.ttf",
         "/System/Library/Fonts/Supplemental/Lao Sangam MN.ttf",
         "/System/Library/Fonts/Supplemental/Khmer Sangam MN.ttf",
-        "/System/Library/Fonts/NotoSansMyanmar.ttc"
+        "/System/Library/Fonts/NotoSansMyanmar.ttc",
+        "/System/Library/Fonts/Supplemental/Sinhala Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/Kailasa.ttc",
+        "/System/Library/Fonts/Supplemental/NotoSansJavanese-Regular.otf",
+        "/System/Library/Fonts/Supplemental/NotoSansCham-Regular.ttf"
     ];
 
     public static bool Exists(string path) => File.Exists(path);

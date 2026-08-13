@@ -36,7 +36,7 @@ public class ContentCoverageTests(ITestOutputHelper output)
     private static readonly HashSet<string> Reorders =
             [
         "table-split", "table-vertical-merge", "table-merge-split",
-        "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian"
+        "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal"
     ];
 
     public static TheoryData<string> FixtureNames
@@ -147,9 +147,28 @@ public class ContentCoverageTests(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// A character that is drawn as two, and read back as the two it was drawn as.
+    /// </summary>
+    /// <remarks>
+    /// A vowel written on both sides of its consonant is stored as one character and cannot be
+    /// drawn as one: half of it goes to the left of the letter and half to the right. Both halves
+    /// reach the page and both are readable, but what a reader copies out is the halves rather
+    /// than the character that was typed — which is also what Word's own files give back.
+    /// </remarks>
+    private static readonly Dictionary<char, string> TakenApart = new()
+    {
+        ['\u0DDA'] = "\u0DD9\u0DCA", ['\u0DDC'] = "\u0DD9\u0DCF",
+        ['\u0DDD'] = "\u0DD9\u0DCF\u0DCA", ['\u0DDE'] = "\u0DD9\u0DDF"
+    };
+
     private void AssertNothingDropped(string name, byte[] docx, byte[] pdf)
     {
         var expected = Normalize(ReadDocumentText(docx));
+
+        foreach (var (whole, halves) in TakenApart)
+            expected = expected.Replace(whole.ToString(), halves);
+
         var actual = Normalize(string.Concat(PdfTextExtractor.Extract(pdf).Select(r => r.Text)));
 
         // Where a table row is broken across a page, the order the document keeps its text in and

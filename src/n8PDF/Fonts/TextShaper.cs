@@ -58,11 +58,14 @@ public static class TextShaper
 
             buffer.Add(new ShapeItem(glyph, cluster, ShapingPlan.Everywhere, codePoint)
             {
-                Advance = font.GetAdvanceWidth(glyph)
+                Advance = font.GetAdvanceWidth(glyph),
+                IsMark = IsMark(font, glyph, codePoint)
             });
         }
 
         var plan = ShapingPlan.For(text);
+
+        if (plan.DecomposesMarks) Decompose(font, buffer);
 
         plan.Substitute(font, text, buffer);
 
@@ -84,9 +87,93 @@ public static class TextShaper
 
             glyphs[i] = new ShapedGlyph(
                 item.Glyph, item.Advance, item.XOffset, item.YOffset, item.Cluster,
-                item.Component, item.Merged);
+                item.Component, item.Merged, item.Standing);
         }
 
         return new ShapedText(text, glyphs);
     }
+
+    /// <summary>
+    /// Writes a mark that stands for two as the two it stands for.
+    /// </summary>
+    /// <remarks>
+    /// Several of these scripts have a vowel written on both sides of its consonant at once, and
+    /// store it as one character. It cannot be drawn as one: one half goes to the left of the
+    /// letter and the other to the right, and everything that follows — which half is moved, what
+    /// the font is asked for — is about the halves. The database says what the halves are.
+    ///
+    /// Only marks are taken apart, and only where the font can draw the pieces. A letter with an
+    /// accent is left alone: it is one character in the text and one glyph on the page, and taking
+    /// it apart would draw the accent twice as far from its letter as the face intends.
+    /// </remarks>
+    private static void Decompose(TrueTypeFont font, List<ShapeItem> buffer)
+    {
+        for (var i = 0; i < buffer.Count; i++)
+        {
+            var item = buffer[i];
+
+            // Asked of the character rather than of the glyph: whether a font happens to file a
+            // vowel sign among its letters says nothing about whether the vowel is written on two
+            // sides of its consonant.
+            if (item.CodePoint == 0 || !IsMark(item.CodePoint)) continue;
+
+            var pieces = char.ConvertFromUtf32(item.CodePoint)
+                .Normalize(System.Text.NormalizationForm.FormD);
+
+            if (pieces.Length < 2) continue;
+
+            var glyphs = new List<ushort>();
+
+            foreach (var piece in pieces)
+            {
+                var glyph = font.GetGlyphIndex(piece);
+                if (glyph == 0) break;
+
+                glyphs.Add(glyph);
+            }
+
+            // A font that cannot draw the halves is asking for the whole, and gets it.
+            if (glyphs.Count != pieces.Length) continue;
+
+            buffer[i] = new ShapeItem(glyphs[0], item.Cluster, item.Mask, pieces[0])
+            {
+                Advance = font.GetAdvanceWidth(glyphs[0]),
+                IsMark = IsMark(font, glyphs[0], pieces[0]),
+                Standing = pieces[0].ToString()
+            };
+
+            for (var piece = 1; piece < glyphs.Count; piece++)
+            {
+                // Each half stands for the half it is, which is what Word writes into its own
+                // files: one character taken apart is read back as the two it was made of.
+                buffer.Insert(i + piece, new ShapeItem(glyphs[piece], item.Cluster, item.Mask,
+                    pieces[piece])
+                {
+                    Advance = font.GetAdvanceWidth(glyphs[piece]),
+                    IsMark = IsMark(font, glyphs[piece], pieces[piece]),
+                    Standing = pieces[piece].ToString()
+                });
+            }
+
+            i += glyphs.Count - 1;
+        }
+    }
+
+    /// <summary>
+    /// Whether a glyph is a mark: what the font says, or what the character is where the font says
+    /// nothing.
+    /// </summary>
+    private static bool IsMark(TrueTypeFont font, ushort glyph, int codePoint)
+    {
+        if (font.Classes is { Classifies: true } classes) return classes.IsMark(glyph);
+
+        return IsMark(codePoint);
+    }
+
+    /// <summary>Whether the character is one Unicode calls a mark.</summary>
+    private static bool IsMark(int codePoint) =>
+        System.Globalization.CharUnicodeInfo.GetUnicodeCategory(codePoint)
+            is System.Globalization.UnicodeCategory.NonSpacingMark
+            or System.Globalization.UnicodeCategory.SpacingCombiningMark
+            or System.Globalization.UnicodeCategory.EnclosingMark;
 }
