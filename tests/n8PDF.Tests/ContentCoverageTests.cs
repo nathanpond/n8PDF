@@ -227,7 +227,29 @@ public class ContentCoverageTests(ITestOutputHelper output)
         switch (block)
         {
             case Paragraph paragraph:
-                text.Append(paragraph.GetText());
+                // Run by run rather than through GetText, so that what a shape holds is counted
+                // where the shape stands. A text box's paragraphs are text like any other, and
+                // before they were laid out they were the plainest example there is of content
+                // lost in silence: the box drew nothing and the document looked shorter.
+                foreach (var run in paragraph.Runs)
+                foreach (var content in run.Content)
+                {
+                    switch (content)
+                    {
+                        case TextInline inline:
+                            text.Append(inline.Text);
+                            break;
+
+                        case DrawingInline { Shape: { } shape }:
+                            foreach (var child in shape.Content) AppendBlock(child, text);
+                            break;
+
+                        case AnchoredDrawing { Shape: { } anchored }:
+                            foreach (var child in anchored.Content) AppendBlock(child, text);
+                            break;
+                    }
+                }
+
                 break;
 
             case Table table:

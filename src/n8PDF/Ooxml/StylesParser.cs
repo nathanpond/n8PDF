@@ -133,6 +133,38 @@ public sealed class DocumentTheme
     /// <summary>Latin font of the minor scheme, used by body text.</summary>
     public string? MinorLatinFont { get; set; }
 
+    /// <summary>
+    /// The theme's colours, by the name the scheme gives each slot.
+    /// </summary>
+    /// <remarks>
+    /// A shape drawn from Word's gallery names its fill and its outline by slot rather than
+    /// outright, so a document's shapes come out in the wrong colours entirely without these.
+    /// </remarks>
+    public Dictionary<string, string> Colors { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Resolves a colour slot to what it stands for.
+    /// </summary>
+    /// <remarks>
+    /// The four slots named for what they are used for — text and background, first and second —
+    /// are the same four as the light and dark ones, under the names a drawing refers to them by.
+    /// </remarks>
+    public string? ResolveColor(string? slot)
+    {
+        if (slot is null) return null;
+
+        var name = slot switch
+        {
+            "tx1" => "dk1",
+            "bg1" => "lt1",
+            "tx2" => "dk2",
+            "bg2" => "lt2",
+            _ => slot
+        };
+
+        return Colors.GetValueOrDefault(name);
+    }
+
     /// <summary>Resolves a theme slot name to a font name.</summary>
     public string? Resolve(string? themeSlot) => themeSlot switch
     {
@@ -267,17 +299,27 @@ public static class StylesParser
     {
         var theme = new DocumentTheme();
         var fontScheme = xml?.Root?.Descendants(W.Drawing + "fontScheme").FirstOrDefault();
-        if (fontScheme is null) return theme;
 
-        theme.MajorLatinFont = fontScheme
+        theme.MajorLatinFont = fontScheme?
             .Element(W.Drawing + "majorFont")?
             .Element(W.Drawing + "latin")?
             .Attribute("typeface")?.Value;
 
-        theme.MinorLatinFont = fontScheme
+        theme.MinorLatinFont = fontScheme?
             .Element(W.Drawing + "minorFont")?
             .Element(W.Drawing + "latin")?
             .Attribute("typeface")?.Value;
+
+        var colorScheme = xml?.Root?.Descendants(W.Drawing + "clrScheme").FirstOrDefault();
+        foreach (var slot in colorScheme?.Elements() ?? [])
+        {
+            // A slot holds one colour element: either a literal one or a system colour, which
+            // carries what it last came to alongside the name of what it stands for.
+            var value = slot.Element(W.Drawing + "srgbClr")?.Attribute("val")?.Value
+                        ?? slot.Element(W.Drawing + "sysClr")?.Attribute("lastClr")?.Value;
+
+            if (value is not null) theme.Colors[slot.Name.LocalName] = value;
+        }
 
         return theme;
     }

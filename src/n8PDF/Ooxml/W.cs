@@ -17,6 +17,17 @@ public static class W
     public static readonly XNamespace WordDrawing =
         "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 
+    /// <summary>Word's own extension for a shape drawn in the text, which is where a text box lives.</summary>
+    public static readonly XNamespace Shape =
+        "http://schemas.microsoft.com/office/word/2010/wordprocessingShape";
+
+    /// <summary>
+    /// Markup compatibility, which is how a document offers the same thing twice — once in the
+    /// terms a newer reader understands and once in terms an older one does.
+    /// </summary>
+    public static readonly XNamespace Compatibility =
+        "http://schemas.openxmlformats.org/markup-compatibility/2006";
+
     /// <summary>Relationship references, the source of r:id attributes.</summary>
     public static readonly XNamespace Relationships =
         "http://schemas.openxmlformats.org/officeDocument/2006/relationships";

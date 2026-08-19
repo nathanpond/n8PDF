@@ -637,6 +637,28 @@ public static class Fixtures
                                               </w:style>
                                               """;
 
+    /// <summary>A paragraph for the inside of a shape, spaced like the ones outside it.</summary>
+    private static string ShapeText(string text) =>
+        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+        $"<w:t xml:space=\"preserve\">{Escape(text)}</w:t></w:r></w:p>";
+
+    /// <summary>
+    /// One page of the inset probe: a text box on its own, holding one short line whose position
+    /// is the whole measurement.
+    /// </summary>
+    /// <remarks>
+    /// The box is wider and taller than the line needs, so that where the line sits inside it says
+    /// what the insets are, whether the outline is added to them, and what the anchor did.
+    /// </remarks>
+    private static string InsetShapePage(
+        string label, (double Left, double Top, double Right, double Bottom)? insets,
+        double lineWidth, string anchor, bool first = false) =>
+        $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
+        DocxBuilder.InlineShape(216, 72, content: ShapeText(label),
+            fillHex: "FFFFFF", lineHex: "000000", lineWidthPoints: lineWidth,
+            insets: insets, anchor: anchor, id: 300 + label[0]) +
+        "</w:p>";
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -1175,6 +1197,63 @@ public static class Fixtures
                 .AddRawParagraph(ProbeTable(LookEverything, rows: 4, columns: 1))
                 .AddParagraph("The cascade below.", ZeroSpacingNewPage, Times12)
                 .AddRawParagraph(CascadeTable()),
+
+            // Shapes: a text box in the line, a text box the text flows around, and four shapes
+            // with nothing in them at all. What a shape holds is a document of its own — its own
+            // paragraphs, laid out into a box that is not the page's — and what it is drawn with
+            // is its geometry, its fill and its outline.
+            ["shapes"] = () => new DocxBuilder()
+                .AddParagraph("Paragraph before the box.", ZeroSpacing, Times12)
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacing + "</w:pPr>" +
+                                 DocxBuilder.InlineShape(216, 72,
+                                     content: ShapeText("A box in the line of text.") +
+                                              ShapeText("And a second paragraph in it."),
+                                     fillHex: "FFFFFF", lineHex: "000000") + "</w:p>")
+                .AddParagraph("Paragraph after the box.", ZeroSpacing, Times12)
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacingNewPage + "</w:pPr>" +
+                                 DocxBuilder.AnchoredShape(144, 90,
+                                     content: ShapeText("A box the text goes round."),
+                                     alignX: "left", offsetYPoints: 0, wrap: "square",
+                                     fillHex: "FFFFFF", lineHex: "000000") +
+                                 $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">" +
+                                 Escape(string.Join(' ', Enumerable.Repeat(
+                                     "Text runs alongside the box and closes up under it again.", 12))) +
+                                 "</w:t></w:r></w:p>")
+                .AddParagraph("Shapes with nothing in them below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacing + "</w:pPr>" +
+                                 DocxBuilder.InlineShape(108, 54, geometry: "rect",
+                                     fillHex: "C0D8F0", lineHex: "1F4E79", lineWidthPoints: 2, id: 101) +
+                                 DocxBuilder.InlineShape(108, 54, geometry: "roundRect",
+                                     fillHex: "F0D8C0", lineHex: "7F4E19", lineWidthPoints: 1, id: 102) +
+                                 "</w:p>")
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacing + "</w:pPr>" +
+                                 DocxBuilder.InlineShape(108, 54, geometry: "ellipse",
+                                     fillHex: "D8F0C0", lineHex: "4E7F19", lineWidthPoints: 1, id: 103) +
+                                 DocxBuilder.InlineShape(108, 54, geometry: "rect",
+                                     fillHex: null, lineHex: "000000", lineWidthPoints: 3, id: 104) +
+                                 "</w:p>")
+                .AddParagraph("And one in the theme's own colours.", ZeroSpacing, Times12)
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacing + "</w:pPr>" +
+                                 DocxBuilder.InlineShape(108, 54, geometry: "rect",
+                                     fillHex: "accent1", lineHex: "accent2", lineWidthPoints: 2,
+                                     id: 105) +
+                                 "</w:p>"),
+
+            // How far inside its own edges a shape sets its text, which is three questions at
+            // once: what the default inset is, whether the outline is added to it the way a table
+            // cell's border is, and where the text sits in a box taller than it needs.
+            //
+            //   page 1  Word's own insets, a fine outline
+            //   page 2  no insets at all, the same outline   -> is the outline part of the inset?
+            //   page 3  no insets, a six point outline       -> the discriminator
+            //   page 4  Word's insets, anchored centre
+            //   page 5  Word's insets, anchored bottom
+            ["shape-inset-probe"] = () => new DocxBuilder()
+                .AddRawParagraph(InsetShapePage("A", null, 0.75, "t", first: true))
+                .AddRawParagraph(InsetShapePage("B", (0, 0, 0, 0), 0.75, "t"))
+                .AddRawParagraph(InsetShapePage("C", (0, 0, 0, 0), 6, "t"))
+                .AddRawParagraph(InsetShapePage("D", null, 0.75, "ctr"))
+                .AddRawParagraph(InsetShapePage("E", null, 0.75, "b")),
 
             // Inline images: one on its own, one alongside text so that the line's height and the
             // baseline it sits on can be checked, and one with transparency.

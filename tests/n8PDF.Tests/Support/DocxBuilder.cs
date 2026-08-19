@@ -596,6 +596,142 @@ public sealed class DocxBuilder
         return this;
     }
 
+    /// <summary>
+    /// A shape drawn in the text: its geometry, how it is painted, and what it holds.
+    /// </summary>
+    /// <remarks>
+    /// This is the markup Word writes for a text box, minus the compatibility wrapper — a shape
+    /// goes into the document as a drawing holding a <c>wps:wsp</c>, which is the same graphic
+    /// frame a picture goes into with a different thing inside it. What makes it a text box rather
+    /// than a plain shape is the <c>wps:txbx</c>, and what makes it a plain shape is leaving that
+    /// out; both are the same element otherwise.
+    /// </remarks>
+    /// <param name="content">
+    /// The paragraphs inside it, or null for a shape with no text at all.
+    /// </param>
+    /// <param name="geometry">A preset geometry name: rect, roundRect, ellipse, triangle.</param>
+    /// <param name="insets">
+    /// How far the text sits inside the shape's edges, in points, or null for Word's own — a tenth
+    /// of an inch at the sides and half that above and below.
+    /// </param>
+    /// <param name="anchor">Where the text sits in the height it has: t, ctr or b.</param>
+    public static string ShapeGraphic(
+        long cx, long cy, string? content = null, string geometry = "rect",
+        string? fillHex = null, string? lineHex = null, double lineWidthPoints = 1,
+        (double Left, double Top, double Right, double Bottom)? insets = null,
+        string anchor = "t")
+    {
+        static long Emu(double points) => (long)Math.Round(points * 12700);
+
+        // A colour is either named outright or taken from the theme, which is how the shapes in
+        // Word's own gallery name theirs: "accent1" rather than a number.
+        static string Color(string value) =>
+            value.Length == 6 && value.All(Uri.IsHexDigit)
+                ? $"<a:srgbClr val=\"{value}\"/>"
+                : $"<a:schemeClr val=\"{value}\"/>";
+
+        var fill = fillHex is null
+            ? "<a:noFill/>"
+            : $"<a:solidFill>{Color(fillHex)}</a:solidFill>";
+
+        var line = lineHex is null
+            ? "<a:ln><a:noFill/></a:ln>"
+            : $"<a:ln w=\"{Emu(lineWidthPoints)}\"><a:solidFill>{Color(lineHex)}</a:solidFill></a:ln>";
+
+        var body = content is null ? string.Empty : $"<wps:txbx><w:txbxContent>{content}</w:txbxContent></wps:txbx>";
+
+        var space = insets is { } given
+            ? $"lIns=\"{Emu(given.Left)}\" tIns=\"{Emu(given.Top)}\" " +
+              $"rIns=\"{Emu(given.Right)}\" bIns=\"{Emu(given.Bottom)}\" "
+            : string.Empty;
+
+        return $"""
+            <a:graphic>
+              <a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+                <wps:wsp>
+                  <wps:cNvSpPr txBox="{(content is null ? 0 : 1)}"/>
+                  <wps:spPr>
+                    <a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>
+                    <a:prstGeom prst="{geometry}"><a:avLst/></a:prstGeom>
+                    {fill}
+                    {line}
+                  </wps:spPr>
+                  {body}
+                  <wps:bodyPr rot="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz"
+                              wrap="square" {space}anchor="{anchor}" anchorCtr="0">
+                    <a:noAutofit/>
+                  </wps:bodyPr>
+                </wps:wsp>
+              </a:graphicData>
+            </a:graphic>
+            """;
+    }
+
+    /// <summary>A shape sitting in the line of text, like an inline picture.</summary>
+    public static string InlineShape(
+        double widthPoints, double heightPoints, string? content = null, string geometry = "rect",
+        string? fillHex = null, string? lineHex = null, double lineWidthPoints = 1,
+        (double Left, double Top, double Right, double Bottom)? insets = null,
+        string anchor = "t", int id = 100)
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+
+        return $"""
+            <w:r><w:drawing>
+              <wp:inline distT="0" distB="0" distL="0" distR="0">
+                <wp:extent cx="{cx}" cy="{cy}"/>
+                <wp:docPr id="{id}" name="Shape {id}"/>
+                {ShapeGraphic(cx, cy, content, geometry, fillHex, lineHex, lineWidthPoints, insets, anchor)}
+              </wp:inline>
+            </w:drawing></w:r>
+            """;
+    }
+
+    /// <summary>A shape anchored to the page, with text flowing around it.</summary>
+    public static string AnchoredShape(
+        double widthPoints, double heightPoints, string? content = null,
+        double offsetXPoints = 0, double offsetYPoints = 0, string? alignX = null,
+        string wrap = "square", double distancePoints = 9,
+        string geometry = "rect", string? fillHex = null, string? lineHex = null,
+        double lineWidthPoints = 1,
+        (double Left, double Top, double Right, double Bottom)? insets = null,
+        string anchor = "t", int id = 200)
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+        var dist = (long)Math.Round(distancePoints * 12700);
+
+        var wrapElement = wrap switch
+        {
+            "none" => "<wp:wrapNone/>",
+            "topAndBottom" => "<wp:wrapTopAndBottom/>",
+            _ => "<wp:wrapSquare wrapText=\"bothSides\"/>"
+        };
+
+        var horizontal = alignX is not null
+            ? $"<wp:align>{alignX}</wp:align>"
+            : $"<wp:posOffset>{(long)Math.Round(offsetXPoints * 12700)}</wp:posOffset>";
+
+        return $"""
+            <w:r><w:drawing>
+              <wp:anchor distT="{dist}" distB="{dist}" distL="{dist}" distR="{dist}"
+                         simplePos="0" relativeHeight="251658240" behindDoc="0"
+                         locked="0" layoutInCell="1" allowOverlap="1">
+                <wp:simplePos x="0" y="0"/>
+                <wp:positionH relativeFrom="column">{horizontal}</wp:positionH>
+                <wp:positionV relativeFrom="paragraph">
+                  <wp:posOffset>{(long)Math.Round(offsetYPoints * 12700)}</wp:posOffset>
+                </wp:positionV>
+                <wp:extent cx="{cx}" cy="{cy}"/>
+                {wrapElement}
+                <wp:docPr id="{id}" name="Shape {id}"/>
+                {ShapeGraphic(cx, cy, content, geometry, fillHex, lineHex, lineWidthPoints, insets, anchor)}
+              </wp:anchor>
+            </w:drawing></w:r>
+            """;
+    }
+
     private readonly List<(string Id, string PartName, string Kind, string Body,
         IReadOnlyList<(string Id, string Url)> Hyperlinks)> _headersFooters = [];
     private bool _titlePage;
@@ -771,7 +907,9 @@ public sealed class DocxBuilder
             <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
                         xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
                         xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-                        xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                        xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                        xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
               <w:body>{_body}{BuildSectionProperties()}</w:body>
             </w:document>
             """;

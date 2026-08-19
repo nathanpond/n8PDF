@@ -1023,14 +1023,17 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     {
         foreach (var anchored in paragraph.Runs.SelectMany(run => run.Content).OfType<AnchoredDrawing>())
         {
-            if (anchored.RelationshipId is null) continue;
-
-            var image = DecodeImage(anchored.RelationshipId);
-            if (image is null) continue;
-
             var width = anchored.WidthPoints;
             var height = anchored.HeightPoints;
             if (width <= 0 || height <= 0) continue;
+
+            (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top)? composed =
+                anchored.Shape is { } shape ? ComposeShape(shape, width, height) : null;
+
+            var image = composed?.Frame ??
+                        (anchored.RelationshipId is null ? null : DecodeImage(anchored.RelationshipId));
+
+            if (image is null) continue;
 
             var x = ResolveHorizontalPosition(cursor, anchored, width);
             var y = ResolveVerticalPosition(cursor, anchored, height);
@@ -1043,6 +1046,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Height = height,
                 Image = image
             });
+
+            composed?.Content?.PlaceOnto(cursor.Page, x + composed.Value.Left, y + composed.Value.Top);
 
             if (anchored.Wrap == TextWrapMode.None) continue;
 
@@ -2971,6 +2976,48 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// Draws a shape's frame and lays out what it holds, in the shape's own coordinates.
+    /// </summary>
+    /// <remarks>
+    /// The text clears the inset and half the outline, the half of it that falls inside the
+    /// shape. Measured from shape-inset-probe, whose third page sets a six point outline against
+    /// no inset at all: the text there begins 3.12pt inside the shape, where half the outline is
+    /// 3pt and the whole of it is 6pt.
+    /// </remarks>
+    private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeShape(
+        ShapeFrame shape, double width, double height)
+    {
+        var frame = new Images.ImageData(1, 1, [],
+            Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
+        {
+            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme)
+        };
+
+        if (!shape.HasText) return (frame, null, 0, 0);
+
+        var edge = shape.Line is null ? 0 : shape.LineWidthPoints / 2;
+
+        var left = shape.InsetLeftPoints + edge;
+        var available = width - shape.InsetLeftPoints - shape.InsetRightPoints - 2 * edge;
+        var content = MeasureBlocks(shape.Content, Math.Max(1, available));
+
+        // Where in the height the text sits, which is what the shape's anchor decides. A box
+        // whose text is taller than it is runs on out of the bottom of it, which is what Word
+        // does with one too.
+        var box = height - shape.InsetTopPoints - shape.InsetBottomPoints - 2 * edge;
+
+        var top = shape.Anchor switch
+        {
+            ShapeTextAnchor.Center => shape.InsetTopPoints + edge + Math.Max(0, (box - content.Height) / 2),
+            ShapeTextAnchor.Bottom => Math.Max(shape.InsetTopPoints + edge,
+                height - shape.InsetBottomPoints - edge - content.Height),
+            _ => shape.InsetTopPoints + edge
+        };
+
+        return (frame, content, left, top);
+    }
+
+    /// <summary>
     /// Lays out blocks into a detached page so their height can be measured before placement.
     /// </summary>
     private DetachedFlow MeasureBlocks(IReadOnlyList<BlockElement> blocks, double width)
@@ -3147,6 +3194,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Height = image.Height,
                 Image = image.Image
             });
+
+            // A shape's text goes down after its frame, so the frame is under it.
+            image.Content?.PlaceOnto(page,
+                contentLeft + x + image.ContentLeft,
+                baselineY - image.Height + image.ContentTop);
         }
 
         page.Lines.Add(laidOut);
@@ -4044,14 +4096,34 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// </remarks>
     private void AddImageAtom(List<Atom> atoms, DrawingInline drawing)
     {
+        var width = drawing.WidthPoints;
+        var height = drawing.HeightPoints;
+        if (width <= 0 || height <= 0) return;
+
+        if (drawing.Shape is { } shape)
+        {
+            var composed = ComposeShape(shape, width, height);
+
+            atoms.Add(new ImageAtom
+            {
+                Image = composed.Frame,
+                Width = width,
+                Height = height,
+                Ascent = height,
+                NaturalHeight = height,
+                Descent = 0,
+                Content = composed.Content,
+                ContentLeft = composed.Left,
+                ContentTop = composed.Top
+            });
+
+            return;
+        }
+
         if (drawing.RelationshipId is null) return;
 
         var image = DecodeImage(drawing.RelationshipId);
         if (image is null) return;
-
-        var width = drawing.WidthPoints;
-        var height = drawing.HeightPoints;
-        if (width <= 0 || height <= 0) return;
 
         atoms.Add(new ImageAtom
         {
@@ -5026,6 +5098,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required double Width { get; init; }
 
         public required double Height { get; init; }
+
+        /// <summary>
+        /// What a shape holds, already laid out, or null for a picture. It is placed onto the
+        /// page as ordinary lines rather than kept inside anything, so text in a box is text on
+        /// the page: selectable, searchable, and in the trace like any other.
+        /// </summary>
+        public DetachedFlow? Content { get; init; }
+
+        /// <summary>Where that content sits inside the shape.</summary>
+        public double ContentLeft { get; init; }
+
+        public double ContentTop { get; init; }
     }
 
     private readonly record struct PlacedAtom(

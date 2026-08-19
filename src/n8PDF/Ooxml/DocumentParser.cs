@@ -293,6 +293,17 @@ public static class DocumentParser
             {
                 if (ParseDrawing(child) is { } drawing) run.Content.Add(drawing);
             }
+            else if (child.Name == W.Compatibility + "AlternateContent")
+            {
+                // The same drawing written twice over, for readers of different ages. The first
+                // choice is the one meant for a reader that understands it, and the fallback the
+                // older spelling of the same thing — so taking the choice and ignoring the
+                // fallback draws it once rather than twice.
+                foreach (var alternative in Preferred(child).Elements(W.Main + "drawing"))
+                {
+                    if (ParseDrawing(alternative) is { } drawing) run.Content.Add(drawing);
+                }
+            }
             else if (child.Name == W.Main + "footnoteReference" || child.Name == W.Main + "endnoteReference")
             {
                 var kind = child.Name == W.Main + "footnoteReference" ? NoteKind.Footnote : NoteKind.Endnote;
@@ -419,6 +430,28 @@ public static class DocumentParser
     }
 
     /// <summary>
+    /// The branch of an <c>mc:AlternateContent</c> to read: the first choice where there is one,
+    /// and the fallback otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Which choices a reader can take is stated as the namespaces it must understand, and the
+    /// only one Word writes for a shape is its own <c>wps</c>, which is the one read here. A
+    /// document offering something else falls back, which is what the fallback is for.
+    /// </remarks>
+    private static XElement Preferred(XElement alternateContent)
+    {
+        foreach (var choice in alternateContent.Elements(W.Compatibility + "Choice"))
+        {
+            var requires = choice.Attribute("Requires")?.Value ?? string.Empty;
+
+            if (requires.Split(' ').All(prefix => prefix is "wps" or "wpg" or "wp14" or ""))
+                return choice;
+        }
+
+        return alternateContent.Element(W.Compatibility + "Fallback") ?? alternateContent;
+    }
+
+    /// <summary>
     /// Reads a <c>w:drawing</c>, which holds either an inline picture or an anchored one.
     /// </summary>
     private static InlineElement? ParseDrawing(XElement element)
@@ -431,7 +464,100 @@ public static class DocumentParser
         var (width, height) = ReadExtent(inline);
         if (width <= 0 || height <= 0) return null;
 
-        return new DrawingInline(width, height, ReadEmbeddedRelationship(inline));
+        return new DrawingInline(width, height, ReadEmbeddedRelationship(inline))
+        {
+            Shape = ReadShape(inline)
+        };
+    }
+
+    /// <summary>
+    /// Reads the shape a drawing frame holds, or null where it holds a picture instead.
+    /// </summary>
+    /// <remarks>
+    /// A shape and a picture arrive the same way — both are a <c>a:graphicData</c> inside the same
+    /// frame — and what tells them apart is what is inside it. A shape's own size is taken from
+    /// the frame rather than from its <c>a:xfrm</c>: the two agree in everything Word writes, and
+    /// the frame is what the text around it was laid out against.
+    /// </remarks>
+    private static ShapeFrame? ReadShape(XElement container)
+    {
+        var wsp = container.Descendants(W.Shape + "wsp").FirstOrDefault();
+        if (wsp is null) return null;
+
+        var shape = new ShapeFrame();
+
+        if (wsp.Descendants(W.Shape + "spPr").FirstOrDefault() is { } spPr)
+        {
+            shape.Geometry = spPr.Element(W.Drawing + "prstGeom")?.Attribute("prst")?.Value ?? "rect";
+            shape.Fill = ReadDrawingFill(spPr);
+
+            if (spPr.Element(W.Drawing + "ln") is { } line)
+            {
+                shape.Line = ReadDrawingFill(line);
+
+                if (line.Attribute("w")?.Value is { } width &&
+                    long.TryParse(width, out var emu) && emu > 0)
+                {
+                    shape.LineWidthPoints = Units.EmuToPoints(emu);
+                }
+            }
+        }
+
+        if (wsp.Descendants(W.Shape + "bodyPr").FirstOrDefault() is { } bodyPr)
+        {
+            shape.InsetLeftPoints = Inset(bodyPr, "lIns", shape.InsetLeftPoints);
+            shape.InsetTopPoints = Inset(bodyPr, "tIns", shape.InsetTopPoints);
+            shape.InsetRightPoints = Inset(bodyPr, "rIns", shape.InsetRightPoints);
+            shape.InsetBottomPoints = Inset(bodyPr, "bIns", shape.InsetBottomPoints);
+
+            shape.Anchor = bodyPr.Attribute("anchor")?.Value switch
+            {
+                "ctr" => ShapeTextAnchor.Center,
+                "b" => ShapeTextAnchor.Bottom,
+                _ => ShapeTextAnchor.Top
+            };
+        }
+
+        var content = wsp.Descendants(W.Main + "txbxContent").FirstOrDefault();
+        if (content is not null)
+        {
+            foreach (var child in content.Elements())
+            {
+                if (child.Name == W.Main + "p") shape.Content.Add(ParseParagraph(child));
+                else if (child.Name == W.Main + "tbl") shape.Content.Add(ParseTable(child));
+            }
+        }
+
+        return shape;
+
+        static double Inset(XElement bodyPr, string name, double fallback) =>
+            bodyPr.Attribute(name)?.Value is { } value && long.TryParse(value, out var emu)
+                ? Units.EmuToPoints(emu)
+                : fallback;
+    }
+
+    /// <summary>
+    /// The colour something is painted in: a literal one, a theme slot, or nothing at all where
+    /// it declares <c>a:noFill</c>.
+    /// </summary>
+    /// <remarks>
+    /// An element saying nothing about its fill is not the same as one saying it has none — the
+    /// first inherits from the theme's format scheme, which is not read here, and the second is
+    /// unpainted. Both come back as null, so a shape that leaves its fill unstated is drawn
+    /// unfilled rather than in a colour guessed for it.
+    /// </remarks>
+    private static DrawingColorReference? ReadDrawingFill(XElement container)
+    {
+        var solid = container.Element(W.Drawing + "solidFill");
+        if (solid is null) return null;
+
+        if (solid.Element(W.Drawing + "srgbClr")?.Attribute("val")?.Value is { } hex)
+            return new DrawingColorReference(hex, null);
+
+        if (solid.Element(W.Drawing + "schemeClr")?.Attribute("val")?.Value is { } slot)
+            return new DrawingColorReference(null, slot);
+
+        return null;
     }
 
     private static AnchoredDrawing? ParseAnchoredDrawing(XElement anchor)
@@ -451,6 +577,7 @@ public static class DocumentParser
 
         return new AnchoredDrawing
         {
+            Shape = ReadShape(anchor),
             WidthEmu = width,
             HeightEmu = height,
             RelationshipId = ReadEmbeddedRelationship(anchor),

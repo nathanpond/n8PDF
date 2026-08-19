@@ -188,6 +188,9 @@ public sealed class DrawingInline(long widthEmu, long heightEmu, string? relatio
 
     public string? RelationshipId { get; } = relationshipId;
 
+    /// <summary>The shape drawn here, where this frame holds one rather than a picture.</summary>
+    public ShapeFrame? Shape { get; init; }
+
     public double WidthPoints => Units.EmuToPoints(WidthEmu);
 
     public double HeightPoints => Units.EmuToPoints(HeightEmu);
@@ -228,6 +231,72 @@ public enum VerticalAnchor
     BottomMargin
 }
 
+/// <summary>Where a shape's text sits in the height the shape gives it.</summary>
+public enum ShapeTextAnchor
+{
+    Top,
+    Center,
+    Bottom
+}
+
+/// <summary>
+/// A colour a drawing names: either outright, or as a slot in the document's theme.
+/// </summary>
+/// <remarks>
+/// Which of the two it is cannot be resolved while the document is being read, since the theme is
+/// a part of its own and is not loaded yet. It is carried as written and looked up at layout.
+/// </remarks>
+public sealed record DrawingColorReference(string? Hex, string? ThemeSlot);
+
+/// <summary>
+/// A shape drawn in the text: an outline of some geometry, filled or not, holding text or not.
+/// </summary>
+/// <remarks>
+/// A text box is a shape with text in it, and nothing else tells the two apart — the same element
+/// carries a rectangle drawn round a paragraph and a plain rectangle drawn on its own. What it
+/// holds is a document of its own: whole paragraphs, and tables, laid out into a box that is not
+/// the page's.
+/// </remarks>
+public sealed class ShapeFrame
+{
+    /// <summary>
+    /// The preset geometry, as the drawing names it: <c>rect</c>, <c>roundRect</c>,
+    /// <c>ellipse</c>, <c>triangle</c>. Anything else is drawn as a rectangle.
+    /// </summary>
+    public string Geometry { get; set; } = "rect";
+
+    /// <summary>What it is filled with, or null where it is not filled at all.</summary>
+    public DrawingColorReference? Fill { get; set; }
+
+    /// <summary>What its outline is drawn in, or null where it has none.</summary>
+    public DrawingColorReference? Line { get; set; }
+
+    /// <summary>
+    /// How thick that outline is. Three quarters of a point is what Word draws where a shape
+    /// gives its outline a colour and no width, that being the weight its own gallery uses.
+    /// </summary>
+    public double LineWidthPoints { get; set; } = 0.75;
+
+    /// <summary>The blocks inside it, empty for a shape holding no text.</summary>
+    public List<BlockElement> Content { get; } = [];
+
+    /// <summary>
+    /// How far inside its edges the text sits. Word's defaults are a tenth of an inch at the
+    /// sides and half of that above and below, which is what a shape declaring none of them gets.
+    /// </summary>
+    public double InsetLeftPoints { get; set; } = 7.2;
+
+    public double InsetTopPoints { get; set; } = 3.6;
+
+    public double InsetRightPoints { get; set; } = 7.2;
+
+    public double InsetBottomPoints { get; set; } = 3.6;
+
+    public ShapeTextAnchor Anchor { get; set; } = ShapeTextAnchor.Top;
+
+    public bool HasText => Content.Count > 0;
+}
+
 /// <summary>
 /// A drawing positioned independently of the text flow, from a <c>wp:anchor</c>.
 /// </summary>
@@ -243,6 +312,9 @@ public sealed class AnchoredDrawing : InlineElement
     public required long HeightEmu { get; init; }
 
     public string? RelationshipId { get; init; }
+
+    /// <summary>The shape drawn here, where this frame holds one rather than a picture.</summary>
+    public ShapeFrame? Shape { get; init; }
 
     public TextWrapMode Wrap { get; init; } = TextWrapMode.Square;
 

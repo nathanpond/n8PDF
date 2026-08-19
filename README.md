@@ -140,6 +140,18 @@ residuals are already smaller than one quantum — but it is the floor on how cl
 match Word vertically. It quantises the type size it writes to the same 1/300 inch, which is why a
 15pt run comes out of one of its PDFs as 15.12.
 
+### How far inside its own edges a shape sets its text
+
+A text box holds its text clear of its edges by two things added together: the inset the shape
+declares — a tenth of an inch at the sides and half of that above and below, where it declares
+none — and **half its outline**, the half that falls inside the shape. `shape-inset-probe` is what
+says so: its third page sets a six point outline against no inset at all, and the text there begins
+3.12pt inside the shape rather than 6pt or nothing.
+
+The outline itself straddles the edge. Word's export fills the whole extent and then strokes the
+same rectangle, insetting neither, which is what a PDF does with a stroked path anyway — so the
+frame here is drawn the same way and the two agree to a hundredth of a point.
+
 ### Which part of a table style reaches which cell
 
 A table style is unlike every other kind: what it says depends on where a cell is rather than on
@@ -229,7 +241,14 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), table styles (all thirteen conditional formats — the whole table, the banding across
+pictures), text boxes and the shapes they are a kind of (rectangles, rounded rectangles, ellipses
+and triangles drawn as themselves and every other preset geometry as the rectangle it is bounded
+by; filled and outlined in a colour named outright or taken from the theme; in the line of text or
+anchored with the text flowing round them; and holding a document of their own — paragraphs and
+tables, laid out into the box, clear of its insets and its outline, and set at its top, middle or
+foot as it asks. A shape arrives wrapped in the compatibility element that offers the same drawing
+twice over, once for a newer reader and once for an older; the newer is read and the older passed
+over, so it is drawn once), table styles (all thirteen conditional formats — the whole table, the banding across
 its rows and down its columns, its first and last rows, its first and last columns and its four
 corner cells — resolved through the style's `basedOn` chain, gated by the table's `w:tblLook` in
 either spelling, and giving a cell its borders, its shading, its margins, its alignment and the
@@ -245,6 +264,14 @@ italic, underline, strikethrough, colour, caps, super/subscript, character spaci
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
+
+What a shape does not do yet: turn (a rotated shape is drawn square), resize itself or its text to
+fit the other (a box holding more than it has room for overflows, which is what `noAutofit` asks
+for and what Word does with that setting), fill with anything but one flat colour, or carry a
+shadow. Nor is the older VML spelling of a shape read — the `w:pict` that Word wrote before 2007
+and still writes for a watermark. It is what the compatibility wrapper offers as its fallback, so
+nothing in a document Word saved this century is lost by passing over it, but a document written
+in that spelling alone comes out without its shapes.
 
 Table autofit is the one piece here that approximates rather than reproduces. Word's algorithm is
 undocumented; ours measures each column's minimum (widest word) and maximum (unwrapped) width and
