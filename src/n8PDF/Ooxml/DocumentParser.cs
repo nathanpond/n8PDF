@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace n8PDF.Ooxml;
@@ -796,8 +797,17 @@ public static class DocumentParser
             }
         }
 
+        properties.StyleId = tblPr.Element(W.Main + "tblStyle")?.Val();
+        properties.RowBandSize = Math.Max(1, tblPr.Element(W.Main + "tblStyleRowBandSize")?.IntVal() ?? 1);
+        properties.ColumnBandSize = Math.Max(1, tblPr.Element(W.Main + "tblStyleColBandSize")?.IntVal() ?? 1);
+
+        if (tblPr.Element(W.Main + "tblLook") is { } look) properties.Look = ReadTableLook(look);
+
         properties.IndentTwips = tblPr.Element(W.Main + "tblInd")?.IntAttr("w");
-        properties.FixedLayout = tblPr.Element(W.Main + "tblLayout")?.Attr("type") == "fixed";
+
+        if (tblPr.Element(W.Main + "tblLayout")?.Attr("type") is { } layout)
+            properties.FixedLayout = layout == "fixed";
+
         properties.Justification = tblPr.Element(W.Main + "jc") is { } jc
             ? ParseJustification(jc.Val())
             : null;
@@ -821,6 +831,39 @@ public static class DocumentParser
         return properties;
     }
 
+    /// <summary>
+    /// Reads a <c>w:tblLook</c>, in either of the two spellings Word writes it in.
+    /// </summary>
+    /// <remarks>
+    /// The attributes are read where they are there and the hexadecimal <c>w:val</c> where they
+    /// are not, since a document written before Word 2007 has only the second. The bits of it
+    /// say the same six things: 0x0020 a first row, 0x0040 a last row, 0x0080 a first column,
+    /// 0x0100 a last column, and 0x0200 and 0x0400 turning the two kinds of banding off.
+    /// </remarks>
+    private static TableLook ReadTableLook(XElement element)
+    {
+        var packed = 0;
+        if (element.Attr("val") is { } value)
+            int.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out packed);
+
+        bool Read(string name, int bit, bool inverted = false)
+        {
+            if (element.Attr(name) is { } attribute) return ReadOnOff(attribute) != inverted;
+
+            return ((packed & bit) != 0) != inverted;
+        }
+
+        return new TableLook
+        {
+            FirstRow = Read("firstRow", 0x0020),
+            LastRow = Read("lastRow", 0x0040),
+            FirstColumn = Read("firstColumn", 0x0080),
+            LastColumn = Read("lastColumn", 0x0100),
+            HorizontalBanding = Read("noHBand", 0x0200, inverted: true),
+            VerticalBanding = Read("noVBand", 0x0400, inverted: true)
+        };
+    }
+
     private static TableRow ParseTableRow(XElement rowElement)
     {
         var row = new TableRow();
@@ -841,8 +884,8 @@ public static class DocumentParser
                 };
             }
 
-            row.CantSplit = trPr.Element(W.Main + "cantSplit")?.OnOff() ?? false;
-            row.IsHeader = trPr.Element(W.Main + "tblHeader")?.OnOff() ?? false;
+            row.CantSplit = trPr.Element(W.Main + "cantSplit")?.OnOff();
+            row.IsHeader = trPr.Element(W.Main + "tblHeader")?.OnOff();
         }
 
         foreach (var cellElement in rowElement.Elements(W.Main + "tc"))
@@ -864,16 +907,11 @@ public static class DocumentParser
             var borders = tcPr.Element(W.Main + "tcBorders");
             if (borders is not null) ReadBorders(borders, cell.Borders);
 
-            var shading = tcPr.Element(W.Main + "shd");
-            var fill = shading?.Attr("fill");
-            cell.ShadingFill = fill is null or "auto" ? null : fill;
+            // "auto" is kept rather than dropped: a cell declaring it is turning off shading its
+            // style would otherwise give it, which is not the same as saying nothing.
+            cell.ShadingFill = tcPr.Element(W.Main + "shd")?.Attr("fill");
 
-            cell.VerticalAlignment = tcPr.Element(W.Main + "vAlign")?.Val() switch
-            {
-                "center" => VerticalCellAlignment.Center,
-                "bottom" => VerticalCellAlignment.Bottom,
-                _ => VerticalCellAlignment.Top
-            };
+            cell.VerticalAlignment = ReadVerticalAlignment(tcPr.Element(W.Main + "vAlign"));
 
             // A vMerge with no value means "continue", which is the common spelling.
             var vMerge = tcPr.Element(W.Main + "vMerge");
@@ -903,7 +941,61 @@ public static class DocumentParser
         return cell;
     }
 
-    private static void ReadBorders(XElement container, BorderSet target)
+    /// <summary>Reads the <c>w:trPr</c> of a table style, which says less than a row's own can.</summary>
+    public static TableStyleRowProperties ParseTableStyleRowProperties(XElement trPr)
+    {
+        var properties = new TableStyleRowProperties
+        {
+            CantSplit = trPr.Element(W.Main + "cantSplit")?.OnOff(),
+            IsHeader = trPr.Element(W.Main + "tblHeader")?.OnOff()
+        };
+
+        if (trPr.Element(W.Main + "trHeight") is { } height)
+        {
+            properties.HeightTwips = height.IntAttr("val");
+            properties.HeightRule = height.Attr("hRule") switch
+            {
+                "exact" => RowHeightRule.Exact,
+                "atLeast" => RowHeightRule.AtLeast,
+                _ => properties.HeightTwips is not null ? RowHeightRule.AtLeast : null
+            };
+        }
+
+        return properties;
+    }
+
+    /// <summary>Reads the <c>w:tcPr</c> of a table style.</summary>
+    public static TableStyleCellProperties ParseTableStyleCellProperties(XElement tcPr)
+    {
+        var properties = new TableStyleCellProperties
+        {
+            ShadingFill = tcPr.Element(W.Main + "shd")?.Attr("fill"),
+            VerticalAlignment = ReadVerticalAlignment(tcPr.Element(W.Main + "vAlign"))
+        };
+
+        if (tcPr.Element(W.Main + "tcBorders") is { } borders) ReadBorders(borders, properties.Borders);
+
+        if (tcPr.Element(W.Main + "tcMar") is { } margins)
+        {
+            properties.MarginLeftTwips = margins.Element(W.Main + "left")?.IntAttr("w");
+            properties.MarginRightTwips = margins.Element(W.Main + "right")?.IntAttr("w");
+            properties.MarginTopTwips = margins.Element(W.Main + "top")?.IntAttr("w");
+            properties.MarginBottomTwips = margins.Element(W.Main + "bottom")?.IntAttr("w");
+        }
+
+        return properties;
+    }
+
+    /// <summary>Reads a <c>w:vAlign</c>, or null where a cell declares none.</summary>
+    internal static VerticalCellAlignment? ReadVerticalAlignment(XElement? element) => element?.Val() switch
+    {
+        null => null,
+        "center" => VerticalCellAlignment.Center,
+        "bottom" => VerticalCellAlignment.Bottom,
+        _ => VerticalCellAlignment.Top
+    };
+
+    internal static void ReadBorders(XElement container, BorderSet target)
     {
         target.Top = ReadBorderEdge(container.Element(W.Main + "top"));
         target.Left = ReadBorderEdge(container.Element(W.Main + "left") ?? container.Element(W.Main + "start"));

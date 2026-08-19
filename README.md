@@ -137,7 +137,44 @@ that here; a raised one rises about a third.
 
 Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented — our
 residuals are already smaller than one quantum — but it is the floor on how closely anything can
-match Word vertically.
+match Word vertically. It quantises the type size it writes to the same 1/300 inch, which is why a
+15pt run comes out of one of its PDFs as 15.12.
+
+### Which part of a table style reaches which cell
+
+A table style is unlike every other kind: what it says depends on where a cell is rather than on
+what the cell says about itself. It can describe thirteen different parts of a table — the whole of
+it, the banding across the rows and down the columns, the first and last rows, the first and last
+columns, and the four corner cells — and the order in which those override each other was measured
+rather than read. `table-style-conditional-probe` gives every one of the thirteen a different type
+size, so the size Word draws a cell at names the format that reached it, and seven pages of tables
+give the whole lattice at once. Two of the answers are not the ones the specification's ordering
+would give:
+
+- **Banding down the columns beats banding across the rows.** With both in force the rows leave no
+  mark at all — every cell in the middle of the probe's first table comes out at its column band's
+  size — so the fixture needs a page with the column banding turned off to see the row banding at
+  all.
+- **A first row beats a first column.** Where a style defines no corner formats, the cell where the
+  two meet is drawn in the first row's size.
+
+The rest is as expected: the whole table, then the banding, then the edge columns, then the edge
+rows, then the corners, each overriding what came before. Two orderings could not be measured
+because nothing makes the two formats meet in one cell — a last row against a last column, and the
+corners against each other — and each follows the pattern of the pair beside it.
+
+A table of one row has a **first row and no last one**, and a table of one column a first column
+and no last one. The single row of a four-column table comes out in the first row's size, and the
+cells at either end of it in the north-west and north-east corners rather than the southern pair —
+which matters, because a one-row table is what a great many documents use for a banner or a form.
+
+Three more things the same fixture settled. `w:tblLook` gates every one of the conditional formats,
+the corners and the banding included: with it turned off, a table drawn by a style with all
+thirteen comes out entirely in the whole-table formatting. Banding begins counting *after* the
+first row or column where there is one, and runs on through the last one whether or not a format
+for it exists. And a table style sits between the document's defaults and the paragraph's own style
+in the cascade — a paragraph style used in a cell overrides the table style, and direct formatting
+overrides both.
 
 ## Current scope
 
@@ -192,7 +229,13 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
+pictures), table styles (all thirteen conditional formats — the whole table, the banding across
+its rows and down its columns, its first and last rows, its first and last columns and its four
+corner cells — resolved through the style's `basedOn` chain, gated by the table's `w:tblLook` in
+either spelling, and giving a cell its borders, its shading, its margins, its alignment and the
+formatting of the text inside it, with everything the table declares for itself winning over all of
+it; a `TableGrid` table from a real document is ruled where Word rules it, which before this it was
+not, having no borders drawn at all), tables (fixed and autofit column sizing, horizontal spans, borders, shading,
 cell margins and vertical alignment, rows kept whole across page breaks), page size and margins
 from `sectPr`, paragraphs and runs, `xml:space` handling,
 line and page breaks, line breaking by the Unicode algorithm (so the scripts written without

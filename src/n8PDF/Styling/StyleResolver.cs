@@ -7,9 +7,10 @@ namespace n8PDF.Styling;
 /// <see cref="ResolvedParagraphFormat"/> and <see cref="ResolvedRunFormat"/> values.
 /// </summary>
 /// <remarks>
-/// The order is: document defaults, then the paragraph style's inheritance chain from the most
-/// general ancestor down, then the character style's chain, then formatting applied directly to
-/// the element. Toggle properties do not simply override — see <see cref="ApplyToggle"/>.
+/// The order is: document defaults, then the style of the table the paragraph is in, then the
+/// paragraph style's inheritance chain from the most general ancestor down, then the character
+/// style's chain, then formatting applied directly to the element. Toggle properties do not
+/// simply override — see <see cref="ApplyToggle"/>.
 /// </remarks>
 public sealed class StyleResolver(
     StyleDefinitions styles,
@@ -51,6 +52,12 @@ public sealed class StyleResolver(
         // 1. Document defaults.
         accumulator.Apply(_styles.DefaultParagraphProperties);
 
+        // 1a. The style of the table this paragraph sits in, if it sits in one. It goes here
+        //     because a paragraph style beats it: measured from table-style-conditional-probe,
+        //     whose last page sets one cell against the other in the same table.
+        foreach (var fromTable in direct?.FromTableStyle?.Paragraph ?? [])
+            accumulator.Apply(fromTable);
+
         // 2. The default paragraph style, which direct pStyle-less paragraphs inherit from.
         var styleId = direct?.StyleId ?? _styles.DefaultParagraphStyleId;
         foreach (var style in _styles.GetInheritanceChain(styleId))
@@ -87,6 +94,10 @@ public sealed class StyleResolver(
 
         // 1. Document defaults.
         accumulator.Apply(_styles.DefaultRunProperties, isDirect: false);
+
+        // 1a. The table style, beneath the paragraph style for the same reason as above.
+        foreach (var fromTable in paragraph?.FromTableStyle?.Run ?? [])
+            accumulator.Apply(fromTable, isDirect: false);
 
         // 2. Run properties contributed by the paragraph style chain.
         var paragraphStyleId = paragraph?.StyleId ?? _styles.DefaultParagraphStyleId;

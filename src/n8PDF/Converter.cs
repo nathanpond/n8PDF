@@ -173,6 +173,10 @@ public static class Converter
         var stylesPart = package.GetRelatedPartName(mainPartName, OpcPackage.StylesRelationship);
         var styles = StylesParser.Parse(stylesPart is null ? null : package.ReadPartAsXml(stylesPart));
 
+        // What a table takes from its style is filled in before anything is laid out, since a
+        // cell cannot say whether it is ruled until its style has been asked.
+        Styling.TableStyles.Apply(document, styles);
+
         var themePart = package.GetRelatedPartName(mainPartName, OpcPackage.ThemeRelationship);
         var theme = StylesParser.ParseTheme(themePart is null ? null : package.ReadPartAsXml(themePart));
 

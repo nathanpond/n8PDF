@@ -44,6 +44,33 @@ public class FixtureSchemaTests
         "cnfStyle", "rPr", "sectPr", "pPrChange"
     ];
 
+    /// <summary>Child order of <c>CT_TblPrBase</c> (ECMA-376 Part 1, §17.4.60).</summary>
+    private static readonly string[] TablePropertyOrder =
+    [
+        "tblStyle", "tblpPr", "tblOverlap", "bidiVisual", "tblStyleRowBandSize",
+        "tblStyleColBandSize", "tblW", "jc", "tblCellSpacing", "tblInd", "tblBorders", "shd",
+        "tblLayout", "tblCellMar", "tblLook", "tblCaption", "tblDescription"
+    ];
+
+    /// <summary>Child order of <c>CT_TcPr</c> (ECMA-376 Part 1, §17.4.70).</summary>
+    private static readonly string[] CellPropertyOrder =
+    [
+        "cnfStyle", "tcW", "gridSpan", "hMerge", "vMerge", "tcBorders", "shd", "noWrap", "tcMar",
+        "textDirection", "tcFitText", "vAlign", "hideMark"
+    ];
+
+    /// <summary>
+    /// Child order of <c>CT_Style</c> (ECMA-376 Part 1, §17.7.4.17), from its properties onwards.
+    /// A table style carries five kinds of property and then its conditional formats, and putting
+    /// them in any other order is the way to write one Word will not open.
+    /// </summary>
+    private static readonly string[] StyleOrder =
+    [
+        "name", "aliases", "basedOn", "next", "link", "autoRedefine", "hidden", "uiPriority",
+        "semiHidden", "unhideWhenUsed", "qFormat", "locked", "personal", "personalCompose",
+        "personalReply", "rsid", "pPr", "rPr", "tblPr", "trPr", "tcPr", "tblStylePr"
+    ];
+
     public static TheoryData<string> FixtureNames
     {
         get
@@ -78,6 +105,28 @@ public class FixtureSchemaTests
         // Without this the test would pass just as happily on a fixture whose properties it
         // never found — a schema check that inspects nothing is worse than no check.
         Assert.True(inspected > 0, $"Fixture '{name}' yielded no rPr or pPr elements to validate.");
+    }
+
+    /// <summary>
+    /// The same for the three sequences a table is described by. A style is included because a
+    /// table style is the one thing in these fixtures whose properties are written by hand in five
+    /// different elements, and the schema is particular about which comes first.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(FixtureNames))]
+    public void Table_properties_and_styles_are_in_schema_order(string name)
+    {
+        foreach (var (partName, xml) in ReadXmlParts(name))
+        {
+            foreach (var tblPr in xml.Descendants(W.Main + "tblPr"))
+                AssertOrder(name, partName, "w:tblPr", tblPr, TablePropertyOrder);
+
+            foreach (var tcPr in xml.Descendants(W.Main + "tcPr"))
+                AssertOrder(name, partName, "w:tcPr", tcPr, CellPropertyOrder);
+
+            foreach (var style in xml.Descendants(W.Main + "style"))
+                AssertOrder(name, partName, "w:style", style, StyleOrder);
+        }
     }
 
     [Fact]

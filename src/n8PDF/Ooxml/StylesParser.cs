@@ -25,6 +25,60 @@ public sealed class Style
     public ParagraphProperties? ParagraphProperties { get; init; }
 
     public RunProperties? RunProperties { get; init; }
+
+    /// <summary>
+    /// What a table style says, keyed by which part of the table it says it about. The style's
+    /// own properties are the <see cref="TableConditional.WholeTable"/> entry; the rest come from
+    /// its <c>w:tblStylePr</c> children. Empty for every other kind of style.
+    /// </summary>
+    public IReadOnlyDictionary<TableConditional, TableStyleFormat> TableFormats { get; init; } =
+        new Dictionary<TableConditional, TableStyleFormat>();
+}
+
+/// <summary>
+/// The parts of a table a style can describe separately, in the order Word applies them: each one
+/// overrides the ones before it.
+/// </summary>
+/// <remarks>
+/// The order was measured rather than read, from table-style-conditional-probe: every conditional
+/// format in that fixture's style sets a different type size, so the size Word draws a cell at
+/// names the format that reached it. Two of the answers are not the ones the specification's
+/// ordering would give — banding down the columns wins over banding across the rows, and a first
+/// row wins over a first column — and the corner cells beat everything.
+///
+/// Two orderings here are inferred rather than measured, because nothing in the fixture makes the
+/// two formats meet in one cell: a last row against a last column, and the corners against each
+/// other. Both follow the pattern of the pair beside them.
+/// </remarks>
+public enum TableConditional
+{
+    WholeTable,
+    Band2Horizontal,
+    Band1Horizontal,
+    Band2Vertical,
+    Band1Vertical,
+    LastColumn,
+    FirstColumn,
+    LastRow,
+    FirstRow,
+    SouthEastCell,
+    SouthWestCell,
+    NorthEastCell,
+    NorthWestCell
+}
+
+/// <summary>Everything one conditional format of a table style has to say.</summary>
+public sealed class TableStyleFormat
+{
+    public ParagraphProperties? Paragraph { get; set; }
+
+    public RunProperties? Run { get; set; }
+
+    public TableProperties? Table { get; set; }
+
+    public TableStyleRowProperties? Row { get; set; }
+
+    public TableStyleCellProperties? Cell { get; set; }
 }
 
 /// <summary>The contents of <c>styles.xml</c>: document defaults plus the named styles.</summary>
@@ -128,7 +182,8 @@ public static class StylesParser
                 Next = element.Element(W.Main + "next")?.Val(),
                 IsDefault = isDefault,
                 ParagraphProperties = pPr is null ? null : DocumentParser.ParseParagraphProperties(pPr),
-                RunProperties = rPr is null ? null : DocumentParser.ParseRunProperties(rPr)
+                RunProperties = rPr is null ? null : DocumentParser.ParseRunProperties(rPr),
+                TableFormats = type == "table" ? ParseTableFormats(element) : new Dictionary<TableConditional, TableStyleFormat>()
             };
 
             definitions.ById[id] = style;
@@ -145,6 +200,68 @@ public static class StylesParser
 
         return definitions;
     }
+
+    /// <summary>
+    /// Reads what a table style says: its own properties, which describe the whole table, and one
+    /// entry for each <c>w:tblStylePr</c> describing a part of it.
+    /// </summary>
+    private static Dictionary<TableConditional, TableStyleFormat> ParseTableFormats(XElement element)
+    {
+        var formats = new Dictionary<TableConditional, TableStyleFormat>
+        {
+            [TableConditional.WholeTable] = ReadTableFormat(element)
+        };
+
+        foreach (var conditional in element.Elements(W.Main + "tblStylePr"))
+        {
+            if (ConditionalOf(conditional.Attr("type")) is not { } which) continue;
+
+            formats[which] = ReadTableFormat(conditional);
+        }
+
+        return formats;
+    }
+
+    /// <summary>
+    /// Reads the five kinds of property a table style or one of its conditional formats can
+    /// carry. They are the same five in both places, which is why this is written once.
+    /// </summary>
+    private static TableStyleFormat ReadTableFormat(XElement container) => new()
+    {
+        Paragraph = container.Element(W.Main + "pPr") is { } pPr
+            ? DocumentParser.ParseParagraphProperties(pPr)
+            : null,
+        Run = container.Element(W.Main + "rPr") is { } rPr
+            ? DocumentParser.ParseRunProperties(rPr)
+            : null,
+        Table = container.Element(W.Main + "tblPr") is { } tblPr
+            ? DocumentParser.ParseTableProperties(tblPr)
+            : null,
+        Row = container.Element(W.Main + "trPr") is { } trPr
+            ? DocumentParser.ParseTableStyleRowProperties(trPr)
+            : null,
+        Cell = container.Element(W.Main + "tcPr") is { } tcPr
+            ? DocumentParser.ParseTableStyleCellProperties(tcPr)
+            : null
+    };
+
+    private static TableConditional? ConditionalOf(string? type) => type switch
+    {
+        "wholeTable" => TableConditional.WholeTable,
+        "band1Horz" => TableConditional.Band1Horizontal,
+        "band2Horz" => TableConditional.Band2Horizontal,
+        "band1Vert" => TableConditional.Band1Vertical,
+        "band2Vert" => TableConditional.Band2Vertical,
+        "firstCol" => TableConditional.FirstColumn,
+        "lastCol" => TableConditional.LastColumn,
+        "firstRow" => TableConditional.FirstRow,
+        "lastRow" => TableConditional.LastRow,
+        "nwCell" => TableConditional.NorthWestCell,
+        "neCell" => TableConditional.NorthEastCell,
+        "swCell" => TableConditional.SouthWestCell,
+        "seCell" => TableConditional.SouthEastCell,
+        _ => null
+    };
 
     public static DocumentTheme ParseTheme(XDocument? xml)
     {

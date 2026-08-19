@@ -201,30 +201,30 @@ public static class Fixtures
         var properties = cantSplit ? "<w:trPr><w:cantSplit/></w:trPr>" : string.Empty;
 
         return $"""
-            <w:tbl>
-              <w:tblPr>
-                <w:tblW w:w="9360" w:type="dxa"/>
-                <!-- Half a point, which is what the other bordered fixtures use: a heavier
-                     border makes this one measure how far Word insets cell content, which is a
-                     question of its own and not what a split row is here to show. -->
-                <w:tblBorders>
-                  <w:top w:val="single" w:sz="4" w:color="auto"/>
-                  <w:left w:val="single" w:sz="4" w:color="auto"/>
-                  <w:bottom w:val="single" w:sz="4" w:color="auto"/>
-                  <w:right w:val="single" w:sz="4" w:color="auto"/>
-                  <w:insideH w:val="single" w:sz="4" w:color="auto"/>
-                  <w:insideV w:val="single" w:sz="4" w:color="auto"/>
-                </w:tblBorders>
-                <w:tblLayout w:type="fixed"/>
-              </w:tblPr>
-              <w:tblGrid><w:gridCol w:w="6480"/><w:gridCol w:w="2880"/></w:tblGrid>
-              <w:tr>{properties}
-                <w:tc>{content}</w:tc>
-                <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>
-                  <w:t>{label} second cell.</w:t></w:r></w:p></w:tc>
-              </w:tr>
-            </w:tbl>
-            """;
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblW w:w="9360" w:type="dxa"/>
+                    <!-- Half a point, which is what the other bordered fixtures use: a heavier
+                         border makes this one measure how far Word insets cell content, which is a
+                         question of its own and not what a split row is here to show. -->
+                    <w:tblBorders>
+                      <w:top w:val="single" w:sz="4" w:color="auto"/>
+                      <w:left w:val="single" w:sz="4" w:color="auto"/>
+                      <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                      <w:right w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="6480"/><w:gridCol w:w="2880"/></w:tblGrid>
+                  <w:tr>{properties}
+                    <w:tc>{content}</w:tc>
+                    <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>
+                      <w:t>{label} second cell.</w:t></w:r></w:p></w:tc>
+                  </w:tr>
+                </w:tbl>
+                """;
     }
 
     /// <summary>
@@ -243,6 +243,7 @@ public static class Fixtures
 
         return markup + "</w:p>";
     }
+
     private static readonly string Times24 = Times(48);
 
     /// <summary>Ten point, which is the size Word's footnote text style uses.</summary>
@@ -276,53 +277,53 @@ public static class Fixtures
     /// names Word reserves for built-in styles, and one it cannot possibly recognise.
     /// </remarks>
     private const string ProbeStyles = """
-        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-          <w:docDefaults>
-            <w:rPrDefault>
-              <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
-            </w:rPrDefault>
-          </w:docDefaults>
-          <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
-          <w:style w:type="paragraph" w:styleId="Heading1">
-            <w:name w:val="heading 1"/>
-            <w:basedOn w:val="Normal"/>
-            <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
-            <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
-          </w:style>
-          <w:style w:type="paragraph" w:styleId="Heading2">
-            <w:name w:val="heading 2"/>
-            <w:basedOn w:val="Normal"/>
-            <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
-            <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
-          </w:style>
-          <w:style w:type="paragraph" w:styleId="CustomBig">
-            <w:name w:val="Custom Big"/>
-            <w:basedOn w:val="Normal"/>
-            <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
-            <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
-          </w:style>
-        </w:styles>
-        """;
+                                       <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                                       <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                         <w:docDefaults>
+                                           <w:rPrDefault>
+                                             <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
+                                           </w:rPrDefault>
+                                         </w:docDefaults>
+                                         <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+                                         <w:style w:type="paragraph" w:styleId="Heading1">
+                                           <w:name w:val="heading 1"/>
+                                           <w:basedOn w:val="Normal"/>
+                                           <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
+                                           <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
+                                         </w:style>
+                                         <w:style w:type="paragraph" w:styleId="Heading2">
+                                           <w:name w:val="heading 2"/>
+                                           <w:basedOn w:val="Normal"/>
+                                           <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
+                                           <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
+                                         </w:style>
+                                         <w:style w:type="paragraph" w:styleId="CustomBig">
+                                           <w:name w:val="Custom Big"/>
+                                           <w:basedOn w:val="Normal"/>
+                                           <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
+                                           <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
+                                         </w:style>
+                                       </w:styles>
+                                       """;
 
     /// <summary>
     /// Styles for the built-in-Normal probe pair: everything fixed except whether the Normal
     /// style states its own spacing.
     /// </summary>
     private static string BuiltInNormalProbeStyles(string? normalSpacing) => $"""
-        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-          <w:docDefaults>
-            <w:rPrDefault>
-              <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
-            </w:rPrDefault>
-          </w:docDefaults>
-          <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
-            <w:name w:val="Normal"/>
-            {(normalSpacing is null ? string.Empty : $"<w:pPr>{normalSpacing}</w:pPr>")}
-          </w:style>
-        </w:styles>
-        """;
+                                                                              <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                                                                              <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                                                                <w:docDefaults>
+                                                                                  <w:rPrDefault>
+                                                                                    <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
+                                                                                  </w:rPrDefault>
+                                                                                </w:docDefaults>
+                                                                                <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+                                                                                  <w:name w:val="Normal"/>
+                                                                                  {(normalSpacing is null ? string.Empty : $"<w:pPr>{normalSpacing}</w:pPr>")}
+                                                                                </w:style>
+                                                                              </w:styles>
+                                                                              """;
 
     /// <summary>
     /// A borderless, margin-free table left in Word's default autofit mode, with a left-aligned
@@ -384,18 +385,18 @@ public static class Fixtures
             $"<w:r><w:rPr>{Times12}</w:rPr><w:t>e{i}</w:t></w:r></w:p></w:tc>"));
 
         return $"""
-            <w:tbl>
-              <w:tblPr>
-                <w:tblCellMar>
-                  <w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
-                  <w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/>
-                </w:tblCellMar>
-              </w:tblPr>
-              {gridXml}
-              <w:tr>{left}</w:tr>
-              <w:tr>{right}</w:tr>
-            </w:tbl>
-            """;
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblCellMar>
+                      <w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
+                      <w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/>
+                    </w:tblCellMar>
+                  </w:tblPr>
+                  {gridXml}
+                  <w:tr>{left}</w:tr>
+                  <w:tr>{right}</w:tr>
+                </w:tbl>
+                """;
     }
 
     /// <summary>
@@ -416,22 +417,225 @@ public static class Fixtures
             : string.Empty;
 
         return $"""
-            <w:tbl>
-              <w:tblPr>
-                <w:tblW w:w="4680" w:type="dxa"/>
-                {indent}{border}<w:tblLayout w:type="fixed"/>
-                <w:tblCellMar>
-                  <w:left w:w="{marginTwips}" w:type="dxa"/><w:right w:w="{marginTwips}" w:type="dxa"/>
-                  <w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/>
-                </w:tblCellMar>
-              </w:tblPr>
-              <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
-              <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr>
-                <w:r><w:rPr>{Times12}</w:rPr><w:t>{label}</w:t></w:r>
-              </w:p></w:tc></w:tr>
-            </w:tbl>
-            """;
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblW w:w="4680" w:type="dxa"/>
+                    {indent}{border}<w:tblLayout w:type="fixed"/>
+                    <w:tblCellMar>
+                      <w:left w:w="{marginTwips}" w:type="dxa"/><w:right w:w="{marginTwips}" w:type="dxa"/>
+                      <w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/>
+                    </w:tblCellMar>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
+                  <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr>
+                    <w:r><w:rPr>{Times12}</w:rPr><w:t>{label}</w:t></w:r>
+                  </w:p></w:tc></w:tr>
+                </w:tbl>
+                """;
     }
+
+    /// <summary>
+    /// The two table styles every Word document that has ever held a table carries: the built-in
+    /// <c>TableNormal</c> every other one is based on, and <c>TableGrid</c>, which is what the
+    /// ruled table on the gallery's front row inserts. Copied from what Word writes.
+    /// </summary>
+    private const string GridTableStyles = """
+                                           <w:style w:type="table" w:default="1" w:styleId="TableNormal">
+                                             <w:name w:val="Normal Table"/>
+                                             <w:tblPr>
+                                               <w:tblInd w:w="0" w:type="dxa"/>
+                                               <w:tblCellMar>
+                                                 <w:top w:w="0" w:type="dxa"/>
+                                                 <w:left w:w="108" w:type="dxa"/>
+                                                 <w:bottom w:w="0" w:type="dxa"/>
+                                                 <w:right w:w="108" w:type="dxa"/>
+                                               </w:tblCellMar>
+                                             </w:tblPr>
+                                           </w:style>
+                                           <w:style w:type="table" w:styleId="TableGrid">
+                                             <w:name w:val="Table Grid"/>
+                                             <w:basedOn w:val="TableNormal"/>
+                                             <w:pPr>
+                                               <w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+                                             </w:pPr>
+                                             <w:tblPr>
+                                               <w:tblBorders>
+                                                 <w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+                                                 <w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+                                                 <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+                                                 <w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+                                                 <w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+                                                 <w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+                                               </w:tblBorders>
+                                             </w:tblPr>
+                                           </w:style>
+                                           """;
+
+    /// <summary>
+    /// One conditional format of the probe style: a type, the size it sets, and the fill it puts
+    /// behind the cells it reaches.
+    /// </summary>
+    private static string ProbeConditional(string type, int halfPoints, string fill) => $"""
+         <w:tblStylePr w:type="{type}">
+           <w:rPr>{Times(halfPoints)}</w:rPr>
+           <w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="{fill}"/></w:tcPr>
+         </w:tblStylePr>
+         """;
+
+    /// <summary>
+    /// A table style whose every conditional format sets a different type size and a different
+    /// fill, so that Word's export says outright which one reached each cell.
+    /// </summary>
+    /// <remarks>
+    /// Sizes rather than colours carry the answer, because a PDF names the size of every run it
+    /// draws and reading one back needs no interpretation at all. The fills are there so the same
+    /// document answers the same question about shading.
+    ///
+    /// The whole-table formatting is the style's own pPr and rPr rather than a wholeTable
+    /// override, which is where Word puts it. Its pPr closing up the spacing is load-bearing: a
+    /// cell paragraph in this fixture declares nothing of its own, so if a table style's paragraph
+    /// formatting does not reach the cells, every row lands somewhere else.
+    /// </remarks>
+    private const string ProbeTableStyle = """
+                                           <w:style w:type="table" w:styleId="ProbeTable">
+                                             <w:name w:val="Probe Table"/>
+                                             <w:basedOn w:val="TableNormal"/>
+                                             <w:pPr>
+                                               <w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+                                             </w:pPr>
+                                             <w:rPr>{whole}</w:rPr>
+                                             <w:tblPr/>
+                                           {conditionals}
+                                           </w:style>
+                                           """;
+
+    private static string ProbeStyleXml() => ProbeTableStyle
+        .Replace("{whole}", Times(20))
+        .Replace("{conditionals}", string.Concat(
+            // Bands first, then the edges, then the corners. The order they are written in has no
+            // meaning — which one wins is the question this fixture exists to answer.
+            ProbeConditional("band1Vert", 26, "E6E6FF"),
+            ProbeConditional("band2Vert", 28, "CCCCFF"),
+            ProbeConditional("band1Horz", 22, "E6FFE6"),
+            ProbeConditional("band2Horz", 24, "CCFFCC"),
+            ProbeConditional("firstCol", 34, "FFE6E6"),
+            ProbeConditional("lastCol", 36, "FFCCCC"),
+            ProbeConditional("firstRow", 30, "FFFFCC"),
+            ProbeConditional("lastRow", 32, "FFE6CC"),
+            ProbeConditional("nwCell", 38, "D9D9D9"),
+            ProbeConditional("neCell", 40, "BFBFBF"),
+            ProbeConditional("swCell", 42, "A6A6A6"),
+            ProbeConditional("seCell", 44, "8C8C8C")));
+
+    /// <summary>
+    /// A table under the probe style, whose cells name themselves so that the size each one comes
+    /// out at can be read against the position it holds.
+    /// </summary>
+    /// <param name="look">
+    /// The <c>w:tblLook</c>, which is what says whether the first row, the last row, the two edge
+    /// columns and the banding are in force at all.
+    /// </param>
+    /// <param name="rows">How many rows the table has.</param>
+    /// <param name="columns">How many columns it is divided into, evenly across the measure.</param>
+    /// <param name="bandSize">How many rows and columns make up one band.</param>
+    /// <param name="styleId">The table style the table wears.</param>
+    private static string ProbeTable(
+        string look, int rows, int columns, int bandSize = 1, string styleId = "ProbeTable")
+    {
+        var width = 9360 / columns;
+
+        var grid = "<w:tblGrid>" +
+                   string.Concat(Enumerable.Repeat($"<w:gridCol w:w=\"{width}\"/>", columns)) +
+                   "</w:tblGrid>";
+
+        var body = string.Concat(Enumerable.Range(1, rows).Select(row =>
+            "<w:tr>" + string.Concat(Enumerable.Range(1, columns).Select(column =>
+                $"<w:tc><w:p><w:r><w:t>R{row}C{column}</w:t></w:r></w:p></w:tc>")) + "</w:tr>"));
+
+        return $"""
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblStyle w:val="{styleId}"/>
+                    <w:tblStyleRowBandSize w:val="{bandSize}"/>
+                    <w:tblStyleColBandSize w:val="{bandSize}"/>
+                    <w:tblW w:w="9360" w:type="dxa"/>
+                    <w:tblLayout w:type="fixed"/>
+                    {look}
+                  </w:tblPr>
+                  {grid}
+                  {body}
+                </w:tbl>
+                """;
+    }
+
+    /// <summary>Every conditional format in force.</summary>
+    private const string LookEverything =
+        "<w:tblLook w:val=\"01E0\" w:firstRow=\"1\" w:lastRow=\"1\" w:firstColumn=\"1\" " +
+        "w:lastColumn=\"1\" w:noHBand=\"0\" w:noVBand=\"0\"/>";
+
+    /// <summary>None of them, which is what leaves the whole-table formatting alone on the page.</summary>
+    private const string LookNothing =
+        "<w:tblLook w:val=\"0000\" w:firstRow=\"0\" w:lastRow=\"0\" w:firstColumn=\"0\" " +
+        "w:lastColumn=\"0\" w:noHBand=\"1\" w:noVBand=\"1\"/>";
+
+    /// <summary>
+    /// Everything but the banding down the columns, which is the only way to see the banding
+    /// across the rows: where both are in force the columns win, and the rows leave no mark.
+    /// </summary>
+    private const string LookNoVerticalBands =
+        "<w:tblLook w:val=\"05E0\" w:firstRow=\"1\" w:lastRow=\"1\" w:firstColumn=\"1\" " +
+        "w:lastColumn=\"1\" w:noHBand=\"0\" w:noVBand=\"1\"/>";
+
+    /// <summary>
+    /// A style with no corner formats and no banding down the columns, which is what most of
+    /// Word's own gallery looks like. Its first row and its first column therefore meet in a cell
+    /// nothing else covers, and which of the two wins there is a question only Word can answer.
+    /// </summary>
+    private static string EdgeStyleXml() => $"""
+                                             <w:style w:type="table" w:styleId="EdgeTable">
+                                               <w:name w:val="Edge Table"/>
+                                               <w:basedOn w:val="TableNormal"/>
+                                               <w:pPr>
+                                                 <w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+                                               </w:pPr>
+                                               <w:rPr>{Times(20)}</w:rPr>
+                                               <w:tblPr/>
+                                             {ProbeConditional("band1Horz", 22, "E6FFE6")}
+                                             {ProbeConditional("band2Horz", 24, "CCFFCC")}
+                                             {ProbeConditional("firstCol", 34, "FFE6E6")}
+                                             {ProbeConditional("firstRow", 30, "FFFFCC")}
+                                             </w:style>
+                                             """;
+
+    /// <summary>
+    /// One row of three cells asking where a table style sits in the cascade: against nothing,
+    /// against a paragraph style, and against formatting on the run itself.
+    /// </summary>
+    private static string CascadeTable() => $"""
+                                             <w:tbl>
+                                               <w:tblPr>
+                                                 <w:tblStyle w:val="ProbeTable"/>
+                                                 <w:tblW w:w="9360" w:type="dxa"/>
+                                                 <w:tblLayout w:type="fixed"/>
+                                                 {LookNothing}
+                                               </w:tblPr>
+                                               <w:tblGrid><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/></w:tblGrid>
+                                               <w:tr>
+                                                 <w:tc><w:p><w:r><w:t>Alone</w:t></w:r></w:p></w:tc>
+                                                 <w:tc><w:p><w:pPr><w:pStyle w:val="CellStyle"/></w:pPr><w:r><w:t>Styled</w:t></w:r></w:p></w:tc>
+                                                 <w:tc><w:p><w:r><w:rPr>{Times(46)}</w:rPr><w:t>Direct</w:t></w:r></w:p></w:tc>
+                                               </w:tr>
+                                             </w:tbl>
+                                             """;
+
+    /// <summary>A paragraph style for a cell to wear, one size larger than the table style's.</summary>
+    private const string CellParagraphStyle = """
+                                              <w:style w:type="paragraph" w:styleId="CellStyle">
+                                                <w:name w:val="Cell Style"/>
+                                                <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+                                                <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="42"/></w:rPr>
+                                              </w:style>
+                                              """;
 
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
@@ -516,9 +720,11 @@ public static class Fixtures
                 .AddParagraph("Single spaced first line.",
                     "<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"240\" w:lineRule=\"auto\"/>", Times12)
                 .AddParagraph("Double spaced first line.",
-                    "<w:pageBreakBefore/><w:spacing w:before=\"0\" w:after=\"0\" w:line=\"480\" w:lineRule=\"auto\"/>", Times12)
+                    "<w:pageBreakBefore/><w:spacing w:before=\"0\" w:after=\"0\" w:line=\"480\" w:lineRule=\"auto\"/>",
+                    Times12)
                 .AddParagraph("One and a half spaced first line.",
-                    "<w:pageBreakBefore/><w:spacing w:before=\"0\" w:after=\"0\" w:line=\"360\" w:lineRule=\"auto\"/>", Times12),
+                    "<w:pageBreakBefore/><w:spacing w:before=\"0\" w:after=\"0\" w:line=\"360\" w:lineRule=\"auto\"/>",
+                    Times12),
 
             ["line-spacing"] = () => new DocxBuilder()
                 .AddParagraph(
@@ -529,13 +735,14 @@ public static class Fixtures
                     "<w:spacing w:line=\"480\" w:lineRule=\"auto\" w:after=\"0\"/>", Times12),
 
             ["tabs"] = () => new DocxBuilder()
-                .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>A</w:t><w:tab/><w:t>B</w:t><w:tab/><w:t>C</w:t></w:r></w:p>")
+                .AddRawParagraph(
+                    $"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>A</w:t><w:tab/><w:t>B</w:t><w:tab/><w:t>C</w:t></w:r></w:p>")
                 .AddRawParagraph($"""
-                    <w:p>
-                      <w:pPr><w:tabs><w:tab w:val="left" w:pos="2880"/><w:tab w:val="left" w:pos="5760"/></w:tabs></w:pPr>
-                      <w:r><w:rPr>{Times12}</w:rPr><w:t>A</w:t><w:tab/><w:t>B</w:t><w:tab/><w:t>C</w:t></w:r>
-                    </w:p>
-                    """),
+                                  <w:p>
+                                    <w:pPr><w:tabs><w:tab w:val="left" w:pos="2880"/><w:tab w:val="left" w:pos="5760"/></w:tabs></w:pPr>
+                                    <w:r><w:rPr>{Times12}</w:rPr><w:t>A</w:t><w:tab/><w:t>B</w:t><w:tab/><w:t>C</w:t></w:r>
+                                  </w:p>
+                                  """),
 
             // Centre, right and decimal stops, which unlike a left stop cannot be resolved until
             // the text after them has been measured. The last two rows are the awkward cases: a
@@ -655,8 +862,10 @@ public static class Fixtures
             },
 
             ["breaks"] = () => new DocxBuilder()
-                .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Line one</w:t><w:br/><w:t>Line two</w:t></w:r></w:p>")
-                .AddRawParagraph($"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Before the page break</w:t><w:br w:type=\"page\"/><w:t>After the page break</w:t></w:r></w:p>"),
+                .AddRawParagraph(
+                    $"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Line one</w:t><w:br/><w:t>Line two</w:t></w:r></w:p>")
+                .AddRawParagraph(
+                    $"<w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Before the page break</w:t><w:br w:type=\"page\"/><w:t>After the page break</w:t></w:r></w:p>"),
 
             // Enough content to force pagination, checking that flow across pages is stable.
             ["multi-page"] = () =>
@@ -784,41 +993,41 @@ public static class Fixtures
             ["tables"] = () => new DocxBuilder()
                 .AddParagraph("Paragraph before the table.", ZeroSpacing, Times12)
                 .AddRawParagraph($"""
-                    <w:tbl>
-                      <w:tblPr>
-                        <w:tblW w:w="9360" w:type="dxa"/>
-                        <w:tblLayout w:type="fixed"/>
-                        <w:tblBorders>
-                          <w:top w:val="single" w:sz="4" w:color="000000"/>
-                          <w:left w:val="single" w:sz="4" w:color="000000"/>
-                          <w:bottom w:val="single" w:sz="4" w:color="000000"/>
-                          <w:right w:val="single" w:sz="4" w:color="000000"/>
-                          <w:insideH w:val="single" w:sz="4" w:color="000000"/>
-                          <w:insideV w:val="single" w:sz="4" w:color="000000"/>
-                        </w:tblBorders>
-                      </w:tblPr>
-                      <w:tblGrid>
-                        <w:gridCol w:w="3120"/><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/>
-                      </w:tblGrid>
-                      <w:tr>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Revenue</w:t></w:r></w:p></w:tc>
-                      </w:tr>
-                      <w:tr>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>North</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>1240</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>48200</w:t></w:r></w:p></w:tc>
-                      </w:tr>
-                      <w:tr>
-                        <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>South</w:t></w:r></w:p></w:tc>
-                        <w:tc>
-                          <w:tcPr><w:gridSpan w:val="2"/></w:tcPr>
-                          <w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t xml:space="preserve">A spanned cell whose text is long enough that it has to wrap onto more than one line.</w:t></w:r></w:p>
-                        </w:tc>
-                      </w:tr>
-                    </w:tbl>
-                    """)
+                                  <w:tbl>
+                                    <w:tblPr>
+                                      <w:tblW w:w="9360" w:type="dxa"/>
+                                      <w:tblBorders>
+                                        <w:top w:val="single" w:sz="4" w:color="000000"/>
+                                        <w:left w:val="single" w:sz="4" w:color="000000"/>
+                                        <w:bottom w:val="single" w:sz="4" w:color="000000"/>
+                                        <w:right w:val="single" w:sz="4" w:color="000000"/>
+                                        <w:insideH w:val="single" w:sz="4" w:color="000000"/>
+                                        <w:insideV w:val="single" w:sz="4" w:color="000000"/>
+                                      </w:tblBorders>
+                                      <w:tblLayout w:type="fixed"/>
+                                    </w:tblPr>
+                                    <w:tblGrid>
+                                      <w:gridCol w:w="3120"/><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/>
+                                    </w:tblGrid>
+                                    <w:tr>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Revenue</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>North</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>1240</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>48200</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>South</w:t></w:r></w:p></w:tc>
+                                      <w:tc>
+                                        <w:tcPr><w:gridSpan w:val="2"/></w:tcPr>
+                                        <w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t xml:space="preserve">A spanned cell whose text is long enough that it has to wrap onto more than one line.</w:t></w:r></w:p>
+                                      </w:tc>
+                                    </w:tr>
+                                  </w:tbl>
+                                  """)
                 .AddParagraph("Paragraph after the table.", ZeroSpacing, Times12),
 
             // Two single-cell tables differing only in their left cell margin, each on its own
@@ -829,32 +1038,32 @@ public static class Fixtures
             //   If it does not, the second table's text sits 10.8pt further right than the first.
             ["table-indent-probe"] = () => new DocxBuilder()
                 .AddRawParagraph($"""
-                    <w:tbl>
-                      <w:tblPr>
-                        <w:tblW w:w="4680" w:type="dxa"/>
-                        <w:tblLayout w:type="fixed"/>
-                        <w:tblCellMar>
-                          <w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
-                        </w:tblCellMar>
-                      </w:tblPr>
-                      <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
-                      <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Zero left cell margin</w:t></w:r></w:p></w:tc></w:tr>
-                    </w:tbl>
-                    """)
+                                  <w:tbl>
+                                    <w:tblPr>
+                                      <w:tblW w:w="4680" w:type="dxa"/>
+                                      <w:tblLayout w:type="fixed"/>
+                                      <w:tblCellMar>
+                                        <w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
+                                      </w:tblCellMar>
+                                    </w:tblPr>
+                                    <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
+                                    <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Zero left cell margin</w:t></w:r></w:p></w:tc></w:tr>
+                                  </w:tbl>
+                                  """)
                 .AddParagraph("Body text for reference.", ZeroSpacingNewPage, Times12)
                 .AddRawParagraph($"""
-                    <w:tbl>
-                      <w:tblPr>
-                        <w:tblW w:w="4680" w:type="dxa"/>
-                        <w:tblLayout w:type="fixed"/>
-                        <w:tblCellMar>
-                          <w:left w:w="216" w:type="dxa"/><w:right w:w="216" w:type="dxa"/>
-                        </w:tblCellMar>
-                      </w:tblPr>
-                      <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
-                      <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Wide left cell margin</w:t></w:r></w:p></w:tc></w:tr>
-                    </w:tbl>
-                    """),
+                                  <w:tbl>
+                                    <w:tblPr>
+                                      <w:tblW w:w="4680" w:type="dxa"/>
+                                      <w:tblLayout w:type="fixed"/>
+                                      <w:tblCellMar>
+                                        <w:left w:w="216" w:type="dxa"/><w:right w:w="216" w:type="dxa"/>
+                                      </w:tblCellMar>
+                                    </w:tblPr>
+                                    <w:tblGrid><w:gridCol w:w="4680"/></w:tblGrid>
+                                    <w:tr><w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr><w:t>Wide left cell margin</w:t></w:r></w:p></w:tc></w:tr>
+                                  </w:tbl>
+                                  """),
 
             // Measures Word's autofit column sizing. No borders and no cell margins, so cell text
             // begins exactly at its column's left edge; the second row of each table is
@@ -898,6 +1107,74 @@ public static class Fixtures
                 .AddParagraph("-", ZeroSpacing, Times12)
                 .AddRawParagraph(InsetTable("E", 240, 240, borders: true))
                 .AddParagraph("Trailing.", ZeroSpacing, Times12),
+
+            // A table that says almost nothing about itself and takes everything from its style:
+            // the ruling on every edge, the paragraph spacing inside its cells, and the cell
+            // margins TableNormal has carried since Word 97. Nothing here declares a border, so
+            // an unstyled table comes out with none of them — which is what every table in every
+            // real Word document did before this fixture existed.
+            ["table-style"] = () => new DocxBuilder()
+                .WithExtraStyles(GridTableStyles)
+                .AddParagraph("Paragraph before the table.", ZeroSpacing, Times12)
+                .AddRawParagraph($"""
+                                  <w:tbl>
+                                    <w:tblPr>
+                                      <w:tblStyle w:val="TableGrid"/>
+                                      <w:tblW w:w="9360" w:type="dxa"/>
+                                      <w:tblLayout w:type="fixed"/>
+                                      <w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1"
+                                                 w:lastColumn="0" w:noHBand="0" w:noVBand="1"/>
+                                    </w:tblPr>
+                                    <w:tblGrid>
+                                      <w:gridCol w:w="3120"/><w:gridCol w:w="3120"/><w:gridCol w:w="3120"/>
+                                    </w:tblGrid>
+                                    <w:tr>
+                                      <w:tc><w:p><w:r><w:rPr>{Times(bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times(bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times(bold: true)}</w:rPr><w:t>Revenue</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>North</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>1240</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>48200</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>South</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>980</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>37110</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                  </w:tbl>
+                                  """)
+                .AddParagraph("Paragraph after the table.", ZeroSpacing, Times12),
+
+            // Which conditional format wins where, measured rather than read. Every one of the
+            // twelve sets a different type size, so the size Word draws each cell at names the
+            // format that reached it, and the whole precedence order comes off one page.
+            //
+            //   page 1  every format in force        -> the order, and how the bands are counted
+            //   page 2  none of them in force        -> what tblLook actually gates
+            //   page 3  bands two rows and two wide  -> what a band size counts, and from where
+            //   page 4  no banding down the columns  -> the row banding, which page 1 hides
+            //   page 5  a style with no corners      -> a first row against a first column
+            //   page 6  one row, and one column      -> whether the only one is first or last
+            //   page 7  against the rest of the cascade
+            ["table-style-conditional-probe"] = () => new DocxBuilder()
+                .WithExtraStyles(GridTableStyles + ProbeStyleXml() + EdgeStyleXml() + CellParagraphStyle)
+                .AddRawParagraph(ProbeTable(LookEverything, rows: 5, columns: 4))
+                .AddParagraph("Nothing in force below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(ProbeTable(LookNothing, rows: 5, columns: 4))
+                .AddParagraph("Bands of two below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(ProbeTable(LookEverything, rows: 6, columns: 4, bandSize: 2))
+                .AddParagraph("No banding down the columns below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(ProbeTable(LookNoVerticalBands, rows: 5, columns: 4))
+                .AddParagraph("No corner formats below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(ProbeTable(LookEverything, rows: 5, columns: 4, styleId: "EdgeTable"))
+                .AddParagraph("One row, then one column, below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(ProbeTable(LookEverything, rows: 1, columns: 4))
+                .AddParagraph("-", ZeroSpacing, Times12)
+                .AddRawParagraph(ProbeTable(LookEverything, rows: 4, columns: 1))
+                .AddParagraph("The cascade below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph(CascadeTable()),
 
             // Inline images: one on its own, one alongside text so that the line's height and the
             // baseline it sits on can be checked, and one with transparency.
@@ -1129,14 +1406,14 @@ public static class Fixtures
 
                 Line("Devanagari, Tamil and Bengali below.", "Arial", 24);
 
-                Line("नमस्ते", devanagari);          // namaste: a conjunct in the middle
-                Line("हिन्दी", devanagari);           // hindi: a vowel drawn before the consonant
-                Line("क्षत्रिय", devanagari);          // kshatriya: a three-consonant conjunct
-                Line("कर्म", devanagari);            // karma: a repha, drawn at the end of the cluster
-                Line("मुंबई 400", devanagari);        // with digits, which are drawn as they are
+                Line("नमस्ते", devanagari); // namaste: a conjunct in the middle
+                Line("हिन्दी", devanagari); // hindi: a vowel drawn before the consonant
+                Line("क्षत्रिय", devanagari); // kshatriya: a three-consonant conjunct
+                Line("कर्म", devanagari); // karma: a repha, drawn at the end of the cluster
+                Line("मुंबई 400", devanagari); // with digits, which are drawn as they are
 
-                Line("தமிழ்", "Tamil Sangam MN");   // tamil
-                Line("বাংলা", "Bangla Sangam MN");   // bangla
+                Line("தமிழ்", "Tamil Sangam MN"); // tamil
+                Line("বাংলা", "Bangla Sangam MN"); // bangla
 
                 return builder;
             },
@@ -1247,10 +1524,10 @@ public static class Fixtures
 
                 Line("Faces with no OpenType tables at all.", "Arial", 24);
 
-                Line("नमस्ते", "Devanagari MT");       // a conjunct made by a state machine
-                Line("हिन्दी", "Devanagari MT");        // a vowel drawn before its consonant
-                Line("સંસ્કૃત", "Gujarati MT");         // Gujarati, the same machinery
-                Line("ਪੰਜਾਬੀ", "Gurmukhi MT");         // and Gurmukhi
+                Line("नमस्ते", "Devanagari MT"); // a conjunct made by a state machine
+                Line("हिन्दी", "Devanagari MT"); // a vowel drawn before its consonant
+                Line("સંસ્કૃત", "Gujarati MT"); // Gujarati, the same machinery
+                Line("ਪੰਜਾਬੀ", "Gurmukhi MT"); // and Gurmukhi
 
                 return builder;
             },
@@ -1275,11 +1552,11 @@ public static class Fixtures
 
                 Line("Sinhala below, shaped by rules no script owns.", "Arial", 24);
 
-                Line("සිංහල", "Sinhala Sangam MN");        // a vowel above and one after
-                Line("ශ්‍රී ලංකා", "Sinhala Sangam MN");     // with the joiner that asks for a conjunct
-                Line("ක්‍ෂ", "Sinhala Sangam MN");           // two letters written as one shape
-                Line("පොත", "Sinhala Sangam MN");          // a vowel written on both sides at once
-                Line("කෙටි", "Sinhala Sangam MN");          // one written to the left of its letter
+                Line("සිංහල", "Sinhala Sangam MN"); // a vowel above and one after
+                Line("ශ්‍රී ලංකා", "Sinhala Sangam MN"); // with the joiner that asks for a conjunct
+                Line("ක්‍ෂ", "Sinhala Sangam MN"); // two letters written as one shape
+                Line("පොත", "Sinhala Sangam MN"); // a vowel written on both sides at once
+                Line("කෙටි", "Sinhala Sangam MN"); // one written to the left of its letter
 
                 return builder;
             },
@@ -1302,9 +1579,9 @@ public static class Fixtures
 
                 Line("Thai, Lao, Khmer and Myanmar below.", "Arial", 24);
 
-                Line("สวัสดี", "Ayuthaya");          // sawatdi: a vowel above and one after
-                Line("ภาษาไทย", "Ayuthaya");        // phasa thai: a vowel written before its consonant
-                Line("ກະລຸນາ", "Lao Sangam MN");     // karuna, in Lao
+                Line("สวัสดี", "Ayuthaya"); // sawatdi: a vowel above and one after
+                Line("ภาษาไทย", "Ayuthaya"); // phasa thai: a vowel written before its consonant
+                Line("ກະລຸນາ", "Lao Sangam MN"); // karuna, in Lao
                 Line("ភាសាខ្មែរ", "Khmer Sangam MN"); // the Khmer language, with a subscript consonant
                 Line("မြန်မာ", "Noto Sans Myanmar"); // myanmar, with a medial ra drawn before its base
 
@@ -1344,7 +1621,7 @@ public static class Fixtures
                 void Line(string family, string text)
                 {
                     var run = $"<w:rFonts w:ascii=\"{family}\" w:hAnsi=\"{family}\" w:cs=\"{family}\"/>" +
-                        "<w:sz w:val=\"24\"/>";
+                              "<w:sz w:val=\"24\"/>";
 
                     builder.AddRawParagraph(
                         $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{run}</w:rPr>" +
@@ -2442,7 +2719,8 @@ public static class Fixtures
                     if (i is 2 or 4)
                     {
                         builder.AddRawParagraph(WithNote(i,
-                            builder.AddEndnote(DocxBuilder.EndnoteBody($"Note {++note}, of the first section.", Times10))));
+                            builder.AddEndnote(
+                                DocxBuilder.EndnoteBody($"Note {++note}, of the first section.", Times10))));
 
                         continue;
                     }
@@ -2459,7 +2737,8 @@ public static class Fixtures
                     if (i is 2 or 4)
                     {
                         builder.AddRawParagraph(WithNote(i + 10,
-                            builder.AddEndnote(DocxBuilder.EndnoteBody($"Note {++note}, of the second section.", Times10))));
+                            builder.AddEndnote(DocxBuilder.EndnoteBody($"Note {++note}, of the second section.",
+                                Times10))));
 
                         continue;
                     }
@@ -2657,21 +2936,21 @@ public static class Fixtures
             // The style cascade end to end, including the toggle-property cancellation.
             ["styles"] = () => new DocxBuilder()
                 .WithStyles("""
-                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-                    <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                      <w:docDefaults>
-                        <w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman"/><w:sz w:val="24"/></w:rPr></w:rPrDefault>
-                      </w:docDefaults>
-                      <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
-                      <w:style w:type="paragraph" w:styleId="Heading1">
-                        <w:name w:val="heading 1"/>
-                        <w:basedOn w:val="Normal"/>
-                        <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
-                        <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
-                      </w:style>
-                      <w:style w:type="character" w:styleId="Strong"><w:rPr><w:b/></w:rPr></w:style>
-                    </w:styles>
-                    """)
+                            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                            <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                              <w:docDefaults>
+                                <w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman"/><w:sz w:val="24"/></w:rPr></w:rPrDefault>
+                              </w:docDefaults>
+                              <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+                              <w:style w:type="paragraph" w:styleId="Heading1">
+                                <w:name w:val="heading 1"/>
+                                <w:basedOn w:val="Normal"/>
+                                <w:pPr><w:spacing w:before="240" w:after="120"/></w:pPr>
+                                <w:rPr><w:b/><w:sz w:val="40"/></w:rPr>
+                              </w:style>
+                              <w:style w:type="character" w:styleId="Strong"><w:rPr><w:b/></w:rPr></w:style>
+                            </w:styles>
+                            """)
                 .AddParagraph("Heading from a style", "<w:pStyle w:val=\"Heading1\"/>")
                 .AddParagraph("Body text inheriting the document defaults.")
                 .AddRawParagraph(
@@ -2712,35 +2991,35 @@ public static class Fixtures
                     "<w:spacing w:after=\"120\"/><w:jc w:val=\"both\"/>", Times12)
                 .AddParagraph("Regional detail", "<w:spacing w:before=\"240\" w:after=\"120\"/>", Times(28, bold: true))
                 .AddRawParagraph($"""
-                    <w:tbl>
-                      <w:tblPr>
-                        <w:tblW w:w="0" w:type="auto"/>
-                        <w:tblBorders>
-                          <w:top w:val="single" w:sz="4" w:color="auto"/>
-                          <w:left w:val="single" w:sz="4" w:color="auto"/>
-                          <w:bottom w:val="single" w:sz="4" w:color="auto"/>
-                          <w:right w:val="single" w:sz="4" w:color="auto"/>
-                          <w:insideH w:val="single" w:sz="4" w:color="auto"/>
-                          <w:insideV w:val="single" w:sz="4" w:color="auto"/>
-                        </w:tblBorders>
-                      </w:tblPr>
-                      <w:tr>
-                        <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Change</w:t></w:r></w:p></w:tc>
-                      </w:tr>
-                      <w:tr>
-                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Northern territories</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>12,480</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>+18%</w:t></w:r></w:p></w:tc>
-                      </w:tr>
-                      <w:tr>
-                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Southern territories</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>9,240</w:t></w:r></w:p></w:tc>
-                        <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>+4%</w:t></w:r></w:p></w:tc>
-                      </w:tr>
-                    </w:tbl>
-                    """)
+                                  <w:tbl>
+                                    <w:tblPr>
+                                      <w:tblW w:w="0" w:type="auto"/>
+                                      <w:tblBorders>
+                                        <w:top w:val="single" w:sz="4" w:color="auto"/>
+                                        <w:left w:val="single" w:sz="4" w:color="auto"/>
+                                        <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                                        <w:right w:val="single" w:sz="4" w:color="auto"/>
+                                        <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                                        <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                                      </w:tblBorders>
+                                    </w:tblPr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Region</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Units</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times(24, bold: true)}</w:rPr><w:t>Change</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Northern territories</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>12,480</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>+18%</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                    <w:tr>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>Southern territories</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>9,240</w:t></w:r></w:p></w:tc>
+                                      <w:tc><w:p><w:r><w:rPr>{Times12}</w:rPr><w:t>+4%</w:t></w:r></w:p></w:tc>
+                                    </w:tr>
+                                  </w:tbl>
+                                  """)
                 .AddParagraph("Notes", "<w:pageBreakBefore/><w:spacing w:after=\"120\"/>", Times(28, bold: true))
                 .AddParagraphWithRuns([
                     ("Figures are ", Times12),

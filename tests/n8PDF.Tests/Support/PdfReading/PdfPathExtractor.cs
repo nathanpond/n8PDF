@@ -5,14 +5,19 @@ namespace n8PDF.Tests.Support.PdfReading;
 /// Distance from the top of the page down to the rectangle's upper edge. PDF measures up from the
 /// bottom; this is flipped on extraction so both sides of a comparison share n8PDF's frame.
 /// </param>
-public sealed record ExtractedRectangle(int PageIndex, double Left, double Top, double Width, double Height)
+/// <param name="ColorHex">
+/// The colour it was painted in, as RRGGBB. A fill's own colour for a filled rectangle, the pen's
+/// for a stroked line.
+/// </param>
+public sealed record ExtractedRectangle(
+    int PageIndex, double Left, double Top, double Width, double Height, string ColorHex = "000000")
 {
     public double Right => Left + Width;
 
     public double Bottom => Top + Height;
 
     public override string ToString() =>
-        $"p{PageIndex} ({Left:0.##}, {Top:0.##}) {Width:0.##}x{Height:0.##}";
+        $"p{PageIndex} ({Left:0.##}, {Top:0.##}) {Width:0.##}x{Height:0.##} #{ColorHex}";
 }
 
 /// <summary>
@@ -53,9 +58,11 @@ public static class PdfPathExtractor
         var parser = new PdfParser(content);
         var operands = new List<PdfValue>();
 
-        var stack = new Stack<(PdfTextExtractor.Matrix Ctm, double LineWidth)>();
+        var stack = new Stack<(PdfTextExtractor.Matrix Ctm, double LineWidth, string Fill, string Stroke)>();
         var ctm = PdfTextExtractor.Matrix.Identity;
         var lineWidth = 1.0;
+        var fill = "000000";
+        var stroke = "000000";
 
         // Points of the subpath being built, and the rectangles the whole path has produced.
         var points = new List<(double X, double Y)>();
@@ -73,11 +80,19 @@ public static class PdfPathExtractor
             switch (op.Operator)
             {
                 case "q":
-                    stack.Push((ctm, lineWidth));
+                    stack.Push((ctm, lineWidth, fill, stroke));
                     break;
 
                 case "Q":
-                    if (stack.Count > 0) (ctm, lineWidth) = stack.Pop();
+                    if (stack.Count > 0) (ctm, lineWidth, fill, stroke) = stack.Pop();
+                    break;
+
+                case "g" or "rg" or "k" or "sc" or "scn":
+                    fill = ColorFrom(operands) ?? fill;
+                    break;
+
+                case "G" or "RG" or "K" or "SC" or "SCN":
+                    stroke = ColorFrom(operands) ?? stroke;
                     break;
 
                 case "w" when operands.Count >= 1:
@@ -122,13 +137,17 @@ public static class PdfPathExtractor
 
                 case "f" or "F" or "f*" or "b" or "b*" or "B" or "B*":
                     FlushSubpath(points, pending, ctm, page);
-                    result.AddRange(pending);
+
+                    // The colour is only known once the path is painted, since the operators that
+                    // set it may come after the ones that build the shape.
+                    foreach (var rectangle in pending) result.Add(rectangle with { ColorHex = fill });
+
                     pending.Clear();
                     break;
 
                 case "S" or "s":
                     // A straight stroke covers a rectangle as wide as the pen that drew it.
-                    if (points.Count == 2) AddStroke(result, page, ctm, points, lineWidth);
+                    if (points.Count == 2) AddStroke(result, page, ctm, points, lineWidth, stroke);
 
                     points.Clear();
                     pending.Clear();
@@ -196,7 +215,7 @@ public static class PdfPathExtractor
     /// </summary>
     private static void AddStroke(
         List<ExtractedRectangle> result, PdfPageInfo page, PdfTextExtractor.Matrix ctm,
-        List<(double X, double Y)> points, double lineWidth)
+        List<(double X, double Y)> points, double lineWidth, string color)
     {
         var from = Apply(ctm, points[0]);
         var to = Apply(ctm, points[1]);
@@ -211,7 +230,7 @@ public static class PdfPathExtractor
             var bottom = Math.Max(from.Y, to.Y);
 
             result.Add(new ExtractedRectangle(
-                page.Index, from.X - width, page.Height - bottom, width * 2, bottom - top));
+                page.Index, from.X - width, page.Height - bottom, width * 2, bottom - top, color));
         }
         else if (Math.Abs(from.Y - to.Y) < 0.01)
         {
@@ -219,7 +238,7 @@ public static class PdfPathExtractor
             var right = Math.Max(from.X, to.X);
 
             result.Add(new ExtractedRectangle(
-                page.Index, left, page.Height - (from.Y + width), right - left, width * 2));
+                page.Index, left, page.Height - (from.Y + width), right - left, width * 2, color));
         }
     }
 
@@ -236,6 +255,39 @@ public static class PdfPathExtractor
             Number(operands[start]), Number(operands[start + 1]), Number(operands[start + 2]),
             Number(operands[start + 3]), Number(operands[start + 4]), Number(operands[start + 5]));
     }
+
+    /// <summary>
+    /// The colour a set of operands names, as RRGGBB, or null where they name none.
+    /// </summary>
+    /// <remarks>
+    /// How many numbers there are is what says which space they are in, which is exact for the
+    /// three named spaces and the best that can be done for <c>scn</c>: its space was declared by
+    /// an earlier <c>cs</c> naming a resource this reader does not follow, and in every PDF Word
+    /// writes that resource is an ICC profile standing in for one of the three.
+    /// </remarks>
+    private static string? ColorFrom(List<PdfValue> operands)
+    {
+        var numbers = new List<double>();
+        for (var i = operands.Count - 1; i >= 0 && operands[i] is PdfNumberValue n; i--)
+            numbers.Insert(0, n.Value);
+
+        return numbers.Count switch
+        {
+            1 => Hex(numbers[0], numbers[0], numbers[0]),
+            3 => Hex(numbers[0], numbers[1], numbers[2]),
+            4 => Hex(
+                (1 - numbers[0]) * (1 - numbers[3]),
+                (1 - numbers[1]) * (1 - numbers[3]),
+                (1 - numbers[2]) * (1 - numbers[3])),
+            _ => null
+        };
+    }
+
+    private static string Hex(double red, double green, double blue) =>
+        $"{Channel(red)}{Channel(green)}{Channel(blue)}";
+
+    private static string Channel(double value) =>
+        ((int)Math.Round(Math.Clamp(value, 0, 1) * 255)).ToString("X2");
 
     private static double Number(PdfValue value) => value is PdfNumberValue n ? n.Value : 0;
 }

@@ -2318,7 +2318,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             while (cursor.Paginate && cursor.Y + rowHeight > cursor.ContentBottom - rowFootnotes.Height)
             {
-                if (!row.CantSplit &&
+                if (row.CantSplit != true &&
                     SplitRow(cursor, placed, rowFootnotes.Height, out var fitted, out var remaining,
                         out var fittedHeight))
                 {
@@ -2384,7 +2384,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // belong to the run, and are drawn when it closes.
         foreach (var cell in placed)
         {
-            if (cell.MergedBelow || cell.Source.ShadingFill is not { } fill) continue;
+            if (cell.MergedBelow || cell.Source.ShadingColorHex is not { } fill) continue;
 
             cursor.Page.Rectangles.Add(new PositionedRectangle
             {
@@ -2545,18 +2545,18 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // wide enough to clear the border swallows it — which is what
             // table-inset-weights-probe shows at every weight from a quarter point to three.
             var marginLeft = CellInset(
-                cell.MarginLeftTwips ?? properties.CellMarginLeftTwips, borders.Left);
+                cell.MarginLeftTwips ?? properties.CellMarginLeft, borders.Left);
             var marginRight = CellInset(
-                cell.MarginRightTwips ?? properties.CellMarginRightTwips, borders.Right);
+                cell.MarginRightTwips ?? properties.CellMarginRight, borders.Right);
             // The top is not the same: there Word puts the content a whole border below the
             // edge rather than half of one, which the same probe shows at every weight.
-            var marginTop = Units.TwipsToPoints(cell.MarginTopTwips ?? properties.CellMarginTopTwips)
+            var marginTop = Units.TwipsToPoints(cell.MarginTopTwips ?? properties.CellMarginTop)
                             + BorderWidth(borders.Top);
             // The bottom border is deliberately not counted here. Adjacent rows share an edge —
             // one row's bottom border is the next row's top border — so charging it to both
             // makes every row a border-width too tall and the error accumulates down the table.
             // The last row's bottom border is added once, after the loop.
-            var marginBottom = Units.TwipsToPoints(cell.MarginBottomTwips ?? properties.CellMarginBottomTwips);
+            var marginBottom = Units.TwipsToPoints(cell.MarginBottomTwips ?? properties.CellMarginBottom);
 
             // A formula in a cell reads the table around it, so which cell it is in has to be
             // known while its content is being laid out.
@@ -2707,7 +2707,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var span = Math.Min(Math.Max(1, first.GridSpan), Math.Max(1, columnCount));
         var borders = ResolveCellBorders(table, first, 0, 0, span, columnCount);
 
-        return CellInset(first.MarginLeftTwips ?? table.Properties.CellMarginLeftTwips, borders.Left);
+        return CellInset(first.MarginLeftTwips ?? table.Properties.CellMarginLeft, borders.Left);
     }
 
     private static double BorderWidth(BorderEdge? edge) =>
@@ -2751,7 +2751,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // Word ignores the declared grid entirely when a table is left on autofit, which is its
         // default. Measured: a table given an equal-width grid produced exactly the same columns
         // as the same table with no grid at all.
-        if (!table.Properties.FixedLayout && table.Rows.Count > 0)
+        if (table.Properties.FixedLayout != true && table.Rows.Count > 0)
             return ComputeAutofitColumnWidths(table, availableWidth);
 
         var widths = table.Grid.Select(twips => Units.TwipsToPoints(twips)).Where(w => w > 0).ToList();
@@ -2832,8 +2832,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 // so a cell with borders wrapped text that was measured to fit.
                 var borders = ResolveCellBorders(table, cell, 0, column, span, columnCount);
                 var padding =
-                    Units.TwipsToPoints(cell.MarginLeftTwips ?? properties.CellMarginLeftTwips) +
-                    Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRightTwips) +
+                    Units.TwipsToPoints(cell.MarginLeftTwips ?? properties.CellMarginLeft) +
+                    Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRight) +
                     BorderWidth(borders.Left) + BorderWidth(borders.Right);
 
                 min += padding;
@@ -4875,7 +4875,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         /// <summary>Reserves the place in the page where the run's fill will go.</summary>
         private void Reserve() =>
-            _shadingAt = Cell.Source.ShadingFill is null ? -1 : Page.Rectangles.Count;
+            _shadingAt = Cell.Source.ShadingColorHex is null ? -1 : Page.Rectangles.Count;
 
         /// <summary>
         /// Fills the run in, at the place reserved for it when it opened — underneath the borders
@@ -4883,7 +4883,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// </summary>
         private void Shade()
         {
-            if (_shadingAt < 0 || Cell.Source.ShadingFill is not { } fill) return;
+            if (_shadingAt < 0 || Cell.Source.ShadingColorHex is not { } fill) return;
 
             Page.Rectangles.Insert(_shadingAt, new PositionedRectangle
             {

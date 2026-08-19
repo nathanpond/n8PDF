@@ -417,9 +417,65 @@ public enum VerticalCellAlignment
     Bottom
 }
 
+/// <summary>
+/// Which of a table style's conditional formats are in force, from <c>w:tblLook</c>.
+/// </summary>
+/// <remarks>
+/// A style can describe a first row, a last row, two edge columns, four corner cells and two
+/// kinds of banding; this says which of them the table wants. The banding is the odd one out,
+/// declared as <c>noHBand</c> and <c>noVBand</c> and so on by default. The older spelling packs
+/// the same six answers into the hexadecimal <c>w:val</c>, and Word still writes both.
+/// </remarks>
+public sealed class TableLook
+{
+    public bool FirstRow { get; set; }
+
+    public bool LastRow { get; set; }
+
+    public bool FirstColumn { get; set; }
+
+    public bool LastColumn { get; set; }
+
+    /// <summary>Rows are banded, which is what <c>noHBand</c> turns off.</summary>
+    public bool HorizontalBanding { get; set; } = true;
+
+    /// <summary>Columns are banded, which is what <c>noVBand</c> turns off.</summary>
+    public bool VerticalBanding { get; set; } = true;
+}
+
 /// <summary>Table-level properties from <c>w:tblPr</c>.</summary>
 public sealed class TableProperties
 {
+    /// <summary>
+    /// Half a point at the sides and none above or below: what a table gets when nothing —
+    /// neither the table, nor a style, nor Word's own <c>TableNormal</c> — says otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The familiar 108 twips (0.075 inch) of left and right padding comes from the built-in
+    /// <c>TableNormal</c> style, not from the format itself — every table Word saves inherits it
+    /// from there. A table in a document with no table styles gets none of it, which is what
+    /// table-indent-probe measures; defaulting to 108 here put cell text 5.4pt right of Word's.
+    ///
+    /// It does not get nothing either. table-inset-weights-probe holds the same table twice, once
+    /// declaring a margin of zero and once declaring no margin at all, and Word sets the second
+    /// half a point further in — so an absent element is not the same as a zero one. Ten twips is
+    /// as close as the export can pin it: Word rounds every position to 1/300 inch, which puts the
+    /// true value somewhere between seven and twelve.
+    /// </remarks>
+    public const int DefaultSideCellMarginTwips = 10;
+
+    /// <summary>The style this table wears, from <c>w:tblStyle</c>.</summary>
+    public string? StyleId { get; set; }
+
+    /// <summary>Which of that style's conditional formats are in force.</summary>
+    public TableLook Look { get; set; } = new();
+
+    /// <summary>How many rows make up one horizontal band.</summary>
+    public int RowBandSize { get; set; } = 1;
+
+    /// <summary>How many columns make up one vertical band.</summary>
+    public int ColumnBandSize { get; set; } = 1;
+
     /// <summary>Preferred table width in twips, when declared as <c>dxa</c>.</summary>
     public int? WidthTwips { get; set; }
 
@@ -441,37 +497,35 @@ public sealed class TableProperties
     public BorderSet Borders { get; } = new();
 
     /// <summary>
-    /// Default cell padding in twips: half a point at the sides, none above or below.
+    /// Default cell padding in twips, or null where nothing has declared any. Absent and zero
+    /// are different answers: see <see cref="DefaultSideCellMarginTwips"/>.
     /// </summary>
-    /// <remarks>
-    /// The familiar 108 twips (0.075 inch) of left and right padding comes from Word's built-in
-    /// <c>TableNormal</c> style, not from the format itself — every table Word saves inherits it
-    /// from there. A table in a document with no table styles gets none of it, which is what
-    /// table-indent-probe measures; defaulting to 108 here put cell text 5.4pt right of Word's.
-    ///
-    /// It does not get nothing either. table-inset-weights-probe holds the same table twice, once
-    /// declaring a margin of zero and once declaring no margin at all, and Word sets the second
-    /// half a point further in — so an absent element is not the same as a zero one. Ten twips is
-    /// as close as the export can pin it: Word rounds every position to 1/300 inch, which puts the
-    /// true value somewhere between seven and twelve.
-    /// </remarks>
-    public int CellMarginLeftTwips { get; set; } = 10;
+    public int? CellMarginLeftTwips { get; set; }
 
-    public int CellMarginRightTwips { get; set; } = 10;
+    public int? CellMarginRightTwips { get; set; }
 
-    public int CellMarginTopTwips { get; set; }
+    public int? CellMarginTopTwips { get; set; }
 
-    public int CellMarginBottomTwips { get; set; }
+    public int? CellMarginBottomTwips { get; set; }
+
+    /// <summary>The left cell padding in force, in twips.</summary>
+    public int CellMarginLeft => CellMarginLeftTwips ?? DefaultSideCellMarginTwips;
+
+    public int CellMarginRight => CellMarginRightTwips ?? DefaultSideCellMarginTwips;
+
+    public int CellMarginTop => CellMarginTopTwips ?? 0;
+
+    public int CellMarginBottom => CellMarginBottomTwips ?? 0;
 
     /// <summary>
-    /// True when the table declares <c>w:tblLayout w:type="fixed"</c>.
+    /// True when the table declares <c>w:tblLayout w:type="fixed"</c>, null when it says nothing.
     /// </summary>
     /// <remarks>
     /// Word's default is to autofit columns to their contents, which resizes the grid and can
     /// change where lines wrap. Only fixed layout is implemented; a table relying on autofit will
     /// use its declared grid widths instead, which is the closest reasonable approximation.
     /// </remarks>
-    public bool FixedLayout { get; set; }
+    public bool? FixedLayout { get; set; }
 
     public Justification? Justification { get; set; }
 }
@@ -497,10 +551,10 @@ public sealed class TableRow
     public RowHeightRule HeightRule { get; set; } = RowHeightRule.Auto;
 
     /// <summary>The row may not be split across a page boundary.</summary>
-    public bool CantSplit { get; set; }
+    public bool? CantSplit { get; set; }
 
     /// <summary>The row repeats at the top of each page the table continues onto.</summary>
-    public bool IsHeader { get; set; }
+    public bool? IsHeader { get; set; }
 }
 
 public sealed class TableCell
@@ -513,10 +567,21 @@ public sealed class TableCell
 
     public BorderSet Borders { get; } = new();
 
-    /// <summary>Background fill as RRGGBB, or null for none.</summary>
+    /// <summary>
+    /// Background fill as RRGGBB, "auto" for a declared absence of one, or null where nothing was
+    /// declared at all.
+    /// </summary>
+    /// <remarks>
+    /// The three are not two: a cell whose style shades it and which declares <c>fill="auto"</c>
+    /// of its own comes out unshaded, and telling that from a cell that said nothing is the whole
+    /// difference. <see cref="ShadingColorHex"/> is what to draw with.
+    /// </remarks>
     public string? ShadingFill { get; set; }
 
-    public VerticalCellAlignment VerticalAlignment { get; set; } = VerticalCellAlignment.Top;
+    /// <summary>The colour to fill the cell with, or null where it takes none.</summary>
+    public string? ShadingColorHex => ShadingFill is null or "auto" ? null : ShadingFill;
+
+    public VerticalCellAlignment? VerticalAlignment { get; set; }
 
     /// <summary>
     /// Vertical merge state: "restart" begins a merged span, "continue" is absorbed by the cell

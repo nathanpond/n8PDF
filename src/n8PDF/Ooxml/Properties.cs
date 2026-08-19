@@ -208,6 +208,56 @@ public sealed class ParagraphProperties
     /// the defaults an empty paragraph is measured with.
     /// </summary>
     public RunProperties? MarkRunProperties { get; set; }
+
+    /// <summary>
+    /// The formatting the table style of the cell this paragraph sits in puts on it, or null
+    /// outside a table.
+    /// </summary>
+    /// <remarks>
+    /// Not read from the document: it is worked out per cell before layout and hung here because
+    /// this is what the cascade is given. A table style is the only kind whose formatting depends
+    /// on where a paragraph is rather than on what it says about itself, and a cell in the corner
+    /// of a table gets different type from one in the middle of it.
+    /// </remarks>
+    public TableStyleText? FromTableStyle { get; set; }
+}
+
+/// <summary>
+/// What a table style has to say about the text inside one of its cells, in the order it is to be
+/// applied: the whole table's first and the corner cell's last.
+/// </summary>
+public sealed record TableStyleText(
+    IReadOnlyList<ParagraphProperties> Paragraph, IReadOnlyList<RunProperties> Run);
+
+/// <summary>What a table style says about a row, from a <c>w:trPr</c> inside it.</summary>
+public sealed class TableStyleRowProperties
+{
+    public int? HeightTwips { get; set; }
+
+    public RowHeightRule? HeightRule { get; set; }
+
+    public bool? CantSplit { get; set; }
+
+    public bool? IsHeader { get; set; }
+}
+
+/// <summary>What a table style says about a cell, from a <c>w:tcPr</c> inside it.</summary>
+public sealed class TableStyleCellProperties
+{
+    public BorderSet Borders { get; } = new();
+
+    /// <summary>Background fill as RRGGBB, or "auto" for none.</summary>
+    public string? ShadingFill { get; set; }
+
+    public VerticalCellAlignment? VerticalAlignment { get; set; }
+
+    public int? MarginLeftTwips { get; set; }
+
+    public int? MarginRightTwips { get; set; }
+
+    public int? MarginTopTwips { get; set; }
+
+    public int? MarginBottomTwips { get; set; }
 }
 
 /// <summary>Page geometry and section-level settings from a <c>w:sectPr</c>.</summary>
