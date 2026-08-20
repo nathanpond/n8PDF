@@ -18,7 +18,7 @@ public static class DocumentParser
         // Fields run from paragraph to paragraph, so what is open carries down the body.
         var scope = new FieldScope();
 
-        foreach (var element in body.Elements())
+        foreach (var element in Blocks(body))
         {
             if (element.Name == W.Main + "p")
                 document.Body.Add(ParseParagraph(element, scope));
@@ -29,6 +29,71 @@ public static class DocumentParser
         }
 
         return document;
+    }
+
+    /// <summary>
+    /// The blocks a container holds, with whatever wraps them unwrapped.
+    /// </summary>
+    /// <remarks>
+    /// A body, a cell, a running head and a note all hold paragraphs and tables — and all of them
+    /// may hold those inside something else again. A content control wraps the cover page, the
+    /// table of contents and every placeholder a template leaves to be filled in; a compatibility
+    /// alternative wraps content offered twice over; the custom XML element wraps whatever an old
+    /// document tagged. None of the three is a paragraph or a table, and a walk that looks only
+    /// for those two loses everything inside them without saying so.
+    ///
+    /// What Word does with each is measured in content-controls, which puts one of every kind on a
+    /// page and names the line inside it. Word draws all of them, in place, with no more room
+    /// between the lines than any other paragraph gets — and where an alternative offers two
+    /// branches it draws the choice rather than the fallback, which is the one thing here that
+    /// could have gone either way.
+    ///
+    /// Anything else is passed through untouched, so that a body's <c>w:sectPr</c> still reaches
+    /// the reader that wants it.
+    /// </remarks>
+    public static IEnumerable<XElement> Blocks(XElement container, int depth = 0)
+    {
+        // A wrapper may hold a wrapper, and a document written to be awkward may hold thousands.
+        // Sixteen deep is far past anything Word writes and stops a walk that would not end.
+        if (depth > 16)
+        {
+            yield break;
+        }
+
+        foreach (var child in container.Elements())
+        {
+            var inner = Unwrapped(child);
+
+            if (inner is null)
+            {
+                yield return child;
+                continue;
+            }
+
+            foreach (var block in Blocks(inner, depth + 1)) yield return block;
+        }
+    }
+
+    /// <summary>
+    /// What a wrapper holds, or null where the element is not one.
+    /// </summary>
+    private static XElement? Unwrapped(XElement element)
+    {
+        if (element.Name == W.Main + "sdt") return element.Element(W.Main + "sdtContent");
+
+        if (element.Name == W.Main + "customXml") return element;
+
+        // The choice rather than the fallback: Word draws the choice of the pair on the seventh
+        // page of content-controls, and what the two hold there is different words so as to say
+        // which. A run-level alternative is chosen differently — see Preferred — because there the
+        // choice may be a drawing this cannot read, where here it is paragraphs either way.
+        if (element.Name == W.Compatibility + "AlternateContent")
+        {
+            return element.Element(W.Compatibility + "Choice")
+                   ?? element.Element(W.Compatibility + "Fallback");
+        }
+
+        return null;
     }
 
     public static Paragraph ParseParagraph(XElement element, FieldScope? scope = null)
@@ -363,7 +428,7 @@ public static class DocumentParser
 
             var note = new Note(id, element.Attr("type") ?? "normal");
 
-            foreach (var child in element.Elements())
+            foreach (var child in Blocks(element))
             {
                 if (child.Name == W.Main + "p") note.Body.Add(ParseParagraph(child));
                 else if (child.Name == W.Main + "tbl") note.Body.Add(ParseTable(child));
@@ -532,7 +597,7 @@ public static class DocumentParser
         var content = wsp.Descendants(W.Main + "txbxContent").FirstOrDefault();
         if (content is not null)
         {
-            foreach (var child in content.Elements())
+            foreach (var child in Blocks(content))
             {
                 if (child.Name == W.Main + "p") shape.Content.Add(ParseParagraph(child));
                 else if (child.Name == W.Main + "tbl") shape.Content.Add(ParseTable(child));
@@ -1083,7 +1148,7 @@ public static class DocumentParser
             }
         }
 
-        foreach (var child in cellElement.Elements())
+        foreach (var child in Blocks(cellElement))
         {
             if (child.Name == W.Main + "p")
                 cell.Content.Add(ParseParagraph(child));

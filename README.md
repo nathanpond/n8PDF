@@ -394,6 +394,31 @@ of their slice, which is the one place on these pages where two points of disagr
 Everything else agrees with Word to within 0.73pt vertically and half a point horizontally, and the
 ink of a page agrees on better than 99.3% of it.
 
+### Content wrapped in something else
+
+A body holds paragraphs and tables, and a reader that walks it looking only for those two is right
+about every document written by hand and wrong about most documents written by Word. Three things
+wrap ordinary blocks:
+
+- a **content control** (`w:sdt`), which Word puts round the cover page, the table of contents and
+  every placeholder a template leaves to be filled in;
+- a **compatibility alternative** (`mc:AlternateContent`), which offers the same content twice over;
+- the old **custom XML** element (`w:customXml`), round whatever an older document tagged.
+
+All three are unwrapped, wherever blocks are read: the body, a table cell, a running head, a note
+and a text box. `content-controls` puts one of each on a page and names the line inside it, and
+Word draws all of them in place with no more room between the lines than any other paragraph gets.
+Where an alternative offers two branches Word draws the **choice** rather than the fallback — the
+fixture's two branches hold different words so that its export says which — and that is the opposite
+of how a *run*-level alternative is read here, where the choice may be a drawing this cannot read
+and the fallback is what it is for.
+
+This was found by asking the converter what it did with each, and it had been losing all of it in
+silence. The test that should have caught it could not: it compared the text on the page against
+the text in the *parsed model*, and a construct the reader drops is missing from both sides. It now
+reads what the document says from the part itself, so the two sides come from different code, and
+reverting the fix fails it.
+
 ### What a diagram is, and which half of it to draw
 
 SmartArt is written down twice. There is what it means — points, the connections between them, and

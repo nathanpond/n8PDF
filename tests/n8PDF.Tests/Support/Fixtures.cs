@@ -3281,6 +3281,90 @@ public static class Fixtures
                 return builder.WithSection(DocxBuilder.Section(columns: 2));
             },
 
+            // Content wrapped in something that is neither a paragraph nor a table: a content
+            // control, a compatibility alternative, the old custom-XML wrapper. Word writes these
+            // round whole paragraphs and whole tables — a cover page, a table of contents, every
+            // placeholder in a template — and a reader that walks a body looking only for
+            // paragraphs and tables loses everything inside them without saying so.
+            //
+            // Every line names where it is, so that one gone missing is obvious in the comparison
+            // rather than merely a page that lays out a little differently.
+            ["content-controls"] = () =>
+            {
+                var times = Times12;
+
+                // One column, ruled, so that a table wrapped in a control is obviously a table.
+                const string rules =
+                    """
+                    <w:tblPr><w:tblW w:w="4000" w:type="dxa"/>
+                      <w:tblBorders>
+                        <w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/>
+                        <w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/>
+                      </w:tblBorders><w:tblLayout w:type="fixed"/>
+                    </w:tblPr><w:tblGrid><w:gridCol w:w="4000"/></w:tblGrid>
+                    """;
+
+                static string Wrapped(int id, string inner) => $"""
+                    <w:sdt>
+                      <w:sdtPr><w:id w:val="{id}"/><w:lock w:val="sdtLocked"/></w:sdtPr>
+                      <w:sdtContent>{inner}</w:sdtContent>
+                    </w:sdt>
+                    """;
+
+                string Line(string text) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{times}</w:rPr>" +
+                    $"<w:t xml:space=\"preserve\">{text}</w:t></w:r></w:p>";
+
+                string Cell(string text) =>
+                    $"<w:tc><w:tcPr><w:tcW w:w=\"4000\" w:type=\"dxa\"/></w:tcPr>{text}</w:tc>";
+
+                var builder = new DocxBuilder();
+
+                var note = builder.AddFootnote(Wrapped(70,
+                    DocxBuilder.FootnoteBody("A note wrapped in a control.", Times10)));
+
+                builder.AddRawParagraph(Line("Before the control."));
+                builder.AddRawParagraph(Wrapped(71, Line("Inside a control.")));
+                builder.AddRawParagraph(Line("After the control."));
+
+                builder.AddRawParagraph(Wrapped(72,
+                    $"<w:tbl>{rules}<w:tr>" +
+                    Cell(Line("A table inside a control.")) + "</w:tr></w:tbl>"));
+
+                // A line between the two tables, since Word joins two that touch into one and
+                // that is a question of its own.
+                builder.AddRawParagraph(Line("Between the tables."));
+
+                builder.AddRawParagraph(
+                    $"<w:tbl>{rules}<w:tr>" +
+                    Cell(Wrapped(73, Line("A control inside a cell."))) + "</w:tr></w:tbl>");
+
+                builder.AddRawParagraph(Wrapped(74, Wrapped(75, Line("Two controls deep."))));
+
+                // Which branch of an alternative Word takes, said outright: the two hold
+                // different words, so the export names the one it read.
+                builder.AddRawParagraph($"""
+                    <mc:AlternateContent
+                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                        xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+                      <mc:Choice Requires="w14">{Line("The choice, not the fallback.")}</mc:Choice>
+                      <mc:Fallback>{Line("The fallback, not the choice.")}</mc:Fallback>
+                    </mc:AlternateContent>
+                    """);
+
+                builder.AddRawParagraph(
+                    $"<w:customXml w:element=\"thing\">{Line("Inside custom XML.")}</w:customXml>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{times}</w:rPr>" +
+                    "<w:t xml:space=\"preserve\">A line with a note in a control</w:t></w:r>" +
+                    DocxBuilder.FootnoteReference(note) +
+                    $"<w:r><w:rPr>{times}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                return builder.WithHeaderFooter(header: true,
+                    Wrapped(76, Line("A running head in a control.")));
+            },
+
             // Notes in a section of two columns, with a reference in each of them and a third in
             // the first column of the second page. What is measured is which measure a note is
             // set to and where it sits: under the column that refers to it, or across the page.

@@ -33,10 +33,16 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// runs right to left is the reverse. What has to be true of it is that every character
     /// arrives, and that is what is asked.
     /// </remarks>
+    /// <remarks>
+    /// The page-numbering fixture is here for a third reason again: a field that is recomputed
+    /// shows a number the document never stored, so the text on the page and the text in the part
+    /// genuinely differ. What has to be true of it is the same — that nothing went missing.
+    /// </remarks>
     private static readonly HashSet<string> Reorders =
             [
         "table-split", "table-vertical-merge", "table-merge-split",
-        "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal", "apple"
+        "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal", "apple",
+        "page-numbering-restart"
     ];
 
     public static TheoryData<string> FixtureNames
@@ -212,13 +218,45 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// <summary>
     /// Collects every text run in the document, including inside tables, from the parsed model.
     /// </summary>
+    /// <summary>
+    /// What the document says, read from the part itself rather than from the model built out of
+    /// it.
+    /// </summary>
+    /// <remarks>
+    /// Reading the model would compare the engine against a reading of the document that the same
+    /// code made, so anything the reader dropped would be missing from both sides and the test
+    /// would pass. That is not a hypothetical: a content control wrapping a paragraph was dropped
+    /// by the body walk for as long as this read the model, and nothing here noticed.
+    ///
+    /// Four kinds of text in a part are deliberately not on the page and are left out: what a
+    /// content control holds as its own properties rather than its content, the branch of a
+    /// compatibility alternative that was not taken, the text of a deletion, and the instructions
+    /// of a field — which are what the field is told to compute, not what it shows.
+    /// </remarks>
     private static string ReadDocumentText(byte[] docx)
     {
         using var package = OpcPackage.Open(new MemoryStream(docx));
-        var document = DocumentParser.Parse(package.ReadPartAsXml(package.GetMainDocumentPartName()));
+        var root = package.ReadPartAsXml(package.GetMainDocumentPartName()).Root;
 
         var text = new System.Text.StringBuilder();
-        foreach (var block in document.Body) AppendBlock(block, text);
+        if (root is null) return text.ToString();
+
+        foreach (var element in root.Descendants())
+        {
+            if (element.Name != W.Main + "t" && element.Name != W.Main + "tab") continue;
+
+            if (element.Ancestors().Any(ancestor =>
+                    ancestor.Name == W.Main + "sdtPr" ||
+                    ancestor.Name == W.Main + "del" ||
+                    ancestor.Name == W.Main + "instrText" ||
+                    ancestor.Name == W.Compatibility + "Fallback"))
+            {
+                continue;
+            }
+
+            text.Append(element.Name == W.Main + "tab" ? "\t" : element.Value);
+        }
+
         return text.ToString();
     }
 

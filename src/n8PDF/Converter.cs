@@ -258,7 +258,7 @@ public static class Converter
                 if (root is null) continue;
 
                 var content = new HeaderFooter();
-                foreach (var element in root.Elements())
+                foreach (var element in DocumentParser.Blocks(root))
                 {
                     if (element.Name == W.Main + "p") content.Body.Add(DocumentParser.ParseParagraph(element));
                     else if (element.Name == W.Main + "tbl") content.Body.Add(DocumentParser.ParseTable(element));
