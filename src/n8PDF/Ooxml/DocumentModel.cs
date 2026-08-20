@@ -208,6 +208,12 @@ public sealed class DrawingInline(long widthEmu, long heightEmu, string? relatio
     /// <summary>The shapes of that diagram, once they have been read.</summary>
     public IReadOnlyList<DiagramShape>? Diagram { get; set; }
 
+    /// <summary>The relationship the chart's own part is reached by, where this frame holds one.</summary>
+    public string? ChartRelationshipId { get; set; }
+
+    /// <summary>That chart, once it has been read.</summary>
+    public ChartDefinition? Chart { get; set; }
+
     public double WidthPoints => Units.EmuToPoints(WidthEmu);
 
     public double HeightPoints => Units.EmuToPoints(HeightEmu);
@@ -422,6 +428,12 @@ public sealed class AnchoredDrawing : InlineElement
 
     /// <summary>The shapes of that diagram, once they have been read.</summary>
     public IReadOnlyList<DiagramShape>? Diagram { get; set; }
+
+    /// <summary>The relationship the chart's own part is reached by, where this frame holds one.</summary>
+    public string? ChartRelationshipId { get; set; }
+
+    /// <summary>That chart, once it has been read.</summary>
+    public ChartDefinition? Chart { get; set; }
 
     public TextWrapMode Wrap { get; init; } = TextWrapMode.Square;
 

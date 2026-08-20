@@ -847,6 +847,81 @@ public sealed class DocxBuilder
             """;
     }
 
+    private const string ChartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+
+    /// <summary>
+    /// A chart, as its own part, and the paragraph markup that reaches it.
+    /// </summary>
+    /// <remarks>
+    /// A chart is the one thing a document describes only as data: series, axes and formatting,
+    /// with no drawing of it anywhere. The numbers are held twice — as a formula naming a cell
+    /// range in a workbook stored alongside, and as a cache of what those cells last held — and it
+    /// is the cache that is read, since the workbook is a spreadsheet and not a drawing.
+    /// </remarks>
+    public DocxBuilder WithChart(string chartXml) =>
+        WithPart("word/charts/chart1.xml",
+            "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+            $"""
+             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+             <c:chartSpace xmlns:c="{ChartNamespace}"
+                           xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                           xmlns:r="{OfficeRelationships}">
+               {chartXml}
+             </c:chartSpace>
+             """,
+            fromDocument: ("rIdChart", $"{OfficeRelationships}/chart"));
+
+    /// <summary>The frame a chart sits in, inline like a picture.</summary>
+    public static string ChartDrawing(
+        double widthPoints, double heightPoints, int id = 500, string relationshipId = "rIdChart")
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+
+        return $"""
+            <w:r><w:drawing>
+              <wp:inline distT="0" distB="0" distL="0" distR="0">
+                <wp:extent cx="{cx}" cy="{cy}"/>
+                <wp:docPr id="{id}" name="Chart {id}"/>
+                <a:graphic>
+                  <a:graphicData uri="{ChartNamespace}">
+                    <c:chart xmlns:c="{ChartNamespace}" xmlns:r="{OfficeRelationships}" r:id="{relationshipId}"/>
+                  </a:graphicData>
+                </a:graphic>
+              </wp:inline>
+            </w:drawing></w:r>
+            """;
+    }
+
+    /// <summary>One series of a chart: its name, and the values it holds against the categories.</summary>
+    public static string ChartSeries(
+        int index, string name, IReadOnlyList<string> categories, IReadOnlyList<double> values,
+        string fillHex)
+    {
+        static string Points(IEnumerable<string> written) =>
+            string.Concat(written.Select((value, i) =>
+                $"<c:pt idx=\"{i}\"><c:v>{value}</c:v></c:pt>"));
+
+        return $"""
+            <c:ser>
+              <c:idx val="{index}"/>
+              <c:order val="{index}"/>
+              <c:tx><c:strRef><c:f>Sheet1!$B${index + 1}</c:f>
+                <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>{Escape(name)}</c:v></c:pt></c:strCache>
+              </c:strRef></c:tx>
+              <c:spPr><a:solidFill><a:srgbClr val="{fillHex}"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr>
+              <c:cat><c:strRef><c:f>Sheet1!$A$2:$A${categories.Count + 1}</c:f>
+                <c:strCache><c:ptCount val="{categories.Count}"/>{Points(categories.Select(Escape))}</c:strCache>
+              </c:strRef></c:cat>
+              <c:val><c:numRef><c:f>Sheet1!$B$2:$B${values.Count + 1}</c:f>
+                <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{values.Count}"/>
+                  {Points(values.Select(v => v.ToString(CultureInfo.InvariantCulture)))}
+                </c:numCache>
+              </c:numRef></c:val>
+            </c:ser>
+            """;
+    }
+
     private const string DiagramNamespace = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
 
     private const string OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";

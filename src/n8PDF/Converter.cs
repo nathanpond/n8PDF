@@ -141,6 +141,7 @@ public static class Converter
         LoadNotes(package, mainPartName, document, NoteKind.Endnote);
         LoadHyperlinks(package, mainPartName, mainPartName, document.Body, document);
         LoadDiagrams(package, mainPartName, document.Body);
+        LoadCharts(package, mainPartName, document.Body);
 
         var settingsPart = package.GetRelatedPartName(mainPartName, OpcPackage.SettingsRelationship);
         if (settingsPart is not null)
@@ -267,6 +268,7 @@ public static class Converter
                 LoadHyperlinks(package, partName, partName, content.Body, document);
                 LoadPartImages(package, partName, content.Body, document);
                 LoadDiagrams(package, partName, content.Body);
+                LoadCharts(package, partName, content.Body);
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
             {
@@ -430,6 +432,56 @@ public static class Converter
 
                 case AnchoredDrawing anchored:
                     anchored.Diagram = shapes;
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Reads the chart part every chart in a run of blocks names.</summary>
+    private static void LoadCharts(OpcPackage package, string partName, List<BlockElement> blocks)
+    {
+        foreach (var run in EnumerateRuns(blocks))
+        foreach (var content in run.Content)
+        {
+            string? id = content switch
+            {
+                DrawingInline inline => inline.ChartRelationshipId,
+                AnchoredDrawing anchored => anchored.ChartRelationshipId,
+                _ => null
+            };
+
+            if (id is null) continue;
+
+            ChartDefinition? chart = null;
+
+            try
+            {
+                var reference = package.GetRelationships(partName)
+                    .FirstOrDefault(r => r.Id == id && !r.IsExternal);
+
+                if (reference is not null)
+                {
+                    var chartPart = package.ResolveTarget(partName, reference.Target);
+
+                    if (package.HasPart(chartPart))
+                        chart = ChartReader.Parse(package.ReadPartAsXml(chartPart));
+                }
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                                         or System.Xml.XmlException)
+            {
+            }
+
+            if (chart is null) continue;
+
+            switch (content)
+            {
+                case DrawingInline inline:
+                    inline.Chart = chart;
+                    break;
+
+                case AnchoredDrawing anchored:
+                    anchored.Chart = chart;
                     break;
             }
         }

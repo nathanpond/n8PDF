@@ -703,6 +703,209 @@ public static class Fixtures
         return PngWriter.Write(bands.Length * band, height, pixels, hasAlpha: false);
     }
 
+    /// <summary>
+    /// Two series in one chart, overlapping each other, which is the other half of how wide a bar
+    /// is: the gap says how much room the bars of a category share, and the overlap how far they
+    /// stand over one another inside it.
+    /// </summary>
+    private static string TwoSeriesChart() => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout><c:manualLayout>
+              <c:layoutTarget val="inner"/>
+              <c:xMode val="edge"/><c:yMode val="edge"/>
+              <c:x val="0.25"/><c:y val="0.1"/><c:w val="0.65"/><c:h val="0.65"/>
+            </c:manualLayout></c:layout>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, "Units", ["One", "Two"], [40, 80], "4472C4")}
+              {DocxBuilder.ChartSeries(1, "Others", ["One", "Two"], [60, 30], "ED7D31")}
+              <c:gapWidth val="100"/>
+              <c:overlap val="-27"/>
+              <c:axId val="111111111"/><c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/><c:axPos val="b"/>
+              <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+              <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/><c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/><c:majorUnit val="50"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+        </c:chart>
+        """;
+
+    /// <summary>A chart part, wrapped in the element every one of them begins with.</summary>
+    private static string ChartPart(string chartXml) => $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+                      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                      xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+          {chartXml}
+        </c:chartSpace>
+        """;
+
+    /// <summary>
+    /// A column chart whose plot area is placed by hand and whose value axis is told what to do.
+    /// </summary>
+    /// <remarks>
+    /// The plot area is given as fractions of the frame, which is what a chart means by an inner
+    /// layout: where the bars go, without the axis labels or anything else moving it. That pins
+    /// everything the plotting can be measured against — a bar of value v in a plot of known
+    /// height reaches a known place — and leaves Word's automatic placing for its own probe.
+    ///
+    /// Nothing is left to a default that could be guessed at: the axes state their bounds and
+    /// their spacing, the bars state their colours, and there is neither a title nor a legend.
+    /// </remarks>
+    private static string ColumnChart() => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/>
+                <c:w val="0.7"/><c:h val="0.7"/>
+              </c:manualLayout>
+            </c:layout>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, "Units", ["North", "South", "East", "West"],
+                  [30, 45, 20, 55], "4472C4")}
+              <c:gapWidth val="150"/>
+              <c:overlap val="-27"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling>
+                <c:orientation val="minMax"/>
+                <c:max val="60"/>
+                <c:min val="0"/>
+              </c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
+    /// <summary>
+    /// A column chart with the two things a first drawing of one cannot settle: how far a label
+    /// sits from the axis it belongs to, and how it is set against the mark it names.
+    /// </summary>
+    /// <param name="tickMark">Whether the axes carry marks, which the labels may have to clear.</param>
+    /// <param name="labelSize">
+    /// The type the labels are set in, in hundredths of a point, so that a gap fixed in points can
+    /// be told from one that is a share of the type.
+    /// </param>
+    /// <param name="labelOffset">
+    /// How far the categories sit below their axis, as a percentage of something the format does
+    /// not say.
+    /// </param>
+    private static string AxisProbeChart(string tickMark, int labelSize, int labelOffset = 100)
+    {
+        var text = $"""
+            <c:txPr><a:bodyPr/><a:lstStyle/>
+              <a:p><a:pPr><a:defRPr sz="{labelSize}"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p>
+            </c:txPr>
+            """;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout><c:manualLayout>
+                  <c:layoutTarget val="inner"/>
+                  <c:xMode val="edge"/><c:yMode val="edge"/>
+                  <c:x val="0.25"/><c:y val="0.1"/><c:w val="0.65"/><c:h val="0.65"/>
+                </c:manualLayout></c:layout>
+                <c:barChart>
+                  <c:barDir val="col"/>
+                  <c:grouping val="clustered"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", ["One", "Two"], [40, 80], "4472C4")}
+                  <c:gapWidth val="150"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:barChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:majorTickMark val="{tickMark}"/>
+                  <c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  {text}
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/>
+                  <c:lblOffset val="{labelOffset}"/>
+                  <c:noMultiLvlLbl val="0"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="{tickMark}"/>
+                  <c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  {text}
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>
+                  <c:majorUnit val="50"/>
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -1443,6 +1646,62 @@ public static class Fixtures
 
                 return builder;
             },
+
+            // A chart, with everything about it stated rather than left to Word: where the plot
+            // area goes, what the value axis runs between, and how far apart its marks are. What
+            // is being measured first is the plotting itself — where a bar of a given value lands
+            // in a plot area of a given size — with none of Word's automatic sizing in the way.
+            ["chart-column"] = () => new DocxBuilder()
+                .WithChart(ColumnChart())
+                .AddParagraph("Paragraph before the chart.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216) + "</w:p>")
+                .AddParagraph("Paragraph after the chart.", ZeroSpacing, Times12),
+
+            // How far a chart's labels sit from the axes they belong to, which one chart cannot
+            // say: four of them, varying the marks the labels may have to clear, the type they
+            // are set in, and what the format calls a label offset.
+            //
+            //   page 1  no marks, ten point labels
+            //   page 2  marks outside, the same labels   -> does a label clear the mark?
+            //   page 3  no marks, twenty point labels    -> is the gap a share of the type?
+            //   page 4  no marks, twice the label offset -> what the offset is a share of
+            ["chart-axis-probe"] = () => new DocxBuilder()
+                .WithChart(AxisProbeChart("none", 1000))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(AxisProbeChart("out", 1000)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(AxisProbeChart("none", 2000)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(AxisProbeChart("none", 1000, labelOffset: 200)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 501) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 502, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 503, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 504, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TwoSeriesChart()),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 505, relationshipId: "rIdChart5") +
+                                 "</w:p>"),
 
             // Word draws an older shape a little way off from where a newer one of the same size
             // goes, and how far depends on how thick its stroke is. Eight pages, one shape each,

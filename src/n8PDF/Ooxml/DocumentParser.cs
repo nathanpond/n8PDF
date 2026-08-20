@@ -476,7 +476,8 @@ public static class DocumentParser
         return new DrawingInline(width, height, ReadEmbeddedRelationship(inline))
         {
             Shape = ReadShape(inline),
-            DiagramRelationshipId = ReadDiagram(inline)
+            DiagramRelationshipId = ReadDiagram(inline),
+            ChartRelationshipId = ReadChart(inline)
         };
     }
 
@@ -557,6 +558,11 @@ public static class DocumentParser
         container.Descendants(W.Diagram + "relIds").FirstOrDefault()
             ?.Attribute(W.Relationships + "dm")?.Value;
 
+    /// <summary>The relationship a chart's own part is reached by, where the frame holds one.</summary>
+    private static string? ReadChart(XElement container) =>
+        container.Descendants(ChartReader.Main + "chart").FirstOrDefault()
+            ?.Attribute(W.Relationships + "id")?.Value;
+
     /// <summary>
     /// The colour something is painted in: a literal one, a theme slot, or nothing at all where
     /// it declares <c>a:noFill</c>.
@@ -600,6 +606,7 @@ public static class DocumentParser
         {
             Shape = ReadShape(anchor),
             DiagramRelationshipId = ReadDiagram(anchor),
+            ChartRelationshipId = ReadChart(anchor),
             WidthEmu = width,
             HeightEmu = height,
             RelationshipId = ReadEmbeddedRelationship(anchor),

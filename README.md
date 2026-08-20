@@ -152,6 +152,43 @@ The outline itself straddles the edge. Word's export fills the whole extent and 
 same rectangle, insetting neither, which is what a PDF does with a stroked path anyway — so the
 frame here is drawn the same way and the two agree to a hundredth of a point.
 
+### Where a chart puts things
+
+A chart is the one thing a document describes only as data: series, axes and formatting, with no
+drawing of it anywhere, not even the cache a diagram carries. So every number below was measured
+from Word's export rather than read anywhere.
+
+- The **plot area** goes exactly where a chart states it, to the last decimal place, when it states
+  it as fractions of the frame.
+- A **bar's width** falls out of the gap between them, which is a percentage of the bar itself: one
+  series at a gap of 150 makes a category two and a half bars wide, so four categories across 252pt
+  give 63pt each and a bar of 25.2pt — which is what Word draws, to the quantum. Two series at a
+  gap of 100 and an overlap of −27 share their category and then stand apart: 117 ÷ 3.27 = 35.78,
+  against Word's 35.76.
+- A **value label** ends a little under one em short of its axis — 9.27pt at ten point type and
+  18.65pt at twenty, so proportional with nothing fixed about it — and is set with the box from its
+  ascenders to its descenders centred on its mark, which puts the baseline a quarter of the type
+  size below it. The face's typographic ascent and descent are what that quarter comes from, not
+  the ones a line is measured by: Calibri says 1536 and 512 of its 2048 for the first pair and 1950
+  and 550 for the second, and only the first puts the label where Word puts it.
+- A **category label** sits with its baseline 1.584 times its type size below the axis, at ten point
+  and at twenty alike, and each hundred of `lblOffset` moves it a further 0.312 of that size.
+- Whether the axis carries **marks** makes no difference to either: a chart drawn with them and one
+  drawn without put their labels in exactly the same places.
+- A chart's own **frame** is a white rectangle with ten point corners outlined in #898989 at half a
+  point, which is what Word draws where the chart says nothing about its border.
+
+Every line of both chart fixtures lands within 0.26pt of Word's across the page and 0.28pt down it,
+and the two agree on better than 99.4% of the ink.
+
+What is not implemented is the **automatic placing** of the plot area — where Word puts it when the
+chart does not say, which it works out from the labels, the title and the legend it has to fit
+around. Both fixtures state their own layout, which is why they agree so closely; a chart that
+leaves it to be worked out gets a fixed fifth-and-a-tenth of the frame here, and will not agree.
+The same goes for a value axis left to scale itself: what is implemented is the plainest rule that
+fits — from nought to a round number above the largest value, in four to six steps — and Word's own
+choice is not that simple.
+
 ### What a diagram is, and which half of it to draw
 
 SmartArt is written down twice. There is what it means — points, the connections between them, and
@@ -345,7 +382,9 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
+pictures), column charts (the plot area where the chart places it, bars sized by the gap and the
+overlap between them, gridlines, both axis lines and their marks, and the labels along each axis,
+read from the numbers the chart part caches), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
 and its text laid out into the rectangle the diagram set aside for it and set at its top, middle or
 foot), watermarks of both kinds (a word set across every page of a section, behind the text,
@@ -375,10 +414,12 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-Charts are not drawn. A chart is the one thing here a document describes only as data — series,
-axes and formatting, with no cached rendering of any kind — so drawing one means writing a chart
-engine: scales, automatic tick units, axes, gridlines, legends and each plot type. That is its own
-piece of work rather than a corner of this one.
+A chart is drawn as far as a column chart goes, and no further yet. What is there: the plot area,
+the bars, the gridlines, the two axis lines and the marks along them, and the labels up the value
+axis and under the categories, with the numbers read from the cache the part carries rather than
+from the workbook stored beside it. What is not: every other kind of plot — line, pie, area,
+scatter — and titles, legends, data labels and the automatic placing of the plot area, for which
+see below.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

@@ -1,0 +1,98 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 129.932, "font": "Times New Roman", "size": 12, "text": "Paragraph before the chart."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 261.099,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.532, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 210.699,
+          "height": 12.207,
+          "runs": [
+            {"x": 124.463, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 160.299,
+          "height": 12.207,
+          "runs": [
+            {"x": 124.463, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 109.899,
+          "height": 12.207,
+          "runs": [
+            {"x": 124.463, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 274.439,
+          "height": 12.207,
+          "runs": [
+            {"x": 163.591, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 274.439,
+          "height": 12.207,
+          "runs": [
+            {"x": 226.637, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 274.439,
+          "height": 12.207,
+          "runs": [
+            {"x": 293.033, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 274.439,
+          "height": 12.207,
+          "runs": [
+            {"x": 353.934, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 301.799,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 313.002,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 121.266, "font": "Times New Roman", "size": 12, "text": "Paragraph after the chart."}
+          ]
+        }
+      ]
+    }
+  ]
+}

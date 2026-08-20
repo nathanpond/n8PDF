@@ -1,0 +1,291 @@
+using System.Globalization;
+using System.Xml.Linq;
+
+namespace n8PDF.Ooxml;
+
+/// <summary>What a chart is drawn as.</summary>
+public enum ChartKind
+{
+    /// <summary>Bars standing up from the category axis.</summary>
+    Column,
+
+    /// <summary>Bars lying along it.</summary>
+    Bar,
+
+    Line,
+
+    Pie
+}
+
+/// <summary>One series: its name, and what it holds against each category.</summary>
+/// <param name="Values">
+/// One for each category, or null where the series has nothing for that one — a gap in the data
+/// is not a nought, and is not drawn as one.
+/// </param>
+public sealed record ChartSeries(
+    string Name,
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<double?> Values,
+    DrawingColorReference? Fill);
+
+/// <summary>An axis, and what it says about the scale it draws.</summary>
+public sealed class ChartAxis
+{
+    public long Id { get; set; }
+
+    /// <summary>Where it runs: "l", "r", "t" or "b".</summary>
+    public string Position { get; set; } = "l";
+
+    /// <summary>True where the axis is not drawn at all, which is what <c>c:delete</c> asks.</summary>
+    public bool Deleted { get; set; }
+
+    public bool MajorGridlines { get; set; }
+
+    public double? Minimum { get; set; }
+
+    public double? Maximum { get; set; }
+
+    public double? MajorUnit { get; set; }
+
+    /// <summary>True for a value axis, false for one that runs over the categories.</summary>
+    public bool IsValueAxis { get; set; }
+
+    /// <summary>Whether the marks across it are drawn, and on which side.</summary>
+    public string MajorTickMark { get; set; } = "out";
+
+    /// <summary>Where the labels go, or "none" where there are none.</summary>
+    public string TickLabelPosition { get; set; } = "nextTo";
+
+    /// <summary>
+    /// The type its labels are set in. Ten point is what Word uses where the axis says nothing,
+    /// which is what its export of a chart carrying no text properties at all comes out at.
+    /// </summary>
+    public double LabelSizePoints { get; set; } = 10;
+
+    /// <summary>
+    /// How far the labels sit from the axis, as a percentage of a step the format does not name.
+    /// A hundred is the usual, and what an axis saying nothing means.
+    /// </summary>
+    public int LabelOffset { get; set; } = 100;
+}
+
+/// <summary>
+/// Where a chart puts something as a fraction of the whole: the layout a chart states by hand
+/// rather than leaving to be worked out.
+/// </summary>
+public sealed record ChartLayout(double X, double Y, double Width, double Height);
+
+/// <summary>A chart, as its part describes it.</summary>
+public sealed class ChartDefinition
+{
+    public ChartKind Kind { get; set; } = ChartKind.Column;
+
+    public List<ChartSeries> Series { get; } = [];
+
+    public ChartAxis? CategoryAxis { get; set; }
+
+    public ChartAxis? ValueAxis { get; set; }
+
+    /// <summary>Where the plotting itself goes, where the chart says so outright.</summary>
+    public ChartLayout? PlotArea { get; set; }
+
+    /// <summary>
+    /// How wide the gap between one category's bars and the next is, as a percentage of one bar.
+    /// </summary>
+    public int GapWidth { get; set; } = 150;
+
+    /// <summary>
+    /// How far the bars of one category overlap each other, as a percentage of a bar; negative
+    /// parts them.
+    /// </summary>
+    public int Overlap { get; set; }
+
+    /// <summary>The categories, taken from the first series that names any.</summary>
+    public IReadOnlyList<string> Categories =>
+        Series.FirstOrDefault(series => series.Categories.Count > 0)?.Categories ?? [];
+}
+
+/// <summary>
+/// Reads a chart part.
+/// </summary>
+/// <remarks>
+/// A chart is the one thing a document describes only as data. There is no drawing of it anywhere:
+/// what the part holds is the numbers, the axes and the formatting, and every reader works out the
+/// picture for itself. The numbers are written twice — as a formula naming cells in a workbook
+/// stored alongside, and as a cache of what those cells last held — and it is the cache that is
+/// read here, since the workbook is a spreadsheet and answering it would mean being one.
+/// </remarks>
+public static class ChartReader
+{
+    public static readonly XNamespace Main = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+
+    public static ChartDefinition? Parse(XDocument? part)
+    {
+        var chart = part?.Root?.Element(Main + "chart");
+        var plotArea = chart?.Element(Main + "plotArea");
+        if (plotArea is null) return null;
+
+        var definition = new ChartDefinition
+        {
+            PlotArea = ReadLayout(plotArea.Element(Main + "layout"))
+        };
+
+        var plot = plotArea.Element(Main + "barChart")
+                   ?? plotArea.Element(Main + "lineChart")
+                   ?? plotArea.Element(Main + "pieChart");
+
+        if (plot is null) return null;
+
+        definition.Kind = plot.Name.LocalName switch
+        {
+            "lineChart" => ChartKind.Line,
+            "pieChart" => ChartKind.Pie,
+            _ => plot.Element(Main + "barDir")?.Attribute("val")?.Value == "bar"
+                ? ChartKind.Bar
+                : ChartKind.Column
+        };
+
+        definition.GapWidth = Integer(plot.Element(Main + "gapWidth")) ?? 150;
+        definition.Overlap = Integer(plot.Element(Main + "overlap")) ?? 0;
+
+        foreach (var series in plot.Elements(Main + "ser"))
+            definition.Series.Add(ReadSeries(series));
+
+        foreach (var axis in plotArea.Elements())
+        {
+            if (axis.Name == Main + "catAx" || axis.Name == Main + "dateAx")
+                definition.CategoryAxis = ReadAxis(axis, isValue: false);
+            else if (axis.Name == Main + "valAx")
+                definition.ValueAxis = ReadAxis(axis, isValue: true);
+        }
+
+        return definition;
+    }
+
+    private static ChartSeries ReadSeries(XElement element)
+    {
+        var name = element.Element(Main + "tx") is { } tx
+            ? Strings(tx).FirstOrDefault() ?? string.Empty
+            : string.Empty;
+
+        var categories = element.Element(Main + "cat") is { } cat ? Strings(cat) : [];
+        var values = element.Element(Main + "val") is { } val ? Numbers(val) : [];
+
+        return new ChartSeries(name, categories, values,
+            DrawingText.ReadFill(element.Element(Main + "spPr")));
+    }
+
+    private static ChartAxis ReadAxis(XElement element, bool isValue)
+    {
+        var scaling = element.Element(Main + "scaling");
+
+        return new ChartAxis
+        {
+            Id = long.TryParse(element.Element(Main + "axId")?.Attribute("val")?.Value, out var id) ? id : 0,
+            Position = element.Element(Main + "axPos")?.Attribute("val")?.Value ?? (isValue ? "l" : "b"),
+            Deleted = element.Element(Main + "delete")?.Attribute("val")?.Value is "1" or "true",
+            MajorGridlines = element.Element(Main + "majorGridlines") is not null,
+            Minimum = Number(scaling?.Element(Main + "min")),
+            Maximum = Number(scaling?.Element(Main + "max")),
+            MajorUnit = Number(element.Element(Main + "majorUnit")),
+            IsValueAxis = isValue,
+            MajorTickMark = element.Element(Main + "majorTickMark")?.Attribute("val")?.Value ?? "out",
+            TickLabelPosition = element.Element(Main + "tickLblPos")?.Attribute("val")?.Value ?? "nextTo",
+            LabelSizePoints = LabelSize(element) ?? 10,
+            LabelOffset = Integer(element.Element(Main + "lblOffset")) ?? 100
+        };
+    }
+
+    /// <summary>
+    /// The type an axis sets its labels in, from the text properties it carries. Hundredths of a
+    /// point, as everything in DrawingML is.
+    /// </summary>
+    private static double? LabelSize(XElement axis)
+    {
+        var size = axis.Element(Main + "txPr")?
+            .Descendants(W.Drawing + "defRPr").FirstOrDefault()?
+            .Attribute("sz")?.Value;
+
+        return double.TryParse(size, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value / 100
+            : null;
+    }
+
+    /// <summary>
+    /// A layout stated by hand, as fractions of the chart. Only the inner one is read: it is the
+    /// plotting itself, without the axis labels around it, and is the only one that says where the
+    /// bars go rather than where everything does.
+    /// </summary>
+    private static ChartLayout? ReadLayout(XElement? layout)
+    {
+        var manual = layout?.Element(Main + "manualLayout");
+        if (manual is null) return null;
+
+        if (manual.Element(Main + "layoutTarget")?.Attribute("val")?.Value != "inner") return null;
+
+        var x = Number(manual.Element(Main + "x"));
+        var y = Number(manual.Element(Main + "y"));
+        var width = Number(manual.Element(Main + "w"));
+        var height = Number(manual.Element(Main + "h"));
+
+        return x is null || y is null || width is null || height is null
+            ? null
+            : new ChartLayout(x.Value, y.Value, width.Value, height.Value);
+    }
+
+    /// <summary>The strings a reference caches, in the order their indices give them.</summary>
+    private static List<string> Strings(XElement container)
+    {
+        var cache = container.Descendants(Main + "strCache").FirstOrDefault()
+                    ?? container.Descendants(Main + "numCache").FirstOrDefault();
+
+        return cache is null ? [] : [.. Points(cache).Select(value => value ?? string.Empty)];
+    }
+
+    private static List<double?> Numbers(XElement container)
+    {
+        var cache = container.Descendants(Main + "numCache").FirstOrDefault();
+
+        return cache is null
+            ? []
+            : [.. Points(cache).Select(value =>
+                value is not null &&
+                double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+                    ? number
+                    : (double?)null)];
+    }
+
+    /// <summary>
+    /// The cached points of a reference, filled out to the count it declares. They are numbered
+    /// rather than listed, and a series with a hole in it leaves one out.
+    /// </summary>
+    private static List<string?> Points(XElement cache)
+    {
+        var count = Integer(cache.Element(Main + "ptCount")) ?? 0;
+        var values = new List<string?>(new string?[Math.Max(0, count)]);
+
+        foreach (var point in cache.Elements(Main + "pt"))
+        {
+            if (!int.TryParse(point.Attribute("idx")?.Value, out var index)) continue;
+            if (index < 0) continue;
+
+            while (values.Count <= index) values.Add(null);
+
+            values[index] = point.Element(Main + "v")?.Value;
+        }
+
+        return values;
+    }
+
+    private static int? Integer(XElement? element) =>
+        int.TryParse(element?.Attribute("val")?.Value, NumberStyles.Integer,
+            CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+
+    private static double? Number(XElement? element) =>
+        double.TryParse(element?.Attribute("val")?.Value, NumberStyles.Float,
+            CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+}

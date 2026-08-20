@@ -1035,11 +1035,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (width <= 0 || height <= 0) continue;
 
             (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top)? composed =
-                anchored.Diagram is { Count: > 0 } diagram
-                    ? ComposeDiagram(diagram, width, height)
-                    : anchored.Shape is { } shape
-                        ? ComposeShape(shape, width, height)
-                        : null;
+                anchored.Chart is { } chart
+                    ? ComposeChart(chart, width, height)
+                    : anchored.Diagram is { Count: > 0 } diagram
+                        ? ComposeDiagram(diagram, width, height)
+                        : anchored.Shape is { } shape
+                            ? ComposeShape(shape, width, height)
+                            : null;
 
             var image = composed?.Frame ??
                         (anchored.RelationshipId is null
@@ -3017,6 +3019,144 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// Draws a chart: its plotting into one drawing, and the words along its axes into one flow
+    /// of text over the top.
+    /// </summary>
+    /// <remarks>
+    /// The labels are laid out by the ordinary machinery rather than measured and placed by hand,
+    /// which is what centres a category under its bars and ranges the numbers against the axis: a
+    /// label is a paragraph in a box, and a paragraph in a box is what the engine does.
+    /// </remarks>
+    private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeChart(
+        ChartDefinition chart, double width, double height)
+    {
+        var plan = ChartComposer.Arrange(chart, width, height);
+
+        var frame = new Images.ImageData(1, 1, [],
+            Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
+        {
+            Drawing = ChartComposer.Draw(chart, plan, width, height, _styles.Theme)
+        };
+
+        var page = new LaidOutPage { WidthPoints = width, HeightPoints = height };
+
+        // The numbers up the value axis, each ranged against it and set beside its own mark.
+        if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
+        {
+            var size = valueAxis.LabelSizePoints;
+            var (ascent, descent) = LabelMetrics(size);
+
+            foreach (var value in ChartComposer.Marks(plan))
+            {
+                var label = ChartLabel(Format(value), Justification.Right, size);
+                var flow = MeasureInside([label], Math.Max(1, plan.Left - size * ValueLabelGap));
+
+                // The letters are set about the mark rather than under it: what is centred on it
+                // is the box from the top of the ascenders to the foot of the descenders, which
+                // puts the baseline half their difference below. Measured at ten point and at
+                // twenty, where Word sets the baseline 2.64pt and 5.04pt below the mark.
+                flow.PlaceOnto(page, 0,
+                    plan.PositionOf(value) + (ascent - descent) / 2 - flow.FirstAscent);
+            }
+        }
+
+        // And the categories along the foot, each centred under the bars it belongs to.
+        if (chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" } categoryAxis)
+        {
+            var size = categoryAxis.LabelSizePoints;
+            var categories = chart.Categories;
+            var slot = plan.Width / Math.Max(1, categories.Count);
+
+            // How far below the axis the words go, which is a share of the type they are set in
+            // and nothing to do with the marks along it: Word puts the baseline 1.584 times the
+            // type size below the axis at ten point and at twenty alike, and a chart whose marks
+            // are drawn outside puts it in exactly the same place.
+            var below = size * (CategoryLabelBaseline +
+                                (categoryAxis.LabelOffset - 100) / 100.0 * CategoryLabelStep);
+
+            for (var i = 0; i < categories.Count; i++)
+            {
+                var label = ChartLabel(categories[i], Justification.Center, size);
+                var flow = MeasureInside([label], Math.Max(1, slot));
+
+                flow.PlaceOnto(page, plan.Left + slot * i,
+                    plan.Bottom + below - flow.FirstAscent);
+            }
+        }
+
+        return (frame, new DetachedFlow(page, height), 0, 0);
+    }
+
+    /// <summary>
+    /// How far a number on the value axis ends short of it, as a share of the type it is set in.
+    /// </summary>
+    /// <remarks>
+    /// A little under one em. Measured from chart-axis-probe, where ten point labels end 9.27pt
+    /// short of the axis and twenty point ones 18.65pt — so it is proportional, with nothing fixed
+    /// about it, and the marks along the axis make no difference to it either way. A share of the
+    /// label's line height fits the same two measurements just as well; there is nothing here to
+    /// tell the two readings apart.
+    /// </remarks>
+    private const double ValueLabelGap = 0.94;
+
+    /// <summary>
+    /// How far below the axis a category's own baseline sits, as a share of its type size, and how
+    /// much a hundred of label offset moves it. Both measured at two sizes.
+    /// </summary>
+    private const double CategoryLabelBaseline = 1.584;
+
+    private const double CategoryLabelStep = 0.312;
+
+    /// <summary>
+    /// How far a chart's label reaches above and below its baseline, for setting it against a mark.
+    /// </summary>
+    private (double Ascent, double Descent) LabelMetrics(double sizePoints)
+    {
+        var format = _styles.ResolveRun(null, null);
+
+        if (!_fonts.TryResolve(format.FontFamily, format.Bold, format.Italic, out var selection))
+            return (sizePoints * 0.75, sizePoints * 0.25);
+
+        // The typographic ascent and descent rather than the ones a line is measured by: Calibri
+        // says 1536 and 512 of its 2048 for the first pair and 1950 and 550 for the second, and it
+        // is the first that puts a label where Word puts it — a quarter of the type size below its
+        // mark, against the 0.342 the second would give.
+        var metrics = selection.Font.Metrics;
+
+        var ascender = metrics.TypoAscender != 0 ? metrics.TypoAscender : metrics.Ascender;
+        var descender = metrics.TypoDescender != 0 ? metrics.TypoDescender : metrics.Descender;
+
+        return (ascender * sizePoints / metrics.UnitsPerEm,
+            -descender * sizePoints / metrics.UnitsPerEm);
+    }
+
+    /// <summary>
+    /// One label of a chart, in the document's own face at the size the axis asks for.
+    /// </summary>
+    private static Paragraph ChartLabel(string text, Justification alignment, double sizePoints)
+    {
+        var paragraph = new Paragraph();
+
+        paragraph.Properties.Justification = alignment;
+        paragraph.Properties.SpacingBeforeTwips = 0;
+        paragraph.Properties.SpacingAfterTwips = 0;
+        paragraph.Properties.Line = 240;
+        paragraph.Properties.LineRule = LineSpacingRule.Auto;
+
+        var run = new Run { Properties = { SizeHalfPoints = (int)Math.Round(sizePoints * 2) } };
+        run.Content.Add(new TextInline(text));
+        paragraph.Runs.Add(run);
+
+        return paragraph;
+    }
+
+    /// <summary>A number as an axis writes it: whole where it is whole.</summary>
+    private static string Format(double value) =>
+        value == Math.Floor(value) && Math.Abs(value) < 1e15
+            ? ((long)value).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
     /// Draws a diagram: every shape of it into one drawing, and every shape's words into one flow
     /// of text over the top.
     /// </summary>
@@ -4208,11 +4348,13 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var height = drawing.HeightPoints;
         if (width <= 0 || height <= 0) return;
 
-        if (drawing.Diagram is { Count: > 0 } || drawing.Shape is not null)
+        if (drawing.Diagram is { Count: > 0 } || drawing.Shape is not null || drawing.Chart is not null)
         {
-            var composed = drawing.Diagram is { Count: > 0 } diagram
-                ? ComposeDiagram(diagram, width, height)
-                : ComposeShape(drawing.Shape!, width, height);
+            var composed = drawing.Chart is { } chart
+                ? ComposeChart(chart, width, height)
+                : drawing.Diagram is { Count: > 0 } diagram
+                    ? ComposeDiagram(diagram, width, height)
+                    : ComposeShape(drawing.Shape!, width, height);
 
             atoms.Add(new ImageAtom
             {
@@ -4879,6 +5021,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             new(new LaidOutPage { WidthPoints = 0, HeightPoints = 0 }, 0);
 
         public double Height { get; } = height;
+
+        /// <summary>
+        /// How far the first line reaches above its own baseline, for placing a flow by where its
+        /// words sit rather than by where its box begins.
+        /// </summary>
+        public double FirstAscent => page.Lines.Count > 0 ? page.Lines[0].Ascent : 0;
 
         /// <summary>
         /// Footnotes referenced by this content, which belong to the page it is placed on rather
