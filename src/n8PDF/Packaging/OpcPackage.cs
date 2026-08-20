@@ -8,7 +8,7 @@ namespace n8PDF.Packaging;
 /// <param name="Type">The relationship type URI.</param>
 /// <param name="Target">The target as written in the .rels file, which may be relative.</param>
 /// <param name="IsExternal">True when the target is a URL rather than a part in the package.</param>
-public sealed record OpcRelationship(string Id, string Type, string Target, bool IsExternal);
+internal sealed record OpcRelationship(string Id, string Type, string Target, bool IsExternal);
 
 /// <summary>
 /// Reads an Open Packaging Conventions container — the ZIP-of-XML-parts that a <c>.docx</c>
@@ -18,7 +18,7 @@ public sealed record OpcRelationship(string Id, string Type, string Target, bool
 /// This layer deliberately knows nothing about Word. It resolves part names, content types and
 /// relationships; interpreting what is inside a part is the job of the Ooxml layer.
 /// </remarks>
-public sealed class OpcPackage : IDisposable
+internal sealed class OpcPackage : IDisposable
 {
     /// <summary>Relationship type of the main document part.</summary>
     public const string OfficeDocumentRelationship =

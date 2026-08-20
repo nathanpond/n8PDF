@@ -10,7 +10,7 @@ namespace n8PDF.Images;
 /// do. A metafile is not pixels at all but the record of a drawing being made, and is kept as one:
 /// its commands are read here and written out again as the PDF's own.
 /// </remarks>
-public static class ImageReader
+internal static class ImageReader
 {
     public static bool IsSupported(byte[] data) =>
         PngDecoder.IsPng(data) || IsJpeg(data) || GifDecoder.IsGif(data) ||

@@ -3,7 +3,7 @@ using System.Xml.Linq;
 namespace n8PDF.Ooxml;
 
 /// <summary>XML namespaces used by WordprocessingML documents.</summary>
-public static class W
+internal static class W
 {
     /// <summary>The main WordprocessingML namespace.</summary>
     public static readonly XNamespace Main =

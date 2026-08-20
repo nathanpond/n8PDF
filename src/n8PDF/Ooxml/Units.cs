@@ -11,7 +11,7 @@ namespace n8PDF.Ooxml;
 /// silent and produces output that is subtly and consistently wrong. Every conversion in the
 /// library goes through this type rather than through an inline literal.
 /// </remarks>
-public static class Units
+internal static class Units
 {
     /// <summary>Twips (twentieths of a point) per point.</summary>
     public const double TwipsPerPoint = 20.0;

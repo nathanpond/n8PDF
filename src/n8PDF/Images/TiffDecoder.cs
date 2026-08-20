@@ -16,7 +16,7 @@ namespace n8PDF.Images;
 /// not is the rest of a format that was designed to hold anything at all — tiles, separate planes,
 /// the fax encodings, and JPEG inside TIFF.
 /// </remarks>
-public static class TiffDecoder
+internal static class TiffDecoder
 {
     public static bool IsTiff(byte[] data) =>
         data.Length > 8 &&

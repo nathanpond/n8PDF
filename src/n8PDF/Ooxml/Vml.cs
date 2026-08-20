@@ -15,7 +15,7 @@ namespace n8PDF.Ooxml;
 /// everything downstream — laying the text out inside it, drawing the outline, flowing text round
 /// it — is the code that was already there.
 /// </remarks>
-public static class Vml
+internal static class Vml
 {
     /// <summary>The VML namespace itself.</summary>
     public static readonly XNamespace Main = "urn:schemas-microsoft-com:vml";

@@ -12,7 +12,7 @@ namespace n8PDF.Styling;
 /// style's chain, then formatting applied directly to the element. Toggle properties do not
 /// simply override — see <see cref="ApplyToggle"/>.
 /// </remarks>
-public sealed class StyleResolver(
+internal sealed class StyleResolver(
     StyleDefinitions styles,
     DocumentTheme? theme = null,
     bool applyBuiltInStyleDefaults = true,

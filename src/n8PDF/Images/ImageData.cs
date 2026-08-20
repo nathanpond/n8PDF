@@ -1,7 +1,7 @@
 namespace n8PDF.Images;
 
 /// <summary>How an image's bytes should be handed to the PDF.</summary>
-public enum ImageEncoding
+internal enum ImageEncoding
 {
     /// <summary>Raw samples, to be Flate-compressed on the way out.</summary>
     Raw,
@@ -10,7 +10,7 @@ public enum ImageEncoding
     Jpeg
 }
 
-public enum ImageColorSpace
+internal enum ImageColorSpace
 {
     Gray,
     Rgb,
@@ -31,7 +31,7 @@ public enum ImageColorSpace
 /// One byte of opacity per pixel, or null when the image is fully opaque. PDF carries
 /// transparency as a separate soft mask rather than as a fourth channel.
 /// </param>
-public sealed record ImageData(
+internal sealed record ImageData(
     int Width,
     int Height,
     byte[] Data,
@@ -74,4 +74,4 @@ public sealed record ImageData(
 }
 
 /// <summary>Raised when image data cannot be decoded.</summary>
-public sealed class ImageFormatException(string message) : Exception(message);
+internal sealed class ImageFormatException(string message) : Exception(message);

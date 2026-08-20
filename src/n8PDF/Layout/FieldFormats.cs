@@ -12,7 +12,7 @@ namespace n8PDF.Layout;
 /// Every spelling here is read from Word's own export of the fields fixture, where the same page
 /// number is written out by each switch in turn.
 /// </remarks>
-public static class FieldFormats
+internal static class FieldFormats
 {
     /// <summary>
     /// Applies a <c>\*</c> switch to a number. Returns null where the switch names something else

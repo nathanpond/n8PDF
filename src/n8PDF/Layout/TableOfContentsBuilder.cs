@@ -16,7 +16,7 @@ namespace n8PDF.Layout;
 /// outline level falls in that range, and <c>\t "Style,Level"</c> names styles to take as well,
 /// whatever level they stand at. <c>\n</c> leaves the page numbers off.
 /// </remarks>
-public static class TableOfContentsBuilder
+internal static class TableOfContentsBuilder
 {
     /// <summary>A heading the table gathers: what it says, how deep it is, and where it is.</summary>
     public sealed record Entry(int Level, string Text, int Page);

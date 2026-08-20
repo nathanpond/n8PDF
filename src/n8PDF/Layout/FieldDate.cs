@@ -15,7 +15,7 @@ namespace n8PDF.Layout;
 /// "of" in "d 'of' MMMM" into a day and a fraction of a second, so anything that is not a token is
 /// quoted before being handed over.
 /// </remarks>
-public static class FieldDate
+internal static class FieldDate
 {
     /// <summary>
     /// What a date field shows when it names no picture of its own. Word takes this from the

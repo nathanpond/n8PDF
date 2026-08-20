@@ -4,7 +4,7 @@ using System.Xml.Linq;
 namespace n8PDF.Ooxml;
 
 /// <summary>What a chart is drawn as.</summary>
-public enum ChartKind
+internal enum ChartKind
 {
     /// <summary>Bars standing up from the category axis.</summary>
     Column,
@@ -31,7 +31,7 @@ public enum ChartKind
 /// or "none" where the series asks for nothing at all.
 /// </param>
 /// <param name="SizePoints">How large, across the whole of it.</param>
-public sealed record ChartMarker(
+internal sealed record ChartMarker(
     string Symbol,
     double SizePoints,
     DrawingColorReference? Fill,
@@ -39,7 +39,7 @@ public sealed record ChartMarker(
     double LineWidthPoints);
 
 /// <summary>How the bars of one category stand against each other.</summary>
-public enum ChartGrouping
+internal enum ChartGrouping
 {
     /// <summary>Side by side, each from the axis.</summary>
     Clustered,
@@ -59,7 +59,7 @@ public enum ChartGrouping
 /// One for each category, or null where the series has nothing for that one — a gap in the data
 /// is not a nought, and is not drawn as one.
 /// </param>
-public sealed record ChartSeries(
+internal sealed record ChartSeries(
     string Name,
     IReadOnlyList<string> Categories,
     IReadOnlyList<double?> Values,
@@ -112,7 +112,7 @@ public sealed record ChartSeries(
 /// A title: a chart's own, or one of its axes'. What it holds is ordinary text, laid out by the
 /// engine that lays out everything else.
 /// </summary>
-public sealed class ChartTitle
+internal sealed class ChartTitle
 {
     public IReadOnlyList<BlockElement> Paragraphs { get; init; } = [];
 
@@ -122,14 +122,14 @@ public sealed class ChartTitle
 
 /// <summary>Where a legend goes, and how its entries are set.</summary>
 /// <param name="Position">"b", "t", "l", "r" or "tr".</param>
-public sealed record ChartLegend(string Position, bool Overlay, double LabelSizePoints);
+internal sealed record ChartLegend(string Position, bool Overlay, double LabelSizePoints);
 
 /// <summary>What is written at each point, and where.</summary>
 /// <param name="Position">
 /// "outEnd", "inEnd", "ctr", "inBase", "bestFit", "l", "r", "t", "b", or empty where the chart
 /// does not say and the kind of chart decides.
 /// </param>
-public sealed record ChartLabels(
+internal sealed record ChartLabels(
     bool Value, bool Percent, bool Category, bool SeriesName,
     string Position, string? NumberFormat, double SizePoints)
 {
@@ -138,7 +138,7 @@ public sealed record ChartLabels(
 }
 
 /// <summary>An axis, and what it says about the scale it draws.</summary>
-public sealed class ChartAxis
+internal sealed class ChartAxis
 {
     public long Id { get; set; }
 
@@ -199,10 +199,10 @@ public sealed class ChartAxis
 /// Where a chart puts something as a fraction of the whole: the layout a chart states by hand
 /// rather than leaving to be worked out.
 /// </summary>
-public sealed record ChartLayout(double X, double Y, double Width, double Height);
+internal sealed record ChartLayout(double X, double Y, double Width, double Height);
 
 /// <summary>A chart, as its part describes it.</summary>
-public sealed class ChartDefinition
+internal sealed class ChartDefinition
 {
     public ChartKind Kind { get; set; } = ChartKind.Column;
 
@@ -272,7 +272,7 @@ public sealed class ChartDefinition
 /// stored alongside, and as a cache of what those cells last held — and it is the cache that is
 /// read here, since the workbook is a spreadsheet and answering it would mean being one.
 /// </remarks>
-public static class ChartReader
+internal static class ChartReader
 {
     public static readonly XNamespace Main = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 

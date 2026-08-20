@@ -12,7 +12,7 @@ namespace n8PDF.Layout;
 /// and advancing one level restarts the levels beneath it. Counters are kept per list rather than
 /// per definition, because two lists sharing one definition still number independently.
 /// </remarks>
-public sealed class NumberingCounter(NumberingDefinitions definitions)
+internal sealed class NumberingCounter(NumberingDefinitions definitions)
 {
     private readonly Dictionary<int, Dictionary<int, int>> _counters = [];
 
@@ -97,7 +97,7 @@ public sealed class NumberingCounter(NumberingDefinitions definitions)
 }
 
 /// <summary>Renders a counter value in one of the numbering formats.</summary>
-public static class NumberFormatter
+internal static class NumberFormatter
 {
     public static string Format(int value, NumberFormat format) => format switch
     {

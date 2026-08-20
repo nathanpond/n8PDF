@@ -5,7 +5,7 @@ namespace n8PDF.Layout;
 /// <summary>
 /// The cells a formula can read, which is the table it stands in.
 /// </summary>
-public interface IFormulaCells
+internal interface IFormulaCells
 {
     /// <summary>
     /// The numbers running away from this cell in a direction — ABOVE, BELOW, LEFT or RIGHT.
@@ -36,7 +36,7 @@ public interface IFormulaCells
 /// rather than a lookup, so this is a parser — numbers, the five operators and their precedence,
 /// comparisons, brackets, and the functions Word knows.
 /// </remarks>
-public static class FieldFormula
+internal static class FieldFormula
 {
     /// <summary>What a formula comes to, or null where it cannot be worked out.</summary>
     public static double? Evaluate(string expression, IFormulaCells? cells)

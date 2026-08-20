@@ -14,7 +14,7 @@ namespace n8PDF.Pdf;
 /// a <c>ToUnicode</c> map keeps the text selectable and searchable despite the encoding being
 /// glyph indices rather than characters.
 /// </remarks>
-public sealed class PdfFont
+internal sealed class PdfFont
 {
     private readonly Dictionary<ushort, string> _glyphToUnicode = [];
 

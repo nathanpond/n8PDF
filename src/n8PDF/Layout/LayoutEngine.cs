@@ -28,7 +28,7 @@ public sealed class LayoutOptions
 /// Turns a parsed document into positioned text on pages: measurement, line breaking, vertical
 /// stacking and pagination.
 /// </summary>
-public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, LayoutOptions? options = null)
+internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, LayoutOptions? options = null)
 {
     private readonly FontLibrary _fonts = fonts;
 

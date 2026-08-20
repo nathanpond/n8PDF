@@ -13,7 +13,7 @@ namespace n8PDF.Images;
 /// them carry a fourth byte that was never written to, and reading it as transparency turns an
 /// opaque picture invisible.
 /// </remarks>
-public static class BmpDecoder
+internal static class BmpDecoder
 {
     public static bool IsBmp(byte[] data) =>
         data.Length > 54 && data[0] == 'B' && data[1] == 'M';

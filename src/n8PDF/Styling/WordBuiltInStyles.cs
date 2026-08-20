@@ -23,7 +23,7 @@ namespace n8PDF.Styling;
 /// "heading 1", "heading 2" and a custom name produced identical geometry once the page-break
 /// spacing rule was corrected. Anything added should be measured the same way first.
 /// </remarks>
-public static class WordBuiltInStyles
+internal static class WordBuiltInStyles
 {
     /// <summary>Word's built-in space-after for the Normal style, in twips (8 points).</summary>
     public const int NormalSpacingAfterTwips = 160;

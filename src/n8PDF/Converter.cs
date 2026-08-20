@@ -130,10 +130,15 @@ public static class Converter
 
     /// <summary>
     /// Runs everything up to but not including PDF generation, returning the positioned pages.
-    /// Exposed because layout is what fidelity work inspects and asserts against; the PDF is
-    /// just its serialisation.
     /// </summary>
-    public static LaidOutDocument LayoutDocument(Stream docx, ConversionOptions? options = null)
+    /// <remarks>
+    /// Not part of what the package promises. Layout is what the fidelity work inspects and
+    /// asserts against — the PDF is only its serialisation — and the tests reach it as an
+    /// internal. Making it public would freeze the whole layout model along with it: every page,
+    /// line, run, resolved format and font the model reaches, none of which is settled enough to
+    /// promise. If a caller ever needs something of it, the thing to add is that something.
+    /// </remarks>
+    internal static LaidOutDocument LayoutDocument(Stream docx, ConversionOptions? options = null)
     {
         options ??= new ConversionOptions();
 

@@ -7,7 +7,7 @@ namespace n8PDF.Layout;
 /// Measures text using real font metrics. Every horizontal position on a page traces back to
 /// this, so its unit handling is deliberately explicit.
 /// </summary>
-public static class TextMeasurer
+internal static class TextMeasurer
 {
     /// <summary>
     /// Measures a string in points.

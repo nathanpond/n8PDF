@@ -25,7 +25,7 @@ namespace n8PDF.Images;
 /// may hand the drawing back to the older interface part way through, and says so where it does,
 /// after which its records draw until the newer ones resume.
 /// </remarks>
-public static class EmfDecoder
+internal static class EmfDecoder
 {
     /// <summary>A metafile begins with a header record and the signature " EMF".</summary>
     public static bool IsEmf(byte[] data) =>

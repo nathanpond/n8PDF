@@ -17,7 +17,7 @@ namespace n8PDF.Fonts;
 /// the kerning written into the page from another — and two walks that must agree are two walks
 /// that can disagree. They are now one, and what flows from here to the page is glyphs.
 /// </remarks>
-public static class TextShaper
+internal static class TextShaper
 {
     /// <summary>
     /// Shapes a run of text set in one face.

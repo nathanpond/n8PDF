@@ -8,6 +8,26 @@ reference and calls one method.
 Converter.ConvertFile("report.docx", "report.pdf");
 ```
 
+## The API
+
+Six types, and that is the whole of what a version promises:
+
+| | |
+|---|---|
+| `Converter` | `Convert(byte[])`, `Convert(Stream, Stream)`, `ConvertFile(string, string)` |
+| `ConversionOptions` | fonts, layout, title, file name, dates, a mail-merge record, and whether to fill in Word's built-in style defaults |
+| `LayoutOptions` | kerning, and the default tab stop |
+| `FontLibrary` | registering fonts, and whether to discover the platform's |
+| `MailMergeRecord` | the fields a merge field asks for |
+| `FontFormatException` | what registering something that is not a font throws |
+
+Everything else — the OPC reader, the document model, the style cascade, the font engine, the
+layout engine, the PDF writer — is internal. All of it used to be public, which would have frozen
+174 types at the first published version: the shape of a positioned line, the name of a table's
+border edge, every enum the parser reads. `PublicApiTests` writes the surface out in full and
+fails on anything that grows it, so adding to the promise is a deliberate act with a diff to show
+for it.
+
 ## The constraint
 
 `src/n8PDF` carries **zero** `PackageReference` entries, and `LibraryInvariantTests` fails the

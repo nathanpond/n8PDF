@@ -13,7 +13,7 @@ namespace n8PDF.Diagnostics;
 /// comparing traces names the run and the coordinate that moved, which is the difference between
 /// a regression you can fix and one you can only observe.
 /// </remarks>
-public static class LayoutTrace
+internal static class LayoutTrace
 {
     /// <summary>Decimal places retained. A thousandth of a point is far below visible.</summary>
     private const int Precision = 3;

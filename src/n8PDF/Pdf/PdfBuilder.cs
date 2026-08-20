@@ -4,7 +4,7 @@ using n8PDF.Fonts;
 namespace n8PDF.Pdf;
 
 /// <summary>A page under construction: its geometry plus the content stream being written to it.</summary>
-public sealed class PdfPage
+internal sealed class PdfPage
 {
     internal PdfPage(PdfDictionary dictionary, double width, double height)
     {
@@ -34,7 +34,7 @@ public sealed class PdfPage
 /// Assembles a multi-page PDF, owning the font registry and the shared resource dictionary so
 /// that callers deal in fonts and pages rather than in object graphs.
 /// </summary>
-public sealed class PdfBuilder
+internal sealed class PdfBuilder
 {
     private readonly PdfDocument _document = new();
     private readonly Dictionary<TrueTypeFont, PdfFont> _fonts = [];

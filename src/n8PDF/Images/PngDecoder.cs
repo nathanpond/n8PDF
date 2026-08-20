@@ -11,7 +11,7 @@ namespace n8PDF.Images;
 /// the inflate step and nothing else — the chunk structure, the per-row filters and the colour
 /// models are all handled here.
 /// </remarks>
-public static class PngDecoder
+internal static class PngDecoder
 {
     private static readonly byte[] Signature = [137, 80, 78, 71, 13, 10, 26, 10];
 

@@ -1,6 +1,6 @@
 namespace n8PDF.Ooxml;
 
-public enum Justification
+internal enum Justification
 {
     Left,
     Center,
@@ -10,7 +10,7 @@ public enum Justification
 }
 
 /// <summary>How the <c>w:spacing/@w:line</c> value should be interpreted.</summary>
-public enum LineSpacingRule
+internal enum LineSpacingRule
 {
     /// <summary>A multiple of single spacing, in 240ths (240 = single, 360 = 1.5 lines).</summary>
     Auto,
@@ -22,7 +22,7 @@ public enum LineSpacingRule
     AtLeast
 }
 
-public enum UnderlineStyle
+internal enum UnderlineStyle
 {
     None,
     Single,
@@ -34,14 +34,14 @@ public enum UnderlineStyle
     Words
 }
 
-public enum VerticalTextAlignment
+internal enum VerticalTextAlignment
 {
     Baseline,
     Superscript,
     Subscript
 }
 
-public enum TabAlignment
+internal enum TabAlignment
 {
     Left,
     Center,
@@ -51,7 +51,7 @@ public enum TabAlignment
     Clear
 }
 
-public enum TabLeader
+internal enum TabLeader
 {
     None,
     Dot,
@@ -62,14 +62,14 @@ public enum TabLeader
 
 /// <summary>A tab stop declared on a paragraph.</summary>
 /// <param name="PositionTwips">Distance from the left text margin.</param>
-public sealed record TabStop(double PositionTwips, TabAlignment Alignment, TabLeader Leader);
+internal sealed record TabStop(double PositionTwips, TabAlignment Alignment, TabLeader Leader);
 
 /// <summary>
 /// Run properties exactly as written in one <c>w:rPr</c>, with no inheritance applied. Every
 /// member is nullable so that "not specified here" stays distinguishable from "specified as
 /// off", which is the distinction the whole style cascade turns on.
 /// </summary>
-public sealed class RunProperties
+internal sealed class RunProperties
 {
     /// <summary>Font for Latin text (<c>w:rFonts/@w:ascii</c>).</summary>
     public string? AsciiFont { get; set; }
@@ -148,7 +148,7 @@ public sealed class RunProperties
 /// <summary>
 /// Paragraph properties exactly as written in one <c>w:pPr</c>, with no inheritance applied.
 /// </summary>
-public sealed class ParagraphProperties
+internal sealed class ParagraphProperties
 {
     /// <summary>Referenced paragraph style id (<c>w:pStyle</c>).</summary>
     public string? StyleId { get; set; }
@@ -233,11 +233,11 @@ public sealed class ParagraphProperties
 /// What a table style has to say about the text inside one of its cells, in the order it is to be
 /// applied: the whole table's first and the corner cell's last.
 /// </summary>
-public sealed record TableStyleText(
+internal sealed record TableStyleText(
     IReadOnlyList<ParagraphProperties> Paragraph, IReadOnlyList<RunProperties> Run);
 
 /// <summary>What a table style says about a row, from a <c>w:trPr</c> inside it.</summary>
-public sealed class TableStyleRowProperties
+internal sealed class TableStyleRowProperties
 {
     public int? HeightTwips { get; set; }
 
@@ -249,7 +249,7 @@ public sealed class TableStyleRowProperties
 }
 
 /// <summary>What a table style says about a cell, from a <c>w:tcPr</c> inside it.</summary>
-public sealed class TableStyleCellProperties
+internal sealed class TableStyleCellProperties
 {
     public BorderSet Borders { get; } = new();
 
@@ -269,7 +269,7 @@ public sealed class TableStyleCellProperties
 
 /// <summary>Page geometry and section-level settings from a <c>w:sectPr</c>.</summary>
 /// <summary>Where the content of a new section starts.</summary>
-public enum SectionBreakType
+internal enum SectionBreakType
 {
     /// <summary>On the next page. Word's default, and what a section break usually means.</summary>
     NextPage,
@@ -288,7 +288,7 @@ public enum SectionBreakType
 }
 
 /// <summary>Where a section's text sits between the top and bottom margins.</summary>
-public enum VerticalPageAlignment
+internal enum VerticalPageAlignment
 {
     Top,
     Center,
@@ -298,7 +298,7 @@ public enum VerticalPageAlignment
     Both
 }
 
-public sealed class SectionProperties
+internal sealed class SectionProperties
 {
     /// <summary>Where this section's text sits on the page. Top unless it says otherwise.</summary>
     public VerticalPageAlignment VerticalAlignment { get; set; } = VerticalPageAlignment.Top;

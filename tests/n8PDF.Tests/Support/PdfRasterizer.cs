@@ -4,7 +4,7 @@ using n8PDF.Images;
 namespace n8PDF.Tests.Support;
 
 /// <summary>A rendered page: its pixels, and the text the reader found on it.</summary>
-public sealed record RenderedPage(ImageData Pixels, string Text)
+internal sealed record RenderedPage(ImageData Pixels, string Text)
 {
     /// <summary>The colour at a point of the page, in points from its top-left corner.</summary>
     public (byte R, byte G, byte B) At(double x, double y, double scale)
@@ -45,7 +45,7 @@ public static class PdfRasterizer
         "Set N8PDF_REQUIRE_RASTERIZER=1 to make its absence a failure rather than a skip.";
 
     /// <summary>Draws one page, at the given points-to-pixels scale.</summary>
-    public static RenderedPage? Render(byte[] pdf, int page = 0, double scale = 2)
+    internal static RenderedPage? Render(byte[] pdf, int page = 0, double scale = 2)
     {
         if (Tool.Value is not { } tool) return null;
 

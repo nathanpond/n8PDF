@@ -28,7 +28,7 @@ namespace n8PDF.Styling;
 /// <see cref="StyleResolver"/> knows where that is. It is hung on each cell paragraph instead, as
 /// <see cref="ParagraphProperties.FromTableStyle"/>, in the order it is to be applied.
 /// </remarks>
-public static class TableStyles
+internal static class TableStyles
 {
     /// <summary>
     /// What one style says about each part of a table: a list rather than a single format, since

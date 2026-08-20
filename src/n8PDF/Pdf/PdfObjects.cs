@@ -7,13 +7,13 @@ namespace n8PDF.Pdf;
 /// Base of the PDF object model (ISO 32000-1 §7.3). Every value that can appear in a PDF
 /// file body derives from this and knows how to serialise itself.
 /// </summary>
-public abstract class PdfObject
+internal abstract class PdfObject
 {
     internal abstract void Write(PdfWriter writer);
 }
 
 /// <summary>The <c>null</c> object.</summary>
-public sealed class PdfNull : PdfObject
+internal sealed class PdfNull : PdfObject
 {
     public static readonly PdfNull Instance = new();
 
@@ -22,7 +22,7 @@ public sealed class PdfNull : PdfObject
     internal override void Write(PdfWriter writer) => writer.WriteAscii("null");
 }
 
-public sealed class PdfBoolean : PdfObject
+internal sealed class PdfBoolean : PdfObject
 {
     public static readonly PdfBoolean True = new(true);
     public static readonly PdfBoolean False = new(false);
@@ -40,7 +40,7 @@ public sealed class PdfBoolean : PdfObject
 /// A numeric object. PDF has no exponent notation, so reals are always written in plain
 /// decimal form with the invariant culture's '.' separator.
 /// </summary>
-public sealed class PdfNumber : PdfObject
+internal sealed class PdfNumber : PdfObject
 {
     public double Value { get; }
     private readonly bool _isInteger;
@@ -72,7 +72,7 @@ public sealed class PdfNumber : PdfObject
 }
 
 /// <summary>A name object such as <c>/Type</c>. Irregular characters are #-escaped.</summary>
-public sealed class PdfName : PdfObject
+internal sealed class PdfName : PdfObject
 {
     public string Value { get; }
 
@@ -101,7 +101,7 @@ public sealed class PdfName : PdfObject
 /// A string object. Written as a hex string when it contains bytes that would need heavy
 /// escaping, and as a literal string otherwise.
 /// </summary>
-public sealed class PdfString : PdfObject
+internal sealed class PdfString : PdfObject
 {
     public byte[] Bytes { get; }
     public bool ForceHex { get; }
@@ -190,7 +190,7 @@ public sealed class PdfString : PdfObject
     }
 }
 
-public sealed class PdfArray : PdfObject
+internal sealed class PdfArray : PdfObject
 {
     private readonly List<PdfObject> _items = [];
 
@@ -225,7 +225,7 @@ public sealed class PdfArray : PdfObject
     }
 }
 
-public class PdfDictionary : PdfObject
+internal class PdfDictionary : PdfObject
 {
     private readonly Dictionary<string, PdfObject> _entries = [];
     private readonly List<string> _order = [];
@@ -280,7 +280,7 @@ public class PdfDictionary : PdfObject
 /// A stream object: a dictionary followed by raw data. Data is Flate-compressed on write
 /// unless suppressed, which matters for already-compressed payloads such as JPEG images.
 /// </summary>
-public sealed class PdfStream : PdfDictionary
+internal sealed class PdfStream : PdfDictionary
 {
     public byte[] Data { get; set; }
 
@@ -334,7 +334,7 @@ public sealed class PdfStream : PdfDictionary
 }
 
 /// <summary>An indirect reference, written as <c>n g R</c>.</summary>
-public sealed class PdfReference : PdfObject
+internal sealed class PdfReference : PdfObject
 {
     public int ObjectNumber { get; }
     public int Generation { get; }

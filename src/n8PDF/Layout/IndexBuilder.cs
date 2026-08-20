@@ -16,7 +16,7 @@ namespace n8PDF.Layout;
 /// pages; subentries indented under a parent that carries no page number of its own; and, where
 /// <c>\h</c> asks for them, a line holding the letter each group begins with.
 /// </remarks>
-public static class IndexBuilder
+internal static class IndexBuilder
 {
     /// <summary>What an XE field marks: the term, and what to show instead of a page number.</summary>
     /// <param name="Levels">

@@ -3,7 +3,7 @@ using System.Xml.Linq;
 namespace n8PDF.Ooxml;
 
 /// <summary>How a list level's number is written.</summary>
-public enum NumberFormat
+internal enum NumberFormat
 {
     Decimal,
     DecimalZero,
@@ -20,7 +20,7 @@ public enum NumberFormat
 }
 
 /// <summary>What follows a list label before the paragraph's own text.</summary>
-public enum NumberSuffix
+internal enum NumberSuffix
 {
     Tab,
     Space,
@@ -28,7 +28,7 @@ public enum NumberSuffix
 }
 
 /// <summary>One level of a list definition.</summary>
-public sealed class NumberingLevel
+internal sealed class NumberingLevel
 {
     public required int Level { get; init; }
 
@@ -60,7 +60,7 @@ public sealed class NumberingLevel
 }
 
 /// <summary>A list definition, shared by every list that references it.</summary>
-public sealed class AbstractNumbering
+internal sealed class AbstractNumbering
 {
     public required int Id { get; init; }
 
@@ -74,7 +74,7 @@ public sealed class AbstractNumbering
 /// Two lists can share one definition and still count independently, which is why paragraphs
 /// reference this rather than the definition directly.
 /// </remarks>
-public sealed class NumberingInstance
+internal sealed class NumberingInstance
 {
     public required int NumId { get; init; }
 
@@ -87,7 +87,7 @@ public sealed class NumberingInstance
 }
 
 /// <summary>The contents of <c>numbering.xml</c>.</summary>
-public sealed class NumberingDefinitions
+internal sealed class NumberingDefinitions
 {
     public Dictionary<int, AbstractNumbering> Abstract { get; } = [];
 
@@ -120,7 +120,7 @@ public sealed class NumberingDefinitions
     }
 }
 
-public static class NumberingParser
+internal static class NumberingParser
 {
     public static NumberingDefinitions Parse(XDocument? xml)
     {

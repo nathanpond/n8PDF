@@ -11,7 +11,7 @@ namespace n8PDF.Layout;
 /// Coordinates use Word's convention: the origin is the top-left corner of the page and Y grows
 /// downward. The flip into PDF's bottom-left origin happens once, in the renderer.
 /// </remarks>
-public sealed class PositionedText
+internal sealed class PositionedText
 {
     public required double X { get; init; }
 
@@ -82,13 +82,13 @@ public sealed class PositionedText
 /// <summary>A hyperlink with its target already resolved.</summary>
 /// <param name="Url">An external address, or null for an internal link.</param>
 /// <param name="Anchor">A bookmark name within the document, or null for an external link.</param>
-public sealed record ResolvedHyperlink(string? Url, string? Anchor);
+internal sealed record ResolvedHyperlink(string? Url, string? Anchor);
 
 /// <summary>A place in the document an internal link can point at.</summary>
-public sealed record BookmarkDestination(int PageIndex, double X, double Y);
+internal sealed record BookmarkDestination(int PageIndex, double X, double Y);
 
 /// <summary>A horizontal rule drawn for an underline or strikethrough.</summary>
-public sealed class PositionedRule
+internal sealed class PositionedRule
 {
     public required double X { get; init; }
 
@@ -102,7 +102,7 @@ public sealed class PositionedRule
 }
 
 /// <summary>One composed line, retained so that diagnostics can describe layout by line.</summary>
-public sealed class LaidOutLine
+internal sealed class LaidOutLine
 {
     public required double BaselineY { get; init; }
 
@@ -124,7 +124,7 @@ public sealed class LaidOutLine
 /// which puts half of every border outside the cell it belongs to and makes adjacent cells
 /// overlap by half a line width.
 /// </remarks>
-public sealed class PositionedRectangle
+internal sealed class PositionedRectangle
 {
     public required double X { get; init; }
 
@@ -139,7 +139,7 @@ public sealed class PositionedRectangle
 }
 
 /// <summary>An image placed on a page.</summary>
-public sealed class PositionedImage
+internal sealed class PositionedImage
 {
     public required double X { get; init; }
 
@@ -154,7 +154,7 @@ public sealed class PositionedImage
     public required Images.ImageData Image { get; init; }
 }
 
-public sealed class LaidOutPage
+internal sealed class LaidOutPage
 {
     public required double WidthPoints { get; init; }
 
@@ -196,7 +196,7 @@ public sealed class LaidOutPage
 }
 
 /// <summary>The fully laid-out document, ready to render.</summary>
-public sealed class LaidOutDocument
+internal sealed class LaidOutDocument
 {
     public List<LaidOutPage> Pages { get; } = [];
 

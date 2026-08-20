@@ -3,7 +3,7 @@ using n8PDF.Images;
 namespace n8PDF.Pdf;
 
 /// <summary>An image as it appears in a PDF: an XObject plus the name a page refers to it by.</summary>
-public sealed class PdfImage
+internal sealed class PdfImage
 {
     internal PdfImage(ImageData image, string resourceName)
     {

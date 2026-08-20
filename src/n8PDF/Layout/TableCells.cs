@@ -16,7 +16,7 @@ namespace n8PDF.Layout;
 /// can be totalled. The depth it will do that to is limited, since nothing stops a document
 /// asking a cell for its own value.
 /// </remarks>
-public sealed class TableCells(Table table, int row, int column) : IFormulaCells
+internal sealed class TableCells(Table table, int row, int column) : IFormulaCells
 {
     private const int MaximumDepth = 8;
 

@@ -6,7 +6,7 @@ namespace n8PDF.Pdf;
 /// An in-memory PDF file: a flat pool of indirect objects plus the catalog and page tree that
 /// give them structure. Build it up, then <see cref="Save"/> it.
 /// </summary>
-public sealed class PdfDocument
+internal sealed class PdfDocument
 {
     private readonly List<PdfObject?> _objects = [];
     private readonly PdfArray _pageRefs = new();

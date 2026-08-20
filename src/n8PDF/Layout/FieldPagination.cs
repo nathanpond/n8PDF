@@ -30,7 +30,7 @@ namespace n8PDF.Layout;
 /// The page each note's mark landed on, by note id, for a document that numbers its notes again
 /// on every page.
 /// </param>
-public sealed record FieldPagination(
+internal sealed record FieldPagination(
     int TotalPages,
     IReadOnlyDictionary<int, int> Pages,
     IReadOnlyList<int> Sections,

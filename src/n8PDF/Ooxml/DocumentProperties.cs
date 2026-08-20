@@ -13,7 +13,7 @@ namespace n8PDF.Ooxml;
 /// neither — which is what a file written by hand usually is — leaves every field that reads them
 /// showing what Word last computed.
 /// </remarks>
-public sealed class DocumentProperties
+internal sealed class DocumentProperties
 {
     private static readonly XNamespace CoreNamespace =
         "http://schemas.openxmlformats.org/package/2006/metadata/core-properties";

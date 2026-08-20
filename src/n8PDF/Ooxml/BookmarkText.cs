@@ -10,7 +10,7 @@ namespace n8PDF.Ooxml;
 /// end belongs to it, including whatever other bookmarks begin and end in between, so several can
 /// be open at once and each collects the text it sees while it is.
 /// </remarks>
-public static class BookmarkText
+internal static class BookmarkText
 {
     public static Dictionary<string, string> Collect(WordDocument document)
     {

@@ -18,7 +18,7 @@ namespace n8PDF.Ooxml;
 /// where the document was last saved by Word, since then the cache is Word's own answer; they
 /// differ where something else wrote the file and got the arrangement wrong.
 /// </remarks>
-public static class Diagram
+internal static class Diagram
 {
     /// <summary>The namespace of the drawing part, which is Word's own rather than the format's.</summary>
     public static readonly XNamespace Drawing =
@@ -117,7 +117,7 @@ public static class Diagram
 /// of a point rather than halves. What comes out is the ordinary paragraph model, so the engine
 /// that lays out a page lays out the inside of a diagram's box as well.
 /// </remarks>
-public static class DrawingText
+internal static class DrawingText
 {
     /// <summary>
     /// What DrawingML counts as one line: six fifths of the type size, whatever the face says

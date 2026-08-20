@@ -17,7 +17,7 @@ namespace n8PDF.Layout;
 /// for a negative one, and one for nought. The negative pattern is given the number without its
 /// sign, which is how "(5.00)" is written for minus five.
 /// </remarks>
-public static class NumericPicture
+internal static class NumericPicture
 {
     public static string Format(double value, string picture)
     {

@@ -9,7 +9,7 @@ namespace n8PDF.Fonts;
 /// a <c>.ttc</c> collection). Parsed from scratch: no platform font APIs are involved, so
 /// measurement is identical on every OS.
 /// </summary>
-public sealed class TrueTypeFont
+internal sealed class TrueTypeFont
 {
     private readonly byte[] _data;
     private readonly Dictionary<string, TableRecord> _tables;

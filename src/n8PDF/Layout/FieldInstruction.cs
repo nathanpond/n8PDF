@@ -12,7 +12,7 @@ namespace n8PDF.Layout;
 /// and escaped quotes. A switch is a backslash and one character, sometimes followed by a value of
 /// its own — <c>\* roman</c> takes one, <c>\c</c> does not.
 /// </remarks>
-public readonly record struct FieldInstruction(
+internal readonly record struct FieldInstruction(
     string Keyword,
     IReadOnlyList<string> Arguments,
     IReadOnlyList<(char Letter, string? Value)> Switches)

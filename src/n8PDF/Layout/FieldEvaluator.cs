@@ -7,7 +7,7 @@ namespace n8PDF.Layout;
 /// What a field needs to know beyond its own instruction: where it is in the document, what the
 /// document says about itself, and the counters that run through it.
 /// </summary>
-public sealed class FieldEnvironment
+internal sealed class FieldEnvironment
 {
     /// <summary>The page the field is on, counting from one. Zero where it is not yet known.</summary>
     public int Page { get; set; }
@@ -71,7 +71,7 @@ public sealed class FieldEnvironment
 /// results until they are updated by hand. That is why the fields fixture's reference is made with
 /// its fields updated first: it is the only way to see Word's own answer for the others.
 /// </remarks>
-public static class FieldEvaluator
+internal static class FieldEvaluator
 {
     /// <summary>
     /// The fields whose value depends on where in the document they land, and which therefore

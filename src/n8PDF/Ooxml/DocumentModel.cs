@@ -1,13 +1,13 @@
 namespace n8PDF.Ooxml;
 
 /// <summary>Anything that can appear at block level in the document body.</summary>
-public abstract class BlockElement;
+internal abstract class BlockElement;
 
 /// <summary>Anything that can appear inside a run.</summary>
-public abstract class InlineElement;
+internal abstract class InlineElement;
 
 /// <summary>A literal text span from a <c>w:t</c> element.</summary>
-public sealed class TextInline(string text) : InlineElement
+internal sealed class TextInline(string text) : InlineElement
 {
     public string Text { get; } = text;
 
@@ -22,7 +22,7 @@ public sealed class TextInline(string text) : InlineElement
 /// which it stores so that readers that cannot evaluate the instruction still show something. The
 /// cached result is used for anything not evaluated here.
 /// </remarks>
-public sealed class FieldInline(string instruction, string cachedText) : InlineElement
+internal sealed class FieldInline(string instruction, string cachedText) : InlineElement
 {
     /// <summary>The instruction text, for example " PAGE " or " NUMPAGES ".</summary>
     public string Instruction { get; } = instruction;
@@ -43,7 +43,7 @@ public sealed class FieldInline(string instruction, string cachedText) : InlineE
 }
 
 /// <summary>A tab character from <c>w:tab</c>.</summary>
-public sealed class TabInline : InlineElement;
+internal sealed class TabInline : InlineElement;
 
 /// <summary>
 /// The start of a bookmark, which an internal hyperlink can point at.
@@ -51,7 +51,7 @@ public sealed class TabInline : InlineElement;
 /// <remarks>
 /// Zero-width: it marks a place rather than drawing anything.
 /// </remarks>
-public sealed class BookmarkInline(string name, int id = 0) : InlineElement
+internal sealed class BookmarkInline(string name, int id = 0) : InlineElement
 {
     public string Name { get; } = name;
 
@@ -65,7 +65,7 @@ public sealed class BookmarkInline(string name, int id = 0) : InlineElement
 /// <summary>
 /// The end of a bookmark, which says how far the text it covers reaches. REF shows that text.
 /// </summary>
-public sealed class BookmarkEndInline(int id) : InlineElement
+internal sealed class BookmarkEndInline(int id) : InlineElement
 {
     public int Id { get; } = id;
 }
@@ -74,7 +74,7 @@ public sealed class BookmarkEndInline(int id) : InlineElement
 /// The two kinds of note, which differ in where the note's text goes: a footnote to the foot of
 /// the page its reference lands on, an endnote to the end of the document.
 /// </summary>
-public enum NoteKind
+internal enum NoteKind
 {
     Footnote,
     Endnote
@@ -84,7 +84,7 @@ public enum NoteKind
 /// A reference to a note, which draws as that note's number where it appears and sends the note's
 /// text to wherever notes of its kind collect.
 /// </summary>
-public sealed class NoteReferenceInline(int id, NoteKind kind) : InlineElement
+internal sealed class NoteReferenceInline(int id, NoteKind kind) : InlineElement
 {
     /// <summary>The id of the note in its part, not its printed number.</summary>
     public int Id { get; } = id;
@@ -96,13 +96,13 @@ public sealed class NoteReferenceInline(int id, NoteKind kind) : InlineElement
 /// A note's own number, from <c>w:footnoteRef</c> or <c>w:endnoteRef</c>, which opens the note's
 /// text. It carries no id: it means whichever note it appears inside.
 /// </summary>
-public sealed class NoteMarkInline(NoteKind kind) : InlineElement
+internal sealed class NoteMarkInline(NoteKind kind) : InlineElement
 {
     public NoteKind Kind { get; } = kind;
 }
 
 /// <summary>Where a page's footnotes are set, from <c>w:pos</c>.</summary>
-public enum NotePosition
+internal enum NotePosition
 {
     /// <summary>At the foot of the page, above the bottom margin. What a document means by default.</summary>
     PageBottom,
@@ -115,7 +115,7 @@ public enum NotePosition
 }
 
 /// <summary>Where a document gathers its endnotes, from <c>w:pos</c>.</summary>
-public enum EndnotePosition
+internal enum EndnotePosition
 {
     /// <summary>All of them after the body, which is what a document means by default.</summary>
     DocumentEnd,
@@ -125,7 +125,7 @@ public enum EndnotePosition
 }
 
 /// <summary>How often a document begins its note numbering again, from <c>w:numRestart</c>.</summary>
-public enum NoteNumberRestart
+internal enum NoteNumberRestart
 {
     /// <summary>Numbered straight through the document, which is what a document says by default.</summary>
     Continuous,
@@ -150,7 +150,7 @@ public enum NoteNumberRestart
 /// two inches it draws above a note that begins where it stands, which is how a reader can tell
 /// at a glance that what follows is the rest of something.
 /// </param>
-public sealed class SeparatorInline(bool continuation = false) : InlineElement
+internal sealed class SeparatorInline(bool continuation = false) : InlineElement
 {
     public bool Continuation { get; } = continuation;
 }
@@ -161,17 +161,17 @@ public sealed class SeparatorInline(bool continuation = false) : InlineElement
 /// the run itself only carries the id.
 /// </param>
 /// <param name="Anchor">A bookmark within the document, for an internal link.</param>
-public sealed record HyperlinkTarget(string? RelationshipId, string? Anchor);
+internal sealed record HyperlinkTarget(string? RelationshipId, string? Anchor);
 
 /// <summary>The kind of break a <c>w:br</c> represents.</summary>
-public enum BreakKind
+internal enum BreakKind
 {
     Line,
     Page,
     Column
 }
 
-public sealed class BreakInline(BreakKind kind) : InlineElement
+internal sealed class BreakInline(BreakKind kind) : InlineElement
 {
     public BreakKind Kind { get; } = kind;
 }
@@ -180,7 +180,7 @@ public sealed class BreakInline(BreakKind kind) : InlineElement
 /// A drawing or picture. Only the extent is captured so far, which is enough for layout to
 /// reserve the right space once image rendering lands.
 /// </summary>
-public sealed class DrawingInline(long widthEmu, long heightEmu, string? relationshipId) : InlineElement
+internal sealed class DrawingInline(long widthEmu, long heightEmu, string? relationshipId) : InlineElement
 {
     public long WidthEmu { get; } = widthEmu;
 
@@ -220,7 +220,7 @@ public sealed class DrawingInline(long widthEmu, long heightEmu, string? relatio
 }
 
 /// <summary>How text behaves around a floating drawing.</summary>
-public enum TextWrapMode
+internal enum TextWrapMode
 {
     /// <summary>Text ignores the drawing entirely; the two overlap.</summary>
     None,
@@ -233,7 +233,7 @@ public enum TextWrapMode
 }
 
 /// <summary>What a floating drawing's horizontal position is measured from.</summary>
-public enum HorizontalAnchor
+internal enum HorizontalAnchor
 {
     Column,
     Margin,
@@ -244,7 +244,7 @@ public enum HorizontalAnchor
 }
 
 /// <summary>What a floating drawing's vertical position is measured from.</summary>
-public enum VerticalAnchor
+internal enum VerticalAnchor
 {
     Paragraph,
     Line,
@@ -271,7 +271,7 @@ public enum VerticalAnchor
 /// Why the black level counts for more when the gain is high is not explained here. The formula is
 /// what six settings fit, two of them at the ends of the scale, and not something derived.
 /// </remarks>
-public sealed record PictureWash(double Gain, double BlackLevel)
+internal sealed record PictureWash(double Gain, double BlackLevel)
 {
     /// <summary>Nothing done to it, which is what a picture with no washing gets.</summary>
     public static readonly PictureWash None = new(1, 0);
@@ -292,13 +292,13 @@ public sealed record PictureWash(double Gain, double BlackLevel)
 /// works out for itself how much of an odd shape its words will fit in — the text of a chevron
 /// clears its point, and no inset says that.
 /// </remarks>
-public sealed record DiagramShape(
+internal sealed record DiagramShape(
     ShapeFrame Shape,
     double X, double Y, double Width, double Height,
     double TextX, double TextY, double TextWidth, double TextHeight);
 
 /// <summary>Where a shape's text sits in the height the shape gives it.</summary>
-public enum ShapeTextAnchor
+internal enum ShapeTextAnchor
 {
     Top,
     Center,
@@ -312,7 +312,7 @@ public enum ShapeTextAnchor
 /// Which of the two it is cannot be resolved while the document is being read, since the theme is
 /// a part of its own and is not loaded yet. It is carried as written and looked up at layout.
 /// </remarks>
-public sealed record DrawingColorReference(string? Hex, string? ThemeSlot);
+internal sealed record DrawingColorReference(string? Hex, string? ThemeSlot);
 
 /// <summary>
 /// A word drawn as a shape: one string, in one face, stretched to fill the shape it is in.
@@ -323,7 +323,7 @@ public sealed record DrawingColorReference(string? Hex, string? ThemeSlot);
 /// out. What is stretched is the ink itself rather than the box the face would set it in, so a
 /// word with a tail below the line is squashed to the same height as one without.
 /// </remarks>
-public sealed record ShapeWordArt(string Text, string FontFamily, bool Bold = false, bool Italic = false);
+internal sealed record ShapeWordArt(string Text, string FontFamily, bool Bold = false, bool Italic = false);
 
 /// <summary>
 /// A shape drawn in the text: an outline of some geometry, filled or not, holding text or not.
@@ -334,7 +334,7 @@ public sealed record ShapeWordArt(string Text, string FontFamily, bool Bold = fa
 /// holds is a document of its own: whole paragraphs, and tables, laid out into a box that is not
 /// the page's.
 /// </remarks>
-public sealed class ShapeFrame
+internal sealed class ShapeFrame
 {
     /// <summary>
     /// The preset geometry, as the drawing names it: <c>rect</c>, <c>roundRect</c>,
@@ -408,7 +408,7 @@ public sealed class ShapeFrame
 /// occupy space on the line the way an inline drawing does. Its rectangle is computed from the
 /// anchor point and the text then flows around it.
 /// </remarks>
-public sealed class AnchoredDrawing : InlineElement
+internal sealed class AnchoredDrawing : InlineElement
 {
     public required long WidthEmu { get; init; }
 
@@ -470,7 +470,7 @@ public sealed class AnchoredDrawing : InlineElement
 }
 
 /// <summary>A run: a span of content sharing one set of character properties.</summary>
-public sealed class Run
+internal sealed class Run
 {
     public RunProperties Properties { get; set; } = new();
 
@@ -488,7 +488,7 @@ public sealed class Run
 }
 
 /// <summary>A paragraph and its runs.</summary>
-public sealed class Paragraph : BlockElement
+internal sealed class Paragraph : BlockElement
 {
     public ParagraphProperties Properties { get; set; } = new();
 
@@ -528,7 +528,7 @@ public sealed class Paragraph : BlockElement
 /// not — the first entry of a table of contents lives in the same paragraph as the instruction
 /// that produced it.
 /// </remarks>
-public sealed class FieldScope
+internal sealed class FieldScope
 {
     private int _depth;
 
@@ -546,7 +546,7 @@ public sealed class FieldScope
 /// <param name="Style">The <c>w:val</c> line style; "none" and "nil" mean no line.</param>
 /// <param name="SizeEighthPoints">Line width in eighths of a point.</param>
 /// <param name="ColorHex">RRGGBB, or null for automatic (rendered black).</param>
-public sealed record BorderEdge(string Style, double SizeEighthPoints, string? ColorHex)
+internal sealed record BorderEdge(string Style, double SizeEighthPoints, string? ColorHex)
 {
     public bool IsVisible => Style is not ("none" or "nil" or "") && SizeEighthPoints > 0;
 
@@ -571,7 +571,7 @@ public sealed record BorderEdge(string Style, double SizeEighthPoints, string? C
 }
 
 /// <summary>The six border edges a table or cell can declare.</summary>
-public sealed class BorderSet
+internal sealed class BorderSet
 {
     public BorderEdge? Top { get; set; }
 
@@ -589,7 +589,7 @@ public sealed class BorderSet
 }
 
 /// <summary>How a row's declared height should be interpreted.</summary>
-public enum RowHeightRule
+internal enum RowHeightRule
 {
     /// <summary>Height is determined by the content.</summary>
     Auto,
@@ -601,7 +601,7 @@ public enum RowHeightRule
     Exact
 }
 
-public enum VerticalCellAlignment
+internal enum VerticalCellAlignment
 {
     Top,
     Center,
@@ -617,7 +617,7 @@ public enum VerticalCellAlignment
 /// declared as <c>noHBand</c> and <c>noVBand</c> and so on by default. The older spelling packs
 /// the same six answers into the hexadecimal <c>w:val</c>, and Word still writes both.
 /// </remarks>
-public sealed class TableLook
+internal sealed class TableLook
 {
     public bool FirstRow { get; set; }
 
@@ -635,7 +635,7 @@ public sealed class TableLook
 }
 
 /// <summary>Table-level properties from <c>w:tblPr</c>.</summary>
-public sealed class TableProperties
+internal sealed class TableProperties
 {
     /// <summary>
     /// Half a point at the sides and none above or below: what a table gets when nothing —
@@ -722,7 +722,7 @@ public sealed class TableProperties
 }
 
 /// <summary>A table.</summary>
-public sealed class Table : BlockElement
+internal sealed class Table : BlockElement
 {
     public TableProperties Properties { get; set; } = new();
 
@@ -732,7 +732,7 @@ public sealed class Table : BlockElement
     public List<TableRow> Rows { get; } = [];
 }
 
-public sealed class TableRow
+internal sealed class TableRow
 {
     public List<TableCell> Cells { get; } = [];
 
@@ -748,7 +748,7 @@ public sealed class TableRow
     public bool? IsHeader { get; set; }
 }
 
-public sealed class TableCell
+internal sealed class TableCell
 {
     /// <summary>Preferred cell width in twips, when the cell declares one.</summary>
     public int? WidthTwips { get; set; }
@@ -803,7 +803,7 @@ public sealed class TableCell
 /// "normal" for a real note, or "separator" and "continuationSeparator" for the rules Word draws
 /// above them.
 /// </param>
-public sealed class Note(int id, string type)
+internal sealed class Note(int id, string type)
 {
     public int Id { get; } = id;
 
@@ -815,13 +815,13 @@ public sealed class Note(int id, string type)
 }
 
 /// <summary>The contents of one header or footer part.</summary>
-public sealed class HeaderFooter
+internal sealed class HeaderFooter
 {
     public List<BlockElement> Body { get; } = [];
 }
 
 /// <summary>The parsed main document part.</summary>
-public sealed class WordDocument
+internal sealed class WordDocument
 {
     /// <summary>External hyperlink targets by relationship id.</summary>
     public Dictionary<string, string> Hyperlinks { get; } = [];

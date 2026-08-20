@@ -7,7 +7,7 @@ namespace n8PDF.Ooxml;
 /// Turns <c>word/document.xml</c> into the document model. Property elements are read verbatim:
 /// resolving what they mean against the style hierarchy is the Styling layer's job.
 /// </summary>
-public static class DocumentParser
+internal static class DocumentParser
 {
     public static WordDocument Parse(XDocument xml)
     {

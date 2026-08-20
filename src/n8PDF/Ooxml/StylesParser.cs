@@ -3,7 +3,7 @@ using System.Xml.Linq;
 namespace n8PDF.Ooxml;
 
 /// <summary>A single entry from <c>styles.xml</c>.</summary>
-public sealed class Style
+internal sealed class Style
 {
     public required string Id { get; init; }
 
@@ -50,7 +50,7 @@ public sealed class Style
 /// two formats meet in one cell: a last row against a last column, and the corners against each
 /// other. Both follow the pattern of the pair beside them.
 /// </remarks>
-public enum TableConditional
+internal enum TableConditional
 {
     WholeTable,
     Band2Horizontal,
@@ -68,7 +68,7 @@ public enum TableConditional
 }
 
 /// <summary>Everything one conditional format of a table style has to say.</summary>
-public sealed class TableStyleFormat
+internal sealed class TableStyleFormat
 {
     public ParagraphProperties? Paragraph { get; set; }
 
@@ -82,7 +82,7 @@ public sealed class TableStyleFormat
 }
 
 /// <summary>The contents of <c>styles.xml</c>: document defaults plus the named styles.</summary>
-public sealed class StyleDefinitions
+internal sealed class StyleDefinitions
 {
     /// <summary>Paragraph properties from <c>w:docDefaults/w:pPrDefault</c>.</summary>
     public ParagraphProperties DefaultParagraphProperties { get; set; } = new();
@@ -125,7 +125,7 @@ public sealed class StyleDefinitions
 /// The theme's font scheme. Word documents reference fonts indirectly through theme slots far
 /// more often than by name: a default Word paragraph asks for <c>minorHAnsi</c>, not "Calibri".
 /// </summary>
-public sealed class DocumentTheme
+internal sealed class DocumentTheme
 {
     /// <summary>Latin font of the major scheme, used by headings.</summary>
     public string? MajorLatinFont { get; set; }
@@ -175,7 +175,7 @@ public sealed class DocumentTheme
     };
 }
 
-public static class StylesParser
+internal static class StylesParser
 {
     public static StyleDefinitions Parse(XDocument? xml)
     {

@@ -6,7 +6,7 @@ namespace n8PDF.Styling;
 /// Character formatting after the full cascade has been applied: every value is concrete, with
 /// no "inherit" left anywhere. Layout and rendering consume only this, never the raw XML.
 /// </summary>
-public sealed record ResolvedRunFormat
+internal sealed record ResolvedRunFormat
 {
     /// <summary>Font family name, already resolved through the theme if a slot was referenced.</summary>
     public string FontFamily { get; init; } = "Times New Roman";
@@ -114,7 +114,7 @@ public sealed record ResolvedRunFormat
 }
 
 /// <summary>Paragraph formatting after the full cascade, with measurements converted to points.</summary>
-public sealed record ResolvedParagraphFormat
+internal sealed record ResolvedParagraphFormat
 {
     public string? StyleId { get; init; }
 

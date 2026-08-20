@@ -11,7 +11,7 @@ namespace n8PDF.Images;
 /// that grows as the table fills, written low bit first. One colour of the table can be declared
 /// transparent, which is the only transparency a GIF has.
 /// </remarks>
-public static class GifDecoder
+internal static class GifDecoder
 {
     public static bool IsGif(byte[] data) =>
         data.Length > 13 && data[0] == 'G' && data[1] == 'I' && data[2] == 'F';

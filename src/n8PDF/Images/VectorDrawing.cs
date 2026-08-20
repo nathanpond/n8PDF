@@ -1,7 +1,7 @@
 namespace n8PDF.Images;
 
 /// <summary>A colour, as three bytes.</summary>
-public readonly record struct DrawingColor(byte Red, byte Green, byte Blue);
+internal readonly record struct DrawingColor(byte Red, byte Green, byte Blue);
 
 /// <summary>One step of a path, in the drawing's own coordinates.</summary>
 /// <param name="Kind">What the step does: move, line, curve or close.</param>
@@ -9,9 +9,9 @@ public readonly record struct DrawingColor(byte Red, byte Green, byte Blue);
 /// Where it goes. A move or a line takes one point, a curve takes three — two controls and an
 /// end — and a close takes none.
 /// </param>
-public readonly record struct PathStep(PathStepKind Kind, IReadOnlyList<(double X, double Y)> Points);
+internal readonly record struct PathStep(PathStepKind Kind, IReadOnlyList<(double X, double Y)> Points);
 
-public enum PathStepKind
+internal enum PathStepKind
 {
     Move,
     Line,
@@ -20,7 +20,7 @@ public enum PathStepKind
 }
 
 /// <summary>Something drawn: a path, a piece of text, or a picture.</summary>
-public abstract record DrawingOperation;
+internal abstract record DrawingOperation;
 
 /// <summary>
 /// A path, filled, stroked or both.
@@ -29,7 +29,7 @@ public abstract record DrawingOperation;
 /// Which of the two rules decides what is inside a path that crosses itself: even-odd, or the
 /// winding it was drawn with.
 /// </param>
-public sealed record PathOperation(
+internal sealed record PathOperation(
     IReadOnlyList<PathStep> Steps,
     DrawingColor? Fill,
     DrawingColor? Stroke,
@@ -42,7 +42,7 @@ public sealed record PathOperation(
 /// </summary>
 /// <param name="X">Where the text begins, at its baseline.</param>
 /// <param name="Angle">How far it is turned, anticlockwise, in degrees.</param>
-public sealed record TextOperation(
+internal sealed record TextOperation(
     string Text,
     double X,
     double Y,
@@ -68,7 +68,7 @@ public sealed record TextOperation(
 /// <param name="ScaleY">And down.</param>
 /// <param name="AngleDegrees">How far it is turned, clockwise.</param>
 /// <param name="Opacity">How solid it is, from nought to one.</param>
-public sealed record WordArtOperation(
+internal sealed record WordArtOperation(
     string Text,
     double X,
     double Y,
@@ -83,7 +83,7 @@ public sealed record WordArtOperation(
     double Opacity = 1) : DrawingOperation;
 
 /// <summary>A picture drawn into a rectangle of the drawing.</summary>
-public sealed record ImageOperation(
+internal sealed record ImageOperation(
     ImageData Image,
     double X,
     double Y,
@@ -100,7 +100,7 @@ public sealed record ImageOperation(
 /// </remarks>
 /// <param name="Width">The drawing's own width, in points.</param>
 /// <param name="Height">The drawing's own height, in points.</param>
-public sealed record VectorDrawing(
+internal sealed record VectorDrawing(
     double Width,
     double Height,
     IReadOnlyList<DrawingOperation> Operations);

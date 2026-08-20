@@ -76,7 +76,7 @@ public static class TestFonts
 
     public static bool Exists(string path) => File.Exists(path);
 
-    public static TrueTypeFont Load(string path)
+    internal static TrueTypeFont Load(string path)
     {
         Assert.True(File.Exists(path), $"Expected font file not found: {path}");
         return TrueTypeFont.Load(File.ReadAllBytes(path));

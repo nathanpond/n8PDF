@@ -28,18 +28,19 @@ public class NumberingTests
             .ToList();
 
     [Theory]
-    [InlineData(1, NumberFormat.Decimal, "1")]
-    [InlineData(4, NumberFormat.Decimal, "4")]
-    [InlineData(3, NumberFormat.DecimalZero, "03")]
-    [InlineData(1, NumberFormat.LowerLetter, "a")]
-    [InlineData(26, NumberFormat.LowerLetter, "z")]
-    [InlineData(27, NumberFormat.LowerLetter, "aa")]
-    [InlineData(2, NumberFormat.UpperLetter, "B")]
-    [InlineData(4, NumberFormat.LowerRoman, "iv")]
-    [InlineData(9, NumberFormat.UpperRoman, "IX")]
-    [InlineData(1990, NumberFormat.UpperRoman, "MCMXC")]
-    public void Numbers_render_in_their_declared_format(int value, NumberFormat format, string expected) =>
-        Assert.Equal(expected, NumberFormatter.Format(value, format));
+    [InlineData(1, "Decimal", "1")]
+    [InlineData(4, "Decimal", "4")]
+    [InlineData(3, "DecimalZero", "03")]
+    [InlineData(1, "LowerLetter", "a")]
+    [InlineData(26, "LowerLetter", "z")]
+    [InlineData(27, "LowerLetter", "aa")]
+    [InlineData(2, "UpperLetter", "B")]
+    [InlineData(4, "LowerRoman", "iv")]
+    [InlineData(9, "UpperRoman", "IX")]
+    [InlineData(1990, "UpperRoman", "MCMXC")]
+    public void Numbers_render_in_their_declared_format(int value, string format, string expected) =>
+        Assert.Equal(expected,
+            NumberFormatter.Format(value, Enum.Parse<NumberFormat>(format)));
 
     [Fact]
     public void A_simple_list_counts_from_one()

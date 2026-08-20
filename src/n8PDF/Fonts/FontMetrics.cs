@@ -4,7 +4,7 @@ namespace n8PDF.Fonts;
 /// Vertical metrics and descriptor values, all in font design units unless noted. Divide by
 /// <see cref="UnitsPerEm"/> and multiply by the point size to get points.
 /// </summary>
-public sealed record FontMetrics
+internal sealed record FontMetrics
 {
     public required int UnitsPerEm { get; init; }
 

@@ -38,7 +38,7 @@ namespace n8PDF.Fonts;
 /// half stands for the half it is: that is what Word writes into its own files, and it is what
 /// lets a reader copy a line of these scripts out of the page and get something readable.
 /// </param>
-public readonly record struct ShapedGlyph(
+internal readonly record struct ShapedGlyph(
     ushort Glyph, int Advance, int XOffset, int YOffset, int Cluster, int Component = 0,
     int[]? Merged = null, string? Standing = null);
 
@@ -57,7 +57,7 @@ public readonly record struct ShapedGlyph(
 /// Advances are kept in the font's own units rather than in points so that this is a property of
 /// the text and the face alone, measurable afterwards at whatever size the run is set in.
 /// </remarks>
-public sealed class ShapedText
+internal sealed class ShapedText
 {
     public static readonly ShapedText Empty = new(string.Empty, []);
 

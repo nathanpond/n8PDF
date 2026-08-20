@@ -21,7 +21,7 @@ namespace n8PDF.Images;
 /// that says what its units mean, and only then is it anywhere. Both are matrices, and they are
 /// kept as matrices here rather than reduced to a scale.
 /// </remarks>
-public static class EmfPlusInterpreter
+internal static class EmfPlusInterpreter
 {
     /// <summary>The letters a comment opens with when it is not a comment.</summary>
     public static bool IsEmfPlusComment(byte[] data, int at, int length) =>

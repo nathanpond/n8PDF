@@ -8,7 +8,7 @@ namespace n8PDF.Fonts;
 /// <param name="SyntheticItalic">
 /// True when no italic face was available and slant must be faked by shearing the text matrix.
 /// </param>
-public sealed record FontSelection(TrueTypeFont Font, bool SyntheticBold, bool SyntheticItalic)
+internal sealed record FontSelection(TrueTypeFont Font, bool SyntheticBold, bool SyntheticItalic)
 {
     /// <summary>True when the face is exactly what was asked for.</summary>
     public bool IsExact => !SyntheticBold && !SyntheticItalic;
@@ -171,7 +171,7 @@ public sealed class FontLibrary
     /// Resolves a family name and style to a face, falling back through the substitution chain
     /// and finally to any registered font rather than failing.
     /// </summary>
-    public FontSelection Resolve(string familyName, bool bold = false, bool italic = false)
+    internal FontSelection Resolve(string familyName, bool bold = false, bool italic = false)
     {
         if (TryResolve(familyName, bold, italic, out var selection))
             return selection;
@@ -180,7 +180,7 @@ public sealed class FontLibrary
             $"No font could be resolved for '{familyName}'. Register a font file, or enable {nameof(UseSystemFonts)}.");
     }
 
-    public bool TryResolve(string familyName, bool bold, bool italic, out FontSelection selection)
+    internal bool TryResolve(string familyName, bool bold, bool italic, out FontSelection selection)
     {
         if (TryResolveExactFamily(familyName, bold, italic, out selection))
             return true;
@@ -224,7 +224,7 @@ public sealed class FontLibrary
     /// and then in a fixed order, so that the same document does not come out differently on two
     /// machines with the same fonts installed in a different order.
     /// </remarks>
-    public FontSelection? ResolveForCharacter(int codePoint, FontSelection preferred, bool bold, bool italic)
+    internal FontSelection? ResolveForCharacter(int codePoint, FontSelection preferred, bool bold, bool italic)
     {
         if (Covers(preferred.Font, codePoint)) return preferred;
 

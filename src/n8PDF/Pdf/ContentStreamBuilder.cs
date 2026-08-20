@@ -8,7 +8,7 @@ namespace n8PDF.Pdf;
 /// points, origin at the bottom-left of the page. Callers are expected to have already
 /// flipped from Word's top-left origin.
 /// </summary>
-public sealed class ContentStreamBuilder
+internal sealed class ContentStreamBuilder
 {
     private readonly MemoryStream _buffer = new();
     private bool _inText;
