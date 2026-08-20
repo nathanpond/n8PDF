@@ -1,0 +1,2484 @@
+{
+  "pageCount": 19,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 95.47,
+          "height": 20.698,
+          "runs": [
+            {"x": 194.019, "width": 115.963, "font": "Times New Roman", "size": 18, "text": "Sales by quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 240.318,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 215.162,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 190.006,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 164.85,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 139.693,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 114.537,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 97.252,
+          "height": 22.998,
+          "runs": [
+            {"x": 187.576, "width": 128.848, "font": "Times New Roman", "size": 20, "text": "Sales by quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 240.687,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 215.9,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 191.113,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 166.326,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 141.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.752,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 273.337,
+          "height": 11.499,
+          "runs": [
+            {"x": 254.225, "width": 30.537, "font": "Times New Roman", "size": 10, "text": "Quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 245.4,
+          "height": 12.207,
+          "runs": [
+            {"x": 103.643, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 218.767,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 192.135,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 165.502,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 138.869,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 112.236,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 258.74,
+          "height": 12.207,
+          "runs": [
+            {"x": 147.439, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 258.74,
+          "height": 12.207,
+          "runs": [
+            {"x": 222.97, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 258.74,
+          "height": 12.207,
+          "runs": [
+            {"x": 295.588, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 258.74,
+          "height": 12.207,
+          "runs": [
+            {"x": 373.819, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 225.608, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 262.537, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 241.467,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 215.49,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 189.513,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 163.535,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 137.558,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.581,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 173.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 394.282, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 191.844,
+          "height": 12.207,
+          "runs": [
+            {"x": 394.282, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 123.552, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 191.457, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 256.449, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 327.054, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 89.761,
+          "height": 12.207,
+          "runs": [
+            {"x": 225.608, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 89.761,
+          "height": 12.207,
+          "runs": [
+            {"x": 262.537, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 239.497,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 213.52,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 187.542,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 161.565,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 135.588,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 109.611,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 173.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 90.863, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 191.844,
+          "height": 12.207,
+          "runs": [
+            {"x": 90.863, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 134.147, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.079, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.079, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.079, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.079, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.079, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.079, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 174.131, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 242.035, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 307.027, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 377.632, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 165.191, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 204.416, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 250.013, "width": 21.162, "font": "Calibri", "size": 10, "text": "Third"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 289.175, "width": 61.377, "font": "Calibri", "size": 10, "text": "Fourth and last"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 241.467,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 215.49,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 189.513,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 163.535,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 137.558,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.581,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 254.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 165.853,
+          "height": 12.207,
+          "runs": [
+            {"x": 119.626, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 225.81,
+          "height": 12.207,
+          "runs": [
+            {"x": 146.836, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 120.886,
+          "height": 12.207,
+          "runs": [
+            {"x": 200.398, "width": 10.137, "font": "Calibri", "size": 10, "text": "45"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 180.843,
+          "height": 12.207,
+          "runs": [
+            {"x": 227.607, "width": 10.137, "font": "Calibri", "size": 10, "text": "25"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 195.832,
+          "height": 12.207,
+          "runs": [
+            {"x": 281.17, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 105.896,
+          "height": 12.207,
+          "runs": [
+            {"x": 308.379, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 90.907,
+          "height": 12.207,
+          "runs": [
+            {"x": 361.941, "width": 10.137, "font": "Calibri", "size": 10, "text": "55"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 210.821,
+          "height": 12.207,
+          "runs": [
+            {"x": 389.151, "width": 10.137, "font": "Calibri", "size": 10, "text": "15"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 187.06,
+          "height": 12.207,
+          "runs": [
+            {"x": 119.626, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 247.017,
+          "height": 12.207,
+          "runs": [
+            {"x": 146.836, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 142.093,
+          "height": 12.207,
+          "runs": [
+            {"x": 200.398, "width": 10.137, "font": "Calibri", "size": 10, "text": "45"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 202.05,
+          "height": 12.207,
+          "runs": [
+            {"x": 227.607, "width": 10.137, "font": "Calibri", "size": 10, "text": "25"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 217.039,
+          "height": 12.207,
+          "runs": [
+            {"x": 281.17, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 127.103,
+          "height": 12.207,
+          "runs": [
+            {"x": 308.379, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 112.114,
+          "height": 12.207,
+          "runs": [
+            {"x": 361.941, "width": 10.137, "font": "Calibri", "size": 10, "text": "55"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 232.028,
+          "height": 12.207,
+          "runs": [
+            {"x": 389.151, "width": 10.137, "font": "Calibri", "size": 10, "text": "15"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 176.457,
+          "height": 12.207,
+          "runs": [
+            {"x": 146.8, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.489,
+          "height": 12.207,
+          "runs": [
+            {"x": 227.571, "width": 10.137, "font": "Calibri", "size": 10, "text": "45"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 206.435,
+          "height": 12.207,
+          "runs": [
+            {"x": 308.343, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 101.511,
+          "height": 12.207,
+          "runs": [
+            {"x": 389.114, "width": 10.137, "font": "Calibri", "size": 10, "text": "55"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 236.414,
+          "height": 12.207,
+          "runs": [
+            {"x": 146.8, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 191.446,
+          "height": 12.207,
+          "runs": [
+            {"x": 227.571, "width": 10.137, "font": "Calibri", "size": 10, "text": "25"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.5,
+          "height": 12.207,
+          "runs": [
+            {"x": 308.343, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 221.425,
+          "height": 12.207,
+          "runs": [
+            {"x": 389.114, "width": 10.137, "font": "Calibri", "size": 10, "text": "15"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 196.158, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 228.711, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 261.709, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 300.977, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 123.968,
+          "height": 12.207,
+          "runs": [
+            {"x": 277.83, "width": 17.285, "font": "Calibri", "size": 10, "text": "20%"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.887,
+          "height": 12.207,
+          "runs": [
+            {"x": 290.804, "width": 17.285, "font": "Calibri", "size": 10, "text": "30%"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 224.992,
+          "height": 12.207,
+          "runs": [
+            {"x": 219.503, "width": 17.285, "font": "Calibri", "size": 10, "text": "13%"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 147.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 189.78, "width": 17.285, "font": "Calibri", "size": 10, "text": "37%"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 165.853,
+          "height": 12.207,
+          "runs": [
+            {"x": 115.83, "width": 17.729, "font": "Calibri", "size": 10, "text": "30.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 225.81,
+          "height": 12.207,
+          "runs": [
+            {"x": 143.04, "width": 17.729, "font": "Calibri", "size": 10, "text": "10.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 120.886,
+          "height": 12.207,
+          "runs": [
+            {"x": 196.602, "width": 17.729, "font": "Calibri", "size": 10, "text": "45.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 180.843,
+          "height": 12.207,
+          "runs": [
+            {"x": 223.811, "width": 17.729, "font": "Calibri", "size": 10, "text": "25.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 195.832,
+          "height": 12.207,
+          "runs": [
+            {"x": 277.373, "width": 17.729, "font": "Calibri", "size": 10, "text": "20.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 105.896,
+          "height": 12.207,
+          "runs": [
+            {"x": 304.583, "width": 17.729, "font": "Calibri", "size": 10, "text": "50.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 90.907,
+          "height": 12.207,
+          "runs": [
+            {"x": 358.145, "width": 17.729, "font": "Calibri", "size": 10, "text": "55.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 210.821,
+          "height": 12.207,
+          "runs": [
+            {"x": 385.354, "width": 17.729, "font": "Calibri", "size": 10, "text": "15.0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 95.47,
+          "height": 20.698,
+          "runs": [
+            {"x": 194.019, "width": 115.963, "font": "Times New Roman", "size": 18, "text": "Sales by quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 249.33,
+          "height": 11.499,
+          "runs": [
+            {"x": 254.225, "width": 30.537, "font": "Times New Roman", "size": 10, "text": "Quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 225.608, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 275.76,
+          "height": 12.207,
+          "runs": [
+            {"x": 262.537, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 158.28,
+          "height": 12.207,
+          "runs": [
+            {"x": 138.037, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 193.898,
+          "height": 12.207,
+          "runs": [
+            {"x": 163.556, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.566,
+          "height": 12.207,
+          "runs": [
+            {"x": 213.79, "width": 10.137, "font": "Calibri", "size": 10, "text": "45"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 167.184,
+          "height": 12.207,
+          "runs": [
+            {"x": 239.309, "width": 10.137, "font": "Calibri", "size": 10, "text": "25"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 176.089,
+          "height": 12.207,
+          "runs": [
+            {"x": 289.543, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 122.661,
+          "height": 12.207,
+          "runs": [
+            {"x": 315.062, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 113.756,
+          "height": 12.207,
+          "runs": [
+            {"x": 365.296, "width": 10.137, "font": "Calibri", "size": 10, "text": "55"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 184.994,
+          "height": 12.207,
+          "runs": [
+            {"x": 390.815, "width": 10.137, "font": "Calibri", "size": 10, "text": "15"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 221.393,
+          "height": 12.207,
+          "runs": [
+            {"x": 103.643, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 203.584,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 185.775,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 167.965,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 150.156,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 132.346,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 114.537,
+          "height": 12.207,
+          "runs": [
+            {"x": 98.574, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 234.733,
+          "height": 12.207,
+          "runs": [
+            {"x": 147.439, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 234.733,
+          "height": 12.207,
+          "runs": [
+            {"x": 222.97, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 234.733,
+          "height": 12.207,
+          "runs": [
+            {"x": 295.588, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 234.733,
+          "height": 12.207,
+          "runs": [
+            {"x": 373.819, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 88.341,
+          "height": 11.499,
+          "runs": [
+            {"x": 219.788, "width": 64.424, "font": "Times New Roman", "size": 10, "text": "Sales by quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 238.842,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 212.209,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 185.576,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 158.943,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 132.311,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 105.678,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 106.163,
+          "height": 34.497,
+          "runs": [
+            {"x": 155.364, "width": 193.271, "font": "Times New Roman", "size": 30, "text": "Sales by quarter"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 242.533,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 219.592,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 196.65,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 173.709,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 150.768,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 127.826,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 95.47,
+          "height": 20.698,
+          "runs": [
+            {"x": 121.799, "width": 260.402, "font": "Times New Roman", "size": 18, "text": "Sales by quarter across every region"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.168,
+          "height": 20.698,
+          "runs": [
+            {"x": 217.507, "width": 68.985, "font": "Times New Roman", "size": 18, "text": "we sell in"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 243.64,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 221.807,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 199.973,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 178.139,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 156.305,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 134.471,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 163.168,
+          "height": 24.414,
+          "runs": [
+            {"x": 114.558, "width": 20.273, "font": "Calibri", "size": 20, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 223.125,
+          "height": 24.414,
+          "runs": [
+            {"x": 141.768, "width": 20.273, "font": "Calibri", "size": 20, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 118.2,
+          "height": 24.414,
+          "runs": [
+            {"x": 195.33, "width": 20.273, "font": "Calibri", "size": 20, "text": "45"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 178.157,
+          "height": 24.414,
+          "runs": [
+            {"x": 222.539, "width": 20.273, "font": "Calibri", "size": 20, "text": "25"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 193.146,
+          "height": 24.414,
+          "runs": [
+            {"x": 276.101, "width": 20.273, "font": "Calibri", "size": 20, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 103.211,
+          "height": 24.414,
+          "runs": [
+            {"x": 303.311, "width": 20.273, "font": "Calibri", "size": 20, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 92.403,
+          "height": 24.414,
+          "runs": [
+            {"x": 356.873, "width": 20.273, "font": "Calibri", "size": 20, "text": "55"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 208.136,
+          "height": 24.414,
+          "runs": [
+            {"x": 384.082, "width": 20.273, "font": "Calibri", "size": 20, "text": "15"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.474,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 235.496,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.517,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.539,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.56,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 115.582,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.814,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 272.16,
+          "height": 24.414,
+          "runs": [
+            {"x": 198.647, "width": 42.451, "font": "Calibri", "size": 20, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 272.16,
+          "height": 24.414,
+          "runs": [
+            {"x": 272.88, "width": 55.195, "font": "Calibri", "size": 20, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 229.26,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.318,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 181.375,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 157.432,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "30"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 133.489,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 109.546,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.604,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 242.6,
+          "height": 12.207,
+          "runs": [
+            {"x": 129.874, "width": 16.851, "font": "Calibri", "size": 10, "text": "One"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 242.6,
+          "height": 12.207,
+          "runs": [
+            {"x": 210.424, "width": 17.295, "font": "Calibri", "size": 10, "text": "Two"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 242.6,
+          "height": 12.207,
+          "runs": [
+            {"x": 288.06, "width": 23.564, "font": "Calibri", "size": 10, "text": "Three"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 242.6,
+          "height": 12.207,
+          "runs": [
+            {"x": 371.31, "width": 18.608, "font": "Calibri", "size": 10, "text": "Four"}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    }
+  ]
+}

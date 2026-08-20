@@ -1045,6 +1045,156 @@ public static class Fixtures
             """;
     }
 
+    /// <summary>
+    /// A chart carrying the three things that go round the plotting rather than in it: a title
+    /// over the top, a legend to one side, and a number written at each point.
+    /// </summary>
+    private static string DressedChart(
+        string kind = "col", int series = 2, string? title = null, int titleSize = 0,
+        bool axisTitles = false, string? legend = null, bool labels = false,
+        string labelPosition = "", string labelFormat = "General", bool percent = false,
+        string categoryTitle = "Quarter", int textSize = 0)
+    {
+        var categories = new[] { "One", "Two", "Three", "Four" };
+
+        // The face is named along with the size, since a title that states one without the other
+        // loses the theme's own and is drawn in something else entirely.
+        static string Rich(string text, int size) => $"""
+            <c:tx><c:rich>
+              <a:bodyPr/><a:lstStyle/>
+              <a:p><a:pPr>
+                <a:defRPr sz="{(size > 0 ? size : 1800)}" b="0">
+                  <a:latin typeface="+mj-lt"/>
+                </a:defRPr>
+              </a:pPr>
+                <a:r><a:t>{DocxBuilder.Escape(text)}</a:t></a:r>
+              </a:p>
+            </c:rich></c:tx>
+            """;
+
+        var text = textSize > 0
+            ? $"""
+               <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr>
+                 <a:defRPr sz="{textSize}"/>
+               </a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>
+               """
+            : string.Empty;
+
+        static string Title(string? text, int size) => text is null
+            ? string.Empty
+            : $"<c:title>{Rich(text, size)}<c:overlay val=\"0\"/></c:title>";
+
+        var dLbls = labels
+            ? $"""
+               <c:dLbls>
+                 <c:numFmt formatCode="{labelFormat}" sourceLinked="0"/>
+                 {text}
+                 {(labelPosition.Length > 0 ? $"<c:dLblPos val=\"{labelPosition}\"/>" : string.Empty)}
+                 <c:showLegendKey val="0"/>
+                 <c:showVal val="{(percent ? 0 : 1)}"/>
+                 <c:showCatName val="0"/>
+                 <c:showSerName val="0"/>
+                 <c:showPercent val="{(percent ? 1 : 0)}"/>
+                 <c:showBubbleSize val="0"/>
+               </c:dLbls>
+               """
+            : string.Empty;
+
+        var body = kind switch
+        {
+            "line" => $"""
+                <c:lineChart>
+                  <c:grouping val="standard"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartLineSeries(0, "Units", categories, [30, 45, 20, 55], "4472C4")}
+                  {(series > 1
+                      ? DocxBuilder.ChartLineSeries(1, "Others", categories, [10, 25, 50, 15],
+                          "ED7D31")
+                      : string.Empty)}
+                  {dLbls}
+                  <c:marker val="0"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:lineChart>
+                """,
+
+            "pie" => $"""
+                <c:pieChart>
+                  <c:varyColors val="1"/>
+                  {DocxBuilder.ChartPieSeries("Units", categories, [30, 45, 20, 55],
+                      ["4472C4", "ED7D31", "A5A5A5", "FFC000"])}
+                  {dLbls}
+                  <c:firstSliceAng val="0"/>
+                </c:pieChart>
+                """,
+
+            _ => $"""
+                <c:barChart>
+                  <c:barDir val="col"/>
+                  <c:grouping val="clustered"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", categories, [30, 45, 20, 55], "4472C4")}
+                  {(series > 1
+                      ? DocxBuilder.ChartSeries(1, "Others", categories, [10, 25, 50, 15], "ED7D31")
+                      : string.Empty)}
+                  {(series > 2
+                      ? DocxBuilder.ChartSeries(2, "Third", categories, [5, 35, 15, 40], "A5A5A5")
+                      : string.Empty)}
+                  {(series > 3
+                      ? DocxBuilder.ChartSeries(3, "Fourth and last", categories, [50, 5, 40, 25],
+                          "FFC000")
+                      : string.Empty)}
+                  {dLbls}
+                  <c:gapWidth val="150"/>
+                  <c:overlap val="-27"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:barChart>
+                """
+        };
+
+        var axes = kind == "pie"
+            ? string.Empty
+            : $"""
+               <c:catAx>
+                 <c:axId val="111111111"/>
+                 <c:scaling><c:orientation val="minMax"/></c:scaling>
+                 <c:delete val="0"/><c:axPos val="b"/>
+                 {(axisTitles ? Title(categoryTitle, 1000) : string.Empty)}
+                 <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                 <c:tickLblPos val="nextTo"/>
+                 <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                 <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+               </c:catAx>
+               <c:valAx>
+                 <c:axId val="222222222"/>
+                 <c:scaling><c:orientation val="minMax"/></c:scaling>
+                 <c:delete val="0"/><c:axPos val="l"/>
+                 <c:majorGridlines/>
+                 {(axisTitles ? Title("Units sold", 1000) : string.Empty)}
+                 <c:numFmt formatCode="General" sourceLinked="1"/>
+                 <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                 <c:tickLblPos val="nextTo"/>
+                 <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                 <c:crossBetween val="between"/>
+               </c:valAx>
+               """;
+
+        return $"""
+            <c:chart>
+              {Title(title, titleSize)}
+              <c:autoTitleDeleted val="{(title is null ? 1 : 0)}"/>
+              <c:plotArea>
+                <c:layout/>
+                {body}
+                {axes}
+              </c:plotArea>
+              {(legend is null
+                  ? string.Empty
+                  : $"<c:legend><c:legendPos val=\"{legend}\"/><c:overlay val=\"0\"/>{text}</c:legend>")}
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
     private static string AutoScaleChart(IReadOnlyList<double> values)
     {
         var categories = Enumerable.Range(1, values.Count).Select(i => $"C{i}").ToList();
@@ -2317,6 +2467,80 @@ public static class Fixtures
                     builder.AddRawParagraph(
                         $"<w:p><w:pPr>{(i == 0 ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
                         DocxBuilder.ChartDrawing(288, 180, id: 720 + i, relationshipId: id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // What goes round the plotting rather than in it.
+            //
+            //   page 1  a title over the top
+            //   page 2  the same, twice the size
+            //   page 3  a title on each axis, the one up the side turned on its end
+            //   page 4  a legend under the plot
+            //   page 5  the same, to the right
+            //   page 6  over the top
+            //   page 7  to the left
+            //   page 8  under the plot, four series of it, one named at length
+            //   page 9  a number over each bar
+            //   page 10 the same, inside the end of it
+            //   page 11 a number at each point of a line
+            //   page 12 a share written on each slice of a pie
+            //   page 13 numbers written to a decimal place
+            //   page 14 all three at once
+            //   page 15 a title of ten point, 16 of thirty
+            //   page 17 a title too long for one line
+            //   page 18 numbers over the bars of twenty point
+            //   page 19 a legend of twenty point
+            ["chart-title-legend-label"] = () =>
+            {
+                // The heading face is set to something the body face is not, so that which of the
+                // two a title takes can be read off the page rather than guessed at.
+                var builder = new DocxBuilder()
+                    .WithTheme("Times New Roman", "Calibri")
+                    .WithChart(DressedChart(title: "Sales by quarter"));
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdDress2", DressedChart(title: "Sales by quarter", titleSize: 2000)),
+                    ("rIdDress3", DressedChart(axisTitles: true)),
+                    ("rIdDress4", DressedChart(legend: "b")),
+                    ("rIdDress5", DressedChart(legend: "r")),
+                    ("rIdDress6", DressedChart(legend: "t")),
+                    ("rIdDress7", DressedChart(legend: "l")),
+                    ("rIdDress8", DressedChart(series: 4, legend: "b")),
+                    ("rIdDress9", DressedChart(labels: true)),
+                    ("rIdDress10", DressedChart(labels: true, labelPosition: "inEnd")),
+                    ("rIdDress11", DressedChart(kind: "line", labels: true)),
+                    ("rIdDress12", DressedChart(kind: "pie", series: 1, labels: true,
+                        percent: true, legend: "b")),
+                    ("rIdDress13", DressedChart(labels: true, labelFormat: "0.0")),
+                    ("rIdDress14", DressedChart(title: "Sales by quarter", axisTitles: true,
+                        legend: "b", labels: true)),
+
+                    // What the room each of them takes is made of, which one size cannot say.
+                    ("rIdDress15", DressedChart(title: "Sales by quarter", titleSize: 1000)),
+                    ("rIdDress16", DressedChart(title: "Sales by quarter", titleSize: 3000)),
+                    ("rIdDress17", DressedChart(
+                        title: "Sales by quarter across every region we sell in")),
+                    ("rIdDress18", DressedChart(labels: true, textSize: 2000)),
+                    ("rIdDress19", DressedChart(legend: "b", textSize: 2000))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 980) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/dress{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 981 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
                 }
 
                 return builder;

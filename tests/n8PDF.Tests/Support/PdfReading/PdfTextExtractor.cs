@@ -26,6 +26,12 @@ public sealed record ExtractedTextRun(
     /// between them overstates what the space took by several points.
     /// </remarks>
     public double TrailingWhitespaceWidth { get; init; }
+
+    /// <summary>
+    /// True where the run is not set along the page: a chart's axis title is turned on its end,
+    /// and a turned run has no baseline to compare with an upright one's.
+    /// </summary>
+    public bool Turned { get; init; }
 }
 
 /// <summary>
@@ -279,6 +285,10 @@ public static class PdfTextExtractor
         var originX = render.E;
         var originY = render.F;
 
+        // Whether the run runs along the page or across it, which is what the b slot of the
+        // transform says: anything but nought there is a turn.
+        var turned = Math.Abs(render.B) > 0.0001;
+
         var text = new System.Text.StringBuilder();
         var advance = 0.0;
         var trailing = 0.0;
@@ -357,7 +367,8 @@ public static class PdfTextExtractor
             Math.Round(effectiveSize, 4),
             Math.Round(deviceAdvance, 4))
         {
-            TrailingWhitespaceWidth = Math.Round(whitespace * scale, 4)
+            TrailingWhitespaceWidth = Math.Round(whitespace * scale, 4),
+            Turned = turned
         });
     }
 

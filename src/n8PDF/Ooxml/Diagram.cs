@@ -191,17 +191,29 @@ public static class DrawingText
         var before = Percentage(Spacing(properties, "spcBef"));
         var after = Percentage(Spacing(properties, "spcAft"));
 
+        // What the paragraph says its runs are to be set in, which is where a chart's title keeps
+        // its size and its face: the run itself usually says nothing at all.
+        var fallback = properties?.Element(W.Drawing + "defRPr");
+
         foreach (var child in element.Elements())
         {
             if (child.Name == W.Drawing + "r")
             {
-                var run = new Run { Properties = ReadRunProperties(child.Element(W.Drawing + "rPr"), scale) };
+                var run = new Run
+                {
+                    Properties = ReadRunProperties(child.Element(W.Drawing + "rPr") ?? fallback, scale)
+                };
+
                 run.Content.Add(new TextInline(child.Element(W.Drawing + "t")?.Value ?? string.Empty));
                 paragraph.Runs.Add(run);
             }
             else if (child.Name == W.Drawing + "br")
             {
-                var run = new Run { Properties = ReadRunProperties(child.Element(W.Drawing + "rPr"), scale) };
+                var run = new Run
+                {
+                    Properties = ReadRunProperties(child.Element(W.Drawing + "rPr") ?? fallback, scale)
+                };
+
                 run.Content.Add(new BreakInline(BreakKind.Line));
                 paragraph.Runs.Add(run);
             }

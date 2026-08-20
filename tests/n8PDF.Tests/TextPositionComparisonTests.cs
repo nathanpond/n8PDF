@@ -42,8 +42,8 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// needs and why.
     /// </summary>
     /// <remarks>
-    /// One entry, and worth keeping it to one. Every other fixture agrees with Word vertically to
-    /// within 0.62pt and horizontally to the last decimal place, so a second entry here would
+    /// Two entries, and worth keeping it to two. Every other fixture agrees with Word vertically
+    /// to within 0.73pt and horizontally to the last decimal place, so a third entry here would
     /// record a regression rather than a known gap.
     ///
     /// Entries were listed individually rather than folded into one permissive global tolerance,
@@ -59,9 +59,26 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     ///   styles, heading-spacing-probe — Word fills in what a document's styles leave unstated
     ///     from its own built-in definitions. See WordBuiltInStyles.
     /// </remarks>
+    /// <summary>
+    /// And the one whose horizontal geometry diverges too, for the same reason as its vertical.
+    /// </summary>
+    private static readonly Dictionary<string, double> KnownHorizontalDivergences = new()
+    {
+        ["chart-title-legend-label"] = 1.0
+    };
+
     private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
         new()
         {
+            ["chart-title-legend-label"] = (2.1,
+                """
+                A share written on a slice of a pie is placed by a fitting of Word's own: its four
+                slices come out at 0.684, 0.687, 0.690 and 0.711 of the radius, and at up to a
+                degree and a half off the middle of their own slice. Everything here puts one at
+                seven tenths of the radius along the middle of its slice, which is two points out
+                on the narrowest of the four and within a fifth of a point on the rest.
+                """),
+
             ["vml-stroke-probe"] = (5.5,
                 """
                 An old-style shape with an outline thicker than a point makes its line taller in
@@ -129,13 +146,16 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// alone compared line for line. This reader keeps it as text, which is the better of the two
     /// — the word stays searchable — and means our page has a line Word's has not.
     ///
+    /// A watermark set across the page is turned, and turned text is left out of the comparison
+    /// altogether, so only the ones set along it are counted here.
+    ///
     /// What holds these to Word is <c>WatermarkTests</c>, which rasterises both and compares the
     /// ink: the two agree on better than 99% of every page. Everything else on these pages is
     /// compared here like any other fixture's.
     /// </remarks>
     private static readonly Dictionary<string, (int Lines, string Reason)> DrawnAsOutlines = new()
     {
-        ["watermark"] = (2, "a watermark is outlines in Word's file and text in ours, one to a page"),
+        ["watermark"] = (0, "a watermark is outlines in Word's file and text in ours, and turned"),
         ["watermark-fit-probe"] = (7, "the same, seven boxes over")
     };
 
@@ -183,9 +203,13 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         }
         else _output.WriteLine($"text not compared: {untellable}");
 
-        Assert.True(report.MaxAbsStartXDelta <= StartXTolerance,
+        var startTolerance = KnownHorizontalDivergences.TryGetValue(name, out var sideways)
+            ? sideways
+            : StartXTolerance;
+
+        Assert.True(report.MaxAbsStartXDelta <= startTolerance,
             $"'{name}': a line starts {report.MaxAbsStartXDelta:0.###}pt from where Word puts it " +
-            $"(tolerance {StartXTolerance}pt).\n{report.ToText()}");
+            $"(tolerance {startTolerance}pt).\n{report.ToText()}");
 
         if (!TextNotComparable.ContainsKey(name))
         Assert.True(report.MaxAbsWidthDelta <= WidthTolerance,

@@ -3030,15 +3030,93 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeChart(
         ChartDefinition chart, double width, double height)
     {
-        var plan = ChartComposer.Arrange(chart, width, height, MeasureLabel, LabelBox, WrapLabel);
+        // A title's words are set in whatever it names, and what it names may be a slot in the
+        // theme rather than a face: the heading font for a title is written "+mj-lt".
+        Resolve(chart.Title);
+        Resolve(chart.CategoryAxis?.Title);
+        Resolve(chart.ValueAxis?.Title);
+
+        var room = ChartComposer.Room(chart, width, height, MeasureLabel, LabelBox, MeasureBlock);
+
+        var plan = ChartComposer.Arrange(
+            chart, width, height, MeasureLabel, LabelBox, WrapLabel, MeasureBlock);
+
+        var drawing = ChartComposer.Draw(
+            chart, plan, width, height, _styles.Theme, MeasureLabel, LabelBox, room.Title);
+
+        // The title up the side is turned on its end, which no line of text can be: it is drawn
+        // into the chart's own picture instead, where a turned string is something that can be
+        // drawn.
+        if (Turned(chart, plan, width, height) is { } turned)
+        {
+            drawing = new Images.VectorDrawing(drawing.Width, drawing.Height,
+                [.. drawing.Operations, turned]);
+        }
 
         var frame = new Images.ImageData(1, 1, [],
             Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
         {
-            Drawing = ChartComposer.Draw(chart, plan, width, height, _styles.Theme)
+            Drawing = drawing
         };
 
         var page = new LaidOutPage { WidthPoints = width, HeightPoints = height };
+
+        // The chart's own title, over the top and centred on the frame rather than on the plot.
+        // Where its first line sits is measured from the top of the frame down to its baseline,
+        // which is why it is placed by that rather than by the top of its box.
+        if (chart.Title is { Overlay: false, Paragraphs.Count: > 0 } title)
+        {
+            var box = Math.Max(1, width * ChartComposer.TitleWidth);
+            var flow = MeasureInside(Centred(title.Paragraphs), box);
+
+            var (ascent, _) = BlockBox(title.Paragraphs);
+
+            flow.PlaceOnto(page, (width - box) / 2,
+                ChartComposer.TitleTop + ascent - flow.FirstAscent);
+        }
+
+        // And the title under the foot, which ends a fixed distance inside the frame instead.
+        if ((chart.Lying ? chart.ValueAxis : chart.CategoryAxis)?.Title
+            is { Overlay: false, Paragraphs.Count: > 0 } under)
+        {
+            var box = Math.Max(1, width * ChartComposer.TitleWidth);
+            var flow = MeasureInside(Centred(under.Paragraphs), box);
+
+            var (ascent, descent) = BlockBox(under.Paragraphs);
+            var lines = Math.Max(1, flow.LineCount);
+
+            var baseline = height - room.LegendBottom - ChartComposer.AxisTitleEdge - descent -
+                           (lines - 1) * (ascent + descent);
+
+            flow.PlaceOnto(page, plan.Left + (plan.Width - box) / 2, baseline - flow.FirstAscent);
+        }
+
+        // The legend: its keys are drawn with the rest of the picture, its words with the rest of
+        // the text.
+        foreach (var entry in ChartComposer.Legend(
+            chart, width, height, MeasureLabel, LabelBox, room.Title))
+        {
+            var size = chart.Legend!.LabelSizePoints;
+            var label = ChartLabel(entry.Text, Justification.Left, size);
+            var flow = MeasureInside([label], Math.Max(1, MeasureLabel(entry.Text, size) + 1));
+
+            flow.PlaceOnto(page, entry.TextX, entry.Baseline - flow.FirstAscent);
+        }
+
+        // And what is written at the points themselves.
+        foreach (var written in ChartComposer.DataLabels(chart, plan, LabelBox))
+        {
+            var size = LabelSize(chart);
+            var width0 = MeasureLabel(written.Text, size) + 1;
+
+            var label = ChartLabel(written.Text,
+                written.Centred ? Justification.Center : Justification.Left, size);
+
+            var flow = MeasureInside([label], Math.Max(1, width0));
+
+            flow.PlaceOnto(page, written.Centred ? written.X - width0 / 2 : written.X,
+                written.Baseline - flow.FirstAscent);
+        }
 
         // The numbers along the value axis, each set against its own mark: ranged up against the
         // axis where they are written beside it, and centred on the mark where they are under it.
@@ -3114,6 +3192,137 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         }
 
         return (frame, new DetachedFlow(page, height), 0, 0);
+    }
+
+    /// <summary>
+    /// What size the numbers written at a chart's points are set in.
+    /// </summary>
+    private static double LabelSize(ChartDefinition chart) =>
+        (chart.Series.Select(series => series.Labels).FirstOrDefault(labels => labels is not null)
+         ?? chart.Labels)?.SizePoints ?? 10;
+
+    /// <summary>
+    /// A copy of a title's text with every paragraph centred, which is how a title is set whatever
+    /// its own paragraphs say — Word's own titles all carry the alignment and this only matters for
+    /// one that does not.
+    /// </summary>
+    private static IReadOnlyList<BlockElement> Centred(IReadOnlyList<BlockElement> blocks)
+    {
+        var centred = new List<BlockElement>();
+
+        foreach (var block in blocks)
+        {
+            if (block is not Paragraph paragraph) { centred.Add(block); continue; }
+
+            var copy = new Paragraph { Properties = paragraph.Properties };
+            copy.Properties.Justification = Justification.Center;
+
+            foreach (var run in paragraph.Runs) copy.Runs.Add(run);
+
+            centred.Add(copy);
+        }
+
+        return centred;
+    }
+
+    /// <summary>
+    /// Names the faces a title's runs are set in, where they are named as slots in the theme
+    /// rather than outright.
+    /// </summary>
+    private void Resolve(ChartTitle? title)
+    {
+        if (title is null) return;
+
+        foreach (var block in title.Paragraphs)
+        {
+            if (block is not Paragraph paragraph) continue;
+
+            foreach (var run in paragraph.Runs)
+            {
+                var face = run.Properties.AsciiFont switch
+                {
+                    "+mj-lt" => _styles.Theme.MajorLatinFont,
+                    "+mn-lt" => _styles.Theme.MinorLatinFont,
+                    _ => null
+                };
+
+                if (face is null) continue;
+
+                run.Properties.AsciiFont = face;
+                run.Properties.HighAnsiFont = face;
+            }
+        }
+    }
+
+    /// <summary>
+    /// How much room a title's text takes, once laid out into the width it has.
+    /// </summary>
+    /// <remarks>
+    /// Not the height the engine gives it, but the height Word reckons it by: a line of a title is
+    /// the face as Windows reads it, ascent and descent and nothing besides. For Times New Roman
+    /// that is 1.1074 ems against the 1.1499 a line of body text comes to, and it is the first
+    /// that accounts for the room Word leaves a title at ten point, eighteen, twenty and thirty,
+    /// and for a title of two lines.
+    /// </remarks>
+    private (double Width, double Height) MeasureBlock(IReadOnlyList<BlockElement> blocks, double width)
+    {
+        var flow = MeasureInside(blocks, Math.Max(1, width));
+        var (ascent, descent) = BlockBox(blocks);
+
+        return (flow.WidestLine, Math.Max(1, flow.LineCount) * (ascent + descent));
+    }
+
+    /// <summary>
+    /// How far the face a passage is set in reaches above and below its baseline, as Windows
+    /// reads it.
+    /// </summary>
+    private (double Ascent, double Descent) BlockBox(IReadOnlyList<BlockElement> blocks)
+    {
+        var run = blocks.OfType<Paragraph>().SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
+        var format = _styles.ResolveRun(null, run?.Properties);
+
+        var size = format.FontSizePoints;
+
+        if (!_fonts.TryResolve(format.FontFamily, format.Bold, format.Italic, out var selection))
+            return (size * 0.75, size * 0.25);
+
+        var metrics = selection.Font.Metrics;
+
+        return (metrics.WinAscent * size / metrics.UnitsPerEm,
+            metrics.WinDescent * size / metrics.UnitsPerEm);
+    }
+
+    /// <summary>
+    /// The title up the side of a chart, turned on its end. It reads from the foot upwards, its
+    /// baseline 12.5pt inside the frame and its words centred on the plotting.
+    /// </summary>
+    private Images.WordArtOperation? Turned(
+        ChartDefinition chart, ChartComposer.Plan plan, double width, double height)
+    {
+        if ((chart.Lying ? chart.CategoryAxis : chart.ValueAxis)?.Title
+            is not { Overlay: false, Paragraphs.Count: > 0 } title) return null;
+
+        var runs = title.Paragraphs.OfType<Paragraph>().SelectMany(block => block.Runs).ToList();
+        if (runs.Count == 0) return null;
+
+        var text = string.Concat(runs.SelectMany(run => run.Content.OfType<TextInline>())
+            .Select(inline => inline.Text));
+
+        if (text.Length == 0) return null;
+
+        var format = _styles.ResolveRun(null, runs[0].Properties);
+        var size = format.FontSizePoints;
+
+        var (ascent, _) = BlockBox(title.Paragraphs);
+        var measured = _fonts.TryResolve(format.FontFamily, format.Bold, format.Italic, out var face)
+            ? TextMeasurer.Measure(face.Font, text, size)
+            : text.Length * size * 0.5;
+
+        return new Images.WordArtOperation(text,
+            ChartComposer.AxisTitleEdge + ascent,
+            plan.Top + plan.Height / 2 + measured / 2,
+            format.FontFamily, size, format.Bold, format.Italic,
+            new Images.DrawingColor(0, 0, 0), AngleDegrees: -90);
     }
 
     /// <summary>

@@ -1137,6 +1137,168 @@ public class ChartTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// What a title, a legend and a number at every point take from the plotting, which is what
+    /// decides where everything else on the chart goes.
+    /// </summary>
+    /// <remarks>
+    /// A title takes nine points and a line of its own type — whatever that line comes to, which
+    /// for Times New Roman is the face as Windows reads it and not as a line of body text is
+    /// measured. An axis title takes the same off the side it names. A legend along the top or
+    /// foot takes 11.8pt and a line; one up a side takes 15.118pt and its widest entry. Numbers
+    /// written at the points take nothing at all.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "a title of eighteen point")]
+    [InlineData(1, "one of twenty")]
+    [InlineData(2, "a title on each axis")]
+    [InlineData(3, "a legend under the plot")]
+    [InlineData(4, "a legend to the right")]
+    [InlineData(5, "a legend over the top")]
+    [InlineData(6, "a legend to the left")]
+    [InlineData(7, "four series of legend")]
+    [InlineData(8, "a number over every bar")]
+    [InlineData(13, "a title, both axis titles, a legend and the numbers")]
+    [InlineData(14, "a title of ten point")]
+    [InlineData(15, "one of thirty")]
+    [InlineData(16, "one of two lines")]
+    [InlineData(18, "a legend of twenty point")]
+    public void What_goes_round_the_plotting_takes_the_room_word_gives_it(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-title-legend-label");
+
+        var mine = PlotArea(ours, page);
+        var word = PlotArea(theirs, page);
+
+        _output.WriteLine($"page {page + 1} ({what}): {mine} against Word's {word}");
+
+        Assert.True(Math.Abs(mine.Left - word.Left) < 0.3 &&
+                    Math.Abs(mine.Top - word.Top) < 0.3 &&
+                    Math.Abs(mine.Width - word.Width) < 0.3 &&
+                    Math.Abs(mine.Height - word.Height) < 0.3,
+            $"page {page + 1} ({what}): the plotting is at {mine} where Word puts it at {word}.");
+    }
+
+    /// <summary>
+    /// The keys of a legend, which are the only part of one that is not words: a square of the
+    /// series' own colour, 0.5492 of the type size across.
+    /// </summary>
+    [Theory]
+    [InlineData(3, 2, "under the plot")]
+    [InlineData(4, 2, "to the right")]
+    [InlineData(6, 2, "to the left")]
+    [InlineData(7, 4, "four of them")]
+    [InlineData(11, 4, "a pie, named by slice")]
+    [InlineData(18, 2, "at twenty point")]
+    public void A_legend_keys_its_series_the_way_word_keys_them(int page, int count, string where)
+    {
+        var (ours, theirs) = BothWays("chart-title-legend-label");
+
+        // The keys are the small squares: everything else a chart fills is far larger.
+        var mine = Fills(ours, page).Where(r => r.Width < 12 && r.Height < 12).ToList();
+        var word = Fills(theirs, page).Where(r => r.Width < 12 && r.Height < 12).ToList();
+
+        _output.WriteLine($"page {page + 1} ({where})");
+
+        Assert.Equal(count, word.Count);
+        Assert.Equal(word.Count, mine.Count);
+
+        for (var i = 0; i < mine.Count; i++)
+        {
+            _output.WriteLine($"    {mine[i]} against Word's {word[i]}");
+
+            Assert.Equal(word[i].ColorHex, mine[i].ColorHex);
+
+            Assert.True(Math.Abs(mine[i].Left - word[i].Left) < 0.6 &&
+                        Math.Abs(mine[i].Top - word[i].Top) < 0.6 &&
+                        Math.Abs(mine[i].Width - word[i].Width) < 0.1,
+                $"a key is at {mine[i]} where Word draws it at {word[i]}.");
+        }
+    }
+
+    /// <summary>
+    /// The whole of a dressed chart as ink, which is what says the title up the side — turned on
+    /// its end, and so no line of text at all — is where Word puts it.
+    /// </summary>
+    [Theory]
+    [InlineData(0, "a title")]
+    [InlineData(2, "a title on each axis, one of them turned")]
+    [InlineData(3, "a legend under the plot")]
+    [InlineData(4, "a legend to the right")]
+    [InlineData(8, "a number over every bar")]
+    [InlineData(9, "the same, inside the end")]
+    [InlineData(10, "numbers at the points of a line")]
+    [InlineData(13, "all three at once")]
+    public void A_dressed_chart_covers_what_word_covers(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-title-legend-label");
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, scale) is not { } mine ||
+            PdfRasterizer.Render(theirs, page, scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var (agreed, covered, inkOfMine, inkOfTheirs) = (0, 0, 0, 0);
+
+        for (var y = 74.0; y < 286; y++)
+        for (var x = 74.0; x < 430; x++)
+        {
+            var a = mine.At(x, y, scale);
+            var b = word.At(x, y, scale);
+
+            var ink = a.R < 200 || a.G < 200 || a.B < 200;
+            var theirInk = b.R < 200 || b.G < 200 || b.B < 200;
+
+            if (ink) inkOfMine++;
+            if (theirInk) inkOfTheirs++;
+            if (ink == theirInk) agreed++;
+
+            covered++;
+        }
+
+        var agreement = 100.0 * agreed / covered;
+
+        _output.WriteLine(
+            $"page {page + 1} ({what}): ink {inkOfMine} here, {inkOfTheirs} in Word's; " +
+            $"the two agree on {agreement:0.00}%");
+
+        Assert.True(agreement > 98, $"the two pages agree on only {agreement:0.0}% of the chart");
+        Assert.InRange((double)inkOfMine / inkOfTheirs, 0.9, 1.1);
+    }
+
+    /// <summary>
+    /// A number written at a point says what the chart asks it to say: the value, its share of the
+    /// whole, or both, in the format the labels name.
+    /// </summary>
+    [Fact]
+    public void A_number_at_a_point_says_what_the_chart_asks()
+    {
+        var chart = new ChartDefinition
+        {
+            Labels = new ChartLabels(Value: true, Percent: false, Category: false,
+                SeriesName: false, Position: "outEnd", NumberFormat: "0.0", SizePoints: 10)
+        };
+
+        chart.Series.Add(new ChartSeries("Units", ["One", "Two"], [30, 45], null));
+
+        var plan = new ChartComposer.Plan(0, 0, 100, 100, 0, 60, 20);
+
+        var labels = ChartComposer.DataLabels(chart, plan, size => (size * 0.95, size * 0.27))
+            .ToList();
+
+        Assert.Equal(["30.0", "45.0"], labels.Select(label => label.Text));
+
+        // Each over the middle of its own bar, and clear of its end by four and a half points and
+        // its own descender.
+        Assert.Equal(25d, labels[0].X, 3);
+        Assert.Equal(50 - 4.5 - 2.7, labels[0].Baseline, 3);
+    }
+
+    /// <summary>
     /// The rectangles a page fills, which is the plot area and the bars: everything else a chart
     /// draws is a stroke, and a stroke is a line rather than a rectangle.
     /// </summary>

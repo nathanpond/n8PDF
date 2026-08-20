@@ -142,6 +142,437 @@ internal static class ChartComposer
     private const double TopMargin = 5;
 
     /// <summary>
+    /// The room a title takes over and above the text itself, and how far its own box sits from
+    /// the edge of the frame.
+    /// </summary>
+    /// <remarks>
+    /// Measured from chart-title-legend-label: a title of ten point takes 20.076pt off the top of
+    /// the plot, one of thirty takes 42.226, and the face those two are set in makes a line of
+    /// 1.1074 ems — so the room is nine points and a line, whatever the line comes to. The two
+    /// pads are measured once each, at eighteen point: a chart's own title begins 7.35pt below the
+    /// top of the frame, and an axis title ends 12.5pt inside the edge it belongs to, whichever
+    /// edge that is.
+    /// </remarks>
+    private const double TitleGap = 9.0;
+
+    public const double TitleTop = 7.43;
+
+    public const double AxisTitleEdge = 12.5;
+
+    /// <summary>
+    /// How much of the frame a title wraps into. Word breaks the seventeenth page's title after
+    /// "every", which puts the width it wrapped to somewhere between 243pt and 293pt of a 360pt
+    /// frame; four fifths is the middle of that and is what is used.
+    /// </summary>
+    public const double TitleWidth = 0.75;
+
+    /// <summary>
+    /// What a legend takes, and how its entries are set out. All measured from the same fixture,
+    /// at ten point and twenty: a legend along the top or foot takes 11.8pt and a line, and one up
+    /// a side takes 15.118pt and the widest entry it holds. A key is 0.5492 of the type size
+    /// square, and the words begin 0.7863 of it from the key's own left edge.
+    /// </summary>
+    private const double LegendGap = 11.8;
+
+    private const double LegendSide = 15.118;
+
+    private const double LegendSwatch = 0.5492;
+
+    private const double LegendSwatchGap = 0.8239;
+
+    private const double LegendSwatchGapFixed = -0.376;
+
+    /// <summary>
+    /// How far apart the entries of a legend along the foot are set, over and above their own
+    /// widths — 0.784 of the type size, except where an entry is long enough that a seventh of it
+    /// is more, which is what the four-series page shows and what nothing here explains.
+    /// </summary>
+    private const double LegendEntryGap = 0.784;
+
+    private const double LegendLongEntry = 0.1464;
+
+    /// <summary>
+    /// Where a legend along the foot sits: its baseline this far above the foot of the frame, and
+    /// the whole of it this far to the right of the middle. Both measured at two sizes.
+    /// </summary>
+    private const double LegendBaseline = 8.64;
+
+    private const double LegendBaselineGrowth = 0.36;
+
+    private const double LegendShift = 0.137;
+
+    private const double LegendShiftFixed = 0.57;
+
+    /// <summary>
+    /// How far below the top of the frame a legend along the top begins, over and above its own
+    /// ascent. Measured once, at ten point.
+    /// </summary>
+    private const double LegendTop = 8.24;
+
+    /// <summary>
+    /// How far a key sits below the baseline of the words beside it, and how far a legend up the
+    /// right of a chart ends inside the frame.
+    /// </summary>
+    private const double LegendKeyDrop = 0.2446;
+
+    private const double LegendKeyDropFixed = 0.356;
+
+    private const double LegendEdge = 10.12;
+
+    /// <summary>How far apart the entries of a legend up a side are, as a share of the type.</summary>
+    private const double LegendPitch = 1.8083;
+
+    /// <summary>
+    /// How far clear of the end of a bar a number written at it sits, and how far to the right of
+    /// a point on a line. The first is measured at ten point and twenty — 7.15pt and 10.04pt clear
+    /// of the bar, which is the label's own descender and four and a half points besides.
+    /// </summary>
+    private const double LabelGap = 4.5;
+
+    private const double LabelSide = 8.5;
+
+    /// <summary>How far inside the frame a number that would overrun it is set instead.</summary>
+    private const double LabelClamp = 1.36;
+
+    /// <summary>
+    /// How far out from the middle of a pie a share written on it sits, as part of the radius.
+    /// Fitted to the four slices of the twelfth page, which give 0.684 to 0.712.
+    /// </summary>
+    private const double PieLabelRadius = 0.69;
+
+    /// <summary>
+    /// Where the things round the plotting go: what each takes from the plot, and where each is
+    /// then drawn.
+    /// </summary>
+    /// <param name="Title">The room the chart's own title takes off the top.</param>
+    public readonly record struct Dressing(
+        double Title, double AxisTitleLeft, double AxisTitleBottom,
+        double LegendLeft, double LegendRight, double LegendTop, double LegendBottom)
+    {
+        public double Left => AxisTitleLeft + LegendLeft;
+
+        public double Right => LegendRight;
+
+        public double Top => Title + LegendTop;
+
+        public double Bottom => AxisTitleBottom + LegendBottom;
+    }
+
+    /// <summary>
+    /// Works out how much room the title, the axis titles and the legend take from the plotting.
+    /// </summary>
+    public static Dressing Room(
+        ChartDefinition chart, double width, double height,
+        Func<string, double, double> measure,
+        Func<double, (double Ascent, double Descent)> labelHeight,
+        Func<IReadOnlyList<BlockElement>, double, (double Width, double Height)> text)
+    {
+        var title = chart.Title is { Overlay: false } head
+            ? TitleGap + text(head.Paragraphs, width * TitleWidth).Height
+            : 0;
+
+        var acrossTitle = chart.CategoryAxis?.Title is { Overlay: false } across
+            ? TitleGap + text(across.Paragraphs, width * TitleWidth).Height
+            : 0;
+
+        var upTitle = chart.ValueAxis?.Title is { Overlay: false } up
+            ? TitleGap + text(up.Paragraphs, height * TitleWidth).Height
+            : 0;
+
+        var (left, right, top, bottom) = (0.0, 0.0, 0.0, 0.0);
+
+        if (chart.Legend is { Overlay: false } legend)
+        {
+            var size = legend.LabelSizePoints;
+            var (ascent, descent) = labelHeight(size);
+
+            var room = legend.Position switch
+            {
+                "l" or "r" => LegendSide + Entries(chart, legend, measure).Max(entry => entry.Width),
+                _ => LegendGap + ascent + descent
+            };
+
+            switch (legend.Position)
+            {
+                case "l": left = room; break;
+                case "t": top = room; break;
+                case "b": bottom = room; break;
+                default: right = room; break;
+            }
+        }
+
+        // A chart lying down keeps its categories up the side, so its axis titles swap over too.
+        return chart.Lying
+            ? new Dressing(title, acrossTitle, upTitle, left, right, top, bottom)
+            : new Dressing(title, upTitle, acrossTitle, left, right, top, bottom);
+    }
+
+    /// <summary>A legend's keys, which are the only part of it that is not words.</summary>
+    private static IEnumerable<DrawingOperation> Keys(
+        ChartDefinition chart, double width, double height,
+        Func<string, double, double> measure,
+        Func<double, (double Ascent, double Descent)> labelHeight,
+        double titleRoom, DocumentTheme theme)
+    {
+        foreach (var entry in Legend(chart, width, height, measure, labelHeight, titleRoom))
+        {
+            yield return new PathOperation(
+                Rectangle(entry.SwatchX, entry.SwatchY, entry.Swatch, entry.Swatch),
+                Resolve(entry.Fill, theme), null, LineWidth, EvenOdd: false);
+        }
+    }
+
+    /// <summary>One entry of a legend: a key in the series' colour, and the series' name.</summary>
+    public readonly record struct LegendEntry(
+        string Text, double Width, DrawingColorReference? Fill);
+
+    /// <summary>What a legend holds, in the order the chart lists its series.</summary>
+    /// <remarks>
+    /// A pie names its slices rather than its series, since a pie is one series divided between
+    /// its categories and naming it once would say nothing.
+    /// </remarks>
+    public static IReadOnlyList<LegendEntry> Entries(
+        ChartDefinition chart, ChartLegend legend, Func<string, double, double> measure)
+    {
+        var size = legend.LabelSizePoints;
+        var head = size * LegendSwatchGap + LegendSwatchGapFixed;
+
+        if (chart.Kind == ChartKind.Pie && chart.Series.Count > 0)
+        {
+            var pie = chart.Series[0];
+
+            return
+            [
+                .. chart.Categories.Select((name, i) => new LegendEntry(
+                    name, head + measure(name, size),
+                    pie.PointFills.TryGetValue(i, out var point) ? point : pie.Fill))
+            ];
+        }
+
+        return
+        [
+            .. chart.Series.Select(series => new LegendEntry(
+                series.Name, head + measure(series.Name, size),
+                series.Fill ?? series.Line))
+        ];
+    }
+
+    /// <summary>Where each entry of a legend is drawn: its key, and where its words begin.</summary>
+    public readonly record struct PlacedEntry(
+        string Text, double SwatchX, double SwatchY, double Swatch, double TextX, double Baseline,
+        DrawingColorReference? Fill);
+
+    public static IReadOnlyList<PlacedEntry> Legend(
+        ChartDefinition chart, double width, double height,
+        Func<string, double, double> measure,
+        Func<double, (double Ascent, double Descent)> labelHeight,
+        double titleRoom = 0)
+    {
+        if (chart.Legend is not { Overlay: false } legend) return [];
+
+        var entries = Entries(chart, legend, measure);
+        if (entries.Count == 0) return [];
+
+        var size = legend.LabelSizePoints;
+        var swatch = size * LegendSwatch;
+        var head = size * LegendSwatchGap + LegendSwatchGapFixed;
+
+        var placed = new List<PlacedEntry>();
+
+        if (legend.Position is "l" or "r")
+        {
+            // Up a side: one entry to a line, the whole block centred on the middle of the frame,
+            // and the words ending a bare margin inside the edge they are set against.
+            var widest = entries.Max(entry => entry.Width);
+            var pitch = size * LegendPitch;
+
+            // Up the left it begins a bare margin inside the frame; up the right it ends 10.12pt
+            // inside it, which is what the fifth page measures.
+            var left = legend.Position == "l"
+                ? BareMargin
+                : width - LegendEdge - widest;
+
+            var middle = height / 2;
+            var top = middle - pitch * entries.Count / 2;
+
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var centre = top + pitch * i + pitch / 2;
+
+                placed.Add(new PlacedEntry(entries[i].Text,
+                    left, centre - swatch / 2, swatch, left + head,
+                    centre + size * LegendKeyDrop + LegendKeyDropFixed, entries[i].Fill));
+            }
+
+            return placed;
+        }
+
+        // Along the foot or the top: side by side, the block centred a little right of the middle.
+        var widestEntry = entries.Max(entry => entry.Width);
+        var gap = Math.Max(size * LegendEntryGap, widestEntry * LegendLongEntry);
+
+        var content = entries.Sum(entry => entry.Width) + gap * (entries.Count - 1);
+        var start = width / 2 - content / 2 + size * LegendShift + LegendShiftFixed;
+
+        // Along the foot it is set by how far its baseline sits above the foot of the frame, and
+        // along the top by how far below the top — under whatever title is up there already.
+        var baseline = legend.Position == "t"
+            ? titleRoom + LegendTop + labelHeight(size).Ascent
+            : height - LegendBaseline - size * LegendBaselineGrowth;
+
+        var x = start;
+
+        foreach (var entry in entries)
+        {
+            placed.Add(new PlacedEntry(entry.Text,
+                x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2, swatch,
+                x + head, baseline, entry.Fill));
+
+            x += entry.Width + gap;
+        }
+
+        return placed;
+    }
+
+    /// <summary>One number written at a point, and where it goes.</summary>
+    /// <param name="Centred">
+    /// True where the point is the middle of the words, false where it is where they begin.
+    /// </param>
+    public readonly record struct PlacedLabel(string Text, double X, double Baseline, bool Centred);
+
+    /// <summary>
+    /// What is written at each point of a chart that asks for it, and where each goes.
+    /// </summary>
+    /// <remarks>
+    /// Measured from chart-title-legend-label. A number written past the end of a bar clears it by
+    /// four and a half points and its own descender, and one written inside the end clears it the
+    /// same way with its ascender instead — 7.15pt and 14.09pt at ten point, 10.04pt at twenty,
+    /// which is the same four and a half both times. One written at a point on a line goes to its
+    /// right, its words beginning 8.5pt past the point and set about it. One written on a slice of
+    /// a pie goes out along the middle of the slice, about seven tenths of the way to the rim.
+    /// </remarks>
+    public static IEnumerable<PlacedLabel> DataLabels(
+        ChartDefinition chart, Plan plan,
+        Func<double, (double Ascent, double Descent)> labelHeight)
+    {
+        var categories = Math.Max(1, chart.Categories.Count);
+
+        if (chart.Kind == ChartKind.Pie)
+        {
+            var series = chart.Series.FirstOrDefault();
+            var labels = series?.Labels ?? chart.Labels;
+
+            if (series is null || labels is not { Any: true }) yield break;
+
+            var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
+            var total = values.Sum();
+            if (total <= 0) yield break;
+
+            var centre = (X: plan.Left + plan.Width / 2, Y: plan.Top + plan.Height / 2);
+            var radius = Math.Min(plan.Width, plan.Height) / 2 * PieLabelRadius;
+
+            var (ascent, descent) = labelHeight(labels.SizePoints);
+            var angle = chart.FirstSliceAngle * Math.PI / 180;
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                var sweep = values[i] / total * 2 * Math.PI;
+                var middle = angle + sweep / 2;
+
+                angle += sweep;
+                if (values[i] <= 0) continue;
+
+                yield return new PlacedLabel(
+                    Written(labels, values[i], values[i] / total),
+                    centre.X + radius * Math.Sin(middle),
+                    centre.Y - radius * Math.Cos(middle) + (ascent - descent) / 2,
+                    Centred: true);
+            }
+
+            yield break;
+        }
+
+        if (chart.Kind is ChartKind.Column or ChartKind.Bar)
+        {
+            foreach (var bar in Bars(chart, plan))
+            {
+                if (bar.Labels is not { Any: true } labels) continue;
+
+                var (ascent, descent) = labelHeight(labels.SizePoints);
+                var inside = labels.Position is "inEnd" or "ctr" or "inBase";
+
+                if (plan.Lying)
+                {
+                    var end = bar.Value >= 0 ? bar.X + bar.Width : bar.X;
+
+                    yield return new PlacedLabel(
+                        Written(labels, bar.Value, 0),
+                        inside ? bar.X + bar.Width - LabelGap : end + LabelGap,
+                        bar.Y + bar.Height / 2 + (ascent - descent) / 2,
+                        Centred: false);
+                }
+                else
+                {
+                    var end = bar.Value >= 0 ? bar.Y : bar.Y + bar.Height;
+
+                    var baseline = inside
+                        ? end + LabelGap + ascent
+                        : end - LabelGap - descent;
+
+                    // What would overrun the top of the chart is set against it instead, a shade
+                    // inside: measured from the tallest bar of the page labelled at twenty point,
+                    // which Word sets 1.36pt further down than the frame alone would ask.
+                    yield return new PlacedLabel(
+                        Written(labels, bar.Value, 0),
+                        bar.X + bar.Width / 2,
+                        Math.Max(baseline, ascent + LabelClamp),
+                        Centred: true);
+                }
+            }
+
+            yield break;
+        }
+
+        // A line or a chart of pairs writes its numbers beside their own points.
+        foreach (var series in chart.Series)
+        {
+            if ((series.Labels ?? chart.Labels) is not { Any: true } labels) continue;
+
+            var (ascent, descent) = labelHeight(labels.SizePoints);
+            var points = Points(chart, series, plan);
+
+            var shown = series.Values.Where(value => value.HasValue).Select(value => value!.Value)
+                .ToList();
+
+            for (var i = 0; i < points.Count && i < shown.Count; i++)
+            {
+                yield return new PlacedLabel(
+                    Written(labels, shown[i], 0),
+                    points[i].X + LabelSide,
+                    points[i].Y + (ascent - descent) / 2,
+                    Centred: false);
+            }
+        }
+    }
+
+    /// <summary>What a label says: the number, its share, or both with the category beside it.</summary>
+    private static string Written(ChartLabels labels, double value, double share)
+    {
+        var parts = new List<string>();
+
+        if (labels.Value) parts.Add(Format(value, labels.NumberFormat));
+        if (labels.Percent) parts.Add(Format(share, labels.NumberFormat is "General" or null
+            ? "0%"
+            : labels.NumberFormat));
+
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>
+    /// Works out where the plotting goes and what the value axis runs between.
+    /// </summary>    /// <summary>
+    /// Works out where the plotting goes and what the value axis runs between.
+    /// </summary>    /// <summary>
     /// Works out where the plotting goes and what the value axis runs between.
     /// </summary>
     /// <remarks>
@@ -182,9 +613,13 @@ internal static class ChartComposer
         ChartDefinition chart, double width, double height,
         Func<string, double, double> measure,
         Func<double, (double Ascent, double Descent)> labelHeight,
-        Func<string, double, double, (double Width, int Lines)>? wrap = null)
+        Func<string, double, double, (double Width, int Lines)>? wrap = null,
+        Func<IReadOnlyList<BlockElement>, double, (double Width, double Height)>? block = null)
     {
         wrap ??= (text, size, _) => (measure(text, size), 1);
+        block ??= (_, _) => (0, 0);
+
+        var room = Room(chart, width, height, measure, labelHeight, block);
 
         if (chart.PlotArea is { } stated)
         {
@@ -194,12 +629,13 @@ internal static class ChartComposer
 
         // Nothing is known about the axes yet, so the plot is first taken as large as it could
         // possibly be, and then measured again against the room the labels that gave it leave.
-        var box = (Left: BareMargin, Top: BareMargin,
-            Width: Math.Max(1, width - 2 * BareMargin), Height: Math.Max(1, height - 2 * BareMargin));
+        var box = (Left: BareMargin + room.Left, Top: BareMargin + room.Top,
+            Width: Math.Max(1, width - 2 * BareMargin - room.Left - room.Right),
+            Height: Math.Max(1, height - 2 * BareMargin - room.Top - room.Bottom));
 
         for (var round = 0; round < 4; round++)
         {
-            var next = Place(chart, width, height, box, measure, labelHeight, wrap);
+            var next = Place(chart, width, height, box, measure, labelHeight, wrap, room);
 
             var settled = Math.Abs(next.Width - box.Width) < 0.001 &&
                           Math.Abs(next.Height - box.Height) < 0.001;
@@ -243,7 +679,8 @@ internal static class ChartComposer
         (double Left, double Top, double Width, double Height) box,
         Func<string, double, double> measure,
         Func<double, (double Ascent, double Descent)> labelHeight,
-        Func<string, double, double, (double Width, int Lines)> wrap)
+        Func<string, double, double, (double Width, int Lines)> wrap,
+        Dressing room)
     {
         var plan = Complete(chart, box);
 
@@ -280,11 +717,11 @@ internal static class ChartComposer
 
             // Only words wrap: a number written under an axis takes whatever room it takes, and
             // a category takes its own share of the plot and wraps inside it.
-            var room = chart.Paired || chart.Lying
+            var slot = chart.Paired || chart.Lying
                 ? double.MaxValue / 4
                 : box.Width / Math.Max(1, foot.Count);
 
-            var lines = foot.Select(label => wrap(label, footSize, room)).ToList();
+            var lines = foot.Select(label => wrap(label, footSize, slot)).ToList();
 
             bottom = Math.Max(bottom,
                 LabelMargin + footSize * CategoryLabelBaseline + descent +
@@ -297,7 +734,13 @@ internal static class ChartComposer
             }
         }
 
-        return (left, top, Math.Max(1, width - left - right), Math.Max(1, height - top - bottom));
+        // What goes round the plotting takes its room from the same sides the labels do, and one
+        // simply follows the other: the fourteenth page of chart-title-legend-label carries a
+        // title, both axis titles, a legend and a number over every bar, and its foot comes to the
+        // labels, the axis title and the legend added together to the hundredth of a point.
+        return (left + room.Left, top + room.Top,
+            Math.Max(1, width - left - right - room.Left - room.Right),
+            Math.Max(1, height - top - bottom - room.Top - room.Bottom));
     }
 
     /// <summary>
@@ -633,9 +1076,19 @@ internal static class ChartComposer
     }
 
     /// <summary>Everything the chart draws that is not text.</summary>
+    /// <param name="measure">
+    /// How wide a string is, which the keys of a legend need as much as its words do: where each
+    /// key goes depends on how wide the name beside it is.
+    /// </param>
     public static VectorDrawing Draw(
-        ChartDefinition chart, Plan plan, double width, double height, DocumentTheme theme)
+        ChartDefinition chart, Plan plan, double width, double height, DocumentTheme theme,
+        Func<string, double, double>? measure = null,
+        Func<double, (double Ascent, double Descent)>? labelHeight = null,
+        double titleRoom = 0)
     {
+        var Measured = measure ?? ((text, size) => text.Length * size * 0.5);
+        var Boxed = labelHeight ?? (size => (size * 0.75, size * 0.25));
+
         var operations = new List<DrawingOperation>
         {
             // The chart's own frame: white, cornered, and outlined in grey.
@@ -649,10 +1102,12 @@ internal static class ChartComposer
             Rectangle(plan.Left, plan.Top, plan.Width, plan.Height),
             new DrawingColor(255, 255, 255), null, LineWidth, EvenOdd: false));
 
-        // A pie has no axes to draw, and nothing behind it but the frame.
+        // A pie has no axes to draw, and nothing behind it but the frame — but it has a legend
+        // like any other chart, and one naming its slices rather than its series.
         if (chart.Kind == ChartKind.Pie)
         {
             operations.AddRange(Slices(chart, plan, theme));
+            operations.AddRange(Keys(chart, width, height, Measured, Boxed, titleRoom, theme));
 
             return new VectorDrawing(width, height, operations);
         }
@@ -768,6 +1223,8 @@ internal static class ChartComposer
             }
         }
 
+        operations.AddRange(Keys(chart, width, height, Measured, Boxed, titleRoom, theme));
+
         // The lines and what stands at their points go over the axes rather than under them,
         // which is the order Word writes them in.
         if (chart.Kind is ChartKind.Line or ChartKind.Scatter)
@@ -800,7 +1257,7 @@ internal static class ChartComposer
     /// as its share of what its own category comes to.
     /// </remarks>
     public static IEnumerable<(double X, double Y, double Width, double Height,
-            DrawingColorReference? Fill, bool Inverted)>
+            DrawingColorReference? Fill, bool Inverted, double Value, ChartLabels? Labels)>
         Bars(ChartDefinition chart, Plan plan)
     {
         if (chart.Kind is not (ChartKind.Column or ChartKind.Bar)) yield break;
@@ -859,10 +1316,11 @@ internal static class ChartComposer
                     * barWidth * (1 - overlap);
 
                 var inverted = height < 0 && chart.Series[index].InvertIfNegative;
+                var labels = chart.Series[index].Labels ?? chart.Labels;
 
                 yield return plan.Lying
-                    ? (near, place, span, barWidth, chart.Series[index].Fill, inverted)
-                    : (place, near, barWidth, span, chart.Series[index].Fill, inverted);
+                    ? (near, place, span, barWidth, chart.Series[index].Fill, inverted, value, labels)
+                    : (place, near, barWidth, span, chart.Series[index].Fill, inverted, value, labels);
             }
         }
     }

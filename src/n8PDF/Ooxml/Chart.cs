@@ -65,6 +65,9 @@ public sealed record ChartSeries(
     IReadOnlyList<double?> Values,
     DrawingColorReference? Fill)
 {
+    /// <summary>What is written at this series' points, where the series says so itself.</summary>
+    public ChartLabels? Labels { get; init; }
+
     /// <summary>
     /// What each point is painted in, where the series says so point by point. A pie says it that
     /// way, since its points are its slices and one colour would make it a disc.
@@ -103,6 +106,35 @@ public sealed record ChartSeries(
 
     /// <summary>What it draws at each point, or null where the series says nothing about it.</summary>
     public ChartMarker? Marker { get; init; }
+}
+
+/// <summary>
+/// A title: a chart's own, or one of its axes'. What it holds is ordinary text, laid out by the
+/// engine that lays out everything else.
+/// </summary>
+public sealed class ChartTitle
+{
+    public IReadOnlyList<BlockElement> Paragraphs { get; init; } = [];
+
+    /// <summary>Whether it is drawn over the plotting rather than given room of its own.</summary>
+    public bool Overlay { get; init; }
+}
+
+/// <summary>Where a legend goes, and how its entries are set.</summary>
+/// <param name="Position">"b", "t", "l", "r" or "tr".</param>
+public sealed record ChartLegend(string Position, bool Overlay, double LabelSizePoints);
+
+/// <summary>What is written at each point, and where.</summary>
+/// <param name="Position">
+/// "outEnd", "inEnd", "ctr", "inBase", "bestFit", "l", "r", "t", "b", or empty where the chart
+/// does not say and the kind of chart decides.
+/// </param>
+public sealed record ChartLabels(
+    bool Value, bool Percent, bool Category, bool SeriesName,
+    string Position, string? NumberFormat, double SizePoints)
+{
+    /// <summary>True where there is anything at all to write.</summary>
+    public bool Any => Value || Percent || Category || SeriesName;
 }
 
 /// <summary>An axis, and what it says about the scale it draws.</summary>
@@ -151,6 +183,9 @@ public sealed class ChartAxis
     /// </summary>
     public string? NumberFormat { get; set; }
 
+    /// <summary>What is written alongside it, where it carries a title at all.</summary>
+    public ChartTitle? Title { get; set; }
+
     /// <summary>
     /// Whether the other axis crosses this one between its categories or at the middle of one.
     /// It is what decides where a line's points and an area's corners go: "between" puts them at
@@ -187,6 +222,15 @@ public sealed class ChartDefinition
     /// How a scatter is drawn: "none", "line", "lineMarker", "marker", "smooth" or "smoothMarker".
     /// </summary>
     public string ScatterStyle { get; set; } = "lineMarker";
+
+    /// <summary>What is written over the whole of it, where it says anything.</summary>
+    public ChartTitle? Title { get; set; }
+
+    /// <summary>Where the series are named, where they are named at all.</summary>
+    public ChartLegend? Legend { get; set; }
+
+    /// <summary>What is written at every point, where the chart says so for all of them.</summary>
+    public ChartLabels? Labels { get; set; }
 
     public List<ChartSeries> Series { get; } = [];
 
@@ -243,6 +287,18 @@ public static class ChartReader
             PlotArea = ReadLayout(plotArea.Element(Main + "layout"))
         };
 
+        // A title the chart has been told to forget is not drawn, whatever it still holds.
+        if (chart!.Element(Main + "autoTitleDeleted")?.Attribute("val")?.Value is not ("1" or "true"))
+            definition.Title = ReadTitle(chart.Element(Main + "title"));
+
+        if (chart.Element(Main + "legend") is { } legend)
+        {
+            definition.Legend = new ChartLegend(
+                legend.Element(Main + "legendPos")?.Attribute("val")?.Value ?? "r",
+                legend.Element(Main + "overlay")?.Attribute("val")?.Value is "1" or "true",
+                LabelSize(legend) ?? 10);
+        }
+
         var plot = plotArea.Element(Main + "barChart")
                    ?? plotArea.Element(Main + "lineChart")
                    ?? plotArea.Element(Main + "pieChart")
@@ -277,8 +333,10 @@ public static class ChartReader
         definition.Overlap = Integer(plot.Element(Main + "overlap")) ?? 0;
         definition.FirstSliceAngle = Integer(plot.Element(Main + "firstSliceAng")) ?? 0;
 
+        definition.Labels = ReadLabels(plot.Element(Main + "dLbls"), null);
+
         foreach (var series in plot.Elements(Main + "ser"))
-            definition.Series.Add(ReadSeries(series));
+            definition.Series.Add(ReadSeries(series, definition.Labels));
 
         foreach (var axis in plotArea.Elements())
         {
@@ -300,7 +358,44 @@ public static class ChartReader
         return definition;
     }
 
-    private static ChartSeries ReadSeries(XElement element)
+    /// <summary>A title's text, or null where there is none to draw.</summary>
+    private static ChartTitle? ReadTitle(XElement? element)
+    {
+        var rich = element?.Element(Main + "tx")?.Element(Main + "rich");
+        if (rich is null) return null;
+
+        var paragraphs = DrawingText.Parse(rich);
+        if (paragraphs.Count == 0) return null;
+
+        return new ChartTitle
+        {
+            Paragraphs = paragraphs,
+            Overlay = element!.Element(Main + "overlay")?.Attribute("val")?.Value is "1" or "true"
+        };
+    }
+
+    /// <summary>What is written at a set of points, or null where nothing is.</summary>
+    private static ChartLabels? ReadLabels(XElement? element, ChartLabels? inherited)
+    {
+        if (element is null) return inherited;
+        if (element.Element(Main + "delete")?.Attribute("val")?.Value is "1" or "true") return null;
+
+        static bool Shown(XElement element, string name) =>
+            element.Element(Main + name)?.Attribute("val")?.Value is "1" or "true";
+
+        var labels = new ChartLabels(
+            Shown(element, "showVal"),
+            Shown(element, "showPercent"),
+            Shown(element, "showCatName"),
+            Shown(element, "showSerName"),
+            element.Element(Main + "dLblPos")?.Attribute("val")?.Value ?? inherited?.Position ?? string.Empty,
+            element.Element(Main + "numFmt")?.Attribute("formatCode")?.Value ?? inherited?.NumberFormat,
+            LabelSize(element) ?? inherited?.SizePoints ?? 10);
+
+        return labels.Any ? labels : inherited;
+    }
+
+    private static ChartSeries ReadSeries(XElement element, ChartLabels? inherited = null)
     {
         var name = element.Element(Main + "tx") is { } tx
             ? Strings(tx).FirstOrDefault() ?? string.Empty
@@ -341,7 +436,8 @@ public static class ChartReader
                     is not ("0" or "false"),
 
             XValues = element.Element(Main + "xVal") is { } x ? Numbers(x) : [],
-            Marker = ReadMarker(element.Element(Main + "marker"))
+            Marker = ReadMarker(element.Element(Main + "marker")),
+            Labels = ReadLabels(element.Element(Main + "dLbls"), inherited)
         };
     }
 
@@ -382,6 +478,7 @@ public static class ChartReader
             IsValueAxis = isValue,
             MajorTickMark = element.Element(Main + "majorTickMark")?.Attribute("val")?.Value ?? "out",
             TickLabelPosition = element.Element(Main + "tickLblPos")?.Attribute("val")?.Value ?? "nextTo",
+            Title = ReadTitle(element.Element(Main + "title")),
             LabelSizePoints = LabelSize(element) ?? 10,
             LabelOffset = Integer(element.Element(Main + "lblOffset")) ?? 100,
             NumberFormat = element.Element(Main + "numFmt")?.Attribute("formatCode")?.Value,

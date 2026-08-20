@@ -162,7 +162,11 @@ public static class PdfLineComparison
     {
         var lines = new List<TextLine>();
 
-        foreach (var pageGroup in runs.GroupBy(r => r.PageIndex).OrderBy(g => g.Key))
+        // Text set across the page rather than along it — a chart's axis title — has no baseline
+        // to gather a line by, and Word writes one letter to a run where this writes the string.
+        // What holds those to Word is the ink, not the line.
+        foreach (var pageGroup in runs.Where(run => !run.Turned)
+                     .GroupBy(r => r.PageIndex).OrderBy(g => g.Key))
         {
             var marks = pageGroup.Where(run => run.Width <= 0.01).ToList();
 

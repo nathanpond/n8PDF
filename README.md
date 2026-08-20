@@ -356,6 +356,44 @@ half a point, and seven points across where the series draws a line or six where
 runs through **diamond, square, triangle and cross** for the first four such series, which is
 measured; what it does with a fifth is Excel's old order and is not.
 
+### What goes round the plotting
+
+A title, a legend and the numbers written at the points are the three things a chart carries that
+are not the plotting itself, and the first two take their room out of it. Measured from
+`chart-title-legend-label`, nineteen pages.
+
+**A title takes nine points and a line of its own type**, whatever that line comes to: at ten point
+it takes 20.076 off the top of the plot, at eighteen 28.931, at twenty 31.146 and at thirty 42.216,
+and two lines take two lines' worth. The line in question is the face as *Windows* reads it — for
+Times New Roman 1.1074 ems against the 1.1499 a line of body text is set by — which is the same
+split between the two pairs of metrics that runs through the rest of a chart. An axis title takes
+the same nine points and a line off the side it names.
+
+Where each then goes is measured once apiece: a chart's own title has its first baseline 7.43pt
+below the top of the frame and is centred on the **frame**, while an axis title's box ends 12.5pt
+inside the edge it belongs to and is centred on the **plot**. The one up the side is turned on its
+end, reading upwards, and is drawn into the chart's own picture rather than set as a line of text —
+turned text has no baseline to compare with an upright one's, so it is held to Word by ink instead.
+
+**A legend** takes 11.8pt and a line along the top or the foot, and 15.118pt and its widest entry up
+a side. Its key is a square 0.5492 of the type size across, the words beside it begin 0.8239 of the
+size less 0.376pt from the key's own left edge, and the key sits that much again below their
+baseline. Along the foot the entries are set 0.784 of the type size apart — except where one entry
+is long enough that a seventh of it is more, which is what the four-series page shows and what
+nothing here explains — and the whole block is centred a little right of the middle. Up a side they
+are one to a line, 1.8083 type sizes apart, centred on the middle of the frame.
+
+**A number written at a point** takes nothing from the plot and sits clear of what it names: past the
+end of a bar by four and a half points and its own descender, inside the end by the same four and a
+half and its ascender, and to the right of a point on a line by 8.5pt. What would overrun the top of
+the chart is set against it instead. On a slice of a pie it goes out along the middle of the slice,
+about seven tenths of the way to the rim — Word fits those to the slices by a rule of its own, and
+its four come out between 0.684 and 0.711 of the radius and up to a degree and a half off the middle
+of their slice, which is the one place on these pages where two points of disagreement are left.
+
+Everything else agrees with Word to within 0.73pt vertically and half a point horizontally, and the
+ink of a page agrees on better than 99.3% of it.
+
 ### What a diagram is, and which half of it to draw
 
 SmartArt is written down twice. There is what it means — points, the connections between them, and
@@ -556,7 +594,8 @@ stacked to the whole, sized by the gap and the overlap between them, a line curv
 points the way Word curves one or straight where it says so, areas filled down to the axis or
 banded one on another, markers of nine shapes at the size and on the grid Word draws them, a pie
 centred and divided clockwise from the top; gridlines, both axis lines and their marks, and the
-labels along each axis in the number format it asks for,
+labels along each axis in the number format it asks for, a title over the chart and one on each
+axis, a legend on any side, and a number at every point,
 read from the numbers the chart part caches, with the axis scaled and the plot placed the way Word
 does both where the chart leaves them to be worked out), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
@@ -594,8 +633,10 @@ line or the slices or the filled areas, the markers at a series' points, the gri
 axis lines and the marks along them, and the labels along both axes whichever way round they run —
 with the numbers read from the cache the part carries rather than from the workbook stored beside
 it, and with the axes scaled and the plot placed the way Word does both where the chart leaves them
-to be worked out. What is not: bubble, radar, doughnut and stock charts, trendlines and error bars,
-and titles, legends and data labels.
+to be worked out; a title over the top and one on each axis, the one up the side turned on its end;
+a legend on any of the four sides; and a number written at every point, in the format the chart asks
+for and where the kind of chart puts it. What is not: bubble, radar, doughnut and stock charts,
+trendlines and error bars, and a legend or a title placed by hand rather than by side.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

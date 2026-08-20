@@ -1694,7 +1694,7 @@ public sealed class DocxBuilder
         stream.Write(bytes, 0, bytes.Length);
     }
 
-    private static string Escape(string text) =>
+    public static string Escape(string text) =>
         text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 
     /// <summary>
