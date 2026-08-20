@@ -106,7 +106,8 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // out of its file is the private codes of a subset rather than anything anyone typed.
         if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
             or "southeast-asian" or "universal" or "apple" or "equations"
-            or "math-line-box-probe" or "math-structure-probe" or "math-kern-probe")
+            or "math-line-box-probe" or "math-structure-probe" or "math-kern-probe"
+            or "math-bracket-probe")
         {
             return;
         }

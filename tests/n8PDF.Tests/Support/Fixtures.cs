@@ -3663,6 +3663,106 @@ public static class Fixtures
                 return builder;
             },
 
+            // When a bracket takes the next shape up. The face keeps a series of them — eight for
+            // a round bracket, each taller and wider than the last — and Word reaches further up
+            // the series the more the bracket has to cover. How much further was measured from two
+            // brackets at twelve point as nine tenths of what the bracket holds, which is TeX's
+            // own factor, and math-line-box-probe showed that answer failing for a bracket round
+            // something twice the size the equation is set at.
+            //
+            // This walks a bracket up the whole series. Every probe is a bracket round a single
+            // letter, the letter growing from twelve point to seventy-two while the equation stays
+            // at twelve, so the bracket is drawn at twelve throughout and only the shape changes.
+            // Which shape Word picked is read straight off the page: the eight differ in width.
+            //
+            // The second page does the same at twenty-four point, to say whether the rule is a
+            // share of what is held or a distance.
+            ["math-bracket-probe"] = () =>
+            {
+                const string Mark =
+                    "<w:rPr><w:rFonts w:ascii=\"Times New Roman\" w:hAnsi=\"Times New Roman\"/>" +
+                    "<w:sz w:val=\"4\"/></w:rPr>";
+
+                static string Run(string text, int halfPoints) =>
+                    $"<m:r><w:rPr><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/>" +
+                    $"<w:sz w:val=\"{halfPoints}\"/></w:rPr>" +
+                    $"<m:t>{DocxBuilder.Escape(text)}</m:t></m:r>";
+
+                static string Element(string name, string inner) => $"<m:{name}>{inner}</m:{name}>";
+
+                static string Delimited(string inner) =>
+                    "<m:d><m:dPr><m:begChr m:val=\"(\"/><m:endChr m:val=\")\"/></m:dPr>" +
+                    Element("e", inner) + "</m:d>";
+
+                static string Fraction(string numerator, string denominator) =>
+                    "<m:f>" + Element("num", numerator) + Element("den", denominator) + "</m:f>";
+
+                var builder = new DocxBuilder().WithStyles(
+                    """
+                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                      <w:docDefaults>
+                        <w:rPrDefault>
+                          <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
+                        </w:rPrDefault>
+                      </w:docDefaults>
+                      <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+                      <w:style w:type="paragraph" w:styleId="Big">
+                        <w:name w:val="Big"/>
+                        <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="48"/></w:rPr>
+                      </w:style>
+                    </w:styles>
+                    """);
+
+                void Rail(string style = "") => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{style}{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+
+                void Probe(string math, string style = "") => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{style}{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    $"<m:oMath>{math}</m:oMath></w:p>");
+
+                Rail();
+
+                // A letter, growing. Fine steps low down, where the first shapes are close
+                // together, and coarser ones after.
+                foreach (var halfPoints in new[] { 24, 28, 32, 36, 40, 44, 48, 56, 64, 72, 88, 104 })
+                {
+                    Probe(Delimited(Run("x", halfPoints)));
+                    Rail();
+                }
+
+                // And a fraction, which reaches further under the line than any letter does.
+                foreach (var halfPoints in new[] { 24, 36, 48, 72 })
+                {
+                    Probe(Delimited(Fraction(Run("a", halfPoints), Run("b", halfPoints))));
+                    Rail();
+                }
+
+                // The same again in a twenty-four point paragraph, where the bracket is drawn at
+                // twenty-four and the same letters ask less of it.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:pStyle w:val=\"Big\"/><w:pageBreakBefore/>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+
+                foreach (var halfPoints in new[] { 48, 64, 88, 104, 144 })
+                {
+                    Probe(Delimited(Run("x", halfPoints)), "<w:pStyle w:val=\"Big\"/>");
+                    Rail("<w:pStyle w:val=\"Big\"/>");
+                }
+
+                // And last of all, past the end of the face's own series: a bracket round a
+                // seventy-two point letter in a twelve point equation, which has to be built out
+                // of pieces. It goes last because Word writes each piece as a character of its
+                // own where this writes the bracket once, so its page holds lines of text that
+                // ours does not and nothing should follow them.
+                Probe(Delimited(Run("x", 144)));
+                Rail();
+
+                return builder;
+            },
+
             // What size an equation is set at, which the line box probe could not say: both its
             // fixtures declare eleven point and Word set every equation in them at 11.04, which
             // is eleven rounded to the three hundredth of an inch it rounds a size to — and is

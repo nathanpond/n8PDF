@@ -283,6 +283,68 @@ internal sealed record MathConstants(
     /// that series. Scaling the ordinary one instead gives a bracket whose strokes thicken with
     /// its height, which is not what a bracket does.
     /// </remarks>
+    /// <summary>
+    /// How a face says to build a bracket taller than the tallest shape it keeps: out of a top, a
+    /// bottom, and as many middles as it takes.
+    /// </summary>
+    /// <remarks>
+    /// The parts are listed from the bottom up. Each says how much of it may be covered by the
+    /// part above and below — its connectors — and how much room it takes on its own, and the
+    /// ones marked as extenders are the ones that may be repeated. Overlapping them by at least
+    /// what the table's own minimum says is what makes the joins invisible.
+    /// </remarks>
+    public static IReadOnlyDictionary<ushort, MathAssembly> ReadAssemblies(byte[] data, int offset)
+    {
+        var assemblies = new Dictionary<ushort, MathAssembly>();
+
+        if (offset <= 0 || offset + 10 > data.Length) return assemblies;
+
+        var table = offset + ReadUShort(data, offset + 8);
+        if (table + 10 > data.Length) return assemblies;
+
+        var overlap = ReadUShort(data, table);
+        var coverage = table + ReadUShort(data, table + 2);
+        var count = ReadUShort(data, table + 6);
+
+        var glyphs = Covered(data, coverage);
+
+        for (var i = 0; i < count && i < glyphs.Count; i++)
+        {
+            var at = table + 10 + i * 2;
+            if (at + 2 > data.Length) break;
+
+            var construction = table + ReadUShort(data, at);
+            if (construction + 4 > data.Length) continue;
+
+            var assembly = ReadUShort(data, construction);
+            if (assembly == 0) continue;
+
+            var recipe = construction + assembly;
+            if (recipe + 6 > data.Length) continue;
+
+            var parts = ReadUShort(data, recipe + 4);
+            if (recipe + 6 + parts * 10 > data.Length) continue;
+
+            var pieces = new List<MathPart>(parts);
+
+            for (var p = 0; p < parts; p++)
+            {
+                var record = recipe + 6 + p * 10;
+
+                pieces.Add(new MathPart(
+                    (ushort)ReadUShort(data, record),
+                    ReadUShort(data, record + 2),
+                    ReadUShort(data, record + 4),
+                    ReadUShort(data, record + 6),
+                    (ReadUShort(data, record + 8) & 1) != 0));
+            }
+
+            if (pieces.Count > 0) assemblies[glyphs[i]] = new MathAssembly(pieces, overlap);
+        }
+
+        return assemblies;
+    }
+
     public static IReadOnlyDictionary<ushort, IReadOnlyList<(ushort Glyph, int Height)>> ReadVariants(
         byte[] data, int offset)
     {
@@ -464,3 +526,13 @@ internal sealed record MathStaircase(short[] Heights, short[] Values)
 internal sealed record MathKerns(
     MathStaircase? TopRight, MathStaircase? TopLeft,
     MathStaircase? BottomRight, MathStaircase? BottomLeft);
+
+/// <summary>
+/// One piece of a built-up bracket: how much of it the pieces on either side may cover, how much
+/// room it takes on its own, and whether it is one of the ones that may be repeated.
+/// </summary>
+internal sealed record MathPart(
+    ushort Glyph, int StartConnector, int EndConnector, int FullAdvance, bool Extender);
+
+/// <summary>The pieces of a built-up glyph, from the bottom up, and the least they may overlap.</summary>
+internal sealed record MathAssembly(IReadOnlyList<MathPart> Parts, int MinimumOverlap);

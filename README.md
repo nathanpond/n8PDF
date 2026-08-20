@@ -483,9 +483,14 @@ departs in eight places:
   evenly between them**: Word sets the two of *x* with an *i* under it at 4.56 and 2.64 where the
   shifts alone would give 4.04 and 2.25.
 - A **bracket grows by the shapes the face keeps** rather than by being drawn larger, and it need
-  only cover **nine tenths** of what it holds before Word stops reaching for a taller one — the same
-  factor TeX uses. Round *a+b* Word draws the plain bracket for a gap that asks for 10.46 points and
-  gets 10.23; round *a* over *b* it passes over a 13.34 shape for an 18.21 one.
+  only cover **five sixths** of what it holds before Word stops reaching for a taller one.
+  `math-bracket-probe` walks a bracket up the whole of the face's series by growing what it holds
+  from twelve point to seventy-two: seven of the twenty-two are the step from one shape to the next,
+  and they put the factor between 0.8320 and 0.8434. Past the end of the series the face states a
+  recipe — a head, a foot, and a middle repeated as often as it takes — and Word builds one, which
+  is what happens to a bracket round a seventy-two point letter in a twelve point equation. It is
+  the *whole* height that decides whether to build rather than the five sixths, and the pieces are
+  overlapped as far as the face allows.
 - An **n-ary operator is centred on the axis** — which raises Word's sum half a point and drops its
   integral by as much — and the **1.8886 points** it leaves after the limits before what the sum is
   taken of is a number no constant of the table and no fraction of an em accounts for. It is written
@@ -501,7 +506,7 @@ Every position in an equation is rounded to Word's own 1/300 inch, which is the 
 figures above come out exactly rather than a hundredth away.
 
 The `equations` fixture holds seventeen of them beside Word's export of the same file. Drawn and
-compared line by line, the two agree on **99.7%** of their ink, and every equation begins within a
+compared line by line, the two agree on **99.8%** of their ink, and every equation begins within a
 third of a point of where Word begins it — most within four hundredths.
 
 **How tall a line holding an equation is** was the last part of it that was not Word's, and
@@ -531,10 +536,13 @@ which Cambria Math's data cannot separate from reading it at the script's own ba
 script's em — but both differ from reading it at the height of the script, which is what the
 specification's wording suggests and what Word's own full stop over an *i* rules out.
 
-One thing the probes measured is *not* implemented, and is recorded rather than hidden: how far a
-bracket must reach before Word takes the next shape up was measured at twelve point as nine tenths
-of what it holds, which does not carry to a bracket round something twice the size the equation is
-set at.
+One more thing the probes turned up, which is about sizes rather than brackets: **Word measures at
+the size a run states and writes the size rounded** to its 1/300 inch. It draws the *x* of a sixteen
+point run at 16.08 and puts the script after it at the advance of a sixteen point *x*; it sets the
+row *i=1* of the equations fixture at the advances of eight and a half point although it writes 8.4
+for every one of them. The two are separated here: every measurement is at the size, every size
+written into the file is rounded. What a bracket has to cover is the exception, since what it covers
+is what is on the page.
 
 An equation's letters are drawn from the mathematical alphabets — an *x* in an equation is U+1D465,
 a character of its own, which is what Word draws — so what a reader copies out of one of our pages

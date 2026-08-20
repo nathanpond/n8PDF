@@ -34,7 +34,7 @@
           "baselineY": 84.096,
           "height": 46.873,
           "runs": [
-            {"x": 79.543, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 79.543, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
@@ -66,7 +66,7 @@
           "baselineY": 100.879,
           "height": 46.873,
           "runs": [
-            {"x": 79.543, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 79.543, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
@@ -87,31 +87,31 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 124.464,
-          "height": 89.281,
+          "baselineY": 124.635,
+          "height": 89.728,
           "runs": [
-            {"x": 72.5, "width": 8.516, "font": "Cambria Math", "size": 16, "text": "𝑥"}
+            {"x": 72.5, "width": 8.516, "font": "Cambria Math", "size": 16.08, "text": "𝑥"}
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 119.664,
+          "baselineY": 119.595,
           "height": 64.282,
           "runs": [
-            {"x": 81.016, "width": 6.379, "font": "Cambria Math", "size": 11.52, "text": "2"}
+            {"x": 81.016, "width": 6.368, "font": "Cambria Math", "size": 11.52, "text": "2"}
           ]
         },
         {
           "paragraph": 6,
-          "baselineY": 124.464,
-          "height": 16.965,
+          "baselineY": 124.635,
+          "height": 17.136,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
           ]
         },
         {
           "paragraph": 7,
-          "baselineY": 128.997,
+          "baselineY": 129.168,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -119,7 +119,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 140.832,
+          "baselineY": 141.003,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.387, "font": "Cambria Math", "size": 12, "text": "𝑥"}
@@ -127,15 +127,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 143.232,
+          "baselineY": 143.403,
           "height": 46.873,
           "runs": [
-            {"x": 78.77, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 78.77, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
           "paragraph": 8,
-          "baselineY": 140.832,
+          "baselineY": 141.003,
           "height": 14.068,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -143,7 +143,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 145.365,
+          "baselineY": 145.536,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -151,7 +151,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 157.614,
+          "baselineY": 157.785,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.469, "font": "Cambria Math", "size": 12, "text": "𝑏"}
@@ -159,15 +159,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 153.294,
+          "baselineY": 153.465,
           "height": 46.873,
           "runs": [
-            {"x": 79.35, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 79.35, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
           "paragraph": 10,
-          "baselineY": 157.614,
+          "baselineY": 157.785,
           "height": 14.483,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -175,7 +175,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 162.148,
+          "baselineY": 162.318,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -183,7 +183,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 174.397,
+          "baselineY": 174.568,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 3.803, "font": "Cambria Math", "size": 12, "text": "𝑖"}
@@ -191,15 +191,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 170.077,
+          "baselineY": 170.248,
           "height": 46.873,
           "runs": [
-            {"x": 76.918, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 76.918, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
           "paragraph": 12,
-          "baselineY": 174.397,
+          "baselineY": 174.568,
           "height": 14.483,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -207,7 +207,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 178.93,
+          "baselineY": 179.101,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -215,7 +215,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 191.179,
+          "baselineY": 191.35,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.885, "font": "Cambria Math", "size": 12, "text": "𝑛"}
@@ -223,15 +223,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 186.859,
+          "baselineY": 187.03,
           "height": 46.873,
           "runs": [
-            {"x": 79.59, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 79.59, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
           "paragraph": 14,
-          "baselineY": 191.179,
+          "baselineY": 191.35,
           "height": 14.483,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -239,7 +239,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 195.712,
+          "baselineY": 195.883,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -247,7 +247,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 207.962,
+          "baselineY": 208.133,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 7.6, "font": "Cambria Math", "size": 12, "text": "𝐴"}
@@ -255,15 +255,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 203.642,
+          "baselineY": 203.813,
           "height": 46.873,
           "runs": [
-            {"x": 79.982, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 79.982, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
           "paragraph": 16,
-          "baselineY": 207.962,
+          "baselineY": 208.133,
           "height": 14.483,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -271,7 +271,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 212.495,
+          "baselineY": 212.666,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -279,7 +279,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 224.33,
+          "baselineY": 224.501,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.598, "font": "Cambria Math", "size": 12, "text": "𝑓"}
@@ -287,15 +287,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 226.73,
+          "baselineY": 226.901,
           "height": 46.873,
           "runs": [
-            {"x": 76.754, "width": 4.471, "font": "Cambria Math", "size": 8.4, "text": "𝑥"}
+            {"x": 76.754, "width": 4.524, "font": "Cambria Math", "size": 8.4, "text": "𝑥"}
           ]
         },
         {
           "paragraph": 18,
-          "baselineY": 224.33,
+          "baselineY": 224.501,
           "height": 14.068,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -303,7 +303,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 228.863,
+          "baselineY": 229.034,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -311,7 +311,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 240.698,
+          "baselineY": 240.869,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.598, "font": "Cambria Math", "size": 12, "text": "𝑓"}
@@ -319,15 +319,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 236.378,
+          "baselineY": 236.549,
           "height": 46.873,
           "runs": [
-            {"x": 80.097, "width": 4.471, "font": "Cambria Math", "size": 8.4, "text": "𝑥"}
+            {"x": 80.1, "width": 4.524, "font": "Cambria Math", "size": 8.4, "text": "𝑥"}
           ]
         },
         {
           "paragraph": 20,
-          "baselineY": 240.698,
+          "baselineY": 240.869,
           "height": 14.068,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -335,7 +335,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 245.231,
+          "baselineY": 245.402,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -343,7 +343,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 257.48,
+          "baselineY": 257.651,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.387, "font": "Cambria Math", "size": 12, "text": "𝑥"}
@@ -351,15 +351,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 253.16,
+          "baselineY": 253.331,
           "height": 46.873,
           "runs": [
-            {"x": 79.912, "width": 5.32, "font": "Cambria Math", "size": 8.4, "text": "𝐴"}
+            {"x": 79.917, "width": 5.383, "font": "Cambria Math", "size": 8.4, "text": "𝐴"}
           ]
         },
         {
           "paragraph": 22,
-          "baselineY": 257.48,
+          "baselineY": 257.651,
           "height": 14.483,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -367,7 +367,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 262.014,
+          "baselineY": 262.184,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -375,7 +375,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 273.849,
+          "baselineY": 274.019,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.387, "font": "Cambria Math", "size": 12, "text": "𝑥"}
@@ -383,15 +383,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 276.249,
+          "baselineY": 276.419,
           "height": 46.873,
           "runs": [
-            {"x": 78.195, "width": 5.32, "font": "Cambria Math", "size": 8.4, "text": "𝐴"}
+            {"x": 78.188, "width": 5.383, "font": "Cambria Math", "size": 8.4, "text": "𝐴"}
           ]
         },
         {
           "paragraph": 24,
-          "baselineY": 273.849,
+          "baselineY": 274.019,
           "height": 14.068,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -399,7 +399,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 278.382,
+          "baselineY": 278.553,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -407,7 +407,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 290.217,
+          "baselineY": 290.388,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 3.803, "font": "Cambria Math", "size": 12, "text": "𝑖"}
@@ -415,15 +415,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 285.897,
+          "baselineY": 286.068,
           "height": 46.873,
           "runs": [
-            {"x": 76.918, "width": 1.723, "font": "Cambria Math", "size": 8.4, "text": "."}
+            {"x": 76.918, "width": 1.743, "font": "Cambria Math", "size": 8.4, "text": "."}
           ]
         },
         {
           "paragraph": 26,
-          "baselineY": 290.217,
+          "baselineY": 290.388,
           "height": 14.068,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -431,7 +431,7 @@
         },
         {
           "paragraph": 27,
-          "baselineY": 294.75,
+          "baselineY": 294.921,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -439,7 +439,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 306.585,
+          "baselineY": 306.756,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 2.461, "font": "Cambria Math", "size": 12, "text": "."}
@@ -447,15 +447,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 308.985,
+          "baselineY": 309.156,
           "height": 46.873,
           "runs": [
-            {"x": 74.387, "width": 5.32, "font": "Cambria Math", "size": 8.4, "text": "𝐴"}
+            {"x": 74.38, "width": 5.383, "font": "Cambria Math", "size": 8.4, "text": "𝐴"}
           ]
         },
         {
           "paragraph": 28,
-          "baselineY": 306.585,
+          "baselineY": 306.756,
           "height": 14.068,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -463,7 +463,7 @@
         },
         {
           "paragraph": 29,
-          "baselineY": 311.118,
+          "baselineY": 311.289,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}
@@ -471,7 +471,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 326.754,
+          "baselineY": 326.925,
           "height": 66.961,
           "runs": [
             {"x": 72.5, "width": 6.387, "font": "Cambria Math", "size": 12, "text": "𝑥"}
@@ -479,15 +479,15 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 320.994,
+          "baselineY": 321.165,
           "height": 46.873,
           "runs": [
-            {"x": 78.887, "width": 4.651, "font": "Cambria Math", "size": 8.4, "text": "2"}
+            {"x": 78.887, "width": 4.707, "font": "Cambria Math", "size": 8.4, "text": "2"}
           ]
         },
         {
           "paragraph": 30,
-          "baselineY": 326.754,
+          "baselineY": 326.925,
           "height": 18.758,
           "runs": [
             {"x": 72, "width": 0.5, "font": "Times New Roman", "size": 2, "text": "."}
@@ -495,7 +495,7 @@
         },
         {
           "paragraph": 31,
-          "baselineY": 332.176,
+          "baselineY": 332.347,
           "height": 2.3,
           "runs": [
             {"x": 72, "width": 0.666, "font": "Times New Roman", "size": 2, "text": "-"}

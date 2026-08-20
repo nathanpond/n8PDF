@@ -35,6 +35,18 @@ internal readonly record struct MathEdge(
     public bool Exists => Font is not null;
 }
 
+/// <summary>
+/// A glyph grown to fit what it holds: one of the shapes the face keeps, or one built out of the
+/// pieces it keeps for the purpose.
+/// </summary>
+/// <param name="Parts">
+/// The pieces of a built one, from the bottom up, each with how far above the bottom piece's
+/// baseline its own sits. Null where a single shape served.
+/// </param>
+internal readonly record struct Stretch(
+    ushort? Glyph, IReadOnlyList<(ushort Glyph, double Rise)>? Parts,
+    double Width, double Size, double Ascent, double Descent);
+
 /// <summary>A line drawn as part of an equation: a fraction's bar, a radical's overbar.</summary>
 internal sealed record MathRule(double X, double Y, double Width, double Thickness);
 
@@ -122,10 +134,10 @@ internal sealed record MathBox(
 /// from the table, every bracket and radical it stretches — is measured in the em of the text
 /// round it. An equation on a line of its own has no text round it, and takes its own runs.
 ///
-/// A bracket that has to grow is drawn from the taller shapes the face keeps for it, and only a
-/// face that keeps none has one drawn larger instead. What is not here is the table's recipe for
-/// building one taller than the tallest shape it keeps, out of a top, a bottom and as many middles
-/// as it takes.
+/// A bracket that has to grow is drawn from the taller shapes the face keeps for it, and past the
+/// end of that series from the pieces it keeps for building one — a head, a foot, and a middle
+/// repeated as often as it takes. Only a face that offers neither has one drawn larger instead,
+/// which thickens its strokes with it.
 ///
 /// How tall a line holding an equation comes out is worked out here as well, at the end of
 /// <see cref="Compose(MathNode, ResolvedRunFormat, bool)"/>, from math-line-box-probe.
@@ -260,9 +272,16 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         /// at.
         /// </summary>
         /// <remarks>
-        /// The face states both as percentages — 73 and 60 for Cambria Math — and Word takes them
-        /// down to a whole half point before using them, which is the unit a document states a
-        /// size in. Twelve point gives 17.52 half points, which is 17: eight and a half point,
+        /// The face states the step as a percentage — 73 and 60 for Cambria Math — and Word takes
+        /// it down to a whole half point, which is the unit a document states a size in. Twelve
+        /// point gives 17.52 half points, which is 17: eight and a half point.
+        ///
+        /// That is the size everything is *measured* at. What is written into the file is that
+        /// size rounded to the three hundredth of an inch Word rounds a size to — 8.4 for eight
+        /// and a half — and the two are not the same: Word draws the x of a sixteen point run at
+        /// 16.08 and puts the script after it at the advance of a sixteen point x, and sets the
+        /// row i=1 of the equations fixture at the advances of eight and a half point although it
+        /// writes 8.4 for every one of them. Twelve point gives 17.52 half points, which is 17: eight and a half point,
         /// written into a PDF as the 8.4 Word rounds every size to. The same rule gives Word's
         /// 6.96 for a script of a script of twelve point, its 17.52 for a script of twenty-four,
         /// and its 4.08 for a script of six — three sizes and two levels, none of them a simple
@@ -274,7 +293,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
             var percent = level == 1 ? Script : ScriptScript;
 
-            return Quantised(Math.Floor(points * 2 * percent / 100) / 2);
+            return Math.Floor(points * 2 * percent / 100) / 2;
         }
 
         /// <summary>What the numerator and denominator of a fraction are set at.</summary>
@@ -368,9 +387,15 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
         // How large this run's own letters are drawn: its own size where it states one, taken
         // down a step for every script it is inside. Where it states none, the equation's.
+        // A run that states a size states it for the equation, and is taken down a step for every
+        // script it is inside; one that states none is already at the size for where it stands.
         var drawn = text.Properties.SizeHalfPoints is { } half
             ? style.Reduced(half / 2.0, style.Level)
             : style.Size;
+
+        // What goes into the file is the size rounded to a three hundredth of an inch; what
+        // everything is measured at is the size itself.
+        var written = Quantised(drawn);
 
         var format = Format(text.Properties, style) with { FontSizePoints = drawn };
         var selection = Resolve(format);
@@ -380,6 +405,9 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var x = 0.0;
 
         var first = MathAtom.Ordinary;
+
+        var ascent = 0.0;
+        var descent = 0.0;
 
         // What stands before this run, which decides whether a sign it begins with is a sum or a
         // sign of its own.
@@ -399,7 +427,15 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
             var width = TextMeasurer.Measure(selection.Font, run, drawn);
 
-            pieces.Add(new MathPiece(run, x, 0, drawn, selection, width));
+            // The ink of what is drawn: of the mathematical letter rather than the one the
+            // document typed, and at the size it is written at rather than the size it is
+            // measured at. What a bracket has to cover is what is on the page.
+            var (rise, drop) = Ink(selection, run, written);
+
+            ascent = Math.Max(ascent, rise);
+            descent = Math.Max(descent, drop);
+
+            pieces.Add(new MathPiece(run, x, 0, written, selection, width));
 
             lean = style.Leans ? Italic(selection, run, drawn) : 0;
             x += width + lean;
@@ -407,8 +443,6 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             any = true;
             previous = kind;
         }
-
-        var (ascent, descent) = Ink(selection, text.Text, drawn);
 
         return new MathBox(x, ascent, descent, pieces, [])
         {
@@ -464,13 +498,17 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     /// one.
     /// </summary>
     /// <remarks>
-    /// Measured from the two delimited equations. Round a+b, what the pair reach either side of
-    /// the axis asks for a bracket 10.46 points tall and Word draws the plain one, which is 10.23;
-    /// round a over b it asks for 17.54 and Word passes over the 13.34 shape for the 18.21 one.
-    /// Nine tenths is the only factor that gives both, and it is the one TeX uses for the same
-    /// decision.
+    /// Measured in math-bracket-probe, which walks a bracket up the whole of the face's series by
+    /// growing what it holds from twelve point to seventy-two, and again in a twenty-four point
+    /// equation. Seventeen brackets, seven of them the step from one shape to the next, put the
+    /// factor between 0.8320 and 0.8434: five sixths is what is used, and it is the only simple
+    /// fraction in the window.
+    ///
+    /// It is not TeX's, which is nine tenths — that was fitted here to two brackets at twelve
+    /// point, where it happens to give the same answers, and it reaches a shape too far as soon as
+    /// a bracket holds anything much larger than the equation it is in.
     /// </remarks>
-    private const double DelimiterFactor = 0.901;
+    private const double DelimiterFactor = 5.0 / 6;
 
     /// <summary>
     /// How far under what it holds a radical's foot goes, as a share of the size the equation is
@@ -738,8 +776,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         // the one below it 10.04. Not what the parts themselves measure: 𝑏 is taller than 𝑎 and
         // the pair of them come to more than the shape Word picked would cover.
         var height = (math.FractionNumeratorShiftUp + math.FractionDenominatorShiftDown) * unit;
-        var (glyph, slashWidth, slashSize, slashAscent, slashDescent) =
-            Stretched("\u2044", height, style, selection);
+        var slash = Stretched("\u2044", height, style, selection);
 
         // The three overlap: Word's numerator, slash and denominator run 1.78 points into one
         // another at twelve point, evenly on each side of the slash.
@@ -751,14 +788,14 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var slashX = numerator.Width - overlap;
         var middle = (drop + denominator.Descent - rise - numerator.Ascent) / 2;
 
-        pieces.Add(new MathPiece("/", slashX, middle + (slashAscent - slashDescent) / 2,
-            slashSize, selection, slashWidth, glyph));
+        pieces.AddRange(Drawn(slash, "/", slashX,
+            middle + (slash.Ascent - slash.Descent) / 2, selection));
 
-        var bottom = denominator.Shift(slashX + slashWidth - overlap, -drop);
+        var bottom = denominator.Shift(slashX + slash.Width - overlap, -drop);
         pieces.AddRange(bottom.Pieces);
 
-        return new MathBox(slashX + slashWidth - overlap + denominator.Width,
-            Math.Max(top.Ascent, slashAscent), Math.Max(bottom.Descent, slashDescent),
+        return new MathBox(slashX + slash.Width - overlap + denominator.Width,
+            Math.Max(top.Ascent, slash.Ascent), Math.Max(bottom.Descent, slash.Descent),
             pieces, [.. top.Rules, .. bottom.Rules]);
     }
 
@@ -949,8 +986,9 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
         // The sign has to reach from under what is inside it to over the top of the bar.
         var height = body.Ascent + body.Descent + gap + thickness;
-        var (signGlyph, signWidth, signSize, signAscent, _) =
-            Stretched("√", height, style, selection);
+        var sign = Stretched("√", height, style, selection);
+        var signWidth = sign.Width;
+        var signAscent = sign.Ascent;
 
         var pieces = new List<MathPiece>();
         var rules = new List<MathRule>();
@@ -998,7 +1036,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             ascent = Math.Max(ascent, placed.Ascent);
         }
 
-        pieces.Add(new MathPiece("√", x, lift, signSize, selection, signWidth, signGlyph));
+        pieces.AddRange(Drawn(sign, "√", x, lift, selection));
 
         var placedBody = body.Shift(x + signWidth, 0);
         pieces.AddRange(placedBody.Pieces);
@@ -1036,18 +1074,30 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var rules = new List<MathRule>();
         var x = 0.0;
 
+        // How far the brackets themselves reach, which is what the box comes to where they reach
+        // further than what they hold — and they do, since a bracket covers what it holds and then
+        // some. Word's own: a bracket round a thirty-six point letter reaches 8.4 points under the
+        // line, which is the shape's own ink and not the ten the letter's height about the axis
+        // would ask for.
+        var reached = 0.0;
+        var under = 0.0;
+
         void Bracket(string character)
         {
             if (character.Length == 0 || character == " ") return;
 
-            var (glyph, width, size, bracketAscent, bracketDescent) =
-                Stretched(character, height, style, selection);
+            var bracket = Stretched(character, height, style, selection);
 
             // Centred on the axis, which is where a bracket is drawn from.
-            var middle = (bracketAscent - bracketDescent) / 2;
+            var middle = (bracket.Ascent - bracket.Descent) / 2;
+            var lift = axis - middle;
 
-            pieces.Add(new MathPiece(character, x, -(axis - middle), size, selection, width, glyph));
-            x += width;
+            pieces.AddRange(Drawn(bracket, character, x, -lift, selection));
+
+            reached = Math.Max(reached, bracket.Ascent + lift);
+            under = Math.Max(under, bracket.Descent - lift);
+
+            x += bracket.Width;
         }
 
         Bracket(fenced.Open);
@@ -1065,8 +1115,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
         Bracket(fenced.Close);
 
-        return new MathBox(x, Math.Max(ascent, axis + reach), Math.Max(descent, reach - axis),
-            pieces, rules);
+        return new MathBox(x, Math.Max(ascent, reached), Math.Max(descent, under), pieces, rules);
     }
 
     // ------------------------------------------------------------- n-aries
@@ -1097,12 +1146,12 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         {
             // Larger than the text around it, which is what a sum or an integral is set at when
             // it stands in a line rather than over one.
-            var size = Quantised(style.Size);
+            var size = style.Size;
             operatorWidth = TextMeasurer.Measure(selection.Font, nary.Operator, size);
 
             // Its own ink, not the face's ascent and descent — the face's are as tall as its
             // tallest integral, and a sum is not that.
-            (operatorAscent, operatorDescent) = Ink(selection, nary.Operator, size);
+            (operatorAscent, operatorDescent) = Ink(selection, nary.Operator, Quantised(size));
 
             // The middle of it goes on the axis, which is where the middle of a bracket goes.
             // Word's sum stands half a point above the line for this reason and its integral
@@ -1110,7 +1159,8 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             // hundredth of an inch Word rounds a position to.
             var lift = math.AxisHeight * unit - (operatorAscent - operatorDescent) / 2;
 
-            pieces.Add(new MathPiece(nary.Operator, 0, -lift, size, selection, operatorWidth));
+            pieces.Add(new MathPiece(nary.Operator, 0, -lift, Quantised(size), selection,
+                operatorWidth));
 
             operatorAscent += lift;
             operatorDescent -= lift;
@@ -1315,7 +1365,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         if (selection is null) return body;
 
         var math = Constants(style, out var unit);
-        var size = Quantised(style.Size);
+        var size = style.Size;
 
         var width = TextMeasurer.Measure(selection.Font, accented.Accent, size);
         var pieces = new List<MathPiece>(body.Pieces);
@@ -1327,7 +1377,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             ? -(body.Ascent + math.OverbarVerticalGap * unit)
             : body.Descent + math.OverbarVerticalGap * unit;
 
-        pieces.Add(new MathPiece(accented.Accent, x, baseline, size, selection, width));
+        pieces.Add(new MathPiece(accented.Accent, x, baseline, Quantised(size), selection, width));
 
         return new MathBox(body.Width,
             accented.Above ? body.Ascent + math.OverbarExtraAscender * unit : body.Ascent,
@@ -1410,19 +1460,30 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     /// page comes out at a size of its own rather than at the type size — and it is within a
     /// fraction of a point of Word for the heights an equation usually asks for.
     /// </remarks>
-    private static (ushort? Glyph, double Width, double Size, double Ascent, double Descent) Stretched(
+    private static Stretch Stretched(
         string character, double height, Style style, FontSelection selection)
     {
         var font = selection.Font;
         var em = font.Metrics.UnitsPerEm;
-        var size = Quantised(style.Size);
+        var size = style.Size;
 
         var rune = character.EnumerateRunes().FirstOrDefault();
         var glyph = font.GetGlyphIndex(rune.Value);
 
         // The shapes the face keeps for this one, from its own upwards, until one is tall enough.
-        if (font.MathVariants.TryGetValue(glyph, out var variants))
+        if (font.MathVariants.TryGetValue(glyph, out var variants) && variants.Count > 0)
         {
+            // Where not even the tallest of them covers the whole of what the bracket holds, the
+            // face says how to build one out of pieces instead — and it is the whole of it that
+            // decides, not the five sixths that decides between the shapes. Word's bracket round
+            // a seventy-two point letter in a twelve point equation is built although the tallest
+            // shape it keeps would have covered five sixths of it.
+            if (variants[^1].Height * size / em < height / DelimiterFactor - 0.01 &&
+                Built(font, glyph, height, size) is { } built)
+            {
+                return built;
+            }
+
             foreach (var (variant, tall) in variants)
             {
                 if (tall * size / em < height - 0.01) continue;
@@ -1430,27 +1491,149 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
                 return Sized(variant);
             }
 
-            if (variants.Count > 0) return Sized(variants[^1].Glyph);
+            return Sized(variants[^1].Glyph);
         }
 
-        // A face that offers none is drawn larger, which thickens its strokes with it but is
+        // A face that offers neither is drawn larger, which thickens its strokes with it but is
         // better than a bracket that does not reach.
         var (ascent, descent) = Ink(selection, character, 1);
         var natural = ascent + descent;
 
         if (natural > 0 && height > natural * size) size = height / natural;
 
-        return (null, TextMeasurer.Measure(font, character, size), size,
+        return new Stretch(null, null, TextMeasurer.Measure(font, character, size), Quantised(size),
             ascent * size, descent * size);
 
-        (ushort? Glyph, double Width, double Size, double Ascent, double Descent) Sized(ushort chosen)
+        Stretch Sized(ushort chosen)
         {
             var bounds = font.GetGlyphBounds(chosen);
 
-            return (chosen, font.GetAdvanceWidth(chosen) * size / em, size,
-                bounds is { } box ? Math.Max(0, box.MaxY) * size / em : height,
-                bounds is { } under ? Math.Max(0, -under.MinY) * size / em : 0);
+            var drawn = Quantised(size);
+
+            return new Stretch(chosen, null, font.GetAdvanceWidth(chosen) * size / em, drawn,
+                bounds is { } box ? Math.Max(0, box.MaxY) * drawn / em : height,
+                bounds is { } under ? Math.Max(0, -under.MinY) * drawn / em : 0);
         }
+    }
+
+    /// <summary>
+    /// A stretched glyph, put where it goes: one piece, or the several a built one is made of.
+    /// </summary>
+    /// <remarks>
+    /// What a reader copies out is the character the equation says, whichever it is drawn as: a
+    /// bracket built out of three shapes is still a bracket, and only one of the three carries the
+    /// text so that it is copied once. The one that does is the head, since that is where the
+    /// bracket begins for anyone reading down the page — and it is the piece Word writes first.
+    /// </remarks>
+    private static IEnumerable<MathPiece> Drawn(
+        Stretch stretch, string character, double x, double baseline, FontSelection selection)
+    {
+        if (stretch.Parts is not { } parts)
+        {
+            yield return new MathPiece(character, x, baseline, stretch.Size, selection,
+                stretch.Width, stretch.Glyph);
+
+            yield break;
+        }
+
+        for (var i = parts.Count - 1; i >= 0; i--)
+        {
+            var head = i == parts.Count - 1;
+
+            yield return new MathPiece(head ? character : string.Empty,
+                x, baseline - parts[i].Rise, stretch.Size, selection,
+                head ? stretch.Width : 0, parts[i].Glyph);
+        }
+    }
+
+    /// <summary>
+    /// A bracket built out of the pieces the face keeps for the purpose, where even its tallest
+    /// shape is too short.
+    /// </summary>
+    /// <remarks>
+    /// The face lists the pieces from the bottom up — a foot, a middle that may be repeated as
+    /// often as needed, a head — with how much of each the pieces on either side may cover. The
+    /// count of middles is the fewest that reach the height wanted, and the pieces are overlapped
+    /// as far as the face allows, which is the most compact build of that many.
+    ///
+    /// Word's own: a round bracket holding a seventy-two point letter in a twelve point equation
+    /// comes out of its file as three pieces, their baselines 12.96 and 25.92 apart, which is the
+    /// two joins at the 300 units of overlap the face permits and not the 200 it requires. And it
+    /// is the height before the five sixths that decides how many middles: two pieces would cover
+    /// five sixths of what that bracket holds, and Word uses three.
+    /// </remarks>
+    private static Stretch? Built(TrueTypeFont font, ushort glyph, double height, double size)
+    {
+        if (!font.MathAssemblies.TryGetValue(glyph, out var assembly)) return null;
+
+        var em = font.Metrics.UnitsPerEm;
+        var target = height / DelimiterFactor * em / size;
+
+        for (var middles = 0; middles < 64; middles++)
+        {
+            var parts = new List<MathPart>();
+
+            foreach (var part in assembly.Parts)
+            {
+                if (!part.Extender) parts.Add(part);
+                else for (var i = 0; i < middles; i++) parts.Add(part);
+            }
+
+            if (parts.Count == 0) return null;
+
+            // Every join covered as far as both pieces allow, which is the shortest this many
+            // pieces can be made; and covered no further than the face's own least.
+            var overlaps = new double[Math.Max(0, parts.Count - 1)];
+            var built = parts.Sum(part => (double)part.FullAdvance);
+
+            for (var i = 0; i < overlaps.Length; i++)
+            {
+                overlaps[i] = Math.Min(parts[i].EndConnector, parts[i + 1].StartConnector);
+                built -= overlaps[i];
+            }
+
+            var loosest = built + overlaps.Sum() - overlaps.Length * assembly.MinimumOverlap;
+
+            // Too short even with the joins barely covered: one more middle.
+            if (loosest < target && middles < 63) continue;
+
+            // Where the tightest build overshoots, the joins are eased out evenly until it does
+            // not — up to the least the face allows.
+            if (built < target && overlaps.Length > 0)
+            {
+                var ease = Math.Min((target - built) / overlaps.Length,
+                    overlaps.Min() - assembly.MinimumOverlap);
+
+                for (var i = 0; i < overlaps.Length; i++) overlaps[i] -= ease;
+
+                built += ease * overlaps.Length;
+            }
+
+            var pieces = new List<(ushort Glyph, double Rise)>(parts.Count);
+
+            var rise = 0.0;
+            var ascent = 0.0;
+            var descent = 0.0;
+
+            for (var i = 0; i < parts.Count; i++)
+            {
+                pieces.Add((parts[i].Glyph, rise * size / em));
+
+                if (font.GetGlyphBounds(parts[i].Glyph) is { } bounds)
+                {
+                    ascent = Math.Max(ascent, (rise + bounds.MaxY) * size / em);
+                    descent = Math.Max(descent, -(rise + bounds.MinY) * size / em);
+                }
+
+                if (i < overlaps.Length) rise += parts[i].FullAdvance - overlaps[i];
+            }
+
+            return new Stretch(null, pieces,
+                font.GetAdvanceWidth(parts[0].Glyph) * size / em, Quantised(size),
+                ascent, Math.Max(0, descent));
+        }
+
+        return null;
     }
 
     /// <summary>

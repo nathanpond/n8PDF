@@ -406,6 +406,24 @@ internal sealed class TrueTypeFont
 
     private IReadOnlyDictionary<ushort, MathKerns>? _kerns;
 
+    /// <summary>
+    /// How the face says to build a bracket taller than the tallest shape it keeps.
+    /// </summary>
+    internal IReadOnlyDictionary<ushort, MathAssembly> MathAssemblies
+    {
+        get
+        {
+            lock (_layoutGate)
+            {
+                return _assemblies ??= Tables.TryGetValue("MATH", out var math)
+                    ? MathConstants.ReadAssemblies(_data, math.Offset)
+                    : new Dictionary<ushort, MathAssembly>();
+            }
+        }
+    }
+
+    private IReadOnlyDictionary<ushort, MathAssembly>? _assemblies;
+
     internal byte[] SourceData => _data;
 
     /// <summary>

@@ -78,6 +78,7 @@ internal sealed class PositionedText
         Font = Font,
         Width = Width,
         WordSpacing = WordSpacing,
+        Glyph = Glyph,
         Link = Link,
         Kerned = Kerned,
         RightToLeft = RightToLeft

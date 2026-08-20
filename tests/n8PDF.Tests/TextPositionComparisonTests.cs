@@ -87,7 +87,7 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 on the narrowest of the four and within a fifth of a point on the rest.
                 """),
 
-            ["equations"] = (2.0,
+            ["equations"] = (1.1,
                 """
                 How tall a line holding an equation is, which math-line-box-probe measures and
                 which is implemented from that measurement: the ink of what is in the equation
@@ -101,7 +101,16 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 sum's — see the note on Nary. Down seventeen lines that comes to under two points.
                 """),
 
-            ["math-kern-probe"] = (2.0,
+            ["math-bracket-probe"] = (1.7,
+                """
+                The rails between the brackets, as in math-kern-probe: a two point line of Word's
+                is 2.16 points where the same line here is 2.2998, and there are fifty of them
+                down the two pages. What the brackets themselves come to is asserted probe by
+                probe in MathBracketTests, and the shape Word picks for each of the seventeen is
+                the shape picked here.
+                """),
+
+            ["math-kern-probe"] = (2.2,
                 """
                 Not the equations: every one of the fifteen scripts on this page sits within four
                 hundredths of a point of where Word puts it, which is what MathKernTests asserts.
@@ -192,6 +201,7 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         ["equations"] = "Word gives the letters of an equation no map back to what they say",
         ["math-line-box-probe"] = "the same: they are equations and nothing else",
         ["math-kern-probe"] = "the same again",
+        ["math-bracket-probe"] = "and again",
         ["math-structure-probe"] = "the same again"
     };
 
@@ -215,6 +225,22 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     {
         ["watermark"] = (0, "a watermark is outlines in Word's file and text in ours, and turned"),
         ["watermark-fit-probe"] = (7, "the same, seven boxes over")
+    };
+
+    /// <summary>
+    /// Fixtures where Word's file holds lines of text that ours does not, and why.
+    /// </summary>
+    /// <remarks>
+    /// One, and it is about what a reader copies rather than about what is drawn. A bracket too
+    /// tall for any shape the face keeps is built out of three — a head, a middle and a foot — and
+    /// Word writes each of the three as a character of its own, so its page holds three lines of
+    /// text where ours holds one. All three shapes are drawn here, in the same places to within a
+    /// quarter of a point; what carries the text is the first of them, so that a reader dragging
+    /// across the equation copies one bracket rather than three pieces of one.
+    /// </remarks>
+    private static readonly Dictionary<string, (int Lines, string Reason)> WordWritesMorePieces = new()
+    {
+        ["math-bracket-probe"] = (2, "a built-up bracket is three characters in Word's file and one here")
     };
 
     public static TheoryData<string> FixtureNames
@@ -247,6 +273,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
             Assert.True(report.UnmatchedCount == outlined.Lines && ours == outlined.Lines,
                 $"'{name}': {report.UnmatchedCount} line(s) had no counterpart, {ours} of them " +
                 $"ours; {outlined.Lines} of ours were expected — {outlined.Reason}.\n{report.ToText()}");
+        }
+        else if (WordWritesMorePieces.TryGetValue(name, out var pieces))
+        {
+            var theirs = report.Deltas.Count(delta => delta.Ours is null);
+
+            Assert.True(report.UnmatchedCount == pieces.Lines && theirs == pieces.Lines,
+                $"'{name}': {report.UnmatchedCount} line(s) had no counterpart, {theirs} of them " +
+                $"Word's; {pieces.Lines} of Word's were expected — {pieces.Reason}.\n{report.ToText()}");
         }
         else
         {

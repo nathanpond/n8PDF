@@ -301,6 +301,10 @@ public static class PdfLineComparison
         var j = 0;
         var index = 0;
 
+        // How far down the page the two have drifted apart, from the last pair that matched. A
+        // pair that would be much further apart than that is not a pair at all.
+        var drift = 0.0;
+
         while (i < ourLines.Count || j < theirLines.Count)
         {
             if (i >= ourLines.Count)
@@ -320,6 +324,7 @@ public static class PdfLineComparison
 
             if (ourText == theirText)
             {
+                drift = ourLines[i].BaselineY - theirLines[j].BaselineY;
                 deltas.Add(new LineDelta(index++, ourLines[i++], theirLines[j++]));
                 continue;
             }
@@ -341,7 +346,21 @@ public static class PdfLineComparison
                 continue;
             }
 
+            // Nor anywhere near each other down the page: whichever is the further along has a
+            // line the other has not, and pairing the two would report every line after it as
+            // moved. Only where the two documents are on the same page of each other.
+            var apart = ourLines[i].BaselineY - theirLines[j].BaselineY - drift;
+
+            if (ourLines[i].PageIndex == theirLines[j].PageIndex && Math.Abs(apart) > 10)
+            {
+                if (apart > 0) deltas.Add(new LineDelta(index++, null, theirLines[j++]));
+                else deltas.Add(new LineDelta(index++, ourLines[i++], null));
+
+                continue;
+            }
+
             // No resynchronisation nearby; pair them and let the text mismatch be reported.
+            drift = ourLines[i].BaselineY - theirLines[j].BaselineY;
             deltas.Add(new LineDelta(index++, ourLines[i++], theirLines[j++]));
         }
 
