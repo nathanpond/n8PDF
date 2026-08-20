@@ -17,6 +17,22 @@ public enum ChartKind
     Pie
 }
 
+/// <summary>How the bars of one category stand against each other.</summary>
+public enum ChartGrouping
+{
+    /// <summary>Side by side, each from the axis.</summary>
+    Clustered,
+
+    /// <summary>One on top of the next, each from where the last ended.</summary>
+    Stacked,
+
+    /// <summary>The same, but each category filled out to the whole.</summary>
+    PercentStacked,
+
+    /// <summary>What a line chart says instead, where nothing is stacked at all.</summary>
+    Standard
+}
+
 /// <summary>One series: its name, and what it holds against each category.</summary>
 /// <param name="Values">
 /// One for each category, or null where the series has nothing for that one — a gap in the data
@@ -45,6 +61,12 @@ public sealed record ChartSeries(
     /// does unless told not to, which is the format's own default and not an obvious one.
     /// </summary>
     public bool Smooth { get; init; } = true;
+
+    /// <summary>
+    /// Whether a bar that hangs below nought is drawn the other way about, which is what the
+    /// format asks for unless the series says otherwise.
+    /// </summary>
+    public bool InvertIfNegative { get; init; } = true;
 }
 
 /// <summary>An axis, and what it says about the scale it draws.</summary>
@@ -86,6 +108,12 @@ public sealed class ChartAxis
     /// A hundred is the usual, and what an axis saying nothing means.
     /// </summary>
     public int LabelOffset { get; set; } = 100;
+
+    /// <summary>
+    /// How its numbers are written, as a spreadsheet's format code. Null where the axis says
+    /// nothing, which means whole numbers written plainly.
+    /// </summary>
+    public string? NumberFormat { get; set; }
 }
 
 /// <summary>
@@ -98,6 +126,12 @@ public sealed record ChartLayout(double X, double Y, double Width, double Height
 public sealed class ChartDefinition
 {
     public ChartKind Kind { get; set; } = ChartKind.Column;
+
+    /// <summary>Whether the bars stand beside each other or on top of one another.</summary>
+    public ChartGrouping Grouping { get; set; } = ChartGrouping.Clustered;
+
+    /// <summary>True where the value axis runs along the foot rather than up the side.</summary>
+    public bool Lying => Kind == ChartKind.Bar;
 
     public List<ChartSeries> Series { get; } = [];
 
@@ -169,6 +203,14 @@ public static class ChartReader
                 : ChartKind.Column
         };
 
+        definition.Grouping = plot.Element(Main + "grouping")?.Attribute("val")?.Value switch
+        {
+            "stacked" => ChartGrouping.Stacked,
+            "percentStacked" => ChartGrouping.PercentStacked,
+            "standard" => ChartGrouping.Standard,
+            _ => ChartGrouping.Clustered
+        };
+
         definition.GapWidth = Integer(plot.Element(Main + "gapWidth")) ?? 150;
         definition.Overlap = Integer(plot.Element(Main + "overlap")) ?? 0;
         definition.FirstSliceAngle = Integer(plot.Element(Main + "firstSliceAng")) ?? 0;
@@ -217,7 +259,11 @@ public static class ChartReader
 
             // A line curves through its points unless the series says otherwise. Word writes the
             // element on every line chart it makes; one that leaves it out gets the curve.
-            Smooth = element.Element(Main + "smooth")?.Attribute("val")?.Value is not ("0" or "false")
+            Smooth = element.Element(Main + "smooth")?.Attribute("val")?.Value is not ("0" or "false"),
+
+            InvertIfNegative =
+                element.Element(Main + "invertIfNegative")?.Attribute("val")?.Value
+                    is not ("0" or "false")
         };
     }
 
@@ -238,7 +284,8 @@ public static class ChartReader
             MajorTickMark = element.Element(Main + "majorTickMark")?.Attribute("val")?.Value ?? "out",
             TickLabelPosition = element.Element(Main + "tickLblPos")?.Attribute("val")?.Value ?? "nextTo",
             LabelSizePoints = LabelSize(element) ?? 10,
-            LabelOffset = Integer(element.Element(Main + "lblOffset")) ?? 100
+            LabelOffset = Integer(element.Element(Main + "lblOffset")) ?? 100,
+            NumberFormat = element.Element(Main + "numFmt")?.Attribute("formatCode")?.Value
         };
     }
 

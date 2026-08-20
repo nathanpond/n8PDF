@@ -31,35 +31,65 @@ internal static class ChartComposer
     /// <summary>What a chart draws its axes, gridlines and marks with when it says nothing.</summary>
     private const double LineWidth = 0.5;
 
-    /// <summary>How far outside the axis a tick mark reaches, measured from the same export.</summary>
-    private const double TickLength = 6.35;
+    /// <summary>And what it outlines a bar turned the other way about with.</summary>
+    private const double InvertedOutline = 0.75;
+
+    /// <summary>
+    /// How far outside the axis a tick mark reaches. Word writes it as 40301 EMU on both axes of
+    /// chart-axis-probe and on the lying axis of chart-bar-stacked alike, which is this.
+    /// </summary>
+    private const double TickLength = 3.1733;
 
     /// <summary>
     /// Where everything in a chart goes: the plot area, and what has to be drawn around it.
     /// </summary>
+    /// <param name="Lying">
+    /// True where the value axis runs along the foot and the categories up the side, which is what
+    /// a bar chart is and a column chart is not.
+    /// </param>
     public sealed record Plan(
         double Left, double Top, double Width, double Height,
-        double Minimum, double Maximum, double MajorUnit)
+        double Minimum, double Maximum, double MajorUnit, bool Lying = false)
     {
         public double Right => Left + Width;
 
         public double Bottom => Top + Height;
 
-        /// <summary>Where a value sits, measured down from the top of the chart.</summary>
+        /// <summary>
+        /// Where a value sits along the axis it is measured on: down from the top of the chart for
+        /// an upright one, across from its left for one lying down.
+        /// </summary>
         public double PositionOf(double value) =>
-            Bottom - (value - Minimum) / (Maximum - Minimum) * Height;
+            Lying
+                ? Left + (value - Minimum) / (Maximum - Minimum) * Width
+                : Bottom - (value - Minimum) / (Maximum - Minimum) * Height;
 
         /// <summary>
         /// Where the axis of categories runs, which is where the value axis reads nought rather
-        /// than the foot of the plot.
+        /// than the edge of the plot.
         /// </summary>
         /// <remarks>
         /// The two are the same thing wherever nothing is negative, since the scale then begins at
         /// nought. Where something is, they part: Word's drawing of the probe's chart of −20 and 60
-        /// puts the words under the bars a line below the nought, three quarters of the way down
-        /// the plot, and not at the bottom of it. What hangs below nought hangs past them.
+        /// puts the words under the bars a line below the nought, seven tenths of the way down the
+        /// plot, and not at the bottom of it. What hangs below nought hangs past them.
         /// </remarks>
-        public double CrossingY => PositionOf(Math.Clamp(0, Minimum, Maximum));
+        public double Crossing => PositionOf(Math.Clamp(0, Minimum, Maximum));
+
+        /// <summary>How much room one category has along the axis they run on.</summary>
+        public double Slot(int categories) =>
+            (Lying ? Height : Width) / Math.Max(1, categories);
+
+        /// <summary>
+        /// Where a category's own share of the plot begins — its left edge upright, its top edge
+        /// lying down, since a chart on its side puts the first category at the foot and works up.
+        /// </summary>
+        public double SlotAt(int index, int categories)
+        {
+            var slot = Slot(categories);
+
+            return Lying ? Bottom - slot * (index + 1) : Left + slot * index;
+        }
     }
 
     /// <summary>
@@ -91,16 +121,26 @@ internal static class ChartComposer
     /// fractions the chart gives, to the last decimal place. One that does not has its plotting
     /// worked out from what has to fit around it, which is what chart-layout-probe measures:
     ///
-    ///   the left  makes room for the widest number up the value axis, and the gap it keeps from
-    ///             the axis, beginning 6.5pt inside the frame
-    ///   the foot  makes room for a category's own line, which sits 1.584 type sizes below the
-    ///             axis and reaches its descender below that
-    ///   the top   leaves half a label's height, so the topmost number does not overrun the frame
-    ///   the right leaves the bare margin, since nothing is drawn there — a category label wider
-    ///             than its bars is left to overrun, which is what Word does with one
+    ///   the side carrying the numbers   makes room for the widest of them and the gap they keep
+    ///                                   from the axis, beginning 6.5pt inside the frame
+    ///   the side carrying the categories  makes room for the same, where they are ranged against
+    ///                                   the axis rather than set under it
+    ///   the foot, where words go under it  makes room for a line 1.584 type sizes below the axis
+    ///                                   and its descender below that
+    ///   the top of an upright chart     leaves half a label's height, so the topmost number does
+    ///                                   not overrun the frame
+    ///   the right of one lying down     leaves half a label's width, for the same reason: the
+    ///                                   last number along the foot is centred on the plot's corner
     ///
     /// and every side falls back to the bare margin where the labels it would make room for are
-    /// not drawn at all.
+    /// not drawn at all. A category label wider than its bars is left to overrun, which is what
+    /// Word does with one.
+    ///
+    /// Where the plot goes and what the axis runs between are not two questions but one, since the
+    /// scale decides how wide the numbers are and the numbers decide how long the axis is. Word
+    /// settles it by going round: the axis is first measured as if nothing had to fit beside it,
+    /// and then again with the labels that gave. Two rounds settle every chart measured here —
+    /// chart-bar-stacked's second page begins at fives, is placed, and comes back as tens.
     /// </remarks>
     /// <param name="measure">
     /// How wide a string is in the face the labels are set in, at a given size. The labels have to
@@ -115,102 +155,254 @@ internal static class ChartComposer
         Func<string, double, double> measure,
         Func<double, (double Ascent, double Descent)> labelHeight)
     {
-        var (minimum, maximum, unit) = Scale(chart);
+        var lying = chart.Lying;
+        var size = chart.ValueAxis?.LabelSizePoints ?? 10;
 
         if (chart.PlotArea is { } stated)
         {
-            return new Plan(
-                stated.X * width, stated.Y * height, stated.Width * width, stated.Height * height,
-                minimum, maximum, unit);
+            var box = (Left: stated.X * width, Top: stated.Y * height,
+                Width: stated.Width * width, Height: stated.Height * height);
+
+            var (minimum, maximum, unit) = Scale(chart, lying ? box.Width : box.Height, size);
+
+            return new Plan(box.Left, box.Top, box.Width, box.Height, minimum, maximum, unit, lying);
         }
 
-        var plan = new Plan(0, 0, width, height, minimum, maximum, unit);
+        // Nothing is known about the axis yet, so it is first measured as long as the plot could
+        // possibly be, and then again against the room the labels it earns leave it.
+        var length = Math.Max(1, (lying ? width : height) - 2 * BareMargin);
+        var plan = new Plan(0, 0, width, height, 0, 1, 1, lying);
+
+        for (var round = 0; round < 4; round++)
+        {
+            plan = Place(chart, width, height, Scale(chart, length, size), measure, labelHeight);
+
+            var settled = lying ? plan.Width : plan.Height;
+            if (Math.Abs(settled - length) < 0.001) break;
+
+            length = settled;
+        }
+
+        return plan;
+    }
+
+    /// <summary>Puts the plot area inside the room its labels leave it.</summary>
+    private static Plan Place(
+        ChartDefinition chart, double width, double height,
+        (double Minimum, double Maximum, double Unit) scale,
+        Func<string, double, double> measure,
+        Func<double, (double Ascent, double Descent)> labelHeight)
+    {
+        var lying = chart.Lying;
+        var whole = new Plan(0, 0, width, height, scale.Minimum, scale.Maximum, scale.Unit, lying);
 
         var left = BareMargin;
         var top = BareMargin;
+        var right = BareMargin;
         var bottom = BareMargin;
 
         if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
         {
             var size = valueAxis.LabelSizePoints;
 
-            var widest = Marks(plan)
-                .Select(value => measure(Format(value), size))
+            var widest = Marks(whole)
+                .Select(value => measure(Format(value, valueAxis.NumberFormat), size))
                 .DefaultIfEmpty(0)
                 .Max();
 
-            left = Math.Max(left, LabelMargin + widest + size * ValueLabelGap);
+            if (lying)
+            {
+                var (_, descent) = labelHeight(size);
 
-            var (ascent, descent) = labelHeight(size);
-            top = Math.Max(top, TopMargin + (ascent + descent) / 2);
+                bottom = Math.Max(bottom, LabelMargin + size * CategoryLabelBaseline + descent);
+                right = Math.Max(right, BareMargin + widest / 2);
+            }
+            else
+            {
+                var (ascent, descent) = labelHeight(size);
+
+                left = Math.Max(left, LabelMargin + widest + size * ValueLabelGap);
+                top = Math.Max(top, TopMargin + (ascent + descent) / 2);
+            }
         }
 
         if (chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" } categoryAxis)
         {
             var size = categoryAxis.LabelSizePoints;
-            var (_, descent) = labelHeight(size);
 
-            bottom = Math.Max(bottom,
-                LabelMargin + size * CategoryLabelBaseline + descent);
+            if (lying)
+            {
+                var widest = chart.Categories
+                    .Select(category => measure(category, size))
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                left = Math.Max(left, LabelMargin + widest + size * ValueLabelGap);
+            }
+            else
+            {
+                var (_, descent) = labelHeight(size);
+
+                bottom = Math.Max(bottom, LabelMargin + size * CategoryLabelBaseline + descent);
+            }
         }
 
         return new Plan(
-            left, top, Math.Max(1, width - left - BareMargin), Math.Max(1, height - top - bottom),
-            minimum, maximum, unit);
+            left, top, Math.Max(1, width - left - right), Math.Max(1, height - top - bottom),
+            scale.Minimum, scale.Maximum, scale.Unit, lying);
     }
 
     /// <summary>
-    /// How far a number on the value axis ends short of its axis, as a share of its type size, and
-    /// how far below the axis a category's baseline sits. Both measured at two sizes; see
-    /// <see cref="LayoutEngine"/>, which places the labels these leave room for.
+    /// How far a label ranged against its axis ends short of it, as a share of its type size, and
+    /// how far below the axis one written underneath has its baseline. Both measured at two sizes;
+    /// see <see cref="LayoutEngine"/>, which places the labels these leave room for.
     /// </summary>
-    public const double ValueLabelGap = 0.94;
+    /// <remarks>
+    /// The first is measured from where the widest label of each axis ends: 9.278pt short at ten
+    /// point and 18.547pt at twenty, and the same for the numbers up an upright chart's side as for
+    /// the words down a lying one's. The second from where the baseline lands under the axis:
+    /// 15.84pt at ten point, and the same 1.584 of the type size at twenty.
+    /// </remarks>
+    public const double ValueLabelGap = 0.9277;
 
     public const double CategoryLabelBaseline = 1.584;
 
-    /// <summary>A number as an axis writes it: whole where it is whole.</summary>
-    public static string Format(double value) =>
+    /// <summary>
+    /// A number as an axis writes it: whole where it is whole, and in the format the axis asks for
+    /// where it asks for one.
+    /// </summary>
+    /// <remarks>
+    /// A format code is a spreadsheet's, and a spreadsheet's format codes are a language of their
+    /// own. What is read here is what a chart axis actually carries: how many decimal places to
+    /// keep, whether to group the thousands, and whether the number is a percentage — which is the
+    /// one that matters, since a chart stacked to the whole is written in hundredths and read in
+    /// per cents. Anything else falls back to writing the number plainly.
+    /// </remarks>
+    public static string Format(double value, string? code = null)
+    {
+        if (code is null || code.Length == 0 || code == "General") return Plain(value);
+
+        // Only the first section is used: an axis writes one kind of number, not one kind for the
+        // positives and another for the negatives.
+        var pattern = code.Split(';')[0];
+
+        var percent = pattern.Contains('%');
+        var grouped = pattern.Contains(",#") || pattern.Contains(",0");
+
+        var point = pattern.IndexOf('.');
+        var places = 0;
+        for (var i = point + 1; point >= 0 && i < pattern.Length && pattern[i] is '0' or '#'; i++)
+            places++;
+
+        var number = percent ? value * 100 : value;
+
+        var written = number.ToString(
+            (grouped ? "#,##0" : "0") + (places > 0 ? "." + new string('0', places) : string.Empty),
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        return percent ? written + "%" : written;
+    }
+
+    private static string Plain(double value) =>
         value == Math.Floor(value) && Math.Abs(value) < 1e15
             ? ((long)value).ToString(System.Globalization.CultureInfo.InvariantCulture)
             : value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// How much room one label wants along the axis it is written against, as a share of the type
+    /// it is set in: a tenth over its own size where the axis stands upright, and three times it
+    /// where the axis lies down and the numbers are written end to end.
+    /// </summary>
+    /// <remarks>
+    /// Both measured from chart-scale-probe and chart-bar-scale-probe together, twenty-six charts
+    /// between them. The numbers only bound the two: an upright axis takes anything from 1.05 to
+    /// 1.145 times the type size, a lying one anything from 2.88 to 3.15, and the values here are
+    /// the middle of each. What the measurements do settle is that both grow with the type — the
+    /// same numbers set in twenty point divide an axis into a third as many steps as in ten — and
+    /// that neither has anything to do with how wide the numbers themselves are, since a chart of
+    /// millions divides its foot exactly as a chart of tens does.
+    /// </remarks>
+    private const double UprightLabelRoom = 1.1;
+
+    private const double LyingLabelRoom = 3;
+
+    /// <summary>
+    /// The most major intervals an axis of a given length will carry: as many as leaves room for
+    /// one more label than there are intervals, since a mark is written at both ends as well as
+    /// between.
+    /// </summary>
+    private static int Intervals(double axisLength, bool lying, double labelSize)
+    {
+        var room = Math.Max(1, labelSize) * (lying ? LyingLabelRoom : UprightLabelRoom);
+
+        return Math.Max(1, (int)Math.Floor(axisLength / room) - 1);
+    }
 
     /// <summary>
     /// What the value axis runs between and how far apart its marks are, where the chart does not
     /// say.
     /// </summary>
     /// <remarks>
-    /// Measured from chart-scale-probe, twelve charts differing only in the numbers they hold. Two
-    /// rules account for every one of them:
+    /// Measured from chart-scale-probe and chart-bar-scale-probe, twenty-six charts differing in
+    /// the numbers they hold, how long the axis is, which way it runs and what size its labels are.
+    /// One rule accounts for every one of them:
     ///
-    ///   the step is the largest of one, two or five times a power of ten that is no more than a
-    ///   fifth of the span, and the top of the axis is the smallest multiple of that step lying
-    ///   strictly above the largest value
+    ///   the step is the smallest of one, two or five times a power of ten for which the axis —
+    ///   running from the largest step at or below the least value to the smallest step strictly
+    ///   above the greatest — has no more intervals than the axis has room to label
     ///
-    /// so a chart of 7 runs to 8 in ones, one of 9.5 runs to 10 in ones, one of 10 runs to 12 in
-    /// twos, one of 47 runs to 50 in fives, one of 105 runs to 120 in twenties, and one of 0.4
-    /// runs to 0.45 in twentieths. That the top is strictly above rather than at the largest value
-    /// is what puts a chart of exactly 100 at 120 rather than leaving its tallest bar touching the
-    /// frame.
+    /// so a chart of 7 up a 126pt side runs to 8 in ones, one of 9.5 runs to 10 in ones, one of 10
+    /// runs to 12 in twos, one of 47 runs to 50 in fives, one of 105 runs to 120 in twenties, and
+    /// one of 0.4 runs to 0.45 in twentieths. That the top is strictly above rather than at the
+    /// largest value is what puts a chart of exactly 100 at 120 rather than leaving its tallest bar
+    /// touching the frame. The same 47 laid on its side across the same room runs to 60 in twenties
+    /// instead, because a number written along an axis wants far more room than one written up it.
     ///
-    /// The foot is nought wherever nothing is negative, whatever the smallest value is — a chart
-    /// of 30 and 55 still starts at nought. Where something is negative the foot steps below it the
+    /// The foot is nought wherever nothing is negative, whatever the smallest value is — a chart of
+    /// 30 and 55 still starts at nought. Where something is negative the foot steps below it the
     /// same way the top steps above: a chart of −20 and 60 runs from −30 to 70 in tens.
+    ///
+    /// Two things are measured rather than the values themselves. A stacked chart is scaled by what
+    /// its categories come to rather than by what any one bar holds, so its axis has to reach the
+    /// tallest pile; and one stacked to the whole runs to exactly one, which is the single place
+    /// the top is not a step above what it holds.
     /// </remarks>
-    private static (double Minimum, double Maximum, double Unit) Scale(ChartDefinition chart)
+    private static (double Minimum, double Maximum, double Unit) Scale(
+        ChartDefinition chart, double axisLength, double labelSize)
     {
-        var values = chart.Series
-            .SelectMany(series => series.Values)
-            .Where(value => value.HasValue)
-            .Select(value => value!.Value)
-            .ToList();
+        var percent = chart.Grouping == ChartGrouping.PercentStacked;
+
+        var values = Totals(chart);
 
         var highest = values.Count > 0 ? Math.Max(0, values.Max()) : 0;
         var lowest = values.Count > 0 ? Math.Min(0, values.Min()) : 0;
 
-        var unit = chart.ValueAxis?.MajorUnit ?? Step(highest - lowest);
+        if (percent)
+        {
+            highest = 1;
+            lowest = lowest < 0 ? -1 : 0;
+        }
 
-        var maximum = chart.ValueAxis?.Maximum ?? Above(highest, unit);
-        var minimum = chart.ValueAxis?.Minimum ?? (lowest < 0 ? -Above(-lowest, unit) : 0);
+        var axis = chart.ValueAxis;
+        var most = Intervals(axisLength, chart.Lying, labelSize);
+
+        var unit = axis?.MajorUnit ?? 0;
+        var (minimum, maximum) = (0.0, 0.0);
+
+        if (unit > 0)
+        {
+            (minimum, maximum) = Bounds(axis, lowest, highest, unit, percent);
+        }
+        else
+        {
+            foreach (var candidate in Steps(highest - lowest))
+            {
+                unit = candidate;
+                (minimum, maximum) = Bounds(axis, lowest, highest, candidate, percent);
+
+                if ((maximum - minimum) / candidate <= most + 0.000001) break;
+            }
+        }
 
         if (maximum <= minimum) maximum = minimum + Math.Max(unit, 1);
 
@@ -218,18 +410,78 @@ internal static class ChartComposer
     }
 
     /// <summary>
-    /// How far apart the marks go: the largest of one, two or five times a power of ten that is no
-    /// more than a fifth of what the axis has to span.
+    /// What a chart's axis has to reach: every value it holds, or — where the bars are stacked —
+    /// what each category piles up to, above and below the axis kept apart.
     /// </summary>
-    private static double Step(double span)
+    private static List<double> Totals(ChartDefinition chart)
     {
-        if (span <= 0 || double.IsNaN(span) || double.IsInfinity(span)) return 1;
+        if (chart.Grouping is not (ChartGrouping.Stacked or ChartGrouping.PercentStacked))
+        {
+            return
+            [
+                .. chart.Series
+                    .SelectMany(series => series.Values)
+                    .Where(value => value.HasValue)
+                    .Select(value => value!.Value)
+            ];
+        }
 
-        var fifth = span / 5;
-        var power = Math.Pow(10, Math.Floor(Math.Log10(fifth)));
-        var share = fifth / power;
+        var totals = new List<double>();
 
-        return power * (share >= 5 ? 5 : share >= 2 ? 2 : 1);
+        for (var category = 0; category < chart.Categories.Count; category++)
+        {
+            double above = 0, below = 0;
+
+            foreach (var series in chart.Series)
+            {
+                if (category >= series.Values.Count || series.Values[category] is not { } value)
+                    continue;
+
+                if (value >= 0) above += value;
+                else below += value;
+            }
+
+            totals.Add(above);
+            totals.Add(below);
+        }
+
+        return totals;
+    }
+
+    /// <summary>Where the axis begins and ends, once the step is known.</summary>
+    private static (double Minimum, double Maximum) Bounds(
+        ChartAxis? axis, double lowest, double highest, double unit, bool percent)
+    {
+        var maximum = axis?.Maximum ?? (percent ? highest : Above(highest, unit));
+
+        var minimum = axis?.Minimum
+                      ?? (lowest < 0 ? percent ? lowest : -Above(-lowest, unit) : 0);
+
+        return (minimum, maximum);
+    }
+
+    /// <summary>
+    /// Every step an axis might take, from far too small to far too large: one, two and five times
+    /// each power of ten in turn.
+    /// </summary>
+    private static IEnumerable<double> Steps(double span)
+    {
+        if (span <= 0 || double.IsNaN(span) || double.IsInfinity(span))
+        {
+            yield return 1;
+            yield break;
+        }
+
+        var power = Math.Pow(10, Math.Floor(Math.Log10(span)) - 3);
+
+        for (var decade = 0; decade < 8; decade++)
+        {
+            yield return power;
+            yield return power * 2;
+            yield return power * 5;
+
+            power *= 10;
+        }
     }
 
     /// <summary>The smallest multiple of a step lying strictly above a value.</summary>
@@ -267,35 +519,71 @@ internal static class ChartComposer
             return new VectorDrawing(width, height, operations);
         }
 
+        var crossing = plan.Crossing;
+
         if (chart.ValueAxis is { Deleted: false, MajorGridlines: true })
         {
             foreach (var value in Marks(plan))
             {
-                // The mark at the bottom of the scale is the axis itself and is drawn as one.
-                if (Math.Abs(value - plan.Minimum) < plan.MajorUnit / 1000) continue;
+                var at = plan.PositionOf(value);
 
-                var y = plan.PositionOf(value);
-                operations.Add(Stroke([(plan.Left, y), (plan.Right, y)]));
+                // The mark the categories run along carries the axis itself and is drawn as one.
+                // On a chart of nothing but positives that is the foot of the scale; on one that
+                // dips below nought it is the nought, and the mark at the foot is drawn.
+                if (Math.Abs(at - crossing) < 0.001) continue;
+
+                operations.Add(plan.Lying
+                    ? Stroke([(at, plan.Top), (at, plan.Bottom)])
+                    : Stroke([(plan.Left, at), (plan.Right, at)]));
             }
         }
 
         foreach (var bar in Bars(chart, plan))
-            operations.Add(new PathOperation(Rectangle(bar.X, bar.Y, bar.Width, bar.Height),
-                Resolve(bar.Fill, theme), null, LineWidth, EvenOdd: false));
+        {
+            // A bar hanging below nought is drawn the other way about unless the series says not
+            // to: white, and outlined instead of filled. Measured from chart-bar-stacked's last
+            // page, where Word draws the one negative bar white with a black outline of 9525 EMU,
+            // which is three quarters of a point — and draws it so even though the series it
+            // belongs to asks for no outline at all.
+            operations.Add(bar.Inverted
+                ? new PathOperation(Rectangle(bar.X, bar.Y, bar.Width, bar.Height),
+                    new DrawingColor(255, 255, 255), new DrawingColor(0, 0, 0), InvertedOutline,
+                    EvenOdd: false)
+                : new PathOperation(Rectangle(bar.X, bar.Y, bar.Width, bar.Height),
+                    Resolve(bar.Fill, theme), null, LineWidth, EvenOdd: false));
+        }
 
         if (chart.Kind == ChartKind.Line) operations.AddRange(Lines(chart, plan, theme));
 
-        // The two axis lines, along the left and the foot of the plot.
-        if (chart.ValueAxis is { Deleted: false })
-            operations.Add(Stroke([(plan.Left, plan.Top), (plan.Left, plan.Bottom)]));
-
-        if (chart.CategoryAxis is { Deleted: false })
+        // The value axis runs along the edge of the plot the numbers are written against, whatever
+        // the categories do: up the left of an upright chart, along the foot of one lying down.
+        if (chart.ValueAxis is { Deleted: false } valueAxis)
         {
-            var crossing = plan.CrossingY;
+            operations.Add(plan.Lying
+                ? Stroke([(plan.Left, plan.Bottom), (plan.Right, plan.Bottom)])
+                : Stroke([(plan.Left, plan.Top), (plan.Left, plan.Bottom)]));
 
-            operations.Add(Stroke([(plan.Left, crossing), (plan.Right, crossing)]));
+            if (valueAxis.MajorTickMark is not "none")
+            {
+                foreach (var value in Marks(plan))
+                {
+                    var at = plan.PositionOf(value);
 
-            if (chart.CategoryAxis.MajorTickMark is not "none")
+                    operations.Add(plan.Lying
+                        ? Stroke([(at, plan.Bottom), (at, plan.Bottom + TickLength)])
+                        : Stroke([(plan.Left - TickLength, at), (plan.Left, at)]));
+                }
+            }
+        }
+
+        // The category axis crosses the value one at its nought, and moves with it.
+        if (chart.CategoryAxis is { Deleted: false } categoryAxis)
+        {
+            operations.Add(plan.Lying
+                ? Stroke([(crossing, plan.Top), (crossing, plan.Bottom)])
+                : Stroke([(plan.Left, crossing), (plan.Right, crossing)]));
+
+            if (categoryAxis.MajorTickMark is not "none")
             {
                 // A category axis marks the boundaries between its categories rather than their
                 // middles, so a chart of four categories carries five marks.
@@ -303,8 +591,16 @@ internal static class ChartComposer
 
                 for (var i = 0; i <= categories; i++)
                 {
-                    var x = plan.Left + plan.Width * i / categories;
-                    operations.Add(Stroke([(x, crossing), (x, crossing + TickLength)]));
+                    if (plan.Lying)
+                    {
+                        var y = plan.Top + plan.Height * i / categories;
+                        operations.Add(Stroke([(crossing - TickLength, y), (crossing, y)]));
+                    }
+                    else
+                    {
+                        var x = plan.Left + plan.Width * i / categories;
+                        operations.Add(Stroke([(x, crossing), (x, crossing + TickLength)]));
+                    }
                 }
             }
         }
@@ -317,43 +613,107 @@ internal static class ChartComposer
     /// How wide a bar is falls out of the gap between them: the gap is a percentage of one bar's
     /// width, so a category holding one series at a gap of 150 is two and a half bars wide and the
     /// bar is two fifths of it. Measured from Word's export: four categories across 252pt gives
-    /// 63pt each and a bar of 25.2pt, which is 63 ÷ 2.5 exactly.
+    /// 63pt each and a bar of 25.2pt, which is 63 ÷ 2.5 exactly. Bars that overlap take the same
+    /// arithmetic — stacking is nothing but an overlap of a hundred, which is why a stacked chart
+    /// of two series across 78pt gives a bar of 31.2pt, being 78 ÷ 2.5 again.
+    ///
+    /// Where they go differs between the two kinds of chart in a way the format never says. A
+    /// chart lying down puts its first category at the foot and works upwards, and within a
+    /// category puts its first series at the foot too — so both run backwards against an upright
+    /// chart's left-to-right. Measured from chart-bar-stacked: the first category's bar is in the
+    /// bottom third of every one of its lying pages, and on the page of two clustered series the
+    /// second series is the upper of the pair.
+    ///
+    /// Stacked bars begin where the last one ended rather than at the axis, with what rises above
+    /// nought and what hangs below it piled separately. Stacked to the whole, each is first taken
+    /// as its share of what its own category comes to.
     /// </remarks>
-    public static IEnumerable<(double X, double Y, double Width, double Height, DrawingColorReference? Fill)>
+    public static IEnumerable<(double X, double Y, double Width, double Height,
+            DrawingColorReference? Fill, bool Inverted)>
         Bars(ChartDefinition chart, Plan plan)
     {
         if (chart.Kind is not (ChartKind.Column or ChartKind.Bar)) yield break;
 
         var categories = Math.Max(1, chart.Categories.Count);
-        var slot = plan.Width / categories;
+        var slot = plan.Slot(categories);
 
         var series = Math.Max(1, chart.Series.Count);
         var overlap = chart.Overlap / 100.0;
+
+        var stacked = chart.Grouping is ChartGrouping.Stacked or ChartGrouping.PercentStacked;
+        var percent = chart.Grouping == ChartGrouping.PercentStacked;
 
         // The bars of one category sit side by side, less however far they overlap.
         var barWidth = slot / (series - (series - 1) * overlap + chart.GapWidth / 100.0);
         if (barWidth <= 0) yield break;
 
-        var baseline = plan.PositionOf(Math.Max(plan.Minimum, 0));
-
         for (var category = 0; category < categories; category++)
         {
             var group = series * barWidth - (series - 1) * barWidth * overlap;
-            var left = plan.Left + slot * category + (slot - group) / 2;
+            var start = plan.SlotAt(category, categories) + (slot - group) / 2;
+
+            var whole = percent ? Whole(chart, category) : 1;
+            if (whole <= 0) continue;
+
+            // What the category has piled up to so far, on each side of the axis.
+            double above = 0, below = 0;
 
             for (var index = 0; index < chart.Series.Count; index++)
             {
                 var values = chart.Series[index].Values;
                 if (category >= values.Count || values[category] is not { } value) continue;
 
-                var x = left + index * barWidth * (1 - overlap);
-                var top = plan.PositionOf(value);
+                var height = percent ? value / whole : value;
 
-                yield return value >= 0
-                    ? (x, top, barWidth, baseline - top, chart.Series[index].Fill)
-                    : (x, baseline, barWidth, top - baseline, chart.Series[index].Fill);
+                double from, to;
+
+                if (stacked)
+                {
+                    if (height >= 0) (from, to, above) = (above, above + height, above + height);
+                    else (from, to, below) = (below, below + height, below + height);
+                }
+                else
+                {
+                    (from, to) = (0, height);
+                }
+
+                var one = Along(plan, from);
+                var other = Along(plan, to);
+
+                var near = Math.Min(one, other);
+                var span = Math.Abs(other - one);
+
+                // Within a category the series run one way upright and the other lying down.
+                var place = start + (plan.Lying ? series - 1 - index : index)
+                    * barWidth * (1 - overlap);
+
+                var inverted = height < 0 && chart.Series[index].InvertIfNegative;
+
+                yield return plan.Lying
+                    ? (near, place, span, barWidth, chart.Series[index].Fill, inverted)
+                    : (place, near, barWidth, span, chart.Series[index].Fill, inverted);
             }
         }
+    }
+
+    /// <summary>Where a value falls along the axis, kept inside the plot.</summary>
+    private static double Along(Plan plan, double value) =>
+        plan.PositionOf(Math.Clamp(value, plan.Minimum, plan.Maximum));
+
+    /// <summary>What one category of a chart stacked to the whole comes to.</summary>
+    private static double Whole(ChartDefinition chart, int category)
+    {
+        double total = 0;
+
+        foreach (var series in chart.Series)
+        {
+            if (category >= series.Values.Count || series.Values[category] is not { } value)
+                continue;
+
+            total += Math.Abs(value);
+        }
+
+        return total;
     }
 
     /// <summary>

@@ -18,7 +18,7 @@
           "baselineY": 261.099,
           "height": 12.207,
           "runs": [
-            {"x": 129.532, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+            {"x": 129.655, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
           ]
         },
         {
@@ -26,7 +26,7 @@
           "baselineY": 210.699,
           "height": 12.207,
           "runs": [
-            {"x": 124.463, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+            {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
           ]
         },
         {
@@ -34,7 +34,7 @@
           "baselineY": 160.299,
           "height": 12.207,
           "runs": [
-            {"x": 124.463, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+            {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
           ]
         },
         {
@@ -42,7 +42,7 @@
           "baselineY": 109.899,
           "height": 12.207,
           "runs": [
-            {"x": 124.463, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+            {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
           ]
         },
         {

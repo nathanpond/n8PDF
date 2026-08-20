@@ -165,21 +165,24 @@ from Word's export rather than read anywhere.
   give 63pt each and a bar of 25.2pt — which is what Word draws, to the quantum. Two series at a
   gap of 100 and an overlap of −27 share their category and then stand apart: 117 ÷ 3.27 = 35.78,
   against Word's 35.76.
-- A **value label** ends a little under one em short of its axis — 9.27pt at ten point type and
-  18.65pt at twenty, so proportional with nothing fixed about it — and is set with the box from its
-  ascenders to its descenders centred on its mark, which puts the baseline a quarter of the type
-  size below it. The face's typographic ascent and descent are what that quarter comes from, not
+- A **label ranged against its axis** ends a little under one em short of it — 9.278pt at ten point
+  type and 18.547pt at twenty, so proportional with nothing fixed about it — and is set with the box
+  from its ascenders to its descenders centred on its mark, which puts the baseline a quarter of the
+  type size below it. The face's typographic ascent and descent are what that quarter comes from, not
   the ones a line is measured by: Calibri says 1536 and 512 of its 2048 for the first pair and 1950
   and 550 for the second, and only the first puts the label where Word puts it.
-- A **category label** sits with its baseline 1.584 times its type size below the axis, at ten point
-  and at twenty alike, and each hundred of `lblOffset` moves it a further 0.312 of that size.
+- A **label written under its axis** sits with its baseline 1.584 times its type size below it, at
+  ten point and at twenty alike, and each hundred of `lblOffset` moves it a further 0.312 of that
+  size.
 - Whether the axis carries **marks** makes no difference to either: a chart drawn with them and one
-  drawn without put their labels in exactly the same places.
+  drawn without put their labels in exactly the same places. A mark itself reaches 40301 EMU
+  outside its axis, which is 3.1733pt — the same on both axes of `chart-axis-probe` and on the
+  lying axis of `chart-bar-stacked`, and outwards in every case.
 - A chart's own **frame** is a white rectangle with ten point corners outlined in #898989 at half a
   point, which is what Word draws where the chart says nothing about its border.
 
-Every line of both chart fixtures lands within 0.26pt of Word's across the page and 0.28pt down it,
-and the two agree on better than 99.4% of the ink.
+Every line of all seven chart fixtures lands within 0.012pt of Word's across the page and 0.32pt
+down it, and the ink of a page agrees with Word's on better than 99.4% of it.
 
 **Where the plotting goes when the chart does not say** — which is what every chart in a real
 document leaves to be worked out — is measured too, by `chart-layout-probe`. A chart carrying no
@@ -189,10 +192,17 @@ what is left:
 
 | side | what it makes room for |
 |---|---|
-| left | the widest number up the axis, plus the gap that number keeps from the axis |
-| foot | a category's line: 1.584 type sizes below the axis, and its descender below that |
+| left | the widest label ranged against the axis there, plus the gap it keeps from the axis |
+| foot | the line written under the axis: 1.584 type sizes below it, and its descender below that |
 | top | half a label's height, so the topmost number does not overrun the frame |
 | right | nothing — a category label wider than its bars is left to overrun, as Word leaves it |
+
+A chart lying on its side swaps the two labelled edges over — the words go up the side and the
+numbers along the foot — and swaps what the other two do with them. Its top takes the bare eleven
+points, since nothing reaches above the plot; its right takes eleven **plus half the widest number**,
+because the last number along the foot is centred on the plot's own corner and half of it hangs
+past. Word gives the second page of `chart-bar-stacked` 39.34pt on the left, 11 above, 25.05 below
+and 16.07 on the right, and each of the four falls out of the rules above to a fortieth of a point.
 
 The heights in that table are the face as *Windows* reads it, where the baselines are the face as it
 reads *itself*: for Calibri, 1950 and 550 of its 2048 against 1536 and 512. Two questions, two
@@ -202,25 +212,86 @@ Across the six charts of the probe — varying the frame size, the width of the 
 size, the length of the category labels, and whether there are labels at all — the plot area lands
 within a quarter of a point of Word's, and the chart with no labels lands exactly.
 
-**What the axis runs between when the chart does not say** is measured by `chart-scale-probe`,
-twelve charts differing only in the numbers they hold. Two rules account for every one:
+**What the axis runs between when the chart does not say** is measured by `chart-scale-probe` and
+`chart-bar-scale-probe`, twenty-six charts between them, varying the numbers, how long the axis is,
+which way it runs and what size its labels are set at. One rule accounts for every one:
 
-> the step is the largest of one, two or five times a power of ten that is no more than a fifth of
-> the span, and the top of the axis is the smallest multiple of that step lying **strictly** above
-> the largest value
+> the step is the **smallest** of one, two or five times a power of ten for which the axis — running
+> from the largest step at or below the least value to the smallest step **strictly** above the
+> greatest — carries no more marks than the axis has room to write
 
-So 7 runs to 8 in ones, 9.5 to 10 in ones, 10 to 12 in twos, 47 to 50 in fives, 105 to 120 in
-twenties, 1000 to 1200 in two hundreds, and 0.4 to 0.45 in twentieths. The strictness is what puts a
-chart of exactly 100 at 120 rather than leaving its tallest bar against the frame. The foot is
-nought wherever nothing is negative, whatever the smallest value — a chart of 30 and 55 still starts
-at nought — and where something is negative the foot steps below it the same way the top steps
-above: −20 and 60 give an axis from −30 to 70 in tens. All twelve come out label for label as
-Word's.
+So up a 126pt side at ten point: 7 runs to 8 in ones, 9.5 to 10 in ones, 10 to 12 in twos, 47 to 50
+in fives, 105 to 120 in twenties, 1000 to 1200 in two hundreds, and 0.4 to 0.45 in twentieths. The
+strictness is what puts a chart of exactly 100 at 120 rather than leaving its tallest bar against
+the frame. The foot is nought wherever nothing is negative, whatever the smallest value — a chart of
+30 and 55 still starts at nought — and where something is negative the foot steps below it the same
+way the top steps above: −20 and 60 give an axis from −30 to 70 in tens.
+
+How much room a mark needs is the part that only the second probe could reach, since every chart in
+the first is upright and 126pt tall. A label wants along its axis:
+
+| axis | room per label |
+|---|---|
+| standing up | a tenth over its own type size — anything from 1.05 to 1.145 fits the measurements |
+| lying down | three times it — anything from 2.88 to 3.15 fits |
+
+and the axis takes as many steps as leaves room for one more label than it has steps, since a mark
+is written at both ends as well as between. That is why the same 47 that runs to 50 in fives up a
+side runs to 60 in twenties along a foot of the same length, and why setting the labels in twenty
+point rather than ten thirds the number of steps either way. Two of the fourteen pages exist only
+to part the readings: a chart of millions divides its foot exactly as a chart of tens does, so the
+room has nothing to do with how wide the numbers are; and the same chart set in twenty point divides
+it into a third as many steps, so the room does grow with the type. All twenty-six come out label
+for label as Word's.
 
 The negative case also showed up something the positive ones cannot: the words under the bars go
 beside the **nought** rather than at the foot of the plot, because that is where the two axes cross.
 A chart whose bars all stand up puts the two in the same place; one with a bar hanging down does
 not, and what hangs down hangs past its own label.
+
+### Bars that lie down, and bars piled on each other
+
+A bar chart is a column chart turned on its side, and almost nothing about it is stated: `barDir` is
+the whole of what the format says, and everything that follows had to be measured from
+`chart-bar-stacked`.
+
+- The **categories run upwards**: the first is at the foot of the plot, not the top, which is the
+  opposite of the left-to-right an upright chart uses.
+- Within one category the **series run upwards too**, so of two clustered bars the second is the
+  upper. Both reversals together are what makes a bar chart read the same way round as the column
+  chart it is a turn of.
+- The **value axis stays at the edge** it is drawn on — the foot — however far the categories move.
+  The category axis crosses it at the nought, and its labels follow it: the last page of the fixture
+  puts them 9.28pt to the left of the nought, three fifths of the way across the plot, and not
+  beside the plot's own edge.
+- **Gridlines** run the other way, up the plot rather than across it, and the one at the crossing is
+  left out because the axis itself is drawn there. A chart with nothing negative leaves out the one
+  at the foot of the scale for the same reason; one with something negative draws it and leaves out
+  the nought.
+- A **mark** on a lying category axis reaches to the left of it, and one on the value axis below —
+  outwards in both cases, the same 3.1733pt.
+
+**Stacking** is an overlap of a hundred and nothing else, so far as the width of a bar goes: two
+stacked series across a 78pt category give a bar of 78 ÷ 2.5 = 31.2pt, which is what one clustered
+series would have given, and Word draws exactly that. What changes is where each bar starts — at
+where the last one ended rather than at the axis, with what rises above nought and what hangs below
+it piled apart — and what the axis has to reach, which is what a category comes to rather than what
+any one bar holds. Word runs the fixture's stacked page to 70 where the same numbers unstacked
+would have stopped at 50.
+
+Stacked **to the whole**, each bar is first taken as its share of its own category, and the axis
+runs to exactly one — the single place the top of an axis is not a step above what it holds. The
+labels are written by the axis's own number format, of which what is read here is what a chart
+carries: how many decimal places to keep, whether to group the thousands, and whether the number is
+a per cent.
+
+One thing the negative page turned up that has nothing to do with lying down: a bar hanging below
+nought is drawn **the other way about** — white, and outlined in black at three quarters of a point
+— which is what `invertIfNegative` asks for, and asks for by default. Word draws it so even though
+the series it belongs to asks for no outline at all.
+
+All eight pages of the fixture agree with Word rectangle for rectangle within a quarter of a point,
+which is the 1/300in Word rounds every edge it draws to.
 
 ### How a line curves, and where a pie sits
 
@@ -437,11 +508,12 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), charts of columns, lines and pies (the plot area where the chart places it or, where it
-does not, worked out from the room the labels need; bars sized by the gap and the overlap between
-them, a line curved through its points the way Word curves one or straight where it says so, a pie
+pictures), charts of columns, bars, lines and pies (the plot area where the chart places it or, where it
+does not, worked out from the room the labels need; bars standing or lying, clustered, stacked or
+stacked to the whole, sized by the gap and the overlap between them, a line curved through its
+points the way Word curves one or straight where it says so, a pie
 centred and divided clockwise from the top; gridlines, both axis lines and their marks, and the
-labels along each axis,
+labels along each axis in the number format it asks for,
 read from the numbers the chart part caches, with the axis scaled and the plot placed the way Word
 does both where the chart leaves them to be worked out), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
@@ -473,12 +545,12 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-Three kinds of chart are drawn: **columns, lines and pies**. What is there: the plot area, the
-bars or the line or the slices, the gridlines, the two axis lines and the marks along them, and the
-labels up the value axis and under the categories — with the numbers read from the cache the part
-carries rather than from the workbook stored beside it, and with the axis scaled and the plot
-placed the way Word does both where the chart leaves them to be worked out. What is not: bars lying
-along their axis rather than standing up, area and scatter plots, stacked groupings, markers on a
+Four kinds of chart are drawn: **columns, bars, lines and pies**, the bars clustered, stacked or
+stacked to the whole. What is there: the plot area, the bars or the line or the slices, the
+gridlines, the two axis lines and the marks along them, and the labels along both axes whichever
+way round they run — with the numbers read from the cache the part carries rather than from the
+workbook stored beside it, and with the axis scaled and the plot placed the way Word does both
+where the chart leaves them to be worked out. What is not: area and scatter plots, markers on a
 line, and titles, legends and data labels.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote

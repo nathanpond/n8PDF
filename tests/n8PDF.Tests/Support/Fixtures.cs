@@ -828,6 +828,70 @@ public static class Fixtures
     /// to choose — which is what the scaling probe measures. Its plotting is placed by hand, so
     /// that the labels can be read off without the placing moving with them.
     /// </summary>
+    /// <summary>
+    /// The same chart lying down: the value axis runs along the foot, and how long it is can be
+    /// varied, since that is the thing an upright chart cannot ask about.
+    /// </summary>
+    private static string AutoScaleBarChart(
+        IReadOnlyList<double> values, double x, double width, string direction = "bar",
+        double labelSize = 10, double y = 0.1, double height = 0.7)
+    {
+        var categories = Enumerable.Range(1, values.Count).Select(i => $"C{i}").ToList();
+
+        var (categoryPosition, valuePosition) = direction == "bar" ? ("l", "b") : ("b", "l");
+
+        var text = $"""
+            <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr>
+              <a:defRPr sz="{(int)Math.Round(labelSize * 100)}"/>
+            </a:pPr><a:endParaRPr lang="en-US"/></a:p></c:txPr>
+            """;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout><c:manualLayout>
+                  <c:layoutTarget val="inner"/>
+                  <c:xMode val="edge"/><c:yMode val="edge"/>
+                  <c:x val="{x.ToString(CultureInfo.InvariantCulture)}"/>
+                  <c:y val="{y.ToString(CultureInfo.InvariantCulture)}"/>
+                  <c:w val="{width.ToString(CultureInfo.InvariantCulture)}"/>
+                  <c:h val="{height.ToString(CultureInfo.InvariantCulture)}"/>
+                </c:manualLayout></c:layout>
+                <c:barChart>
+                  <c:barDir val="{direction}"/>
+                  <c:grouping val="clustered"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", categories, values, "4472C4")}
+                  <c:gapWidth val="150"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:barChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="{categoryPosition}"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>{text}
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="{valuePosition}"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>{text}
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
     private static string AutoScaleChart(IReadOnlyList<double> values)
     {
         var categories = Enumerable.Range(1, values.Count).Select(i => $"C{i}").ToList();
@@ -876,6 +940,36 @@ public static class Fixtures
     }
 
     /// <summary>The data each page of the scaling probe holds, and nothing else varies.</summary>
+    /// <summary>
+    /// A lying-down chart's numbers, and how long the axis they run along is: the same data over
+    /// three lengths, and the same length over several sets of data.
+    /// </summary>
+    private static readonly
+        (double[] Values, double X, double Width, string Direction, double LabelSize,
+        double Y, double Height)[]
+        BarScaleProbeData =
+    [
+        ([-45, 30], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+        ([-45, 30], 0.3, 0.4375, "bar", 10, 0.1, 0.7),
+        ([-45, 30], 0.1, 0.85, "bar", 10, 0.1, 0.7),
+        ([-20, 60], 0.3, 0.4375, "bar", 10, 0.1, 0.7),
+        ([-20, 60], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+        ([47], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+        ([47], 0.3, 0.4375, "bar", 10, 0.1, 0.7),
+        ([9.5], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+        ([1000], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+        ([0.4], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+
+        // Whether the room an axis needs for a number is the number's own width or just its
+        // height: these are the pages where the two answers part. The one set in twenty point is
+        // given a shorter plot than the rest, so that its labels have room to fall inside the
+        // frame — Word nudges a hand-placed plot that has not, and this page is not about that.
+        ([1000000], 0.3, 0.6, "bar", 10, 0.1, 0.7),
+        ([47], 0.3, 0.6, "bar", 20, 0.05, 0.5),
+        ([9.5], 0.3, 0.6, "col", 20, 0.1, 0.7),
+        ([47], 0.3, 0.6, "col", 20, 0.1, 0.7)
+    ];
+
     private static readonly double[][] ScaleProbeData =
     [
         [1], [3, 7], [9.5], [10], [12], [47], [100], [105], [1000], [0.4], [-20, 60], [55, 30]
@@ -952,6 +1046,83 @@ public static class Fixtures
           <c:plotVisOnly val="1"/>
         </c:chart>
         """;
+
+    /// <summary>
+    /// A bar chart of one kind or another: standing up or lying along, clustered or stacked, with
+    /// its plotting placed by hand or left to Word.
+    /// </summary>
+    private static string BarChart(
+        string direction, string grouping, int series, bool manualLayout = true,
+        double? maximum = 60, string numberFormat = "General", string tickMark = "none",
+        double[]? values = null)
+    {
+        var categories = new[] { "One", "Two", "Three" };
+
+        values ??= [30, 45, 20];
+
+        var layout = manualLayout
+            ? """
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.25"/><c:y val="0.1"/><c:w val="0.65"/><c:h val="0.7"/>
+              </c:manualLayout>
+              """
+            : string.Empty;
+
+        var scale = maximum is { } top
+            ? $"""<c:max val="{top.ToString(CultureInfo.InvariantCulture)}"/><c:min val="0"/>"""
+            : string.Empty;
+
+        var unit = maximum is { } value
+            ? $"""<c:majorUnit val="{(value / 3).ToString(CultureInfo.InvariantCulture)}"/>"""
+            : string.Empty;
+
+        // Which way round the axes go is the whole of what makes a bar lie down.
+        var (categoryPosition, valuePosition) = direction == "bar" ? ("l", "b") : ("b", "l");
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{layout}</c:layout>
+                <c:barChart>
+                  <c:barDir val="{direction}"/>
+                  <c:grouping val="{grouping}"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", categories, values, "4472C4")}
+                  {(series > 1
+                      ? DocxBuilder.ChartSeries(1, "Others", categories, [10, 15, 25], "ED7D31")
+                      : string.Empty)}
+                  <c:gapWidth val="150"/>
+                  <c:overlap val="{(grouping == "clustered" ? -27 : 100)}"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:barChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="{categoryPosition}"/>
+                  <c:majorTickMark val="{tickMark}"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/>{scale}</c:scaling>
+                  <c:delete val="0"/><c:axPos val="{valuePosition}"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="{numberFormat}" sourceLinked="0"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>{unit}
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
 
     /// <summary>A chart part, wrapped in the element every one of them begins with.</summary>
     private static string ChartPart(string chartXml) => $"""
@@ -1971,6 +2142,33 @@ public static class Fixtures
                 return builder;
             },
 
+            // The same question of a chart that lies down, where the axis being asked about runs
+            // along the foot rather than up the side: ten charts, varying the numbers and how much
+            // room the axis has for them.
+            ["chart-bar-scale-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                for (var i = 0; i < BarScaleProbeData.Length; i++)
+                {
+                    var id = $"rIdBarScale{i + 1}";
+                    var (values, x, width, direction, labelSize, y, height) = BarScaleProbeData[i];
+
+                    builder.WithPart($"word/charts/barscale{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(AutoScaleBarChart(
+                            values, x, width, direction, labelSize, y, height)),
+                        fromDocument: (id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(i == 0 ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
+                        DocxBuilder.ChartDrawing(288, 180, id: 720 + i, relationshipId: id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
             // The two other kinds of chart a document is likely to hold: a line through the
             // categories, and a pie divided between them.
             //
@@ -2002,6 +2200,54 @@ public static class Fixtures
 
                     builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                             DocxBuilder.ChartDrawing(360, 216, id: 801 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // Bars lying along their axis rather than standing up, and bars stacked on each other
+            // rather than beside each other.
+            //
+            //   page 1  lying along, one series, placed by hand
+            //   page 2  lying along, left to Word to place  -> the labels have swapped sides
+            //   page 3  standing up, two series stacked
+            //   page 4  the same, with the scale left to Word -> is it the sum that decides?
+            //   page 5  the same again, as a percentage of each category
+            //   page 6  lying along and stacked
+            ["chart-bar-stacked"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(BarChart("bar", "clustered", 1));
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdBar2", BarChart("bar", "clustered", 1, manualLayout: false, maximum: null)),
+                    ("rIdBar3", BarChart("col", "stacked", 2)),
+                    ("rIdBar4", BarChart("col", "stacked", 2, maximum: null)),
+                    ("rIdBar5", BarChart("col", "percentStacked", 2, maximum: null,
+                        numberFormat: "0%")),
+                    ("rIdBar6", BarChart("bar", "stacked", 2)),
+
+                    // Where the marks along a lying-down axis reach, and where that axis goes
+                    // when something is negative — the two things the upright charts cannot say.
+                    ("rIdBar7", BarChart("bar", "clustered", 1, tickMark: "out")),
+                    ("rIdBar8", BarChart("bar", "clustered", 2, maximum: null, tickMark: "out",
+                        values: [30, -45, 20]))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 900) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/bar{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 901 + i,
                                                 relationshipId: rest[i].Id) + "</w:p>");
                 }
 

@@ -3040,51 +3040,88 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var page = new LaidOutPage { WidthPoints = width, HeightPoints = height };
 
-        // The numbers up the value axis, each ranged against it and set beside its own mark.
+        // The numbers along the value axis, each set against its own mark: ranged up against the
+        // axis where they are written beside it, and centred on the mark where they are under it.
         if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
         {
             var size = valueAxis.LabelSizePoints;
-            var (ascent, descent) = LabelMetrics(size);
 
             foreach (var value in ChartComposer.Marks(plan))
             {
-                var label = ChartLabel(ChartComposer.Format(value), Justification.Right, size);
-                var flow = MeasureInside([label], Math.Max(1, plan.Left - size * ValueLabelGap));
+                var text = ChartComposer.Format(value, valueAxis.NumberFormat);
 
-                // The letters are set about the mark rather than under it: what is centred on it
-                // is the box from the top of the ascenders to the foot of the descenders, which
-                // puts the baseline half their difference below. Measured at ten point and at
-                // twenty, where Word sets the baseline 2.64pt and 5.04pt below the mark.
-                flow.PlaceOnto(page, 0,
-                    plan.PositionOf(value) + (ascent - descent) / 2 - flow.FirstAscent);
+                if (plan.Lying) Under(page, text, size, plan.PositionOf(value), plan.Bottom + size * CategoryLabelBaseline);
+                else Beside(page, text, size, plan.Left, plan.PositionOf(value));
             }
         }
 
-        // And the categories along the foot, each centred under the bars it belongs to.
+        // And the categories along their own axis, each against the bars it belongs to: under them
+        // on an upright chart, and beside them on one lying down.
         if (chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" } categoryAxis)
         {
             var size = categoryAxis.LabelSizePoints;
             var categories = chart.Categories;
-            var slot = plan.Width / Math.Max(1, categories.Count);
+            var slot = plan.Slot(categories.Count);
 
-            // How far below the axis the words go, which is a share of the type they are set in
-            // and nothing to do with the marks along it: Word puts the baseline 1.584 times the
-            // type size below the axis at ten point and at twenty alike, and a chart whose marks
-            // are drawn outside puts it in exactly the same place.
-            var below = size * (CategoryLabelBaseline +
-                                (categoryAxis.LabelOffset - 100) / 100.0 * CategoryLabelStep);
+            // How far off the axis the words go, which is a share of the type they are set in and
+            // nothing to do with the marks along it: Word puts the baseline 1.584 times the type
+            // size below the axis at ten point and at twenty alike, and a chart whose marks are
+            // drawn outside puts it in exactly the same place. A label offset shifts them, which
+            // is measured for words written under the axis and taken to do the same beside it.
+            var step = (categoryAxis.LabelOffset - 100) / 100.0 * CategoryLabelStep;
 
             for (var i = 0; i < categories.Count; i++)
             {
-                var label = ChartLabel(categories[i], Justification.Center, size);
-                var flow = MeasureInside([label], Math.Max(1, slot));
+                var at = plan.SlotAt(i, categories.Count);
 
-                flow.PlaceOnto(page, plan.Left + slot * i,
-                    plan.CrossingY + below - flow.FirstAscent);
+                if (plan.Lying)
+                {
+                    Beside(page, categories[i], size, plan.Crossing - size * step, at + slot / 2);
+                }
+                else
+                {
+                    var label = ChartLabel(categories[i], Justification.Center, size);
+                    var flow = MeasureInside([label], Math.Max(1, slot));
+
+                    flow.PlaceOnto(page, at,
+                        plan.Crossing + size * (CategoryLabelBaseline + step) - flow.FirstAscent);
+                }
             }
         }
 
         return (frame, new DetachedFlow(page, height), 0, 0);
+    }
+
+    /// <summary>
+    /// One label ranged up against an axis running down the chart, ending a little short of it and
+    /// set about the point it belongs to rather than under it.
+    /// </summary>
+    /// <remarks>
+    /// What is centred on the point is the box from the top of the ascenders to the foot of the
+    /// descenders, which puts the baseline half their difference below it. Measured at ten point
+    /// and at twenty, where Word sets the baseline 2.64pt and 5.04pt below the mark.
+    /// </remarks>
+    private void Beside(LaidOutPage page, string text, double size, double axis, double at)
+    {
+        var (ascent, descent) = LabelMetrics(size);
+
+        var label = ChartLabel(text, Justification.Right, size);
+        var flow = MeasureInside([label], Math.Max(1, axis - size * ValueLabelGap));
+
+        flow.PlaceOnto(page, 0, at + (ascent - descent) / 2 - flow.FirstAscent);
+    }
+
+    /// <summary>One label written under an axis running across the chart, centred on its point.</summary>
+    private void Under(LaidOutPage page, string text, double size, double at, double baseline)
+    {
+        // Centred in a box of its own width, which puts the middle of the letters on the point
+        // however wide they turn out to be.
+        var width = MeasureLabel(text, size) + 1;
+
+        var label = ChartLabel(text, Justification.Center, size);
+        var flow = MeasureInside([label], width);
+
+        flow.PlaceOnto(page, at - width / 2, baseline - flow.FirstAscent);
     }
 
     /// <summary>

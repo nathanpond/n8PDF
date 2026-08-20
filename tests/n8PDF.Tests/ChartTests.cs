@@ -16,9 +16,9 @@ namespace n8PDF.Tests;
 /// picture for itself. So everything here had to be measured: where a bar of a given value lands,
 /// how wide it is, where the gridlines fall, and where each label sits against the axis it names.
 ///
-/// The fixtures place their plot area by hand and state what their axes run between, which pins
-/// everything that can be measured against and leaves Word's automatic sizing — the part that is
-/// not implemented — out of the way. See the README for what that means.
+/// Most of the fixtures place their plot area by hand and state what their axes run between, which
+/// pins everything that can be measured against; the probes that do neither are what Word's own
+/// placing and scaling were measured from. See the README for what a chart still leaves out.
 /// </remarks>
 public class ChartTests(ITestOutputHelper output)
 {
@@ -222,11 +222,12 @@ public class ChartTests(ITestOutputHelper output)
     /// a chart Word decides for itself.
     /// </summary>
     /// <remarks>
-    /// Twelve charts differing only in the numbers they hold. Two rules account for every one: the
-    /// step is the largest of one, two or five times a power of ten that is no more than a fifth
-    /// of the span, and the top is the smallest multiple of that step lying strictly above the
-    /// largest value. The strictness is what puts a chart of exactly 100 at 120 rather than leaving
-    /// its tallest bar against the frame.
+    /// Twelve charts differing only in the numbers they hold. One rule accounts for every one: the
+    /// step is the smallest of one, two or five times a power of ten for which the axis carries no
+    /// more marks than it has room to write, and the top is the smallest multiple of that step
+    /// lying strictly above the largest value. The strictness is what puts a chart of exactly 100
+    /// at 120 rather than leaving its tallest bar against the frame; the room is what keeps a
+    /// chart of 9.5 at ten steps and a chart of 10 at six.
     /// </remarks>
     [Theory]
     [InlineData(0, "0 0.2 0.4 0.6 0.8 1 1.2")]
@@ -264,14 +265,39 @@ public class ChartTests(ITestOutputHelper output)
     /// writes a label in as many runs as it likes — "-30" comes out as "-3" and "0" — so ours are
     /// read as lines and Word's as runs, and what is compared is the sequence either way.
     /// </remarks>
-    private static List<string> AxisLabels(byte[] pdf, int page) =>
-        [.. PdfTextExtractor.Extract(pdf)
+    private static List<string> AxisLabels(byte[] pdf, int page, bool lying = false)
+    {
+        var runs = PdfTextExtractor.Extract(pdf)
             .Where(run => run.PageIndex == page && !run.Text.Contains('C') &&
-                          !string.IsNullOrWhiteSpace(run.Text))
-            .GroupBy(run => Math.Round(run.BaselineY, 1))
-            .OrderBy(group => group.Key)
-            .Select(group => string.Concat(group.OrderBy(run => run.X).Select(run => run.Text.Trim())))
-            .Reverse()];
+                          !string.IsNullOrWhiteSpace(run.Text) &&
+                          !"One Two Three".Contains(run.Text.Trim()))
+            .ToList();
+
+        // Up the side they read from the top down and are gathered by their baseline; along the
+        // foot they read from the left and share one, so they are gathered by where they begin.
+        if (lying)
+        {
+            return
+            [
+                .. runs
+                    .GroupBy(run => Math.Round(run.BaselineY, 1))
+                    .OrderByDescending(group => group.Count())
+                    .First()
+                    .OrderBy(run => run.X)
+                    .Select(run => run.Text.Trim())
+            ];
+        }
+
+        return
+        [
+            .. runs
+                .GroupBy(run => Math.Round(run.BaselineY, 1))
+                .OrderBy(group => group.Key)
+                .Select(group =>
+                    string.Concat(group.OrderBy(run => run.X).Select(run => run.Text.Trim())))
+                .Reverse()
+        ];
+    }
 
     /// <summary>
     /// The words under the bars go beside the nought rather than at the foot of the plot, which is
@@ -606,6 +632,299 @@ public class ChartTests(ITestOutputHelper output)
         Assert.Equal(0d, plan.PositionOf(60), 3);
         Assert.Equal(75d, plan.PositionOf(30), 3);
     }
+
+    /// <summary>
+    /// A chart lying on its side, and one whose bars are piled on each other rather than set
+    /// beside them: every bar of it against Word's own.
+    /// </summary>
+    /// <remarks>
+    /// The six pages are a bar chart placed by hand and one left to Word, two stacked columns —
+    /// one told what its axis runs between and one not — a stacked column filled out to the whole,
+    /// and a stacked bar. Between them they cover which end a lying chart starts its categories at,
+    /// which way its series run within one, where a stacked bar begins, and what a chart stacked to
+    /// the whole makes of its numbers.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 4, "a bar chart placed by hand")]
+    [InlineData(1, 4, "the same, placed by Word")]
+    [InlineData(2, 7, "two series stacked")]
+    [InlineData(3, 7, "the same, scaled by Word")]
+    [InlineData(4, 7, "the same, filled out to the whole")]
+    [InlineData(5, 7, "two series stacked, lying down")]
+    [InlineData(6, 4, "the marks along a lying axis")]
+    [InlineData(7, 7, "one bar hanging the wrong side of nought")]
+    public void A_bar_lies_where_word_lays_it(int page, int count, string what)
+    {
+        var (ours, theirs) = BothWays("chart-bar-stacked");
+
+        var mine = Fills(ours, page);
+        var word = Fills(theirs, page);
+
+        _output.WriteLine($"page {page + 1} ({what})");
+
+        Assert.Equal(count, word.Count);
+        Assert.Equal(word.Count, mine.Count);
+
+        for (var i = 0; i < mine.Count; i++)
+        {
+            _output.WriteLine($"    {mine[i]} against Word's {word[i]}");
+
+            Assert.Equal(word[i].ColorHex, mine[i].ColorHex);
+
+            // Word rounds every edge it draws to a three-hundredth of an inch, which is 0.24pt,
+            // so a bar can land an eighth of a point either side of where the arithmetic puts it.
+            Assert.True(Math.Abs(mine[i].Left - word[i].Left) < 0.25 &&
+                        Math.Abs(mine[i].Top - word[i].Top) < 0.25 &&
+                        Math.Abs(mine[i].Width - word[i].Width) < 0.25 &&
+                        Math.Abs(mine[i].Height - word[i].Height) < 0.25,
+                $"page {page + 1}: a bar is at {mine[i]} where Word draws it at {word[i]}.");
+        }
+    }
+
+    /// <summary>Where a chart lying down puts its plotting when it does not say.</summary>
+    /// <remarks>
+    /// The words go up the side and the numbers along the foot, so what has to be made room for
+    /// swaps over: the left holds the widest category rather than the widest number, and the right
+    /// holds half of the last number along the foot, which is centred on the plot's own corner.
+    /// </remarks>
+    [Fact]
+    public void A_chart_lying_down_is_laid_out_the_way_word_lays_it_out()
+    {
+        var (ours, theirs) = BothWays("chart-bar-stacked");
+
+        var mine = PlotArea(ours, page: 1);
+        var word = PlotArea(theirs, page: 1);
+
+        _output.WriteLine($"{mine} against Word's {word}");
+
+        Assert.True(Math.Abs(mine.Left - word.Left) < 0.3 &&
+                    Math.Abs(mine.Top - word.Top) < 0.3 &&
+                    Math.Abs(mine.Width - word.Width) < 0.3 &&
+                    Math.Abs(mine.Height - word.Height) < 0.3,
+            $"the plotting is at {mine} where Word puts it at {word}.");
+    }
+
+    /// <summary>
+    /// What a stacked chart's axis runs between, which is what its categories come to rather than
+    /// what any one bar holds — and what one stacked to the whole runs between, which is nothing
+    /// but a hundred per cent.
+    /// </summary>
+    /// <remarks>
+    /// The third page holds 30 and 10 against 45 and 15 against 20 and 25, so its tallest pile is
+    /// 60 and Word runs the axis to 70 in tens — where an unstacked chart of the same numbers
+    /// would have stopped at 50. The fourth is the same numbers taken as shares of their own
+    /// category, which every category makes 100% of.
+    /// </remarks>
+    [Theory]
+    [InlineData(3, "0 10 20 30 40 50 60 70")]
+    [InlineData(4, "0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%")]
+    public void A_stacked_axis_is_scaled_by_what_the_categories_come_to(int page, string expected)
+    {
+        var (ours, theirs) = BothWays("chart-bar-stacked");
+
+        var mine = AxisLabels(ours, page);
+        _output.WriteLine($"page {page + 1}: {string.Join(" ", mine)}");
+
+        Assert.Equal(expected.Split(' '), mine);
+        Assert.Equal(expected.Replace(" ", ""), string.Concat(AxisLabels(theirs, page)));
+    }
+
+    /// <summary>
+    /// What an axis that lies down runs between, which is not what the same numbers up the side
+    /// would give: a number written along an axis takes about three times its own type size of
+    /// room, and one written up it a tenth over.
+    /// </summary>
+    /// <remarks>
+    /// Fourteen charts, varying the numbers, how long the axis is, which way it runs and what size
+    /// its labels are set at. The last four are the ones that part the readings: a chart of
+    /// millions divides its foot exactly as a chart of tens does, so the room has nothing to do
+    /// with how wide the numbers are; and the same chart set in twenty point divides it into a
+    /// third as many steps, so the room grows with the type.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "-50 0 50")]
+    [InlineData(1, "-50 0 50")]
+    [InlineData(2, "-60 -40 -20 0 20 40")]
+    [InlineData(3, "-50 0 50 100")]
+    [InlineData(4, "-50 0 50 100")]
+    [InlineData(5, "0 20 40 60")]
+    [InlineData(6, "0 20 40 60")]
+    [InlineData(7, "0 5 10")]
+    [InlineData(8, "0 500 1000 1500")]
+    [InlineData(9, "0 0.2 0.4 0.6")]
+    [InlineData(10, "0 500000 1000000 1500000")]
+    [InlineData(11, "0 50")]
+    [InlineData(12, "0 5 10")]
+    [InlineData(13, "0 20 40 60")]
+    public void An_axis_that_lies_down_is_scaled_the_way_word_scales_it(int page, string expected)
+    {
+        var (ours, theirs) = BothWays("chart-bar-scale-probe");
+
+        var mine = AxisLabels(ours, page, lying: page < 12);
+        _output.WriteLine($"page {page + 1}: {string.Join(" ", mine)}");
+
+        Assert.Equal(expected.Split(' '), mine);
+        Assert.Equal(expected.Replace(" ", ""), string.Concat(AxisLabels(theirs, page, page < 12)));
+    }
+
+    /// <summary>
+    /// The whole of a lying chart as ink, which is what says its gridlines, its axes and the marks
+    /// along them agree with Word as well as its bars do.
+    /// </summary>
+    [Theory]
+    [InlineData(0, "a bar chart placed by hand")]
+    [InlineData(5, "two series stacked, lying down")]
+    [InlineData(6, "the marks along a lying axis")]
+    [InlineData(7, "and where that axis goes when something is negative")]
+    public void A_lying_chart_covers_what_word_covers(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-bar-stacked");
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, scale) is not { } mine ||
+            PdfRasterizer.Render(theirs, page, scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var (agreed, covered, inkOfMine, inkOfTheirs) = (0, 0, 0, 0);
+
+        // The inside of the frame only: Word clips a chart to its own frame, so the outer half of
+        // its border is cut away where ours is not, and a quarter point of halo all the way round
+        // would swamp everything else.
+        for (var y = 74.0; y < 286; y++)
+        for (var x = 74.0; x < 430; x++)
+        {
+            var a = mine.At(x, y, scale);
+            var b = word.At(x, y, scale);
+
+            var ink = a.R < 200 || a.G < 200 || a.B < 200;
+            var theirInk = b.R < 200 || b.G < 200 || b.B < 200;
+
+            if (ink) inkOfMine++;
+            if (theirInk) inkOfTheirs++;
+            if (ink == theirInk) agreed++;
+
+            covered++;
+        }
+
+        var agreement = 100.0 * agreed / covered;
+
+        _output.WriteLine(
+            $"page {page + 1} ({what}): ink {inkOfMine} here, {inkOfTheirs} in Word's; " +
+            $"the two agree on {agreement:0.00}%");
+
+        Assert.True(agreement > 98, $"the two pages agree on only {agreement:0.0}% of the chart");
+        Assert.InRange((double)inkOfMine / inkOfTheirs, 0.9, 1.1);
+    }
+
+    /// <summary>
+    /// Stacked bars begin where the last one ended, with what rises above nought and what hangs
+    /// below it piled apart.
+    /// </summary>
+    [Fact]
+    public void A_stacked_bar_begins_where_the_last_one_ended()
+    {
+        var chart = new ChartDefinition { Grouping = ChartGrouping.Stacked, Overlap = 100 };
+        var names = new[] { "One" };
+
+        chart.Series.Add(new ChartSeries("A", names, [30], null));
+        chart.Series.Add(new ChartSeries("B", names, [-20], null));
+        chart.Series.Add(new ChartSeries("C", names, [10], null));
+
+        var plan = new ChartComposer.Plan(0, 0, 100, 100, -50, 50, 10);
+        var bars = ChartComposer.Bars(chart, plan).ToList();
+
+        // Nought is halfway up a plot of a hundred points running from −50 to 50.
+        Assert.Equal(3, bars.Count);
+        Assert.Equal(20d, bars[0].Y, 3);
+        Assert.Equal(30d, bars[0].Height, 3);
+        Assert.Equal(50d, bars[1].Y, 3);
+        Assert.Equal(20d, bars[1].Height, 3);
+        Assert.Equal(10d, bars[2].Y, 3);
+        Assert.Equal(10d, bars[2].Height, 3);
+    }
+
+    /// <summary>And a chart stacked to the whole takes each as a share of its own category.</summary>
+    [Fact]
+    public void A_chart_stacked_to_the_whole_is_drawn_in_shares()
+    {
+        var chart = new ChartDefinition { Grouping = ChartGrouping.PercentStacked, Overlap = 100 };
+        var names = new[] { "One", "Two" };
+
+        chart.Series.Add(new ChartSeries("A", names, [30, 10], null));
+        chart.Series.Add(new ChartSeries("B", names, [10, 10], null));
+
+        var plan = new ChartComposer.Plan(0, 0, 100, 100, 0, 1, 0.1);
+        var bars = ChartComposer.Bars(chart, plan).ToList();
+
+        // Three parts to one in the first category, and one to one in the second.
+        Assert.Equal(75d, bars[0].Height, 3);
+        Assert.Equal(25d, bars[1].Height, 3);
+        Assert.Equal(50d, bars[2].Height, 3);
+        Assert.Equal(50d, bars[3].Height, 3);
+    }
+
+    /// <summary>
+    /// A bar hanging below nought is drawn the other way about: white, and outlined rather than
+    /// filled, which is what the format's <c>invertIfNegative</c> asks for and asks for by default.
+    /// </summary>
+    [Fact]
+    public void A_bar_below_nought_is_turned_the_other_way_about()
+    {
+        var (ours, theirs) = BothWays("chart-bar-stacked");
+
+        // The last page holds one: 45 the wrong side of nought, against five that are not.
+        var mine = Fills(ours, page: 7).Where(r => r.Height < 20).ToList();
+        var word = Fills(theirs, page: 7).Where(r => r.Height < 20).ToList();
+
+        Assert.Equal(6, mine.Count);
+        Assert.Equal(word.Count, mine.Count);
+
+        for (var i = 0; i < mine.Count; i++)
+        {
+            _output.WriteLine($"{mine[i]} against Word's {word[i]}");
+            Assert.Equal(word[i].ColorHex, mine[i].ColorHex);
+        }
+
+        // And it is the widest of them, which is the one at 45 rather than any of the rest.
+        Assert.Equal("FFFFFF", mine.OrderByDescending(r => r.Width).First().ColorHex);
+    }
+
+    /// <summary>A chart lying down runs its categories up the plot, first at the foot.</summary>
+    [Fact]
+    public void A_lying_chart_starts_its_categories_at_the_foot()
+    {
+        var chart = new ChartDefinition { Kind = ChartKind.Bar };
+        var names = new[] { "One", "Two", "Three" };
+
+        chart.Series.Add(new ChartSeries("A", names, [10, 20, 30], null));
+
+        var plan = new ChartComposer.Plan(0, 0, 100, 150, 0, 100, 20, Lying: true);
+        var bars = ChartComposer.Bars(chart, plan).ToList();
+
+        // Each bar runs rightwards from the axis, and the first is in the bottom third.
+        Assert.Equal([10d, 20, 30], [.. bars.Select(bar => bar.Width)]);
+        Assert.All(bars, bar => Assert.Equal(0d, bar.X, 3));
+
+        Assert.True(bars[0].Y > 100, $"the first category is at {bars[0].Y}, not at the foot.");
+        Assert.True(bars[2].Y < 50, $"the last category is at {bars[2].Y}, not at the top.");
+    }
+
+    /// <summary>The numbers an axis writes, in the format it asks for.</summary>
+    [Theory]
+    [InlineData(0.25, "0%", "25%")]
+    [InlineData(1, "0%", "100%")]
+    [InlineData(0.125, "0.0%", "12.5%")]
+    [InlineData(1500000, "#,##0", "1,500,000")]
+    [InlineData(1500000, "General", "1500000")]
+    [InlineData(2.5, null, "2.5")]
+    [InlineData(2, "0.00", "2.00")]
+    public void A_number_is_written_the_way_the_axis_asks(double value, string? code, string expected) =>
+        Assert.Equal(expected, ChartComposer.Format(value, code));
 
     /// <summary>
     /// The rectangles a page fills, which is the plot area and the bars: everything else a chart
