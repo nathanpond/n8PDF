@@ -152,6 +152,37 @@ The outline itself straddles the edge. Word's export fills the whole extent and 
 same rectangle, insetting neither, which is what a PDF does with a stroked path anyway — so the
 frame here is drawn the same way and the two agree to a hundredth of a point.
 
+### Where an old-style shape is drawn
+
+A shape in the older `w:pict` spelling is drawn a little way down and to the right of where its own
+size puts it, and how far depends on the weight of its outline. `vml-stroke-probe` holds the same
+rectangle thirteen times over, varying nothing but that weight:
+
+| outline | none | ¼pt | ½pt | ¾pt | 1pt | 1½pt | 2pt | 3pt | 4½pt | 6pt |
+|---|---|---|---|---|---|---|---|---|---|---|
+| offset | 0 | 0 | 0 | 0 | 0 | 2pt | 2pt | 2pt | 4pt | 6pt |
+
+The offset steps in twos rather than growing with the weight, and it starts a whole point in: it is
+the smallest even number of points that reaches a point short of the outline. The text inside moves
+by half as much again, which is what the six point page of `vml-inset-probe` shows — its text sits
+at the very edge of the box, where the inset alone would put it three points inside. The last three
+pages of the probe rule out the two obvious alternatives: a rounded rectangle and an ellipse at the
+same weight are offset identically, and two shapes on one line neither shift each other nor
+themselves.
+
+Why it steps in twos is not explained here. What is implemented is the rule the measurements fit,
+and none of it shows in an ordinary document: Word draws a text box with a ¾pt outline, and
+everything at a point or less is offset by nothing at all.
+
+Two things about the same shapes were measured and are **not** implemented, both of them out of
+reach of any ordinary document. The first is that an outline thicker than a point also makes the
+shape's *line* taller, so what follows it sits lower — by 0.96pt at 1½ and 2 points, 1.92pt at 3,
+4.08pt at 4½ and 5.04pt at 6, which follows neither the weight nor the offset the same shape is
+drawn at. The second is that such a shape sharing a line with another nudges its neighbour by about
+a point. `vml-stroke-probe` holds the first as a known divergence in
+`TextPositionComparisonTests`, and `vml-shapes` holds the second: the two pages agree on 96% of
+that page's ink rather than the 99% the newer spelling's shapes manage.
+
 ### Which part of a table style reaches which cell
 
 A table style is unlike every other kind: what it says depends on where a cell is rather than on
@@ -241,7 +272,7 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), text boxes and the shapes they are a kind of (rectangles, rounded rectangles, ellipses
+pictures), text boxes and the shapes they are a kind of, in both spellings (rectangles, rounded rectangles, ellipses
 and triangles drawn as themselves and every other preset geometry as the rectangle it is bounded
 by; filled and outlined in a colour named outright or taken from the theme; in the line of text or
 anchored with the text flowing round them; and holding a document of their own — paragraphs and
@@ -265,13 +296,18 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
+Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
+before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute
+what the newer says in elements — its size, its position, what it is anchored to — names its
+geometry by the element rather than by an attribute, and defaults its fill to white and its
+outline to three quarters of a point of black. Where a document offers both, in a compatibility
+wrapper, the newer is read and the older passed over so the shape is drawn once.
+
 What a shape does not do yet: turn (a rotated shape is drawn square), resize itself or its text to
 fit the other (a box holding more than it has room for overflows, which is what `noAutofit` asks
 for and what Word does with that setting), fill with anything but one flat colour, or carry a
-shadow. Nor is the older VML spelling of a shape read — the `w:pict` that Word wrote before 2007
-and still writes for a watermark. It is what the compatibility wrapper offers as its fallback, so
-nothing in a document Word saved this century is lost by passing over it, but a document written
-in that spelling alone comes out without its shapes.
+shadow. Nor is WordArt drawn along a path (`v:textpath`), which is what a watermark's text is: the
+shape it sits in comes out, and its lettering does not.
 
 Table autofit is the one piece here that approximates rather than reproduces. Word's algorithm is
 undocumented; ours measures each column's minimum (widest word) and maximum (unwrapped) width and

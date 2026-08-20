@@ -37,15 +37,23 @@ internal static class ShapeOutline
         var fill = Resolve(shape.Fill, theme);
         var stroke = Resolve(shape.Line, theme);
 
+        var steps = Path(shape.Geometry, width, height);
+
+        // An old-style shape is drawn a little way down and to the right of its own box, which is
+        // carried here as an offset on every point of the path rather than as a move of the box:
+        // the box is what the text around it was laid out against, and only the drawing shifts.
+        if (shape.DrawnOffsetPoints != 0) steps = Shift(steps, shape.DrawnOffsetPoints);
+
         return new VectorDrawing(width, height, [
-            new PathOperation(
-                Path(shape.Geometry, width, height),
-                fill,
-                stroke,
-                shape.LineWidthPoints,
-                EvenOdd: false)
+            new PathOperation(steps, fill, stroke, shape.LineWidthPoints, EvenOdd: false)
         ]);
     }
+
+    private static IReadOnlyList<PathStep> Shift(IReadOnlyList<PathStep> steps, double by) =>
+        [.. steps.Select(step => step with
+        {
+            Points = [.. step.Points.Select(point => (point.X + by, point.Y + by))]
+        })];
 
     /// <summary>The colour something is painted in, as the drawing named it.</summary>
     private static DrawingColor? Resolve(DrawingColorReference? color, DocumentTheme theme)

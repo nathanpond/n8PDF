@@ -667,6 +667,59 @@ public sealed class DocxBuilder
             """;
     }
 
+    /// <summary>
+    /// A shape in the older spelling: the one Word wrote before 2007, and still writes for a
+    /// watermark and inside the fallback of every shape it writes in the newer one.
+    /// </summary>
+    /// <remarks>
+    /// VML says everything in a style attribute borrowed from CSS rather than in elements of its
+    /// own, and states the geometry as a path over a 21600-square grid rather than by name. The
+    /// shape type here is <c>_x0000_t202</c>, which is Word's own text box: a plain rectangle.
+    /// </remarks>
+    /// <param name="style">
+    /// The CSS-like style: the size for a shape in the line, and a position as well for one the
+    /// text flows around.
+    /// </param>
+    public static string VmlShape(
+        string style, string? content = null, string element = "shape",
+        string? fillColor = "#ffffff", string? strokeColor = "#000000",
+        string? strokeWeight = "1pt", string? inset = null, string? wrap = null, int id = 1026)
+    {
+        var textbox = content is null
+            ? string.Empty
+            : $"<v:textbox{(inset is null ? string.Empty : $" inset=\"{inset}\"")}>" +
+              $"<w:txbxContent>{content}</w:txbxContent></v:textbox>";
+
+        var attributes =
+            (fillColor is null ? " filled=\"f\"" : $" fillcolor=\"{fillColor}\"") +
+            (strokeColor is null ? " stroked=\"f\"" : $" strokecolor=\"{strokeColor}\"") +
+            (strokeWeight is null || strokeColor is null ? string.Empty : $" strokeweight=\"{strokeWeight}\"");
+
+        // The type reference is only meaningful for v:shape; the named elements carry their own
+        // geometry, which is the whole reason Word writes them.
+        var type = element == "shape" ? " type=\"#_x0000_t202\"" : string.Empty;
+
+        var shapeType = element == "shape"
+            ? """
+              <v:shapetype id="_x0000_t202" coordsize="21600,21600" o:spt="202"
+                           path="m,l,21600r21600,l21600,xe">
+                <v:stroke joinstyle="miter"/>
+                <v:path gradientshapeok="t" o:connecttype="rect"/>
+              </v:shapetype>
+              """
+            : string.Empty;
+
+        return $"""
+            <w:r><w:pict>
+              {shapeType}
+              <v:{element} id="_x0000_s{id}"{type} style="{style}"{attributes}>
+                {textbox}
+                {wrap ?? string.Empty}
+              </v:{element}>
+            </w:pict></w:r>
+            """;
+    }
+
     /// <summary>A shape sitting in the line of text, like an inline picture.</summary>
     public static string InlineShape(
         double widthPoints, double heightPoints, string? content = null, string geometry = "rect",
@@ -909,7 +962,10 @@ public sealed class DocxBuilder
                         xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
                         xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
                         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                        xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+                        xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+                        xmlns:v="urn:schemas-microsoft-com:vml"
+                        xmlns:o="urn:schemas-microsoft-com:office:office"
+                        xmlns:w10="urn:schemas-microsoft-com:office:word">
               <w:body>{_body}{BuildSectionProperties()}</w:body>
             </w:document>
             """;

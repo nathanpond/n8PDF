@@ -111,7 +111,14 @@ updates_fields() {
     return 1
 }
 
-WORKDIR="$(mktemp -d)"
+# A working directory in the repository rather than a fresh temporary one. macOS grants an
+# application access by path, so a directory with a new name every run makes Word ask the user for
+# permission every run — and until that is answered Word sits behind a modal dialog accepting no
+# commands at all. This path is the same every time and lives beside the fixtures Word has already
+# been granted, so it is asked about once at most.
+WORKDIR="$REPO_ROOT/artifacts/word-export"
+rm -rf "$WORKDIR"
+mkdir -p "$WORKDIR"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 failed=()

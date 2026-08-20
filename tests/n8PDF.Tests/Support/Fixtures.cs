@@ -659,6 +659,22 @@ public static class Fixtures
             insets: insets, anchor: anchor, id: 300 + label[0]) +
         "</w:p>";
 
+    /// <summary>
+    /// One page of the stroke probe: a rectangle in the line, alone, whose stroke is the only
+    /// thing that varies.
+    /// </summary>
+    private static string StrokeProbePage(
+        string? strokeWeight, bool first = false, string element = "rect") =>
+        $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
+        DocxBuilder.VmlShape("width:108pt;height:54pt", element: element,
+            fillColor: "#c0d8f0", strokeColor: strokeWeight is null ? null : "#000000",
+            strokeWeight: strokeWeight, id: 1050) +
+        "</w:p>" +
+        // A line naming the page, so that the reading of the reference has something to read and
+        // so that a page of this fixture can be told from the next by eye.
+        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+        $"<w:t xml:space=\"preserve\">{element} {strokeWeight ?? "unstroked"}</w:t></w:r></w:p>";
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -1254,6 +1270,92 @@ public static class Fixtures
                 .AddRawParagraph(InsetShapePage("C", (0, 0, 0, 0), 6, "t"))
                 .AddRawParagraph(InsetShapePage("D", null, 0.75, "ctr"))
                 .AddRawParagraph(InsetShapePage("E", null, 0.75, "b")),
+
+            // The same three things again in the older spelling of a shape: a box in the line, a
+            // box the text goes round, and shapes with nothing in them. VML says all of it in a
+            // style attribute borrowed from CSS rather than in elements of its own, and names its
+            // geometry by the element rather than by an attribute.
+            ["vml-shapes"] = () => new DocxBuilder()
+                .AddParagraph("Paragraph before the box.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:216pt;height:72pt",
+                                     ShapeText("A box in the line of text.") +
+                                     ShapeText("And a second paragraph in it.")) +
+                                 "</w:p>")
+                .AddParagraph("Paragraph after the box.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.VmlShape(
+                                     "position:absolute;margin-left:0;margin-top:0;width:144pt;" +
+                                     "height:90pt;z-index:251658240;" +
+                                     "mso-position-horizontal-relative:column;" +
+                                     "mso-position-vertical-relative:paragraph",
+                                     ShapeText("A box the text goes round."),
+                                     wrap: "<w10:wrap type=\"square\"/>", id: 1027) +
+                                 $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">" +
+                                 Escape(string.Join(' ', Enumerable.Repeat(
+                                     "Text runs alongside the box and closes up under it again.", 12))) +
+                                 "</w:t></w:r></w:p>")
+                .AddParagraph("Shapes with nothing in them below.", ZeroSpacingNewPage, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:108pt;height:54pt", element: "rect",
+                                     fillColor: "#c0d8f0", strokeColor: "#1f4e79",
+                                     strokeWeight: "2pt", id: 1028) +
+                                 DocxBuilder.VmlShape("width:108pt;height:54pt", element: "roundrect",
+                                     fillColor: "#f0d8c0", strokeColor: "#7f4e19", id: 1029) +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:108pt;height:54pt", element: "oval",
+                                     fillColor: "#d8f0c0", strokeColor: "#4e7f19", id: 1030) +
+                                 DocxBuilder.VmlShape("width:108pt;height:54pt", element: "rect",
+                                     fillColor: null, strokeColor: "#000000", strokeWeight: "3pt",
+                                     id: 1031) +
+                                 "</w:p>"),
+
+            // Word draws an older shape a little way off from where a newer one of the same size
+            // goes, and how far depends on how thick its stroke is. Eight pages, one shape each,
+            // varying nothing but the stroke: whatever the rule is, it is in these numbers.
+            ["vml-stroke-probe"] = () => new DocxBuilder()
+                .AddRawParagraph(StrokeProbePage(null, first: true))
+                .AddRawParagraph(StrokeProbePage("0.25pt"))
+                .AddRawParagraph(StrokeProbePage("0.5pt"))
+                .AddRawParagraph(StrokeProbePage("0.75pt"))
+                .AddRawParagraph(StrokeProbePage("1pt"))
+                .AddRawParagraph(StrokeProbePage("1.5pt"))
+                .AddRawParagraph(StrokeProbePage("2pt"))
+                .AddRawParagraph(StrokeProbePage("3pt"))
+                .AddRawParagraph(StrokeProbePage("4.5pt"))
+                .AddRawParagraph(StrokeProbePage("6pt"))
+
+                // And three more asking whether the offset belongs to the shape or to where the
+                // shape is: the same weight on a different geometry, and two shapes on one line.
+                .AddRawParagraph(StrokeProbePage("1pt", element: "roundrect"))
+                .AddRawParagraph(StrokeProbePage("1pt", element: "oval"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:108pt;height:54pt", element: "rect",
+                                     fillColor: "#c0d8f0", strokeColor: "#000000",
+                                     strokeWeight: "1pt", id: 1060) +
+                                 DocxBuilder.VmlShape("width:108pt;height:54pt", element: "rect",
+                                     fillColor: "#f0d8c0", strokeColor: "#000000",
+                                     strokeWeight: "1pt", id: 1061) +
+                                 "</w:p>")
+                .AddParagraph("Two rectangles on one line.", ZeroSpacing, Times12),
+
+            // And the same measurement again: how far inside its edges the older kind of box sets
+            // its text, and whether it answers the question the same way the newer kind does.
+            //
+            //   page 1  whatever a box that says nothing gets
+            //   page 2  no inset at all, a fine stroke
+            //   page 3  no inset, a six point stroke  -> is half the stroke part of the inset?
+            ["vml-inset-probe"] = () => new DocxBuilder()
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:216pt;height:72pt", ShapeText("A"),
+                                     strokeWeight: "0.75pt", id: 1040) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:216pt;height:72pt", ShapeText("B"),
+                                     strokeWeight: "0.75pt", inset: "0,0,0,0", id: 1041) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.VmlShape("width:216pt;height:72pt", ShapeText("C"),
+                                     strokeWeight: "6pt", inset: "0,0,0,0", id: 1042) + "</w:p>"),
 
             // Inline images: one on its own, one alongside text so that the line's height and the
             // baseline it sits on can be checked, and one with transparency.

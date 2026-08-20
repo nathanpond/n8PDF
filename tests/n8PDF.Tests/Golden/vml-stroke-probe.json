@@ -1,0 +1,278 @@
+{
+  "pageCount": 13,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 68.309, "font": "Times New Roman", "size": 12, "text": "rect unstroked"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 51.316, "font": "Times New Roman", "size": 12, "text": "rect 0.25pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 45.316, "font": "Times New Roman", "size": 12, "text": "rect 0.5pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 51.316, "font": "Times New Roman", "size": 12, "text": "rect 0.75pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 1pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 45.316, "font": "Times New Roman", "size": 12, "text": "rect 1.5pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 2pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 3pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 16,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 45.316, "font": "Times New Roman", "size": 12, "text": "rect 4.5pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 18,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 6pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 20,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "roundrect 1pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 22,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.994, "font": "Times New Roman", "size": 12, "text": "oval 1pt"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 24,
+          "baselineY": 126,
+          "height": 54,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 137.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 132.955, "font": "Times New Roman", "size": 12, "text": "Two rectangles on one line."}
+          ]
+        }
+      ]
+    }
+  ]
+}

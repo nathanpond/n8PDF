@@ -42,9 +42,9 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// needs and why.
     /// </summary>
     /// <remarks>
-    /// Currently empty, and worth keeping that way. Every fixture agrees with Word vertically to
-    /// within 0.29pt and horizontally to the last decimal place, so an entry here would record a
-    /// regression rather than a known gap.
+    /// One entry, and worth keeping it to one. Every other fixture agrees with Word vertically to
+    /// within 0.62pt and horizontally to the last decimal place, so a second entry here would
+    /// record a regression rather than a known gap.
     ///
     /// Entries were listed individually rather than folded into one permissive global tolerance,
     /// so that each stayed a specific bug to drive to zero. All have now been retired, each after
@@ -59,7 +59,25 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     ///   styles, heading-spacing-probe — Word fills in what a document's styles leave unstated
     ///     from its own built-in definitions. See WordBuiltInStyles.
     /// </remarks>
-    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences = [];
+    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
+        new()
+        {
+            ["vml-stroke-probe"] = (5.5,
+                """
+                An old-style shape with an outline thicker than a point makes its line taller in
+                Word than the shape's own height, and the line under it sits lower by:
+
+                    1½pt outline  0.96pt      3pt  1.92pt      6pt  5.04pt
+                      2pt outline  0.96pt    4½pt  4.08pt
+
+                which follows neither the weight nor the offset the same shape is drawn at — 2pt
+                and 3pt are drawn at the same offset and grow the line by different amounts. The
+                offset itself is implemented, and is exact at every weight; this is the part that
+                was measured and not explained, and the probe is here so it can be read again.
+                Nothing in an ordinary document reaches it: Word's own text boxes are outlined at
+                three quarters of a point, and everything at a point or less grows nothing.
+                """)
+        };
 
     /// <summary>
     /// Fixtures whose text cannot be compared character for character, and why.

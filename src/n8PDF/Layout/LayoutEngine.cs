@@ -2997,7 +2997,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         var edge = shape.Line is null ? 0 : shape.LineWidthPoints / 2;
 
-        var left = shape.InsetLeftPoints + edge;
+        // Where the shape is drawn away from its own box, its text follows it by half as far.
+        var carried = shape.DrawnOffsetPoints / 2;
+
+        var left = shape.InsetLeftPoints + edge + carried;
         var available = width - shape.InsetLeftPoints - shape.InsetRightPoints - 2 * edge;
         var content = MeasureBlocks(shape.Content, Math.Max(1, available));
 
@@ -3006,7 +3009,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         // does with one too.
         var box = height - shape.InsetTopPoints - shape.InsetBottomPoints - 2 * edge;
 
-        var top = shape.Anchor switch
+        var top = carried + shape.Anchor switch
         {
             ShapeTextAnchor.Center => shape.InsetTopPoints + edge + Math.Max(0, (box - content.Height) / 2),
             ShapeTextAnchor.Bottom => Math.Max(shape.InsetTopPoints + edge,

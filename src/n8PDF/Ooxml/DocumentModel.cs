@@ -294,6 +294,17 @@ public sealed class ShapeFrame
 
     public ShapeTextAnchor Anchor { get; set; } = ShapeTextAnchor.Top;
 
+    /// <summary>
+    /// How far down and to the right the shape is drawn from where its size puts it, in points.
+    /// Nought for everything but a thickly outlined shape in the older spelling.
+    /// </summary>
+    /// <remarks>
+    /// Word draws an old-style shape offset from its own box by an amount that depends on how
+    /// thick its outline is, and the text inside it by half of that. See <see cref="Vml"/>, where
+    /// the ten weights it was measured at are listed.
+    /// </remarks>
+    public double DrawnOffsetPoints { get; set; }
+
     public bool HasText => Content.Count > 0;
 }
 

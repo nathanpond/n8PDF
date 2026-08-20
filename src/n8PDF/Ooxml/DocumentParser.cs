@@ -293,15 +293,24 @@ public static class DocumentParser
             {
                 if (ParseDrawing(child) is { } drawing) run.Content.Add(drawing);
             }
+            else if (child.Name == W.Main + "pict")
+            {
+                // The older spelling of a shape, which is what Word wrote before 2007 and still
+                // writes for a watermark.
+                if (Vml.ParsePicture(child) is { } picture) run.Content.Add(picture);
+            }
             else if (child.Name == W.Compatibility + "AlternateContent")
             {
                 // The same drawing written twice over, for readers of different ages. The first
                 // choice is the one meant for a reader that understands it, and the fallback the
                 // older spelling of the same thing — so taking the choice and ignoring the
                 // fallback draws it once rather than twice.
-                foreach (var alternative in Preferred(child).Elements(W.Main + "drawing"))
+                foreach (var alternative in Preferred(child).Elements())
                 {
-                    if (ParseDrawing(alternative) is { } drawing) run.Content.Add(drawing);
+                    if (alternative.Name == W.Main + "drawing" && ParseDrawing(alternative) is { } drawing)
+                        run.Content.Add(drawing);
+                    else if (alternative.Name == W.Main + "pict" && Vml.ParsePicture(alternative) is { } picture)
+                        run.Content.Add(picture);
                 }
             }
             else if (child.Name == W.Main + "footnoteReference" || child.Name == W.Main + "endnoteReference")
