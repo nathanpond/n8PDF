@@ -222,6 +222,28 @@ beside the **nought** rather than at the foot of the plot, because that is where
 A chart whose bars all stand up puts the two in the same place; one with a bar hanging down does
 not, and what hangs down hangs past its own label.
 
+### How a line curves, and where a pie sits
+
+A line chart **curves through its points unless the series says not to** — the format's default is
+smooth, which is not the obvious one, and Word writes `c:smooth` on every line chart it makes so
+its own files never depend on it. The curve is a Catmull-Rom spline: each point is passed at a
+slope of half the distance between its neighbours, the ends take the slope of their own segment,
+and the Bézier controls sit a third of the way along those slopes. Every control point of the
+fixture's curve comes out of that to the EMU — Word writes 266700 where the rule gives 266690.
+
+The points themselves sit at the middles of the categories, where a bar chart's bars stand.
+
+A pie is centred in its plot area and reaches the nearer pair of its edges: Word's export puts the
+fixture's pie at the middle of a plot 216 by 172.8 with a radius of 86.4, which is half the shorter
+side. Its slices begin at the top and run clockwise. A pie carries no axes, so a pie left to place
+itself gets the bare eleven points on every side — the same margin a chart with no labels gets, and
+Word draws it at exactly that.
+
+Inside the frame, all four of `chart-line-pie` agree with Word on better than 99.9% of their ink.
+The one thing left outside it is that Word clips a chart to its own frame, so the outer half of the
+border it draws is cut away; nothing here clips, and that border straddles the edge instead. It
+comes to a quarter of a point of halo round the outside of a chart.
+
 ### What a diagram is, and which half of it to draw
 
 SmartArt is written down twice. There is what it means — points, the connections between them, and
@@ -415,9 +437,11 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), column charts (the plot area where the chart places it or, where it does not, worked out
-from the room the labels need, bars sized by the gap and the
-overlap between them, gridlines, both axis lines and their marks, and the labels along each axis,
+pictures), charts of columns, lines and pies (the plot area where the chart places it or, where it
+does not, worked out from the room the labels need; bars sized by the gap and the overlap between
+them, a line curved through its points the way Word curves one or straight where it says so, a pie
+centred and divided clockwise from the top; gridlines, both axis lines and their marks, and the
+labels along each axis,
 read from the numbers the chart part caches, with the axis scaled and the plot placed the way Word
 does both where the chart leaves them to be worked out), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
@@ -449,12 +473,13 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-A chart is drawn as far as a column chart goes, and no further yet. What is there: the plot area,
-the bars, the gridlines, the two axis lines and the marks along them, and the labels up the value
-axis and under the categories, with the numbers read from the cache the part carries rather than
-from the workbook stored beside it. What is not: every other kind of plot — line, pie, area,
-scatter — and titles, legends, data labels and the automatic placing of the plot area, for which
-see below.
+Three kinds of chart are drawn: **columns, lines and pies**. What is there: the plot area, the
+bars or the line or the slices, the gridlines, the two axis lines and the marks along them, and the
+labels up the value axis and under the categories — with the numbers read from the cache the part
+carries rather than from the workbook stored beside it, and with the axis scaled and the plot
+placed the way Word does both where the chart leaves them to be worked out. What is not: bars lying
+along their axis rather than standing up, area and scatter plots, stacked groupings, markers on a
+line, and titles, legends and data labels.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

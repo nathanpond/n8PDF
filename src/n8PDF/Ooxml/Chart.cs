@@ -26,7 +26,26 @@ public sealed record ChartSeries(
     string Name,
     IReadOnlyList<string> Categories,
     IReadOnlyList<double?> Values,
-    DrawingColorReference? Fill);
+    DrawingColorReference? Fill)
+{
+    /// <summary>
+    /// What each point is painted in, where the series says so point by point. A pie says it that
+    /// way, since its points are its slices and one colour would make it a disc.
+    /// </summary>
+    public IReadOnlyDictionary<int, DrawingColorReference?> PointFills { get; init; } =
+        new Dictionary<int, DrawingColorReference?>();
+
+    /// <summary>What a line is drawn in, and how thick.</summary>
+    public DrawingColorReference? Line { get; init; }
+
+    public double LineWidthPoints { get; init; } = 2.25;
+
+    /// <summary>
+    /// Whether the line curves through its points rather than going straight between them. It
+    /// does unless told not to, which is the format's own default and not an obvious one.
+    /// </summary>
+    public bool Smooth { get; init; } = true;
+}
 
 /// <summary>An axis, and what it says about the scale it draws.</summary>
 public sealed class ChartAxis
@@ -100,6 +119,11 @@ public sealed class ChartDefinition
     /// </summary>
     public int Overlap { get; set; }
 
+    /// <summary>
+    /// Where a pie begins, clockwise from the top, in degrees.
+    /// </summary>
+    public int FirstSliceAngle { get; set; }
+
     /// <summary>The categories, taken from the first series that names any.</summary>
     public IReadOnlyList<string> Categories =>
         Series.FirstOrDefault(series => series.Categories.Count > 0)?.Categories ?? [];
@@ -147,6 +171,7 @@ public static class ChartReader
 
         definition.GapWidth = Integer(plot.Element(Main + "gapWidth")) ?? 150;
         definition.Overlap = Integer(plot.Element(Main + "overlap")) ?? 0;
+        definition.FirstSliceAngle = Integer(plot.Element(Main + "firstSliceAng")) ?? 0;
 
         foreach (var series in plot.Elements(Main + "ser"))
             definition.Series.Add(ReadSeries(series));
@@ -171,8 +196,29 @@ public static class ChartReader
         var categories = element.Element(Main + "cat") is { } cat ? Strings(cat) : [];
         var values = element.Element(Main + "val") is { } val ? Numbers(val) : [];
 
-        return new ChartSeries(name, categories, values,
-            DrawingText.ReadFill(element.Element(Main + "spPr")));
+        var properties = element.Element(Main + "spPr");
+        var line = properties?.Element(W.Drawing + "ln");
+
+        var points = new Dictionary<int, DrawingColorReference?>();
+        foreach (var point in element.Elements(Main + "dPt"))
+        {
+            if (Integer(point.Element(Main + "idx")) is not { } index) continue;
+
+            points[index] = DrawingText.ReadFill(point.Element(Main + "spPr"));
+        }
+
+        return new ChartSeries(name, categories, values, DrawingText.ReadFill(properties))
+        {
+            PointFills = points,
+            Line = DrawingText.ReadFill(line),
+            LineWidthPoints = line?.Attribute("w")?.Value is { } width && long.TryParse(width, out var emu)
+                ? Units.EmuToPoints(emu)
+                : 2.25,
+
+            // A line curves through its points unless the series says otherwise. Word writes the
+            // element on every line chart it makes; one that leaves it out gets the curve.
+            Smooth = element.Element(Main + "smooth")?.Attribute("val")?.Value is not ("0" or "false")
+        };
     }
 
     private static ChartAxis ReadAxis(XElement element, bool isValue)

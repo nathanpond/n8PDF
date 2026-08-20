@@ -881,6 +881,78 @@ public static class Fixtures
         [1], [3, 7], [9.5], [10], [12], [47], [100], [105], [1000], [0.4], [-20, 60], [55, 30]
     ];
 
+    /// <summary>A line chart, with its plotting placed by hand and its axis told what to do.</summary>
+    private static string LineChart(int series) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout><c:manualLayout>
+              <c:layoutTarget val="inner"/>
+              <c:xMode val="edge"/><c:yMode val="edge"/>
+              <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.7"/><c:h val="0.7"/>
+            </c:manualLayout></c:layout>
+            <c:lineChart>
+              <c:grouping val="standard"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartLineSeries(0, "Units", ["One", "Two", "Three", "Four"],
+                  [30, 45, 20, 55], "4472C4")}
+              {(series > 1
+                  ? DocxBuilder.ChartLineSeries(1, "Others", ["One", "Two", "Three", "Four"],
+                      [10, 25, 50, 15], "ED7D31")
+                  : string.Empty)}
+              <c:marker val="0"/>
+              <c:axId val="111111111"/><c:axId val="222222222"/>
+            </c:lineChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/><c:axPos val="b"/>
+              <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+              <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/><c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/><c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+        </c:chart>
+        """;
+
+    /// <summary>A pie chart, whose plotting is placed by hand on one page and left to Word on another.</summary>
+    private static string PieChart(bool manualLayout) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>{(manualLayout
+                ? """
+                  <c:manualLayout>
+                    <c:layoutTarget val="inner"/>
+                    <c:xMode val="edge"/><c:yMode val="edge"/>
+                    <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.8"/>
+                  </c:manualLayout>
+                  """
+                : string.Empty)}</c:layout>
+            <c:pieChart>
+              <c:varyColors val="1"/>
+              {DocxBuilder.ChartPieSeries("Units", ["One", "Two", "Three", "Four"],
+                  [30, 45, 20, 55], ["4472C4", "ED7D31", "A5A5A5", "FFC000"])}
+              <c:firstSliceAng val="0"/>
+            </c:pieChart>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+        </c:chart>
+        """;
+
     /// <summary>A chart part, wrapped in the element every one of them begins with.</summary>
     private static string ChartPart(string chartXml) => $"""
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1894,6 +1966,43 @@ public static class Fixtures
                     builder.AddRawParagraph(
                         $"<w:p><w:pPr>{(i == 0 ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
                         DocxBuilder.ChartDrawing(288, 180, id: 700 + i, relationshipId: id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // The two other kinds of chart a document is likely to hold: a line through the
+            // categories, and a pie divided between them.
+            //
+            //   page 1  one line
+            //   page 2  two lines
+            //   page 3  a pie, its plotting placed by hand
+            //   page 4  the same pie, left to Word to place
+            ["chart-line-pie"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(LineChart(series: 1));
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdLine2", LineChart(series: 2)),
+                    ("rIdPie1", PieChart(manualLayout: true)),
+                    ("rIdPie2", PieChart(manualLayout: false))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 800) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/plot{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 801 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
                 }
 
                 return builder;

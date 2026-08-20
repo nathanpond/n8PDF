@@ -298,6 +298,247 @@ public class ChartTests(ITestOutputHelper output)
                 .First();
     }
 
+    /// <summary>
+    /// A line through the categories, and a pie divided between them, against Word's own drawing
+    /// of both.
+    /// </summary>
+    /// <remarks>
+    /// Compared as ink, since both are curves: a line chart curves through its points unless told
+    /// not to, and a pie is nothing but arcs. Neither can be set against Word operator for
+    /// operator, and both can be set against it pixel for pixel.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "one line")]
+    [InlineData(1, "two lines")]
+    [InlineData(2, "a pie, placed by hand")]
+    [InlineData(3, "a pie, placed by Word")]
+    public void A_line_and_a_pie_cover_what_word_covers(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-line-pie");
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, scale) is not { } mine ||
+            PdfRasterizer.Render(theirs, page, scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var (agreed, covered, inkOfMine, inkOfTheirs) = (0, 0, 0, 0);
+
+        // Inside the frame rather than over it. Word clips a chart to its own frame, so the outer
+        // half of the border it draws is cut away and the inner half is all that shows; nothing
+        // here clips, so the same border straddles the edge. It is a quarter of a point of halo
+        // round the outside of a chart, and it is all that is left between the two.
+        for (var y = 74.0; y < 286; y++)
+        for (var x = 74.0; x < 430; x++)
+        {
+            var a = mine.At(x, y, scale);
+            var b = word.At(x, y, scale);
+
+            var ink = a.R < 200 || a.G < 200 || a.B < 200;
+            var theirInk = b.R < 200 || b.G < 200 || b.B < 200;
+
+            if (ink) inkOfMine++;
+            if (theirInk) inkOfTheirs++;
+            if (ink == theirInk) agreed++;
+
+            covered++;
+        }
+
+        var agreement = 100.0 * agreed / covered;
+
+        _output.WriteLine(
+            $"{what}: ink {inkOfMine} here, {inkOfTheirs} in Word's; agreeing on {agreement:0.00}%");
+
+        Assert.True(agreement > 99, $"{what} agrees with Word on only {agreement:0.0}% of its ink");
+        Assert.InRange((double)inkOfMine / inkOfTheirs, 0.9, 1.1);
+    }
+
+    /// <summary>
+    /// Where a pie sits: the middle of the plot area, reaching the nearer pair of its edges.
+    /// </summary>
+    /// <remarks>
+    /// Word's export of the fixture puts the hand-placed pie's centre at (252, 180) with a radius
+    /// of 86.4 — the middle of a plot 216 wide and 172.8 tall, and half its shorter side — and the
+    /// automatic one at the middle of the frame with a radius of 97, the frame less the eleven
+    /// points a chart keeps clear on every side.
+    /// </remarks>
+    [Theory]
+    [InlineData(2, 252, 180, 86.4)]
+    [InlineData(3, 252, 180, 97)]
+    public void A_pie_fills_the_plot_it_is_given(int page, double x, double y, double radius)
+    {
+        var (ours, _) = BothWays("chart-line-pie");
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, scale) is not { } mine)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        double left = 999, right = -999, top = 999, bottom = -999;
+
+        // Inside the frame, so that the border round the chart is not mistaken for the pie.
+        for (var py = 76.0; py < 284; py += 0.5)
+        for (var px = 76.0; px < 428; px += 0.5)
+        {
+            var pixel = mine.At(px, py, scale);
+
+            if (pixel.R > 200 && pixel.G > 200 && pixel.B > 200) continue;
+
+            left = Math.Min(left, px);
+            right = Math.Max(right, px);
+            top = Math.Min(top, py);
+            bottom = Math.Max(bottom, py);
+        }
+
+        _output.WriteLine($"page {page + 1}: the pie spans {left}..{right} across and {top}..{bottom} down");
+
+        Assert.Equal(x, (left + right) / 2, 1);
+        Assert.Equal(y, (top + bottom) / 2, 1);
+
+        // The slices are outlined in white, so the outermost three quarters of a point of the pie
+        // is the border rather than the pie and does not count as ink: what is measured here comes
+        // out just inside the radius rather than at it.
+        Assert.True(Math.Abs((right - left) / 2 - radius) < 1.1,
+            $"the pie is {(right - left) / 2:0.##} across the middle where it should be {radius}.");
+
+        Assert.True(Math.Abs((bottom - top) / 2 - radius) < 1.1,
+            $"the pie is {(bottom - top) / 2:0.##} down the middle where it should be {radius}.");
+    }
+
+    /// <summary>
+    /// A line curves through its points unless the series says otherwise, and the curve is the one
+    /// Word draws.
+    /// </summary>
+    /// <remarks>
+    /// Each point is passed at a slope of half what its neighbours span, with the control points a
+    /// third of the way along it; the ends take the slope of their own segment. Word's export of
+    /// the fixture's line gives control points that come out of exactly that, to the EMU — the
+    /// second control of its first segment is 266700 where this gives 266690.
+    /// </remarks>
+    [Fact]
+    public void A_line_curves_through_its_points_the_way_word_curves_it()
+    {
+        var chart = new ChartDefinition { Kind = ChartKind.Line };
+
+        chart.Series.Add(new ChartSeries("Units", ["A", "B", "C", "D"],
+            [30, 45, 20, 55], null) { Line = new DrawingColorReference("4472C4", null) });
+
+        var plan = new ChartComposer.Plan(144, 93.6, 252, 151.2, 0, 60, 20);
+        var drawing = ChartComposer.Draw(chart, plan, 360, 216, new DocumentTheme());
+
+        var path = Assert.IsType<Images.PathOperation>(
+            drawing.Operations.Last(operation => operation is Images.PathOperation { Fill: null }));
+
+        // The points sit at the middles of the four quarters of the plot.
+        Assert.Equal(144 + 31.5, path.Steps[0].Points[0].X, 2);
+
+        // And between them a curve rather than a line, one for each gap.
+        Assert.Equal(3, path.Steps.Count(step => step.Kind == Images.PathStepKind.Curve));
+
+        // The first segment's second control: the point at 45 is passed at half the slope from 30
+        // to 20, so the control sits a third of that back from it.
+        var first = path.Steps[1].Points;
+        var slope = (plan.PositionOf(20) - plan.PositionOf(30)) / 2;
+
+        Assert.Equal(plan.PositionOf(45) - slope / 3, first[1].Y, 2);
+    }
+
+    /// <summary>And a series that says not to is drawn straight.</summary>
+    [Fact]
+    public void A_line_told_not_to_curve_goes_straight()
+    {
+        var chart = new ChartDefinition { Kind = ChartKind.Line };
+
+        chart.Series.Add(new ChartSeries("Units", ["A", "B", "C"], [10, 20, 30], null)
+        {
+            Smooth = false,
+            Line = new DrawingColorReference("4472C4", null)
+        });
+
+        var plan = new ChartComposer.Plan(0, 0, 300, 100, 0, 40, 10);
+        var drawing = ChartComposer.Draw(chart, plan, 300, 100, new DocumentTheme());
+
+        var path = Assert.IsType<Images.PathOperation>(
+            drawing.Operations.Last(operation => operation is Images.PathOperation { Fill: null }));
+
+        Assert.Equal(2, path.Steps.Count(step => step.Kind == Images.PathStepKind.Line));
+        Assert.DoesNotContain(path.Steps, step => step.Kind == Images.PathStepKind.Curve);
+    }
+
+    /// <summary>
+    /// A line curves unless told not to, which is the format's default and not the obvious one.
+    /// </summary>
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("""<c:smooth val="1"/>""", true)]
+    [InlineData("""<c:smooth val="0"/>""", false)]
+    public void A_series_curves_unless_it_says_not_to(string smooth, bool expected)
+    {
+        var chart = ChartReader.Parse(XDocument.Parse($"""
+            <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+                          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <c:chart><c:plotArea><c:layout/>
+                <c:lineChart>
+                  <c:ser>
+                    <c:idx val="0"/>
+                    <c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="4472C4"/></a:solidFill></a:ln></c:spPr>
+                    <c:val><c:numRef><c:numCache><c:ptCount val="1"/>
+                      <c:pt idx="0"><c:v>1</c:v></c:pt></c:numCache></c:numRef></c:val>
+                    {smooth}
+                  </c:ser>
+                </c:lineChart>
+              </c:plotArea></c:chart>
+            </c:chartSpace>
+            """));
+
+        var series = Assert.Single(chart!.Series);
+
+        Assert.Equal(expected, series.Smooth);
+        Assert.Equal("4472C4", series.Line?.Hex);
+        Assert.Equal(2.25, series.LineWidthPoints, 3);
+    }
+
+    /// <summary>A pie's slices each carry their own colour, which is what a data point is for.</summary>
+    [Fact]
+    public void A_pie_takes_a_colour_for_every_slice()
+    {
+        var chart = ChartReader.Parse(XDocument.Parse("""
+            <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+                          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <c:chart><c:plotArea><c:layout/>
+                <c:pieChart>
+                  <c:varyColors val="1"/>
+                  <c:ser>
+                    <c:idx val="0"/>
+                    <c:dPt><c:idx val="0"/>
+                      <c:spPr><a:solidFill><a:srgbClr val="4472C4"/></a:solidFill></c:spPr></c:dPt>
+                    <c:dPt><c:idx val="1"/>
+                      <c:spPr><a:solidFill><a:srgbClr val="ED7D31"/></a:solidFill></c:spPr></c:dPt>
+                    <c:val><c:numRef><c:numCache><c:ptCount val="2"/>
+                      <c:pt idx="0"><c:v>1</c:v></c:pt><c:pt idx="1"><c:v>3</c:v></c:pt>
+                    </c:numCache></c:numRef></c:val>
+                  </c:ser>
+                  <c:firstSliceAng val="90"/>
+                </c:pieChart>
+              </c:plotArea></c:chart>
+            </c:chartSpace>
+            """));
+
+        Assert.Equal(ChartKind.Pie, chart!.Kind);
+        Assert.Equal(90, chart.FirstSliceAngle);
+
+        var series = Assert.Single(chart.Series);
+        Assert.Equal("4472C4", series.PointFills[0]?.Hex);
+        Assert.Equal("ED7D31", series.PointFills[1]?.Hex);
+    }
+
     /// <summary>What a chart part says, read back off it.</summary>
     [Fact]
     public void A_chart_is_read_from_its_own_part()

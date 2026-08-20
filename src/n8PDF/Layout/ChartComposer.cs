@@ -259,6 +259,14 @@ internal static class ChartComposer
             Rectangle(plan.Left, plan.Top, plan.Width, plan.Height),
             new DrawingColor(255, 255, 255), null, LineWidth, EvenOdd: false));
 
+        // A pie has no axes to draw, and nothing behind it but the frame.
+        if (chart.Kind == ChartKind.Pie)
+        {
+            operations.AddRange(Slices(chart, plan, theme));
+
+            return new VectorDrawing(width, height, operations);
+        }
+
         if (chart.ValueAxis is { Deleted: false, MajorGridlines: true })
         {
             foreach (var value in Marks(plan))
@@ -274,6 +282,8 @@ internal static class ChartComposer
         foreach (var bar in Bars(chart, plan))
             operations.Add(new PathOperation(Rectangle(bar.X, bar.Y, bar.Width, bar.Height),
                 Resolve(bar.Fill, theme), null, LineWidth, EvenOdd: false));
+
+        if (chart.Kind == ChartKind.Line) operations.AddRange(Lines(chart, plan, theme));
 
         // The two axis lines, along the left and the foot of the plot.
         if (chart.ValueAxis is { Deleted: false })
@@ -344,6 +354,174 @@ internal static class ChartComposer
                     : (x, baseline, barWidth, top - baseline, chart.Series[index].Fill);
             }
         }
+    }
+
+    /// <summary>
+    /// A line through each series' points, one to a category.
+    /// </summary>
+    /// <remarks>
+    /// The points sit at the middles of the categories, as the bars of a bar chart do, and the
+    /// line runs from one to the next — curving through them unless the series says not to, which
+    /// is the format's own default. Measured from Word's export of chart-line-pie: the four points
+    /// of its line land at 175.5, 238.5, 301.5 and 364.5 across a plot running 144 to 396, which
+    /// is the middle of each quarter of it.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Lines(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        var categories = Math.Max(1, chart.Categories.Count);
+        var slot = plan.Width / categories;
+
+        foreach (var series in chart.Series)
+        {
+            var points = new List<(double X, double Y)>();
+
+            for (var i = 0; i < series.Values.Count && i < categories; i++)
+            {
+                if (series.Values[i] is not { } value) continue;
+
+                points.Add((plan.Left + slot * (i + 0.5), plan.PositionOf(value)));
+            }
+
+            if (points.Count < 2) continue;
+
+            yield return new PathOperation(
+                series.Smooth ? Curve(points) : Straight(points),
+                null, Resolve(series.Line, theme), series.LineWidthPoints, EvenOdd: false);
+        }
+    }
+
+    private static IReadOnlyList<PathStep> Straight(IReadOnlyList<(double X, double Y)> points)
+    {
+        var steps = new List<PathStep> { new(PathStepKind.Move, [points[0]]) };
+
+        for (var i = 1; i < points.Count; i++)
+            steps.Add(new PathStep(PathStepKind.Line, [points[i]]));
+
+        return steps;
+    }
+
+    /// <summary>
+    /// A curve through every point, which is what a line chart draws unless told otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Each point is passed through at a slope of half the distance between its neighbours, and
+    /// the ends at the slope of their own segment; the control points sit a third of the way along
+    /// those slopes. That is a Catmull-Rom spline written as Béziers, and it is exactly what Word
+    /// draws — every control point of the fixture's curve comes out of this to the EMU.
+    /// </remarks>
+    private static IReadOnlyList<PathStep> Curve(IReadOnlyList<(double X, double Y)> points)
+    {
+        var steps = new List<PathStep> { new(PathStepKind.Move, [points[0]]) };
+
+        for (var i = 0; i < points.Count - 1; i++)
+        {
+            var start = points[i];
+            var end = points[i + 1];
+
+            var before = i > 0 ? points[i - 1] : start;
+            var after = i + 2 < points.Count ? points[i + 2] : end;
+
+            // The slope at a point is half of what its neighbours span; at an end there is only
+            // the one segment, so the slope is its own.
+            var startSlope = i > 0
+                ? ((end.X - before.X) / 2, (end.Y - before.Y) / 2)
+                : (end.X - start.X, end.Y - start.Y);
+
+            var endSlope = i + 2 < points.Count
+                ? ((after.X - start.X) / 2, (after.Y - start.Y) / 2)
+                : (end.X - start.X, end.Y - start.Y);
+
+            steps.Add(new PathStep(PathStepKind.Curve,
+            [
+                (start.X + startSlope.Item1 / 3, start.Y + startSlope.Item2 / 3),
+                (end.X - endSlope.Item1 / 3, end.Y - endSlope.Item2 / 3),
+                end
+            ]));
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// A pie: one slice for each value, filling the plot area.
+    /// </summary>
+    /// <remarks>
+    /// The circle is centred in the plot area and reaches the nearer pair of its edges — Word's
+    /// export puts the fixture's pie at the middle of a 216 by 172.8 plot with a radius of 86.4,
+    /// which is half the shorter side. The first slice begins at the top and they run clockwise,
+    /// each ending where the next begins.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Slices(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        var series = chart.Series.FirstOrDefault();
+        if (series is null) yield break;
+
+        var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
+        var total = values.Sum();
+        if (total <= 0) yield break;
+
+        var centre = (X: plan.Left + plan.Width / 2, Y: plan.Top + plan.Height / 2);
+        var radius = Math.Min(plan.Width, plan.Height) / 2;
+
+        var angle = chart.FirstSliceAngle * Math.PI / 180;
+
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] <= 0) continue;
+
+            var sweep = values[i] / total * 2 * Math.PI;
+
+            var fill = series.PointFills.TryGetValue(i, out var point) ? point : series.Fill;
+
+            yield return new PathOperation(
+                Wedge(centre, radius, angle, sweep),
+                Resolve(fill, theme), new DrawingColor(255, 255, 255), 1.5, EvenOdd: false);
+
+            angle += sweep;
+        }
+    }
+
+    /// <summary>
+    /// One slice, from its centre out to the rim, round, and back. The angles run clockwise from
+    /// the top, which is how a pie is read.
+    /// </summary>
+    private static IReadOnlyList<PathStep> Wedge(
+        (double X, double Y) centre, double radius, double from, double sweep)
+    {
+        var steps = new List<PathStep> { new(PathStepKind.Move, [At(from)]) };
+
+        // A cubic cannot be an arc, so a slice is drawn in pieces no larger than a quarter turn.
+        var pieces = Math.Max(1, (int)Math.Ceiling(sweep / (Math.PI / 2)));
+        var step = sweep / pieces;
+        var control = 4.0 / 3 * Math.Tan(step / 4) * radius;
+
+        for (var i = 0; i < pieces; i++)
+        {
+            var start = from + step * i;
+            var end = start + step;
+
+            var (sx, sy) = At(start);
+            var (ex, ey) = At(end);
+
+            // The control points run along the tangent at each end, which for a circle is the
+            // radius turned a quarter.
+            steps.Add(new PathStep(PathStepKind.Curve,
+            [
+                (sx + control * Math.Cos(start), sy + control * Math.Sin(start)),
+                (ex - control * Math.Cos(end), ey - control * Math.Sin(end)),
+                (ex, ey)
+            ]));
+        }
+
+        steps.Add(new PathStep(PathStepKind.Line, [centre]));
+        steps.Add(new PathStep(PathStepKind.Close, []));
+
+        return steps;
+
+        (double X, double Y) At(double a) =>
+            (centre.X + radius * Math.Sin(a), centre.Y - radius * Math.Cos(a));
     }
 
     /// <summary>The values the value axis marks, from its bottom to its top.</summary>

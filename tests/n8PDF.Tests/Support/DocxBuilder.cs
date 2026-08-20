@@ -922,6 +922,48 @@ public sealed class DocxBuilder
             """;
     }
 
+    /// <summary>One series of a line chart: a colour and a width rather than a fill.</summary>
+    public static string ChartLineSeries(
+        int index, string name, IReadOnlyList<string> categories, IReadOnlyList<double> values,
+        string lineHex, double widthPoints = 2.25, string marker = "none")
+    {
+        var series = ChartSeries(index, name, categories, values, "FFFFFF");
+
+        return series.Replace(
+            $"<c:spPr><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr>",
+            $"""
+             <c:spPr>
+               <a:ln w="{(long)Math.Round(widthPoints * 12700)}" cap="rnd">
+                 <a:solidFill><a:srgbClr val="{lineHex}"/></a:solidFill>
+                 <a:round/>
+               </a:ln>
+             </c:spPr>
+             <c:marker><c:symbol val="{marker}"/></c:marker>
+             """);
+    }
+
+    /// <summary>A pie's slices, each stating its own colour.</summary>
+    public static string ChartPieSeries(
+        string name, IReadOnlyList<string> categories, IReadOnlyList<double> values,
+        IReadOnlyList<string> fills)
+    {
+        var series = ChartSeries(0, name, categories, values, "FFFFFF");
+
+        var points = string.Concat(fills.Select((fill, i) => $"""
+            <c:dPt>
+              <c:idx val="{i}"/>
+              <c:bubble3D val="0"/>
+              <c:spPr><a:solidFill><a:srgbClr val="{fill}"/></a:solidFill>
+                <a:ln w="19050"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln>
+              </c:spPr>
+            </c:dPt>
+            """));
+
+        return series.Replace(
+            $"<c:spPr><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr>",
+            points);
+    }
+
     private const string DiagramNamespace = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
 
     private const string OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
