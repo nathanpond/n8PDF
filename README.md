@@ -444,18 +444,24 @@ for every bracket that has to grow. Those are read and used, and the rules that 
 ones the OpenType specification lays down. What was measured is where Word departs from them, and it
 departs in seven places:
 
-- Word sets an inline equation's **distances at 0.92 of the type size** while drawing its letters at
-  the size itself. One factor accounts for the fraction shifts, the script shifts and the size of
-  every stretched glyph at once — a bracket in a twelve point sentence comes out of Word's own file
-  at 11.04. **On a line of its own it does not**: the same radical is at twelve point there, and the
-  numerator of the quadratic formula rises 9.12 points, which is the table's display shift at twelve
-  and not at 11.04.
-- Its **script sizes are seven tenths and 0.58** of the type size, not the 73% and 60% the face
-  states.
+- **An equation is set at the size of the text carrying it, not at the size its own runs state.**
+  Its letters are drawn at their runs' size and everything else — every distance from the table,
+  every bracket and radical it stretches — is measured in the em of the text round it.
+  `math-structure-probe` is what says so: its paragraphs are twenty point and every run inside its
+  equations is twelve, and Word draws the letters at twelve and the brackets and radicals round them
+  at 19.92, which is twenty rounded to the 1/300 inch Word rounds a size to. An equation on a line
+  of its own has no text round it, and takes its own runs — which is why the radical of the
+  quadratic formula is at twelve point where the same radical in a sentence is 11.04.
+- Its **script sizes are the face's own percentages taken down to a whole half point**. Cambria Math
+  says 73% and 60%; twelve point gives 17.52 half points, so seventeen, so 8.5pt, written out as the
+  8.4 Word rounds a size to. The same rule gives Word's 6.96 for a script of a script of twelve
+  point, its 17.52 for a script of twenty-four, and its 4.08 for a script of six — three sizes and
+  two levels, none of them a simple share of the size.
 - **Inside something** — a bracket, a radical — the room between a letter and the sign after it is
-  four eighteenths of 0.92 of the size and the letter's lean is not counted at all; out in the
-  equation itself it is four eighteenths of the size *and* the lean. `x+y=z` agrees with Word's to
-  four decimal places on every gap of it.
+  four eighteenths of the em the equation is *set* at and the letter's lean is not counted at all;
+  out in the equation itself it is four eighteenths of the em its *letters* are and the lean as
+  well. `x+y=z` agrees with Word's to four decimal places on every gap of it, and the pair inside a
+  radical to a hundredth of a point.
 - A **script hangs off the letter's plain advance**, with none of that lean in between — and the
   **baseline-drop rules apply to what is built rather than to what is drawn**: the limits of an
   integral are placed from the integral's own ink, exactly, while the square of a *b* is raised by
@@ -483,17 +489,33 @@ Every position in an equation is rounded to Word's own 1/300 inch, which is the 
 figures above come out exactly rather than a hundredth away.
 
 The `equations` fixture holds seventeen of them beside Word's export of the same file. Drawn and
-compared line by line, the two agree on **99.5%** of their ink, and every equation begins within a
+compared line by line, the two agree on **99.7%** of their ink, and every equation begins within a
 third of a point of where Word begins it — most within four hundredths.
 
-What is not Word's is **how tall a line holding an equation is**. Word's own lines here run from
-13.68 points apart to 32.64, growing with what the equation holds; each piece of an equation asks
-its line for the room a line of its own face and size would ask for, which gives every one of them
-within two and a half points of Word's and most within one. Two other readings were measured and are
-further off: the ink alone leaves the page forty points short by the end and the typographic ascent
-twenty-five. What Word is measuring is somewhere between a glyph's ink and its face's ascent, and
-seventeen equations were not enough to say where. The cost is ten points of drift down a page of
-nothing but equations, and it is recorded in `TextPositionComparisonTests` rather than hidden.
+**How tall a line holding an equation is** was the last part of it that was not Word's, and
+`math-line-box-probe` settled it. It stands twenty-five equations between rails — a two point full
+stop on a line of its own — so that the room each asks for above and below the line can be read off
+Word's page directly. Two things decide it:
+
+- the **ink of everything in the equation, with the face's own math leading over it** — 300 design
+  units, 1.6 points at eleven point. Nothing below: what hangs down asks for its ink and no more.
+- and never less than **a line of the face at the size the equation is set at**, which is what a
+  bare letter gets and what an equation whose ink is small keeps. An equation of nothing but letters
+  is the one case where that floor follows the runs instead: an *x* at twenty-four point in an
+  eleven point paragraph asks for a twenty-four point line.
+
+Twenty-five probes, at three sizes and two levels of script, come out within 0.56 of a point of
+Word's — most within a quarter, which is the 1/300 inch Word rounds a position to — and one within
+0.92: a sum whose limits this engine places where the OpenType rules put an integral's and Word
+places lower. Across the whole `equations` fixture the drift down the page is under two points,
+where the reading before this probe existed left it thirteen.
+
+Two things the probes measured are *not* implemented, and are recorded rather than hidden. The face
+states a kern for every glyph by height — `MathKernInfo` — which decides how far a script is pushed
+off the letter it sits on; ours hangs off the plain advance, which is exact at twelve point and 1.09
+points short when the letter under it is twenty. And how far a bracket must reach before Word takes
+the next shape up was measured at twelve point as nine tenths of what it holds, which does not carry
+to a bracket round something twice the size the equation is set at.
 
 An equation's letters are drawn from the mathematical alphabets — an *x* in an equation is U+1D465,
 a character of its own, which is what Word draws — so what a reader copies out of one of our pages
@@ -736,7 +758,7 @@ well as after; radicals with and without a degree; brackets of any character, gr
 hold out of the shapes the face keeps for the purpose; sums, integrals and the rest of the n-ary
 operators with limits beside them or above and below; functions, matrices, aligned arrays, accents
 and bars — set from the face's own `MATH` table, in the mathematical alphabets Unicode keeps for the
-purpose, on a line of their own where the markup says so), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
+purpose, at the size of the text carrying them, on a line of their own where the markup says so), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
 and its text laid out into the rectangle the diagram set aside for it and set at its top, middle or
 foot), watermarks of both kinds (a word set across every page of a section, behind the text,

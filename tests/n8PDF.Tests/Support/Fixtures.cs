@@ -3404,6 +3404,232 @@ public static class Fixtures
                 return builder;
             },
 
+            // What an equation asks of the line that holds it, which is the one part of setting
+            // one that Word's own seventeen could not settle. Word grows a line with what the
+            // equation in it holds, and the question is by how much and measured from what: the
+            // ink of the glyphs, the ascent and descent their face states, or something between.
+            //
+            // Every probe stands between two rails — a two point full stop on a line of its own —
+            // and carries a two point full stop of its own before the equation, so that the
+            // baseline of the line itself can be found whatever the equation puts on it. The
+            // paragraph marks are two point as well, so that nothing but the equation decides how
+            // tall a line comes out. Then, for the nth probe:
+            //
+            //     ascent  = (probe - rail before) - the rail's descent
+            //     descent = (rail after - probe)  - the rail's ascent
+            //
+            // and the rail's own two are had from the pair of rails at the top, which have no
+            // probe between them.
+            //
+            // The eighteen are chosen so that each pair differs in one thing only:
+            //
+            //   x, b, y      a letter whose ink is low, one that reaches up, one that hangs down
+            //   sum          one glyph far taller than any letter
+            //   x at 24, 6   the same letter twice more, to see what the answer is a share of
+            //   x², x^x      a raised script whose ink is tall, and one whose ink is low
+            //   x_i          a lowered one
+            //   x/x, 1/1     two fractions differing only in the ink of what is in them
+            //   x/y          and one whose denominator hangs below its own baseline
+            //   root, (x)    a glyph stretched a little, and a bracket at its plain size
+            //   (a/b)        a bracket grown to a taller shape than the face's plain one
+            //   sum with     an operator with limits beside it
+            //   a/b alone    the same fraction on a line of its own, which Word sets larger
+            //   x^(x^x)      a script of a script, which is the smallest thing an equation holds
+            ["math-line-box-probe"] = () =>
+            {
+                const string Mark =
+                    "<w:rPr><w:rFonts w:ascii=\"Times New Roman\" w:hAnsi=\"Times New Roman\"/>" +
+                    "<w:sz w:val=\"4\"/></w:rPr>";
+
+                static string Run(string text, int halfPoints = 24) =>
+                    $"<m:r><w:rPr><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/>" +
+                    $"<w:sz w:val=\"{halfPoints}\"/></w:rPr>" +
+                    $"<m:t>{DocxBuilder.Escape(text)}</m:t></m:r>";
+
+                static string Element(string name, string inner) => $"<m:{name}>{inner}</m:{name}>";
+
+                static string Fraction(string numerator, string denominator) =>
+                    "<m:f>" + Element("num", numerator) + Element("den", denominator) + "</m:f>";
+
+                static string Superscript(string body, string sup) =>
+                    "<m:sSup>" + Element("e", body) + Element("sup", sup) + "</m:sSup>";
+
+                static string Subscript(string body, string sub) =>
+                    "<m:sSub>" + Element("e", body) + Element("sub", sub) + "</m:sSub>";
+
+                static string Radical(string body) =>
+                    "<m:rad><m:radPr><m:degHide m:val=\"1\"/></m:radPr>" +
+                    Element("deg", string.Empty) + Element("e", body) + "</m:rad>";
+
+                static string Delimited(string inner) =>
+                    "<m:d><m:dPr><m:begChr m:val=\"(\"/><m:endChr m:val=\")\"/></m:dPr>" +
+                    Element("e", inner) + "</m:d>";
+
+                static string Nary(string character, string sub, string sup, string body) =>
+                    "<m:nary><m:naryPr>" +
+                    $"<m:chr m:val=\"{character}\"/><m:limLoc m:val=\"subSup\"/>" +
+                    "</m:naryPr>" + Element("sub", sub) + Element("sup", sup) +
+                    Element("e", body) + "</m:nary>";
+
+                var builder = new DocxBuilder();
+
+                // A rail: nothing on it but a two point stop, so that its own ascent and descent
+                // are as small as a line can be made and are known.
+                void Rail() => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+
+                void Probe(string math, bool display = false) => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    (display ? $"<m:oMathPara><m:oMath>{math}</m:oMath></m:oMathPara>"
+                             : $"<m:oMath>{math}</m:oMath>") +
+                    "</w:p>");
+
+                // The pair that says what a rail's own ascent and descent come to.
+                Rail();
+                Rail();
+
+                foreach (var equation in new[]
+                         {
+                             Run("x"),
+                             Run("b"),
+                             Run("y"),
+                             Run("\u2211"),
+                             Run("x", 48),
+                             Run("x", 12),
+                             Superscript(Run("x"), Run("2")),
+                             Superscript(Run("x"), Run("x")),
+                             Subscript(Run("x"), Run("i")),
+                             Fraction(Run("x"), Run("x")),
+                             Fraction(Run("1"), Run("1")),
+                             Fraction(Run("x"), Run("y")),
+                             Radical(Run("x")),
+                             Delimited(Run("x")),
+                             Delimited(Fraction(Run("a"), Run("b"))),
+                             Nary("\u2211", Run("i=1"), Run("n"), Run("x")),
+                             Superscript(Run("x"), Superscript(Run("x"), Run("x")))
+                         })
+                {
+                    Probe(equation);
+                    Rail();
+                }
+
+                // A second round, on a page of its own, to settle what the first could not: what
+                // the room over an equation is a share of, and what the smallest a line holding
+                // one can be is a share of. Both are answered by asking the same questions at
+                // four times the size, where a quarter point of rounding stops mattering.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:pageBreakBefore/>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+                Rail();
+
+                foreach (var equation in new[]
+                         {
+                             Superscript(Run("x", 48), Run("2", 48)),
+                             Subscript(Run("x", 48), Run("i", 48)),
+                             Fraction(Run("1", 48), Run("1", 48)),
+                             Fraction(Run("x", 48), Run("y", 48)),
+                             Radical(Run("x", 48)),
+                             Delimited(Fraction(Run("a", 48), Run("b", 48))),
+
+                             // The same construct set small, to say whether what a line comes to
+                             // follows the equation's own type or the paragraph's.
+                             Superscript(Run("x", 12), Run("2", 12)),
+
+                             // Two sizes in one equation, to say which of them it follows.
+                             Run("x", 12) + Run("x", 48)
+                         })
+                {
+                    Probe(equation);
+                    Rail();
+                }
+
+                // Nothing here stands on a line of its own: an oMathPara has to be the whole of
+                // its paragraph for Word to set it as one, which leaves nothing on the line to
+                // say where its baseline is. What a display equation comes to is measured in the
+                // equations fixture instead, against Word's own setting of the quadratic formula.
+
+                return builder;
+            },
+
+            // What size an equation is set at, which the line box probe could not say: both its
+            // fixtures declare eleven point and Word set every equation in them at 11.04, which
+            // is eleven rounded to the three hundredth of an inch it rounds a size to — and is
+            // also 0.92 of the twelve point the runs of the first one state. This one declares
+            // twenty point and states twelve on every run in it, so the two answers are 20.16 and
+            // 11.04 and nothing can be both.
+            //
+            // The brackets and the radical are what say which: those are drawn at whatever the
+            // equation is set at, where a letter is drawn at the size its own run states.
+            ["math-structure-probe"] = () =>
+            {
+                const string Mark =
+                    "<w:rPr><w:rFonts w:ascii=\"Times New Roman\" w:hAnsi=\"Times New Roman\"/>" +
+                    "<w:sz w:val=\"4\"/></w:rPr>";
+
+                static string Run(string text, int halfPoints = 24) =>
+                    $"<m:r><w:rPr><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/>" +
+                    $"<w:sz w:val=\"{halfPoints}\"/></w:rPr>" +
+                    $"<m:t>{DocxBuilder.Escape(text)}</m:t></m:r>";
+
+                static string Element(string name, string inner) => $"<m:{name}>{inner}</m:{name}>";
+
+                var builder = new DocxBuilder().WithStyles(
+                    """
+                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                      <w:docDefaults>
+                        <w:rPrDefault>
+                          <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="40"/></w:rPr>
+                        </w:rPrDefault>
+                      </w:docDefaults>
+                      <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+                    </w:styles>
+                    """);
+
+                void Rail() => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+
+                void Probe(string math) => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    $"<m:oMath>{math}</m:oMath></w:p>");
+
+                Rail();
+                Rail();
+
+                foreach (var equation in new[]
+                         {
+                             // A bracket round a letter, and a radical over one: both are drawn at
+                             // whatever the equation is set at.
+                             "<m:d><m:dPr><m:begChr m:val=\"(\"/><m:endChr m:val=\")\"/></m:dPr>" +
+                             Element("e", Run("x")) + "</m:d>",
+
+                             "<m:rad><m:radPr><m:degHide m:val=\"1\"/></m:radPr>" +
+                             Element("deg", string.Empty) + Element("e", Run("x")) + "</m:rad>",
+
+                             // And a script, whose size and rise say the same thing again.
+                             "<m:sSup>" + Element("e", Run("x")) + Element("sup", Run("2")) +
+                             "</m:sSup>",
+
+                             // The same three with nothing stated on their runs at all, which
+                             // leaves them the paragraph's own twenty point.
+                             "<m:d><m:dPr><m:begChr m:val=\"(\"/><m:endChr m:val=\")\"/></m:dPr>" +
+                             Element("e", "<m:r><m:t>x</m:t></m:r>") + "</m:d>",
+
+                             "<m:sSup>" + Element("e", "<m:r><m:t>x</m:t></m:r>") +
+                             Element("sup", "<m:r><m:t>2</m:t></m:r>") + "</m:sSup>"
+                         })
+                {
+                    Probe(equation);
+                    Rail();
+                }
+
+                return builder;
+            },
+
             // Content wrapped in something that is neither a paragraph nor a table: a content
             // control, a compatibility alternative, the old custom-XML wrapper. Word writes these
             // round whole paragraphs and whole tables — a cover page, a table of contents, every

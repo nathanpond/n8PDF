@@ -105,7 +105,8 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // Unicode sets aside for mathematics and gives them no map back at all, so the text read
         // out of its file is the private codes of a subset rather than anything anyone typed.
         if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
-            or "southeast-asian" or "universal" or "apple" or "equations")
+            or "southeast-asian" or "universal" or "apple" or "equations"
+            or "math-line-box-probe" or "math-structure-probe")
         {
             return;
         }

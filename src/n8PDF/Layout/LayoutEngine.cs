@@ -4113,6 +4113,10 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         var maxTextDescent = 0.0;
         var maxImageAscent = 0.0;
 
+        // A picture sits on the baseline and hangs nothing below it; an equation is not a picture
+        // and a fraction reaches under the line as far as it reaches over it.
+        var maxImageDescent = 0.0;
+
         Segment? current = null;
         var pen = 0.0;
 
@@ -4156,6 +4160,7 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
                 current = null;
 
                 maxImageAscent = Math.Max(maxImageAscent, image.Ascent);
+                maxImageDescent = Math.Max(maxImageDescent, image.Descent);
                 continue;
             }
 
@@ -4227,7 +4232,9 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         // Calibri mark at the end of it takes the Times ascent and the Calibri descent, and is
         // deeper than either font would make it alone. Word measured a line that way in every
         // fixture here that mixes two fonts on one line.
-        var natural = Math.Max(maxTextAscent + maxTextDescent, maxImageAscent + maxTextDescent);
+        var descent = Math.Max(maxTextDescent, maxImageDescent);
+
+        var natural = Math.Max(maxTextAscent + descent, maxImageAscent + descent);
 
         // Nothing about a run's own box is lost by that: a single-font line is the same either
         // way, since one run's ascent and descent are its natural height.
@@ -4720,39 +4727,14 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
             });
         }
 
-        // What the line makes of it: every piece asks for the room a line of its own face and size
-        // would ask for, from wherever it has been put — so a numerator raised half a line raises
-        // the top of the line with it.
-        //
-        // This is the part of an equation that is not yet Word's. Word's lines holding these
-        // seventeen equations run from 13.68 points apart to 32.64, and this rule gives a line
-        // within two and a half points of each of them — closer than the ink alone, which is out
-        // by twice that, and closer than the typographic metrics, which are out by more still.
-        // What Word is measuring is somewhere between a glyph's ink and its face's ascent, and
-        // seventeen equations were not enough to say where. The cost is 10 points of drift down a
-        // page of nothing but equations; it is recorded in TextPositionComparisonTests.
-        var lineAscent = box.Ascent;
-        var lineDescent = box.Descent;
-
-        foreach (var piece in box.Pieces)
-        {
-            var metrics = piece.Font.Font.Metrics;
-
-            var above = metrics.Ascender * piece.SizePoints / metrics.UnitsPerEm;
-            var below = -metrics.Descender * piece.SizePoints / metrics.UnitsPerEm;
-
-            lineAscent = Math.Max(lineAscent, above - piece.Baseline);
-            lineDescent = Math.Max(lineDescent, below + piece.Baseline);
-        }
-
         atoms.Add(new ImageAtom
         {
             Image = null,
             Width = box.Width,
             Height = box.Height,
-            Ascent = lineAscent,
+            Ascent = box.LineAscent,
             NaturalHeight = box.Height,
-            Descent = lineDescent,
+            Descent = box.LineDescent,
             Content = new DetachedFlow(page, box.Height),
             ContentLeft = 0,
             ContentTop = box.Descent

@@ -60,6 +60,17 @@ internal sealed record MathBox(
 
     public double Height => Ascent + Descent;
 
+    /// <summary>
+    /// How much room the line holding this asks for above its baseline, and below it.
+    /// </summary>
+    /// <remarks>
+    /// Not the same as the ink it covers. Worked out for the whole equation only, since only the
+    /// whole of one stands on a line.
+    /// </remarks>
+    public double LineAscent { get; init; }
+
+    public double LineDescent { get; init; }
+
     /// <summary>The same box, moved.</summary>
     public MathBox Shift(double dx, double dy) =>
         new(Width, Ascent + dy, Descent - dy,
@@ -78,69 +89,104 @@ internal sealed record MathBox(
 /// OpenType specification lays down and the numbers are Cambria Math's own.
 ///
 /// What is measured from Word rather than read is where Word departs from those rules, and the
-/// departures are set out one by one on the members that carry them. Two of them are here because
-/// they are everywhere: Word sets the parts of an equation at seven tenths of the type size where
-/// they want to be smaller and 0.58 where they want to be smaller still — not the 0.73 and 0.60
-/// the face states — and every distance it takes from the table, and every bracket and radical it
-/// stretches, it takes at <see cref="MathScale"/> of the type size rather than at the size itself,
-/// while setting the letters at the full size. What that factor is for is not something these
-/// measurements can say; that it is there is not in doubt, since it accounts for the fraction
-/// shifts, the script shifts and the size of every stretched glyph in a sentence at once. On a
-/// line of its own an equation is not set at it at all — see <c>Style.Scale</c>.
+/// departures are set out one by one on the members that carry them. The one that is everywhere
+/// is what size an equation is set at: not the size its own runs state, but the size of the text
+/// carrying it. Its letters are drawn at their runs' size and everything else — every distance
+/// from the table, every bracket and radical it stretches — is measured in the em of the text
+/// round it. An equation on a line of its own has no text round it, and takes its own runs.
 ///
 /// A bracket that has to grow is drawn from the taller shapes the face keeps for it, and only a
 /// face that keeps none has one drawn larger instead. What is not here is the table's recipe for
 /// building one taller than the tallest shape it keeps, out of a top, a bottom and as many middles
 /// as it takes.
 ///
-/// What is not Word's is how tall a line holding an equation comes out; see
-/// <c>LayoutEngine.AddMathAtom</c>, which is where that is measured and recorded.
+/// How tall a line holding an equation comes out is worked out here as well, at the end of
+/// <see cref="Compose(MathNode, ResolvedRunFormat, bool)"/>, from math-line-box-probe.
+///
+/// What is not here is the face's own kerning for scripts — MathKernInfo, a staircase of kerns by
+/// height for every glyph — which decides how far a script is pushed off the letter it sits on. A
+/// script hangs off the plain advance instead, which is exact at twelve point and a point short
+/// when the letter under it is twenty.
 /// </remarks>
 internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 {
-    /// <summary>
-    /// What Word takes its distances at, as a share of the type size. Measured from the fraction
-    /// shifts, the script shifts and every stretched glyph of the equations fixture at once.
-    /// </summary>
-    public const double MathScale = 0.92;
-
-    /// <summary>How much smaller a script is, and a script of a script.</summary>
-    private const double ScriptSize = 0.70;
-
-    private const double ScriptScriptSize = 0.58;
-
     /// <summary>The face an equation is set in where the document names none.</summary>
     private const string MathFont = "Cambria Math";
 
-    /// <summary>What an equation comes to, and where every piece of it goes.</summary>
-    /// <remarks>
-    /// An equation is set at the size of its own runs rather than at the size of the paragraph it
-    /// stands in: the run that carries it says nothing about type, and the runs inside it say
-    /// everything. So the first thing that names a size names it for the whole.
-    /// </remarks>
+    /// <summary>What an equation comes to, where every piece of it goes, and what it asks of
+    /// the line that holds it.</summary>
     public MathBox Compose(MathNode node, ResolvedRunFormat format, bool display)
     {
-        var size = Stated(node) ?? format.FontSizePoints;
+        // What the equation's own runs say they are, which is what its letters are drawn at.
+        var stated = Stated(node);
 
-        return Compose(node, new Style(format with { FontSizePoints = size }, size, 0, display,
-            Full: display));
+        // And the size it is *set* at, which is the size of the text carrying it and not what its
+        // runs say at all. math-structure-probe is what says so: its paragraphs are twenty point
+        // and every run in its equations is twelve, and Word draws the letters at twelve and the
+        // brackets and radicals round them at 19.92 — twenty, rounded the way it rounds a size.
+        // An equation on a line of its own has no text carrying it, and takes its own runs.
+        var size = display ? stated ?? format.FontSizePoints : format.FontSizePoints;
+
+        var style = new Style(format with { FontSizePoints = size }, size, 0, display,
+            Full: display, RunSize: stated ?? size);
+
+        var selection = Resolve(Format(new RunProperties(), style));
+
+        if (selection is not null)
+        {
+            var face = selection.Font.Mathematics;
+
+            style = style with
+            {
+                Script = face.ScriptPercentScaleDown,
+                ScriptScript = face.ScriptScriptPercentScaleDown
+            };
+        }
+
+        var box = Compose(node, style);
+        if (selection is null) return box;
+
+        var math = Constants(style, out var unit);
+
+        // What the line holding it comes to. Measured from math-line-box-probe, which stands
+        // twenty-six equations between rails of two point type so that the room each asks for
+        // above and below the line can be read off Word's own page:
+        //
+        //   - the ink of everything in it, and over that the leading the face states for
+        //     mathematics — 300 units, 1.6 points at eleven point. Nothing below: what hangs
+        //     down asks for its ink and no more.
+        //   - and never less than a line of the face at the size the equation is set at, which
+        //     is what a bare letter gets and what an equation whose ink is small keeps.
+        //
+        // An equation of nothing but letters is the one case where the floor follows the runs
+        // rather than the setting: x at twenty-four point in an eleven point paragraph asks for
+        // a twenty-four point line.
+        var metrics = selection.Font.Metrics;
+        var floor = Structured(node) ? size : style.RunSize;
+
+        return box with
+        {
+            LineAscent = Math.Max(metrics.Ascender * floor / metrics.UnitsPerEm,
+                box.Ascent + math.MathLeading * unit),
+            LineDescent = Math.Max(-metrics.Descender * floor / metrics.UnitsPerEm, box.Descent)
+        };
     }
 
-    /// <summary>The size the first run of an equation states, where any of them states one.</summary>
-    private static double? Stated(MathNode node) => node switch
+    /// <summary>
+    /// Whether an equation is anything more than a run of letters.
+    /// </summary>
+    /// <remarks>
+    /// What it decides is how tall a line holding one is at the least: an equation that is only
+    /// text asks for a line of its own text, and one holding anything built — a fraction, a
+    /// script, a bracket — asks for a line of the size the equation is set at, however small the
+    /// thing it holds. Word's x with an i under it at twelve point asks for the same 10.5 points
+    /// above the line as its bracketed x does, where a bare x asks for 11.4.
+    /// </remarks>
+    private static bool Structured(MathNode node) => node switch
     {
-        MathText { Properties.SizeHalfPoints: { } half } => half / 2.0,
-        MathText => null,
-        MathSequence sequence => sequence.Children.Select(Stated).FirstOrDefault(size => size is not null),
-        MathFraction fraction => Stated(fraction.Numerator) ?? Stated(fraction.Denominator),
-        MathScripted scripted => Stated(scripted.Body) ?? Stated(scripted.Sub ?? scripted.Body),
-        MathRadical radical => Stated(radical.Body),
-        MathFenced fenced => fenced.Parts.Select(Stated).FirstOrDefault(size => size is not null),
-        MathNary nary => Stated(nary.Body) ?? Stated(nary.Sub ?? nary.Body),
-        MathGrid grid => grid.Rows.SelectMany(row => row).Select(Stated)
-            .FirstOrDefault(size => size is not null),
-        MathAccented accented => Stated(accented.Body),
-        _ => null
+        MathText => false,
+        MathSequence sequence => sequence.Children.Any(Structured),
+        _ => true
     };
 
     /// <summary>
@@ -148,19 +194,29 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     /// standing on a line of its own.
     /// </summary>
     /// <param name="Full">
-    /// Whether the equation this belongs to stands on a line of its own, which is where Word sets
-    /// its distances at the type size rather than at <see cref="MathScale"/> of it. It stays true
-    /// down through a fraction and its scripts, where <c>Display</c> does not.
+    /// Whether the equation this belongs to stands on a line of its own, which changes the room
+    /// it leaves round what it holds and the shifts it uses. It stays true down through a fraction
+    /// and its scripts, where <c>Display</c> does not.
+    /// </param>
+    /// <param name="RunSize">
+    /// What the equation's own runs say they are, which is what its letters are drawn at and what
+    /// the room out in the equation is measured in. Not the same as <c>Size</c>, which is what the
+    /// equation is set at.
     /// </param>
     /// <param name="Held">
     /// Whether this is inside something — a bracket, a radical, a fraction — rather than out in
     /// the equation itself. Word sets what a thing holds more tightly than it sets the equation
     /// around it: see <see cref="Room"/>.
     /// </param>
+    /// <param name="Script">
+    /// What the face says a script is set at, as a percentage, and what it says a script of a
+    /// script is. Carried here so that a size can be worked out wherever one is wanted.
+    /// </param>
     private readonly record struct Style(
         ResolvedRunFormat Format, double Size, int Level, bool Display, bool Held = false,
         bool Full = false, bool Cramped = false,
-        bool Started = false, MathAtom Preceding = MathAtom.Ordinary)
+        bool Started = false, MathAtom Preceding = MathAtom.Ordinary,
+        double Script = 73, double ScriptScript = 60, double RunSize = 0)
     {
         /// <summary>The same again, one step smaller, which is what a script is set at.</summary>
         public Style Smaller => this with
@@ -169,12 +225,31 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             Display = false,
             Held = true,
             Started = false,
-            Size = Level switch
-            {
-                0 => Format.FontSizePoints * ScriptSize,
-                _ => Format.FontSizePoints * ScriptScriptSize
-            }
+            Size = Reduced(Format.FontSizePoints, Math.Min(2, Level + 1)),
+            RunSize = Reduced(RunSize, Math.Min(2, Level + 1))
         };
+
+        /// <summary>
+        /// A size one or two steps down, which is what a script and a script of a script are set
+        /// at.
+        /// </summary>
+        /// <remarks>
+        /// The face states both as percentages — 73 and 60 for Cambria Math — and Word takes them
+        /// down to a whole half point before using them, which is the unit a document states a
+        /// size in. Twelve point gives 17.52 half points, which is 17: eight and a half point,
+        /// written into a PDF as the 8.4 Word rounds every size to. The same rule gives Word's
+        /// 6.96 for a script of a script of twelve point, its 17.52 for a script of twenty-four,
+        /// and its 4.08 for a script of six — three sizes and two levels, none of them a simple
+        /// share of the size.
+        /// </remarks>
+        public double Reduced(double points, int level)
+        {
+            if (level <= 0) return points;
+
+            var percent = level == 1 ? Script : ScriptScript;
+
+            return Quantised(Math.Floor(points * 2 * percent / 100) / 2);
+        }
 
         /// <summary>What the numerator and denominator of a fraction are set at.</summary>
         public Style Inner =>
@@ -194,27 +269,15 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         /// is counted at all.
         /// </summary>
         /// <remarks>
-        /// Measured. Out in the equation, Word puts four eighteenths of the type size between a
-        /// letter and the sign after it and adds the lean the face states for that letter: our
+        /// Measured. Out in the equation, Word puts four eighteenths of the em of the text between
+        /// a letter and the sign after it and adds the lean the face states for that letter: our
         /// <c>x+y=z</c> agrees with Word's to four decimal places on every one of them. Inside a
-        /// bracket or a radical it does neither — it puts 2.445 points between the same pair at
-        /// twelve point, which is four eighteenths of <see cref="MathScale"/> of the type size to
-        /// within a hundredth of a point, and the gap after an <c>x</c> and after a <c>+</c> come
-        /// out the same, so no lean is in it.
+        /// bracket or a radical it does neither — it puts 2.4443 points between the same pair,
+        /// which is four eighteenths of the eleven point the equation is set at rather than of the
+        /// twelve its letters are, and the gap after an <c>x</c> and after a <c>+</c> come out the
+        /// same, so no lean is in it.
         /// </remarks>
-        public double Room => Held ? Size * Scale : Size;
-
-        /// <summary>
-        /// What a distance in an equation is measured at, against the type size.
-        /// </summary>
-        /// <remarks>
-        /// Inline, everything but the letters themselves is set at <see cref="MathScale"/> of the
-        /// size — see the note on the composer. On a line of its own it is not: Word draws the
-        /// radical of the quadratic formula at twelve point where the same radical in a sentence
-        /// is 11.04, and raises the numerator of its fraction 9.12 points where the table's
-        /// display shift at twelve point is 9.08 and at 11.04 is 8.36.
-        /// </remarks>
-        public double Scale => Full ? 1.0 : MathScale;
+        public double Room => Held ? Size : RunSize;
 
         /// <summary>
         /// Whether a sloped letter's lean is counted here. Inline it is only counted out in the
@@ -222,6 +285,30 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         /// </summary>
         public bool Leans => Level == 0 && (!Held || Full);
     }
+
+    /// <summary>
+    /// What the equation's own runs say their size is, or null where none of them says.
+    /// </summary>
+    /// <remarks>
+    /// The first that says anything, walked in reading order: a document that states a size states
+    /// the same one throughout an equation, and one that states none leaves it to the text round
+    /// it. What this is for is the letters rather than the setting.
+    /// </remarks>
+    private static double? Stated(MathNode node) => node switch
+    {
+        MathText { Properties.SizeHalfPoints: { } half } => half / 2.0,
+        MathText => null,
+        MathSequence sequence => sequence.Children.Select(Stated).FirstOrDefault(size => size is not null),
+        MathFraction fraction => Stated(fraction.Numerator) ?? Stated(fraction.Denominator),
+        MathScripted scripted => Stated(scripted.Body) ?? Stated(scripted.Sub ?? scripted.Body),
+        MathRadical radical => Stated(radical.Body),
+        MathFenced fenced => fenced.Parts.Select(Stated).FirstOrDefault(size => size is not null),
+        MathNary nary => Stated(nary.Body) ?? Stated(nary.Sub ?? nary.Body),
+        MathGrid grid => grid.Rows.SelectMany(row => row).Select(Stated)
+            .FirstOrDefault(size => size is not null),
+        MathAccented accented => Stated(accented.Body),
+        _ => null
+    };
 
     private MathBox Compose(MathNode node, Style style) => node switch
     {
@@ -253,7 +340,13 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     {
         if (text.Text.Length == 0) return MathBox.Empty;
 
-        var format = Format(text.Properties, style);
+        // How large this run's own letters are drawn: its own size where it states one, taken
+        // down a step for every script it is inside. Where it states none, the equation's.
+        var drawn = text.Properties.SizeHalfPoints is { } half
+            ? style.Reduced(half / 2.0, style.Level)
+            : style.Size;
+
+        var format = Format(text.Properties, style) with { FontSizePoints = drawn };
         var selection = Resolve(format);
         if (selection is null) return MathBox.Empty;
 
@@ -278,18 +371,18 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             if (pieces.Count == 0) first = raw;
             else if (style.Level == 0) x += Space(previous, kind) * style.Room;
 
-            var width = TextMeasurer.Measure(selection.Font, run, style.Size);
+            var width = TextMeasurer.Measure(selection.Font, run, drawn);
 
-            pieces.Add(new MathPiece(run, x, 0, style.Size, selection, width));
+            pieces.Add(new MathPiece(run, x, 0, drawn, selection, width));
 
-            lean = style.Leans ? Italic(selection, run, style.Size) : 0;
+            lean = style.Leans ? Italic(selection, run, drawn) : 0;
             x += width + lean;
 
             any = true;
             previous = kind;
         }
 
-        var (ascent, descent) = Ink(selection, text.Text, style.Size);
+        var (ascent, descent) = Ink(selection, text.Text, drawn);
 
         return new MathBox(x, ascent, descent, pieces, [])
         {
@@ -309,16 +402,18 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     /// sum apart is having something on each side of it.
     /// </remarks>
     /// <summary>
-    /// The room between a sum or an integral and what it is taken of, as a share of the type size.
+    /// The room between a sum or an integral and what it is taken of, as a share of the size the
+    /// equation is set at.
     /// </summary>
     /// <remarks>
     /// Measured, not derived: Word leaves 1.8886 points after the limits of both the sum and the
-    /// integral of a twelve point equation, and leaves exactly the same after each although the
-    /// two operators differ in every measurement the face states for them. No constant of the
+    /// integral of the equations fixture, which is set at eleven point, and leaves exactly the
+    /// same after each although the two operators differ in every measurement the face states for
+    /// them. No constant of the
     /// table and no fraction of an em accounts for the number, so it is written down as what it
     /// was measured to be.
     /// </remarks>
-    private const double NaryBodyGap = 1.8886 / 12;
+    private const double NaryBodyGap = 1.8886 / 11;
 
     /// <summary>
     /// How much of what it holds a bracket has to cover before Word stops reaching for a taller
@@ -333,14 +428,25 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     /// </remarks>
     private const double DelimiterFactor = 0.901;
 
-    /// <summary>How far under what it holds a radical's foot goes, as a share of the type size.</summary>
-    private const double RadicalFootDrop = 0.06;
+    /// <summary>
+    /// How far under what it holds a radical's foot goes, as a share of the size the equation is
+    /// set at.
+    /// </summary>
+    /// <remarks>
+    /// Measured, and the only part of a radical that is: Word draws the root of x+1 a quarter of a
+    /// point below the line and the cube root of x three quarters of one, and 0.72 points at
+    /// eleven point is what puts the foot of both within a sixth of a point of Word's.
+    /// </remarks>
+    private const double RadicalFootDrop = 0.72 / 11;
 
-    /// <summary>How far over the line a slanted fraction's numerator goes, as a share of the size.</summary>
-    private const double SkewedNumeratorRise = 3.6 / 12;
+    /// <summary>
+    /// How far over the line a slanted fraction's numerator goes, as a share of the size the
+    /// equation is set at.
+    /// </summary>
+    private const double SkewedNumeratorRise = 3.6 / 11;
 
     /// <summary>How far a slanted fraction's three parts run into one another, on each side.</summary>
-    private const double SkewedOverlap = 0.888 / 12;
+    private const double SkewedOverlap = 0.888 / 11;
 
     /// <summary>
     /// What Word rounds a position in an equation to: the three hundredth of an inch it rounds
@@ -702,13 +808,35 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
         // The sign has to reach from under what is inside it to over the top of the bar.
         var height = body.Ascent + body.Descent + gap + thickness;
-        var (signGlyph, signWidth, signSize, _, _) = Stretched("√", height, style, selection);
+        var (signGlyph, signWidth, signSize, signAscent, _) =
+            Stretched("√", height, style, selection);
 
         var pieces = new List<MathPiece>();
         var rules = new List<MathRule>();
 
         var x = 0.0;
-        var ascent = body.Ascent + gap + thickness + math.RadicalExtraAscender * unit;
+
+        // Where the sign goes. Its foot sits a little under what it holds — but never so low that
+        // its head fails to reach the bar, and the shape the face keeps is taller than the bar
+        // needs more often than not. Word's own three: the root of x+1 has its sign a quarter of a
+        // point below the line, the cube root of x three quarters of one, and a root over a
+        // twenty-four point letter in an eleven point paragraph has it 2.64 points above the line,
+        // which is the foot for the first two and the head for the third, each within a quarter of
+        // a point.
+        var lift = Math.Min(body.Descent + RadicalFootDrop * style.Size,
+            signAscent - (body.Ascent + gap + thickness));
+
+        // And the bar is drawn where the sign's own head is, rather than where the body would put
+        // it: what a radical looks like is a sign with a line running on from its top corner, so
+        // an oversized sign carries the bar up with it. Word's cube root of x is that — its bar is
+        // 9.36 points over the line where what is under it reaches 5.7.
+        var top = signAscent - lift;
+
+        // And the radical reaches a little over its own bar, which is what the table's extra
+        // ascender is for: Word's three roots ask their lines for that much over the bar, to
+        // within a third of a point.
+        var ascent = Math.Max(top, body.Ascent + gap + thickness) +
+                     math.RadicalExtraAscender * unit;
 
         if (radical.Degree is { } node)
         {
@@ -729,20 +857,13 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             ascent = Math.Max(ascent, placed.Ascent);
         }
 
-        // The sign sits with its foot under the body, and a little under that: Word draws the
-        // root of x+1 a quarter of a point below the line and the cube root of x three quarters
-        // of one, and its foot is 0.06 of the type size below what it holds in both. Which of the
-        // two the rule is fitted to it agrees with exactly and which within a sixth of a point is
-        // not something two roots can say.
-        pieces.Add(new MathPiece("√", x, -body.Descent + RadicalFootDrop * style.Size,
-            signSize, selection, signWidth, signGlyph));
+        pieces.Add(new MathPiece("√", x, lift, signSize, selection, signWidth, signGlyph));
 
         var placedBody = body.Shift(x + signWidth, 0);
         pieces.AddRange(placedBody.Pieces);
         rules.AddRange(placedBody.Rules);
 
-        rules.Add(new MathRule(x + signWidth, -(body.Ascent + gap + thickness),
-            body.Width, thickness));
+        rules.Add(new MathRule(x + signWidth, -top, body.Width, thickness));
 
         return new MathBox(x + signWidth + body.Width, ascent, body.Descent, pieces, rules);
     }
@@ -835,7 +956,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         {
             // Larger than the text around it, which is what a sum or an integral is set at when
             // it stands in a line rather than over one.
-            var size = style.Size * style.Scale;
+            var size = Quantised(style.Size);
             operatorWidth = TextMeasurer.Measure(selection.Font, nary.Operator, size);
 
             // Its own ink, not the face's ascent and descent — the face's are as tall as its
@@ -995,7 +1116,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         // A column of a matrix stands an em of the equation's own size from the next, which is
         // what Word puts between the 1 and the 2 of a two by two: 10.99 points at twelve point
         // against the 11.04 an em comes to.
-        var column = style.Size * style.Scale;
+        var column = style.Size;
 
         // A row stands a line from the next, the line being the face's own ascent and descent at
         // that size and the leading the table asks for. Word's two rows are 12.72 points apart
@@ -1053,7 +1174,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         if (selection is null) return body;
 
         var math = Constants(style, out var unit);
-        var size = style.Size * style.Scale;
+        var size = Quantised(style.Size);
 
         var width = TextMeasurer.Measure(selection.Font, accented.Accent, size);
         var pieces = new List<MathPiece>(body.Pieces);
@@ -1153,7 +1274,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     {
         var font = selection.Font;
         var em = font.Metrics.UnitsPerEm;
-        var size = style.Size * style.Scale;
+        var size = Quantised(style.Size);
 
         var rune = character.EnumerateRunes().FirstOrDefault();
         var glyph = font.GetGlyphIndex(rune.Value);
@@ -1201,12 +1322,12 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
         if (selection is null)
         {
-            unit = style.Size * style.Scale / 2048;
+            unit = style.Size / 2048;
             return MathConstants.Fallback(2048);
         }
 
         var metrics = selection.Font.Metrics;
-        unit = style.Size * style.Scale / metrics.UnitsPerEm;
+        unit = style.Size / metrics.UnitsPerEm;
 
         return selection.Font.Mathematics;
     }

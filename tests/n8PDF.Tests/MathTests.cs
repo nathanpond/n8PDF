@@ -93,7 +93,8 @@ public class MathTests(ITestOutputHelper output)
         Assert.Equal(133, math.FractionRuleThickness, 0);
         Assert.Equal(65, math.RadicalDegreeBottomRaisePercent, 0);
 
-        // Word's own script sizes are seven tenths and 0.58, not the face's.
+        // What a script is set at, which Word takes down to a whole half point before using: a
+        // script of twelve point is 17.52 half points, so seventeen, so 8.4 once rounded.
         Assert.Equal(73, math.ScriptPercentScaleDown, 0);
         Assert.Equal(60, math.ScriptScriptPercentScaleDown, 0);
     }
@@ -159,14 +160,14 @@ public class MathTests(ITestOutputHelper output)
     {
         var runs = PdfTextExtractor.Extract(Ours());
 
-        // Word draws the letters at the type size and everything it stretches at 0.92 of it, and
-        // sets a script at seven tenths.
+        // The letters at the size their runs state, and everything stretched round them at the
+        // size the paragraph is — eleven point, rounded to Word's grid.
         var sizes = runs.Where(run => run.X > 100).Select(run => Math.Round(run.FontSize, 2))
             .Distinct().OrderBy(size => size).ToList();
 
-        Assert.Contains(6.96, sizes);   // 12 x 0.58, a degree
-        Assert.Contains(8.4, sizes);    // 12 x 0.7, a script
-        Assert.Contains(11.04, sizes);  // 12 x 0.92, a bracket or a radical
+        Assert.Contains(6.96, sizes);   // a degree: a script of a script
+        Assert.Contains(8.4, sizes);    // a script
+        Assert.Contains(11.04, sizes);  // eleven point: a bracket or a radical
         Assert.Contains(12.0, sizes);
     }
 

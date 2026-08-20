@@ -64,7 +64,15 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// </summary>
     private static readonly Dictionary<string, double> KnownHorizontalDivergences = new()
     {
-        ["chart-title-legend-label"] = 1.0
+        ["chart-title-legend-label"] = 1.0,
+
+        // A script hangs off the plain advance of what it is on, which is where Word hangs one at
+        // twelve point to the last decimal place — and 1.09 points further along when the letter
+        // under it is twenty. The face states a kern for that: MathKernInfo gives every glyph a
+        // staircase of them by height, so how far a script is pushed off depends on how high it
+        // sits over the letter. It is not read, and this is the one fixture whose scripts sit high
+        // enough over their letters for the difference to show.
+        ["math-structure-probe"] = 1.2
     };
 
     private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
@@ -79,26 +87,32 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 on the narrowest of the four and within a fifth of a point on the rest.
                 """),
 
-            ["equations"] = (14.0,
+            ["equations"] = (2.0,
                 """
-                How tall a line holding an equation is, which is measured and not explained. Word
-                sets these seventeen from 13.68 points apart to 32.64, growing the line with what
-                the equation holds; each piece of an equation here asks the line for the room a
-                line of its own face and size would ask for, which gives every one of them within
-                two and a half points of Word's and most within one. Down a page of nothing but
-                equations those differences run one way more often than the other, and the last
-                lines of the fixture are twelve points high.
+                How tall a line holding an equation is, which math-line-box-probe measures and
+                which is implemented from that measurement: the ink of what is in the equation
+                with the face's own math leading over it, and never less than a line of the face
+                at the size the equation is set at. Twenty-six equations there come out within
+                nine tenths of a point of Word's, and most within a quarter.
 
-                Two other readings were measured and are further off: the ink alone leaves the
-                page 40 points short by the end, and the typographic ascent 25. What Word measures
-                is between a glyph's ink and its face's ascent, and seventeen equations were not
-                enough to say where. Half of what is left comes from one line, the quadratic
-                formula on a line of its own, which Word gives eight points more room than this
-                does.
+                What is left here is that ninth tenth accumulating: the sum of the equations
+                fixture asks its line for nine tenths of a point more than Word's does, because
+                its limits sit where the integral's rule puts them rather than where Word puts a
+                sum's — see the note on Nary. Down seventeen lines that comes to under two points.
+                """),
 
-                Where each equation goes inside its own line is exact: the comparison's horizontal
-                column is within a third of a point on every line of the fixture, and within four
-                hundredths on all but the two that hold a display equation.
+            ["math-line-box-probe"] = (2.4,
+                """
+                One of the twenty-five: a bracket round a fraction whose parts are twice the size
+                the equation is set at. Word reaches two shapes further up the face's series of
+                brackets than this does, so its bracket is 0.86 points wider and taller, and the
+                line holding it is taller with it. How far a bracket has to reach before Word
+                takes the next shape was measured from two brackets at twelve point — nine tenths
+                of what it holds, which is TeX's own factor — and this says that the rule does not
+                carry to a bracket round something twice its own size.
+
+                Every other line of the fixture is within 0.6 of a point, and what each equation
+                asks of its line is asserted probe by probe in MathLineBoxTests.
                 """),
 
             ["vml-stroke-probe"] = (5.5,
@@ -163,7 +177,9 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         // characters at all. What comes out of Word's own file is the codes of its subset. Ours
         // are the mathematical letters themselves, so an x copied out of our page is the 𝑥 that
         // was set — where the letters go is compared like any other fixture's.
-        ["equations"] = "Word gives the letters of an equation no map back to what they say"
+        ["equations"] = "Word gives the letters of an equation no map back to what they say",
+        ["math-line-box-probe"] = "the same: they are equations and nothing else",
+        ["math-structure-probe"] = "the same again"
     };
 
     /// <summary>
