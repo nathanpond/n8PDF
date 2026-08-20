@@ -680,7 +680,7 @@ cell margins and vertical alignment, rows kept whole across page breaks), page s
 from `sectPr`, paragraphs and runs, `xml:space` handling,
 line and page breaks, line breaking by the Unicode algorithm (so the scripts written without
 spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wraps them), tabs
-(left-aligned stops), font family via theme resolution, size, bold,
+(left, centre, right, decimal and bar stops, with leaders), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, caps, super/subscript, character spacing and scaling,
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
