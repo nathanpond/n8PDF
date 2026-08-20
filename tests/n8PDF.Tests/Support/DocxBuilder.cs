@@ -964,6 +964,64 @@ public sealed class DocxBuilder
             points);
     }
 
+    /// <summary>
+    /// One series of a scatter chart, which holds pairs rather than categories: an x for every y,
+    /// and a marker at each pair where the series asks for one.
+    /// </summary>
+    public static string ChartScatterSeries(
+        int index, string name, IReadOnlyList<double> x, IReadOnlyList<double> y,
+        string colorHex, string? marker = "circle", double markerSize = 7,
+        bool line = true, bool smooth = false, double widthPoints = 2.25)
+    {
+        static string Points(IEnumerable<double> values) =>
+            string.Concat(values.Select((value, i) =>
+                $"<c:pt idx=\"{i}\"><c:v>{value.ToString(CultureInfo.InvariantCulture)}</c:v></c:pt>"));
+
+        var stroke = line
+            ? $"""
+               <a:ln w="{(long)Math.Round(widthPoints * 12700)}" cap="rnd">
+                 <a:solidFill><a:srgbClr val="{colorHex}"/></a:solidFill><a:round/>
+               </a:ln>
+               """
+            : "<a:ln w=\"19050\"><a:noFill/></a:ln>";
+
+        var symbol = marker is null
+            ? string.Empty
+            : $"""
+               <c:marker>
+                 <c:symbol val="{marker}"/>
+                 <c:size val="{(int)Math.Round(markerSize)}"/>
+                 <c:spPr>
+                   <a:solidFill><a:srgbClr val="{colorHex}"/></a:solidFill>
+                   <a:ln w="9525"><a:solidFill><a:srgbClr val="{colorHex}"/></a:solidFill></a:ln>
+                 </c:spPr>
+               </c:marker>
+               """;
+
+        return $"""
+            <c:ser>
+              <c:idx val="{index}"/>
+              <c:order val="{index}"/>
+              <c:tx><c:strRef><c:f>Sheet1!$B${index + 1}</c:f>
+                <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>{Escape(name)}</c:v></c:pt></c:strCache>
+              </c:strRef></c:tx>
+              <c:spPr>{stroke}</c:spPr>
+              {symbol}
+              <c:xVal><c:numRef><c:f>Sheet1!$A$2:$A${x.Count + 1}</c:f>
+                <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{x.Count}"/>
+                  {Points(x)}
+                </c:numCache>
+              </c:numRef></c:xVal>
+              <c:yVal><c:numRef><c:f>Sheet1!$B$2:$B${y.Count + 1}</c:f>
+                <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{y.Count}"/>
+                  {Points(y)}
+                </c:numCache>
+              </c:numRef></c:yVal>
+              <c:smooth val="{(smooth ? 1 : 0)}"/>
+            </c:ser>
+            """;
+    }
+
     private const string DiagramNamespace = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
 
     private const string OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";

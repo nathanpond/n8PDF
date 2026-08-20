@@ -3030,7 +3030,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeChart(
         ChartDefinition chart, double width, double height)
     {
-        var plan = ChartComposer.Arrange(chart, width, height, MeasureLabel, LabelBox);
+        var plan = ChartComposer.Arrange(chart, width, height, MeasureLabel, LabelBox, WrapLabel);
 
         var frame = new Images.ImageData(1, 1, [],
             Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
@@ -3046,12 +3046,23 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         {
             var size = valueAxis.LabelSizePoints;
 
+            // A chart of pairs keeps its numbers beside the axis they belong to, and that axis
+            // stands where the foot reads nought rather than at the edge of the plot.
+            var standing = plan.Paired ? plan.AcrossCrossing : plan.Left;
+
             foreach (var value in ChartComposer.Marks(plan))
             {
                 var text = ChartComposer.Format(value, valueAxis.NumberFormat);
 
-                if (plan.Lying) Under(page, text, size, plan.PositionOf(value), plan.Bottom + size * CategoryLabelBaseline);
-                else Beside(page, text, size, plan.Left, plan.PositionOf(value));
+                if (plan.Lying)
+                {
+                    Under(page, text, size, plan.PositionOf(value),
+                        plan.Bottom + size * CategoryLabelBaseline);
+                }
+                else
+                {
+                    Beside(page, text, size, standing, plan.PositionOf(value));
+                }
             }
         }
 
@@ -3060,8 +3071,6 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         if (chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" } categoryAxis)
         {
             var size = categoryAxis.LabelSizePoints;
-            var categories = chart.Categories;
-            var slot = plan.Slot(categories.Count);
 
             // How far off the axis the words go, which is a share of the type they are set in and
             // nothing to do with the marks along it: Word puts the baseline 1.584 times the type
@@ -3069,22 +3078,37 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             // drawn outside puts it in exactly the same place. A label offset shifts them, which
             // is measured for words written under the axis and taken to do the same beside it.
             var step = (categoryAxis.LabelOffset - 100) / 100.0 * CategoryLabelStep;
+            var baseline = plan.Crossing + size * (CategoryLabelBaseline + step);
 
-            for (var i = 0; i < categories.Count; i++)
+            if (plan.Paired)
             {
-                var at = plan.SlotAt(i, categories.Count);
-
-                if (plan.Lying)
+                // A foot that is a scale of its own is labelled where its own numbers fall.
+                foreach (var value in ChartComposer.MarksAcross(plan))
                 {
-                    Beside(page, categories[i], size, plan.Crossing - size * step, at + slot / 2);
+                    var text = ChartComposer.Format(value, categoryAxis.NumberFormat);
+
+                    Under(page, text, size, plan.AcrossOf(value), baseline);
                 }
-                else
-                {
-                    var label = ChartLabel(categories[i], Justification.Center, size);
-                    var flow = MeasureInside([label], Math.Max(1, slot));
+            }
+            else
+            {
+                var categories = chart.Categories;
+                var slot = plan.Slot(categories.Count);
+                var spanning = ChartComposer.Spanning(chart);
 
-                    flow.PlaceOnto(page, at,
-                        plan.Crossing + size * (CategoryLabelBaseline + step) - flow.FirstAscent);
+                for (var i = 0; i < categories.Count; i++)
+                {
+                    if (plan.Lying)
+                    {
+                        Beside(page, categories[i], size, plan.Crossing - size * step,
+                            plan.SlotAt(i, categories.Count) + slot / 2);
+                    }
+                    else
+                    {
+                        Under(page, categories[i], size,
+                            plan.PointAt(i, categories.Count, spanning), baseline,
+                            Math.Max(1, slot));
+                    }
                 }
             }
         }
@@ -3112,16 +3136,32 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>One label written under an axis running across the chart, centred on its point.</summary>
-    private void Under(LaidOutPage page, string text, double size, double at, double baseline)
+    /// <remarks>
+    /// The box it is centred in is its own width where nothing else says — a number takes what it
+    /// takes — and a category's own share of the plot where it has one, which is what gives a long
+    /// category somewhere to wrap. Both centre what they hold on the point, line by line.
+    /// </remarks>
+    private void Under(
+        LaidOutPage page, string text, double size, double at, double baseline, double box = 0)
     {
-        // Centred in a box of its own width, which puts the middle of the letters on the point
-        // however wide they turn out to be.
-        var width = MeasureLabel(text, size) + 1;
+        var width = box > 0 ? box : MeasureLabel(text, size) + 1;
 
         var label = ChartLabel(text, Justification.Center, size);
         var flow = MeasureInside([label], width);
 
         flow.PlaceOnto(page, at - width / 2, baseline - flow.FirstAscent);
+    }
+
+    /// <summary>
+    /// How wide a chart's label comes out and how many lines it takes, once it has been wrapped
+    /// into the room it has. What the plot area has to leave for it depends on both.
+    /// </summary>
+    private (double Width, int Lines) WrapLabel(string text, double sizePoints, double box)
+    {
+        var flow = MeasureInside([ChartLabel(text, Justification.Left, sizePoints)],
+            Math.Max(1, box));
+
+        return (flow.WidestLine, Math.Max(1, flow.LineCount));
     }
 
     /// <summary>
@@ -5083,6 +5123,16 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// words sit rather than by where its box begins.
         /// </summary>
         public double FirstAscent => page.Lines.Count > 0 ? page.Lines[0].Ascent : 0;
+
+        /// <summary>How many lines it came to, and how wide the widest of them is.</summary>
+        public int LineCount => page.Lines.Count;
+
+        public double WidestLine => page.Lines
+            .Select(line => line.Texts.Count == 0
+                ? 0
+                : line.Texts.Max(text => text.X + text.Width) - line.Texts.Min(text => text.X))
+            .DefaultIfEmpty(0)
+            .Max();
 
         /// <summary>
         /// Footnotes referenced by this content, which belong to the page it is placed on rather

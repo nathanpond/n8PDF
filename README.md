@@ -137,7 +137,8 @@ that here; a raised one rises about a third.
 
 Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented — our
 residuals are already smaller than one quantum — but it is the floor on how closely anything can
-match Word vertically. It quantises the type size it writes to the same 1/300 inch, which is why a
+match Word vertically. The one place it is implemented is a chart's markers, which are small enough
+that a quantum of it is a twentieth of the marker and shows. It quantises the type size it writes to the same 1/300 inch, which is why a
 15pt run comes out of one of its PDFs as 15.12.
 
 ### How far inside its own edges a shape sets its text
@@ -236,7 +237,10 @@ the first is upright and 126pt tall. A label wants along its axis:
 | lying down | three times it — anything from 2.88 to 3.15 fits |
 
 and the axis takes as many steps as leaves room for one more label than it has steps, since a mark
-is written at both ends as well as between. That is why the same 47 that runs to 50 in fives up a
+is written at both ends as well as between — and never more than ten, however long the axis is.
+The ten only shows itself on an axis long enough for eleven labels: `chart-area-scatter`'s
+fifteenth page holds a chart of exactly one over a plot that would take eleven, and Word runs it to
+1.2 in fifths rather than to 1.1 in tenths. That is why the same 47 that runs to 50 in fives up a
 side runs to 60 in twenties along a foot of the same length, and why setting the labels in twenty
 point rather than ten thirds the number of steps either way. Two of the fourteen pages exist only
 to part the readings: a chart of millions divides its foot exactly as a chart of tens does, so the
@@ -314,6 +318,43 @@ Inside the frame, all four of `chart-line-pie` agree with Word on better than 99
 The one thing left outside it is that Word clips a chart to its own frame, so the outer half of the
 border it draws is cut away; nothing here clips, and that border straddles the edge instead. It
 comes to a quarter of a point of halo round the outside of a chart.
+
+### An area, and a chart of pairs
+
+An area chart is a line chart with the space under it coloured in, and a scatter is the one kind
+that has no categories at all. Both were measured from `chart-area-scatter`, nineteen pages of it.
+
+- An area's corners sit **at the marks rather than between them**, so the first and last touch the
+  ends of the plot: Word's four corners land at 162, 240, 318 and 396 across a plot running 162 to
+  396. That is what `crossBetween="midCat"` asks for, and Word writes it on every area chart it
+  makes; a line chart says `between` instead and keeps its points at the middles of the categories.
+- The **category labels follow the points**, so the outermost two are centred on the plot's own
+  corners and half of each hangs past. A chart left to place itself makes room for that half — the
+  fifth page gives its right edge eleven points plus half of "Four" — and where a label is too wide
+  for its category it **wraps**, which grows the foot by a line and the side by half of the widest
+  line it came to. The nineteenth page, whose first category is nearly six times as wide as any of
+  its numbers, lands within three hundredths of a point of Word both ways.
+- Stacked, each area is a **band** rather than a shape hiding the ones behind: it runs along its own
+  points and back along the series below it. Unstacked, they are drawn one over another in the order
+  the chart lists them, opaquely — Word writes no transparency of its own, so a taller area behind a
+  shorter one is simply hidden by it.
+- A scatter is scaled **both ways**, and the foot is divided by the rule a lying axis uses rather
+  than an upright one: three times the type size per label against a tenth over it. Its eighteenth
+  page, left to Word both to place and to scale, divides a 320pt foot into eight and a 180pt side
+  into six.
+
+A **marker** is the one thing whose placing is Word's rounding rather than its arithmetic. A marker
+of size s is drawn in a box of s rounded to the three-hundredth of an inch, whose corner is the
+point less half that box rounded *down* to the same grid, and the shape itself sits half a
+three-hundredth inside the box. So a marker of seven comes out 6.72 across and up to a third of a
+point left of and above the point it belongs to. Four sizes and two shapes come out of that rule
+exactly; on one point in four Word breaks the tie on the grid the other way, and what decides it is
+not measurable from what is here.
+
+A series that says nothing about its markers still gets them — in its own colour, outlined in it at
+half a point, and seven points across where the series draws a line or six where it does not. Word
+runs through **diamond, square, triangle and cross** for the first four such series, which is
+measured; what it does with a fifth is Excel's old order and is not.
 
 ### What a diagram is, and which half of it to draw
 
@@ -508,10 +549,12 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), charts of columns, bars, lines and pies (the plot area where the chart places it or, where it
-does not, worked out from the room the labels need; bars standing or lying, clustered, stacked or
+pictures), charts of columns, bars, lines, pies, areas and scatters (the plot area where the chart places it
+or, where it does not, worked out from the room the labels need — including the room a label that
+has to wrap takes; bars standing or lying, clustered, stacked or
 stacked to the whole, sized by the gap and the overlap between them, a line curved through its
-points the way Word curves one or straight where it says so, a pie
+points the way Word curves one or straight where it says so, areas filled down to the axis or
+banded one on another, markers of nine shapes at the size and on the grid Word draws them, a pie
 centred and divided clockwise from the top; gridlines, both axis lines and their marks, and the
 labels along each axis in the number format it asks for,
 read from the numbers the chart part caches, with the axis scaled and the plot placed the way Word
@@ -545,13 +588,14 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-Four kinds of chart are drawn: **columns, bars, lines and pies**, the bars clustered, stacked or
-stacked to the whole. What is there: the plot area, the bars or the line or the slices, the
-gridlines, the two axis lines and the marks along them, and the labels along both axes whichever
-way round they run — with the numbers read from the cache the part carries rather than from the
-workbook stored beside it, and with the axis scaled and the plot placed the way Word does both
-where the chart leaves them to be worked out. What is not: area and scatter plots, markers on a
-line, and titles, legends and data labels.
+Six kinds of chart are drawn: **columns, bars, lines, pies, areas and scatters**, the bars and
+areas clustered, stacked or stacked to the whole. What is there: the plot area, the bars or the
+line or the slices or the filled areas, the markers at a series' points, the gridlines, the two
+axis lines and the marks along them, and the labels along both axes whichever way round they run —
+with the numbers read from the cache the part carries rather than from the workbook stored beside
+it, and with the axes scaled and the plot placed the way Word does both where the chart leaves them
+to be worked out. What is not: bubble, radar, doughnut and stock charts, trendlines and error bars,
+and titles, legends and data labels.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

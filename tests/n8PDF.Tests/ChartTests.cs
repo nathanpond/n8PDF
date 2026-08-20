@@ -270,8 +270,17 @@ public class ChartTests(ITestOutputHelper output)
         var runs = PdfTextExtractor.Extract(pdf)
             .Where(run => run.PageIndex == page && !run.Text.Contains('C') &&
                           !string.IsNullOrWhiteSpace(run.Text) &&
-                          !"One Two Three".Contains(run.Text.Trim()))
+                          !"One Two Three Four".Contains(run.Text.Trim()))
             .ToList();
+
+        // A chart of pairs writes numbers along its foot as well as up its side, and only the
+        // side is wanted here: the foot is the row of three or more that sits lowest.
+        if (!lying && runs.GroupBy(run => Math.Round(run.BaselineY, 1))
+                .OrderByDescending(group => group.Key)
+                .FirstOrDefault() is { } lowest && lowest.Count() >= 3)
+        {
+            runs = [.. runs.Except(lowest)];
+        }
 
         // Up the side they read from the top down and are gathered by their baseline; along the
         // foot they read from the left and share one, so they are gathered by where they begin.
@@ -925,6 +934,207 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(2, "0.00", "2.00")]
     public void A_number_is_written_the_way_the_axis_asks(double value, string? code, string expected) =>
         Assert.Equal(expected, ChartComposer.Format(value, code));
+
+    /// <summary>
+    /// An area chart and a scatter, as ink: an area is a polygon and a marker is a circle or a
+    /// diamond, and neither can be set against Word's operator for operator.
+    /// </summary>
+    [Theory]
+    [InlineData(0, "one area")]
+    [InlineData(1, "two areas over each other")]
+    [InlineData(2, "two areas stacked")]
+    [InlineData(3, "the same, filled out to the whole")]
+    [InlineData(4, "one area, placed and scaled by Word")]
+    [InlineData(5, "markers alone")]
+    [InlineData(6, "straight lines and markers")]
+    [InlineData(7, "a smooth line")]
+    [InlineData(8, "two scatters, scaled by Word both ways")]
+    [InlineData(9, "markers Word chose itself")]
+    [InlineData(15, "four series of them")]
+    [InlineData(17, "a scatter placed by Word")]
+    [InlineData(18, "an area whose first category is wider than its numbers")]
+    public void An_area_and_a_scatter_cover_what_word_covers(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-area-scatter");
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, scale) is not { } mine ||
+            PdfRasterizer.Render(theirs, page, scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var (agreed, covered, inkOfMine, inkOfTheirs) = (0, 0, 0, 0);
+
+        for (var y = 74.0; y < 286; y++)
+        for (var x = 74.0; x < 430; x++)
+        {
+            var a = mine.At(x, y, scale);
+            var b = word.At(x, y, scale);
+
+            var ink = a.R < 200 || a.G < 200 || a.B < 200;
+            var theirInk = b.R < 200 || b.G < 200 || b.B < 200;
+
+            if (ink) inkOfMine++;
+            if (theirInk) inkOfTheirs++;
+            if (ink == theirInk) agreed++;
+
+            covered++;
+        }
+
+        var agreement = 100.0 * agreed / covered;
+
+        _output.WriteLine(
+            $"page {page + 1} ({what}): ink {inkOfMine} here, {inkOfTheirs} in Word's; " +
+            $"the two agree on {agreement:0.00}%");
+
+        Assert.True(agreement > 98, $"the two pages agree on only {agreement:0.0}% of the chart");
+        Assert.InRange((double)inkOfMine / inkOfTheirs, 0.9, 1.1);
+    }
+
+    /// <summary>
+    /// Where the two kinds that are not a value against a category put their plotting when they do
+    /// not say: an area, whose first and last categories are centred on the corners of the plot,
+    /// and a scatter, whose numbers run along the foot as well as up the side.
+    /// </summary>
+    [Theory]
+    [InlineData(4, "an area")]
+    [InlineData(17, "a scatter")]
+    [InlineData(18, "an area whose first category has to be wrapped")]
+    public void An_area_and_a_scatter_are_laid_out_the_way_word_lays_them_out(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-area-scatter");
+
+        var mine = PlotArea(ours, page);
+        var word = PlotArea(theirs, page);
+
+        _output.WriteLine($"page {page + 1} ({what}): {mine} against Word's {word}");
+
+        Assert.True(Math.Abs(mine.Left - word.Left) < 0.3 &&
+                    Math.Abs(mine.Top - word.Top) < 0.3 &&
+                    Math.Abs(mine.Width - word.Width) < 0.3 &&
+                    Math.Abs(mine.Height - word.Height) < 0.3,
+            $"page {page + 1} ({what}): the plotting is at {mine} where Word puts it at {word}.");
+    }
+
+    /// <summary>
+    /// What the axes of these two run between when they are left to themselves — including the
+    /// foot of a scatter, which is a scale like any other and divided like a lying one.
+    /// </summary>
+    /// <remarks>
+    /// The last of them is what says an axis will not divide itself into more than ten: its plot
+    /// is long enough for eleven labels and it holds exactly one, which would run to 1.1 in tenths
+    /// if it could. Word runs it to 1.2 in fifths.
+    /// </remarks>
+    [Theory]
+    [InlineData(2, false, "0 10 20 30 40 50 60 70 80")]
+    [InlineData(3, false, "0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%")]
+    [InlineData(4, false, "0 10 20 30 40 50 60")]
+    [InlineData(8, false, "0 10 20 30 40 50 60")]
+    [InlineData(8, true, "0 2 4 6 8")]
+    [InlineData(14, false, "0 0.2 0.4 0.6 0.8 1 1.2")]
+    [InlineData(17, true, "0 1 2 3 4 5 6 7 8")]
+    public void An_axis_of_pairs_or_of_areas_is_scaled_the_way_word_scales_it(
+        int page, bool foot, string expected)
+    {
+        var (ours, theirs) = BothWays("chart-area-scatter");
+
+        var mine = AxisLabels(ours, page, lying: foot);
+        _output.WriteLine($"page {page + 1}: {string.Join(" ", mine)}");
+
+        Assert.Equal(expected.Split(' '), mine);
+        Assert.Equal(expected.Replace(" ", ""), string.Concat(AxisLabels(theirs, page, foot)));
+    }
+
+    /// <summary>
+    /// A square marker, which is the one shape both sides draw as a rectangle and so the one that
+    /// can be set against Word's to the point.
+    /// </summary>
+    /// <remarks>
+    /// Word draws a marker of seven points 6.72 across — seven rounded to the three-hundredth of
+    /// an inch, less one of them — with its box's corner rounded down to the same grid, which puts
+    /// it up to a third of a point left of and above the point it marks.
+    /// </remarks>
+    [Fact]
+    public void A_marker_is_the_size_and_shape_word_draws_it()
+    {
+        var (ours, theirs) = BothWays("chart-area-scatter");
+
+        // The ninth page holds a series of squares, one to each of its four pairs.
+        var mine = Fills(ours, page: 8).Where(r => r.Width < 20).ToList();
+        var word = Fills(theirs, page: 8).Where(r => r.Width < 20).ToList();
+
+        Assert.Equal(4, word.Count);
+        Assert.Equal(word.Count, mine.Count);
+
+        for (var i = 0; i < mine.Count; i++)
+        {
+            _output.WriteLine($"{mine[i]} against Word's {word[i]}");
+
+            Assert.Equal(word[i].ColorHex, mine[i].ColorHex);
+
+            // Word lands three of the four on the same three-hundredth of an inch this does and
+            // the fourth a single one of them out, which is its own rounding: the rule that puts
+            // a box on the grid is measured, and the one that breaks a tie on it is not.
+            Assert.True(Math.Abs(mine[i].Left - word[i].Left) < 0.25 &&
+                        Math.Abs(mine[i].Top - word[i].Top) < 0.25 &&
+                        Math.Abs(mine[i].Width - word[i].Width) < 0.01 &&
+                        Math.Abs(mine[i].Height - word[i].Height) < 0.01,
+                $"a marker is at {mine[i]} where Word draws it at {word[i]}.");
+        }
+    }
+
+    /// <summary>
+    /// An area's corners sit at the marks rather than between them, so that the first and last
+    /// touch the ends of the plot — which is what <c>crossBetween</c> asks for and what Word
+    /// writes on every area chart it makes.
+    /// </summary>
+    [Fact]
+    public void An_area_reaches_the_ends_of_its_plot()
+    {
+        var chart = new ChartDefinition { Kind = ChartKind.Area };
+        var names = new[] { "One", "Two", "Three", "Four" };
+
+        chart.ValueAxis = new ChartAxis { CrossBetween = "midCat" };
+        chart.Series.Add(new ChartSeries("A", names, [30, 45, 20, 55], null));
+
+        var plan = new ChartComposer.Plan(0, 0, 234, 151.2, 0, 60, 20);
+        var points = ChartComposer.Points(chart, chart.Series[0], plan);
+
+        Assert.Equal([0d, 78, 156, 234], [.. points.Select(point => point.X)]);
+        Assert.Equal(75.6, points[0].Y, 3);
+
+        // And where the axes cross between the categories, they sit at the middles instead.
+        chart.ValueAxis.CrossBetween = "between";
+
+        Assert.Equal([29.25, 87.75, 146.25, 204.75],
+            [.. ChartComposer.Points(chart, chart.Series[0], plan).Select(point => point.X)]);
+    }
+
+    /// <summary>A chart of pairs puts each point where its own two numbers say.</summary>
+    [Fact]
+    public void A_scatter_places_its_points_by_both_of_their_numbers()
+    {
+        var chart = new ChartDefinition { Kind = ChartKind.Scatter };
+
+        chart.Series.Add(new ChartSeries("A", [], [30, 45], null)
+        {
+            XValues = [1, 4]
+        });
+
+        var plan = new ChartComposer.Plan(
+            0, 0, 234, 151.2, 0, 60, 20, AcrossMinimum: 0, AcrossMaximum: 8, AcrossUnit: 2);
+
+        var points = ChartComposer.Points(chart, chart.Series[0], plan);
+
+        Assert.Equal(29.25, points[0].X, 3);
+        Assert.Equal(75.6, points[0].Y, 3);
+        Assert.Equal(117, points[1].X, 3);
+        Assert.Equal(37.8, points[1].Y, 3);
+    }
 
     /// <summary>
     /// The rectangles a page fills, which is the plot area and the bars: everything else a chart

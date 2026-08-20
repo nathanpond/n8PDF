@@ -14,8 +14,29 @@ public enum ChartKind
 
     Line,
 
-    Pie
+    Pie,
+
+    /// <summary>A line filled down to the axis.</summary>
+    Area,
+
+    /// <summary>Pairs of numbers rather than a value against a category.</summary>
+    Scatter
 }
+
+/// <summary>
+/// What a series draws at each of its points, where it draws anything.
+/// </summary>
+/// <param name="Symbol">
+/// Its shape: "circle", "square", "diamond", "triangle", "x", "star", "plus", "dot", "dash",
+/// or "none" where the series asks for nothing at all.
+/// </param>
+/// <param name="SizePoints">How large, across the whole of it.</param>
+public sealed record ChartMarker(
+    string Symbol,
+    double SizePoints,
+    DrawingColorReference? Fill,
+    DrawingColorReference? Line,
+    double LineWidthPoints);
 
 /// <summary>How the bars of one category stand against each other.</summary>
 public enum ChartGrouping
@@ -57,6 +78,12 @@ public sealed record ChartSeries(
     public double LineWidthPoints { get; init; } = 2.25;
 
     /// <summary>
+    /// True where the series asks for no line at all, which is not the same as saying nothing
+    /// about one: a scatter of markers alone says it outright.
+    /// </summary>
+    public bool NoLine { get; init; }
+
+    /// <summary>
     /// Whether the line curves through its points rather than going straight between them. It
     /// does unless told not to, which is the format's own default and not an obvious one.
     /// </summary>
@@ -67,6 +94,15 @@ public sealed record ChartSeries(
     /// format asks for unless the series says otherwise.
     /// </summary>
     public bool InvertIfNegative { get; init; } = true;
+
+    /// <summary>
+    /// What it holds along the other axis, where the series is a set of pairs rather than a value
+    /// against a category. Empty for everything but a scatter.
+    /// </summary>
+    public IReadOnlyList<double?> XValues { get; init; } = [];
+
+    /// <summary>What it draws at each point, or null where the series says nothing about it.</summary>
+    public ChartMarker? Marker { get; init; }
 }
 
 /// <summary>An axis, and what it says about the scale it draws.</summary>
@@ -114,6 +150,14 @@ public sealed class ChartAxis
     /// nothing, which means whole numbers written plainly.
     /// </summary>
     public string? NumberFormat { get; set; }
+
+    /// <summary>
+    /// Whether the other axis crosses this one between its categories or at the middle of one.
+    /// It is what decides where a line's points and an area's corners go: "between" puts them at
+    /// the middles of the categories, "midCat" at the marks, so that the first and last touch the
+    /// ends of the plot.
+    /// </summary>
+    public string CrossBetween { get; set; } = "between";
 }
 
 /// <summary>
@@ -132,6 +176,17 @@ public sealed class ChartDefinition
 
     /// <summary>True where the value axis runs along the foot rather than up the side.</summary>
     public bool Lying => Kind == ChartKind.Bar;
+
+    /// <summary>
+    /// True where the chart holds pairs of numbers, so that both of its axes are value axes and
+    /// both have to be scaled.
+    /// </summary>
+    public bool Paired => Kind == ChartKind.Scatter;
+
+    /// <summary>
+    /// How a scatter is drawn: "none", "line", "lineMarker", "marker", "smooth" or "smoothMarker".
+    /// </summary>
+    public string ScatterStyle { get; set; } = "lineMarker";
 
     public List<ChartSeries> Series { get; } = [];
 
@@ -190,7 +245,9 @@ public static class ChartReader
 
         var plot = plotArea.Element(Main + "barChart")
                    ?? plotArea.Element(Main + "lineChart")
-                   ?? plotArea.Element(Main + "pieChart");
+                   ?? plotArea.Element(Main + "pieChart")
+                   ?? plotArea.Element(Main + "areaChart")
+                   ?? plotArea.Element(Main + "scatterChart");
 
         if (plot is null) return null;
 
@@ -198,10 +255,15 @@ public static class ChartReader
         {
             "lineChart" => ChartKind.Line,
             "pieChart" => ChartKind.Pie,
+            "areaChart" => ChartKind.Area,
+            "scatterChart" => ChartKind.Scatter,
             _ => plot.Element(Main + "barDir")?.Attribute("val")?.Value == "bar"
                 ? ChartKind.Bar
                 : ChartKind.Column
         };
+
+        definition.ScatterStyle =
+            plot.Element(Main + "scatterStyle")?.Attribute("val")?.Value ?? "lineMarker";
 
         definition.Grouping = plot.Element(Main + "grouping")?.Attribute("val")?.Value switch
         {
@@ -221,9 +283,18 @@ public static class ChartReader
         foreach (var axis in plotArea.Elements())
         {
             if (axis.Name == Main + "catAx" || axis.Name == Main + "dateAx")
+            {
                 definition.CategoryAxis = ReadAxis(axis, isValue: false);
+            }
             else if (axis.Name == Main + "valAx")
-                definition.ValueAxis = ReadAxis(axis, isValue: true);
+            {
+                var read = ReadAxis(axis, isValue: true);
+
+                // A scatter has two of them, and which is which is only said by where each runs:
+                // the one along the foot stands where a chart of categories keeps its categories.
+                if (definition.Paired && read.Position is "b" or "t") definition.CategoryAxis = read;
+                else definition.ValueAxis = read;
+            }
         }
 
         return definition;
@@ -236,7 +307,10 @@ public static class ChartReader
             : string.Empty;
 
         var categories = element.Element(Main + "cat") is { } cat ? Strings(cat) : [];
-        var values = element.Element(Main + "val") is { } val ? Numbers(val) : [];
+
+        var values = element.Element(Main + "val") is { } val
+            ? Numbers(val)
+            : element.Element(Main + "yVal") is { } y ? Numbers(y) : [];
 
         var properties = element.Element(Main + "spPr");
         var line = properties?.Element(W.Drawing + "ln");
@@ -253,6 +327,7 @@ public static class ChartReader
         {
             PointFills = points,
             Line = DrawingText.ReadFill(line),
+            NoLine = line?.Element(W.Drawing + "noFill") is not null,
             LineWidthPoints = line?.Attribute("w")?.Value is { } width && long.TryParse(width, out var emu)
                 ? Units.EmuToPoints(emu)
                 : 2.25,
@@ -263,8 +338,32 @@ public static class ChartReader
 
             InvertIfNegative =
                 element.Element(Main + "invertIfNegative")?.Attribute("val")?.Value
-                    is not ("0" or "false")
+                    is not ("0" or "false"),
+
+            XValues = element.Element(Main + "xVal") is { } x ? Numbers(x) : [],
+            Marker = ReadMarker(element.Element(Main + "marker"))
         };
+    }
+
+    /// <summary>
+    /// What a series draws at its points. Five points of a Word default, and everything about it
+    /// stated: a series that says nothing gets null and is drawn the way Word draws one.
+    /// </summary>
+    private static ChartMarker? ReadMarker(XElement? element)
+    {
+        if (element is null) return null;
+
+        var properties = element.Element(Main + "spPr");
+        var line = properties?.Element(W.Drawing + "ln");
+
+        return new ChartMarker(
+            element.Element(Main + "symbol")?.Attribute("val")?.Value ?? "auto",
+            Integer(element.Element(Main + "size")) ?? 5,
+            DrawingText.ReadFill(properties),
+            DrawingText.ReadFill(line),
+            line?.Attribute("w")?.Value is { } width && long.TryParse(width, out var emu)
+                ? Units.EmuToPoints(emu)
+                : 0.75);
     }
 
     private static ChartAxis ReadAxis(XElement element, bool isValue)
@@ -285,7 +384,9 @@ public static class ChartReader
             TickLabelPosition = element.Element(Main + "tickLblPos")?.Attribute("val")?.Value ?? "nextTo",
             LabelSizePoints = LabelSize(element) ?? 10,
             LabelOffset = Integer(element.Element(Main + "lblOffset")) ?? 100,
-            NumberFormat = element.Element(Main + "numFmt")?.Attribute("formatCode")?.Value
+            NumberFormat = element.Element(Main + "numFmt")?.Attribute("formatCode")?.Value,
+            CrossBetween = element.Element(Main + "crossBetween")?.Attribute("val")?.Value
+                           ?? "between"
         };
     }
 

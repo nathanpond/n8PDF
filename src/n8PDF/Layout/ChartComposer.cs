@@ -47,9 +47,14 @@ internal static class ChartComposer
     /// True where the value axis runs along the foot and the categories up the side, which is what
     /// a bar chart is and a column chart is not.
     /// </param>
+    /// <param name="AcrossUnit">
+    /// How far apart the marks along the foot go, where the foot is a scale of its own rather than
+    /// a run of categories. Nought for every chart but a scatter.
+    /// </param>
     public sealed record Plan(
         double Left, double Top, double Width, double Height,
-        double Minimum, double Maximum, double MajorUnit, bool Lying = false)
+        double Minimum, double Maximum, double MajorUnit, bool Lying = false,
+        double AcrossMinimum = 0, double AcrossMaximum = 0, double AcrossUnit = 0)
     {
         public double Right => Left + Width;
 
@@ -75,6 +80,29 @@ internal static class ChartComposer
         /// plot, and not at the bottom of it. What hangs below nought hangs past them.
         /// </remarks>
         public double Crossing => PositionOf(Math.Clamp(0, Minimum, Maximum));
+
+        /// <summary>
+        /// True where the foot is a scale of its own: a chart of pairs, which has to be positioned
+        /// both ways rather than one way and by category the other.
+        /// </summary>
+        public bool Paired => AcrossUnit > 0;
+
+        /// <summary>Where a value sits along the foot, which only a chart of pairs has.</summary>
+        public double AcrossOf(double value) =>
+            Left + (value - AcrossMinimum) / (AcrossMaximum - AcrossMinimum) * Width;
+
+        /// <summary>Where the axis up the side stands, which is where the foot reads nought.</summary>
+        public double AcrossCrossing => AcrossOf(Math.Clamp(0, AcrossMinimum, AcrossMaximum));
+
+        /// <summary>
+        /// Where a category's point falls along the plot: at the middle of its own share where the
+        /// axes cross between the categories, and at the mark itself where they cross at one — so
+        /// that the first and last points touch the ends of the plot.
+        /// </summary>
+        public double PointAt(int index, int count, bool spanning) =>
+            spanning
+                ? Left + (count <= 1 ? Width / 2 : Width * index / (count - 1))
+                : Left + Width * (index + 0.5) / Math.Max(1, count);
 
         /// <summary>How much room one category has along the axis they run on.</summary>
         public double Slot(int categories) =>
@@ -153,104 +181,180 @@ internal static class ChartComposer
     public static Plan Arrange(
         ChartDefinition chart, double width, double height,
         Func<string, double, double> measure,
-        Func<double, (double Ascent, double Descent)> labelHeight)
+        Func<double, (double Ascent, double Descent)> labelHeight,
+        Func<string, double, double, (double Width, int Lines)>? wrap = null)
     {
-        var lying = chart.Lying;
-        var size = chart.ValueAxis?.LabelSizePoints ?? 10;
+        wrap ??= (text, size, _) => (measure(text, size), 1);
 
         if (chart.PlotArea is { } stated)
         {
-            var box = (Left: stated.X * width, Top: stated.Y * height,
-                Width: stated.Width * width, Height: stated.Height * height);
-
-            var (minimum, maximum, unit) = Scale(chart, lying ? box.Width : box.Height, size);
-
-            return new Plan(box.Left, box.Top, box.Width, box.Height, minimum, maximum, unit, lying);
+            return Complete(chart,
+                (stated.X * width, stated.Y * height, stated.Width * width, stated.Height * height));
         }
 
-        // Nothing is known about the axis yet, so it is first measured as long as the plot could
-        // possibly be, and then again against the room the labels it earns leave it.
-        var length = Math.Max(1, (lying ? width : height) - 2 * BareMargin);
-        var plan = new Plan(0, 0, width, height, 0, 1, 1, lying);
+        // Nothing is known about the axes yet, so the plot is first taken as large as it could
+        // possibly be, and then measured again against the room the labels that gave it leave.
+        var box = (Left: BareMargin, Top: BareMargin,
+            Width: Math.Max(1, width - 2 * BareMargin), Height: Math.Max(1, height - 2 * BareMargin));
 
         for (var round = 0; round < 4; round++)
         {
-            plan = Place(chart, width, height, Scale(chart, length, size), measure, labelHeight);
+            var next = Place(chart, width, height, box, measure, labelHeight, wrap);
 
-            var settled = lying ? plan.Width : plan.Height;
-            if (Math.Abs(settled - length) < 0.001) break;
+            var settled = Math.Abs(next.Width - box.Width) < 0.001 &&
+                          Math.Abs(next.Height - box.Height) < 0.001;
 
-            length = settled;
+            box = next;
+            if (settled) break;
         }
 
-        return plan;
+        return Complete(chart, box);
+    }
+
+    /// <summary>The plot area with the scales its own size gives it.</summary>
+    private static Plan Complete(
+        ChartDefinition chart, (double Left, double Top, double Width, double Height) box)
+    {
+        var lying = chart.Lying;
+
+        var (minimum, maximum, unit) = Scale(chart,
+            lying ? box.Width : box.Height, chart.ValueAxis?.LabelSizePoints ?? 10);
+
+        var across = chart.Paired
+            ? Across(chart, box.Width, chart.CategoryAxis?.LabelSizePoints ?? 10)
+            : (0, 0, 0);
+
+        return new Plan(box.Left, box.Top, box.Width, box.Height, minimum, maximum, unit, lying,
+            across.Item1, across.Item2, across.Item3);
     }
 
     /// <summary>Puts the plot area inside the room its labels leave it.</summary>
-    private static Plan Place(
+    /// <remarks>
+    /// Which labels those are depends on which way the chart runs, but what each side does with
+    /// them does not. A side carrying labels ranged against it makes room for the widest of them
+    /// and the gap they keep; the foot makes room for a line 1.584 type sizes below the axis, and
+    /// for every further line a label wraps onto; and wherever the outermost label along the foot
+    /// is centred on the plot's own corner — which is what a chart of pairs does, what a chart
+    /// crossing at the middle of a category does, and what a chart lying down does — the side it
+    /// hangs over makes room for half of it.
+    /// </remarks>
+    private static (double Left, double Top, double Width, double Height) Place(
         ChartDefinition chart, double width, double height,
-        (double Minimum, double Maximum, double Unit) scale,
+        (double Left, double Top, double Width, double Height) box,
         Func<string, double, double> measure,
-        Func<double, (double Ascent, double Descent)> labelHeight)
+        Func<double, (double Ascent, double Descent)> labelHeight,
+        Func<string, double, double, (double Width, int Lines)> wrap)
     {
-        var lying = chart.Lying;
-        var whole = new Plan(0, 0, width, height, scale.Minimum, scale.Maximum, scale.Unit, lying);
+        var plan = Complete(chart, box);
 
         var left = BareMargin;
         var top = BareMargin;
         var right = BareMargin;
         var bottom = BareMargin;
 
-        if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
+        // What is written up the side, ranged against the axis it belongs to.
+        if (Ranged(chart, plan) is { Count: > 0 } ranged)
         {
-            var size = valueAxis.LabelSizePoints;
+            var size = RangedSize(chart);
 
-            var widest = Marks(whole)
-                .Select(value => measure(Format(value, valueAxis.NumberFormat), size))
-                .DefaultIfEmpty(0)
-                .Max();
+            left = Math.Max(left,
+                LabelMargin + ranged.Max(label => measure(label, size)) + size * ValueLabelGap);
+        }
 
-            if (lying)
+        // A number at the top of an upright scale is set about its mark, so half of it reaches
+        // above the plot; the categories of a chart lying down never do.
+        if (!chart.Lying && chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" })
+        {
+            var size = chart.ValueAxis.LabelSizePoints;
+            var (ascent, descent) = labelHeight(size);
+
+            top = Math.Max(top, TopMargin + (ascent + descent) / 2);
+        }
+
+        // And what is written under the foot.
+        var (foot, cornered, footSize) = UnderFoot(chart, plan);
+
+        if (foot.Count > 0)
+        {
+            var (_, descent) = labelHeight(footSize);
+
+            // Only words wrap: a number written under an axis takes whatever room it takes, and
+            // a category takes its own share of the plot and wraps inside it.
+            var room = chart.Paired || chart.Lying
+                ? double.MaxValue / 4
+                : box.Width / Math.Max(1, foot.Count);
+
+            var lines = foot.Select(label => wrap(label, footSize, room)).ToList();
+
+            bottom = Math.Max(bottom,
+                LabelMargin + footSize * CategoryLabelBaseline + descent +
+                (lines.Max(line => line.Lines) - 1) * footSize * LabelLine);
+
+            if (cornered)
             {
-                var (_, descent) = labelHeight(size);
-
-                bottom = Math.Max(bottom, LabelMargin + size * CategoryLabelBaseline + descent);
-                right = Math.Max(right, BareMargin + widest / 2);
-            }
-            else
-            {
-                var (ascent, descent) = labelHeight(size);
-
-                left = Math.Max(left, LabelMargin + widest + size * ValueLabelGap);
-                top = Math.Max(top, TopMargin + (ascent + descent) / 2);
+                left = Math.Max(left, BareMargin + lines[0].Width / 2);
+                right = Math.Max(right, BareMargin + lines[^1].Width / 2);
             }
         }
 
-        if (chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" } categoryAxis)
-        {
-            var size = categoryAxis.LabelSizePoints;
-
-            if (lying)
-            {
-                var widest = chart.Categories
-                    .Select(category => measure(category, size))
-                    .DefaultIfEmpty(0)
-                    .Max();
-
-                left = Math.Max(left, LabelMargin + widest + size * ValueLabelGap);
-            }
-            else
-            {
-                var (_, descent) = labelHeight(size);
-
-                bottom = Math.Max(bottom, LabelMargin + size * CategoryLabelBaseline + descent);
-            }
-        }
-
-        return new Plan(
-            left, top, Math.Max(1, width - left - right), Math.Max(1, height - top - bottom),
-            scale.Minimum, scale.Maximum, scale.Unit, lying);
+        return (left, top, Math.Max(1, width - left - right), Math.Max(1, height - top - bottom));
     }
+
+    /// <summary>
+    /// How far apart the lines of a label that wraps sit, as a share of its type size: the face as
+    /// Windows reads it, which for Calibri is 1.2207 ems, and what Word leaves between the two
+    /// lines of the long category on chart-area-scatter's nineteenth page.
+    /// </summary>
+    private const double LabelLine = 1.2207;
+
+    /// <summary>What is written up the side of a chart, ranged against its axis.</summary>
+    private static IReadOnlyList<string> Ranged(ChartDefinition chart, Plan plan)
+    {
+        if (chart.Lying)
+        {
+            return chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" }
+                ? chart.Categories
+                : [];
+        }
+
+        return chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } axis
+            ? [.. Marks(plan).Select(value => Format(value, axis.NumberFormat))]
+            : [];
+    }
+
+    private static double RangedSize(ChartDefinition chart) =>
+        (chart.Lying ? chart.CategoryAxis?.LabelSizePoints : chart.ValueAxis?.LabelSizePoints) ?? 10;
+
+    /// <summary>
+    /// What is written under the foot, whether its outermost labels are centred on the corners of
+    /// the plot, and what size they are set in.
+    /// </summary>
+    private static (IReadOnlyList<string> Labels, bool Cornered, double Size) UnderFoot(
+        ChartDefinition chart, Plan plan)
+    {
+        if (chart.Lying)
+        {
+            return chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } value
+                ? ([.. Marks(plan).Select(mark => Format(mark, value.NumberFormat))], true,
+                    value.LabelSizePoints)
+                : ([], false, 10);
+        }
+
+        if (chart.CategoryAxis is not { Deleted: false, TickLabelPosition: not "none" } axis)
+            return ([], false, 10);
+
+        return chart.Paired
+            ? ([.. MarksAcross(plan).Select(mark => Format(mark, axis.NumberFormat))], true,
+                axis.LabelSizePoints)
+            : (chart.Categories, Spanning(chart), axis.LabelSizePoints);
+    }
+
+    /// <summary>
+    /// True where the points of a line or an area sit at the marks rather than between them, which
+    /// is what an area chart asks for and what Word writes on every one it makes.
+    /// </summary>
+    public static bool Spanning(ChartDefinition chart) =>
+        chart.ValueAxis?.CrossBetween == "midCat";
 
     /// <summary>
     /// How far a label ranged against its axis ends short of it, as a share of its type size, and
@@ -329,13 +433,22 @@ internal static class ChartComposer
     /// <summary>
     /// The most major intervals an axis of a given length will carry: as many as leaves room for
     /// one more label than there are intervals, since a mark is written at both ends as well as
-    /// between.
+    /// between — and never more than ten, however long the axis is.
     /// </summary>
+    /// <remarks>
+    /// The ten is measured from chart-area-scatter, whose fifteenth page holds an axis long enough
+    /// for eleven labels and a chart of exactly one, which would run to 1.1 in tenths if it could.
+    /// Word runs it to 1.2 in fifths instead. Every other axis measured either runs out of room
+    /// first or lands on ten exactly, which is why the twenty-six charts of the scale probes never
+    /// showed it.
+    /// </remarks>
+    private const int MostIntervals = 10;
+
     private static int Intervals(double axisLength, bool lying, double labelSize)
     {
         var room = Math.Max(1, labelSize) * (lying ? LyingLabelRoom : UprightLabelRoom);
 
-        return Math.Max(1, (int)Math.Floor(axisLength / room) - 1);
+        return Math.Clamp((int)Math.Floor(axisLength / room) - 1, 1, MostIntervals);
     }
 
     /// <summary>
@@ -383,9 +496,34 @@ internal static class ChartComposer
             lowest = lowest < 0 ? -1 : 0;
         }
 
-        var axis = chart.ValueAxis;
-        var most = Intervals(axisLength, chart.Lying, labelSize);
+        return Fit(chart.ValueAxis, lowest, highest,
+            Intervals(axisLength, chart.Lying, labelSize), percent);
+    }
 
+    /// <summary>
+    /// And what the foot of a chart of pairs runs between, which is the same question asked of the
+    /// numbers along it — and answered with a lying axis's room, since that is where they are
+    /// written.
+    /// </summary>
+    private static (double Minimum, double Maximum, double Unit) Across(
+        ChartDefinition chart, double axisLength, double labelSize)
+    {
+        var values = chart.Series
+            .SelectMany(series => series.XValues)
+            .Where(value => value.HasValue)
+            .Select(value => value!.Value)
+            .ToList();
+
+        return Fit(chart.CategoryAxis,
+            values.Count > 0 ? Math.Min(0, values.Min()) : 0,
+            values.Count > 0 ? Math.Max(0, values.Max()) : 0,
+            Intervals(axisLength, lying: true, labelSize), percent: false);
+    }
+
+    /// <summary>The smallest step that leaves an axis no more marks than it has room for.</summary>
+    private static (double Minimum, double Maximum, double Unit) Fit(
+        ChartAxis? axis, double lowest, double highest, int most, bool percent)
+    {
         var unit = axis?.MajorUnit ?? 0;
         var (minimum, maximum) = (0.0, 0.0);
 
@@ -521,6 +659,10 @@ internal static class ChartComposer
 
         var crossing = plan.Crossing;
 
+        // Where the axis up the side stands: at the left of the plot for a chart of categories,
+        // and at its own nought for a chart of pairs, whose foot is a scale like any other.
+        var standing = plan.Paired ? plan.AcrossCrossing : plan.Left;
+
         if (chart.ValueAxis is { Deleted: false, MajorGridlines: true })
         {
             foreach (var value in Marks(plan))
@@ -538,6 +680,20 @@ internal static class ChartComposer
             }
         }
 
+        // A chart of pairs can be ruled the other way as well, since its foot is a scale too.
+        if (plan.Paired && chart.CategoryAxis is { Deleted: false, MajorGridlines: true })
+        {
+            foreach (var value in MarksAcross(plan))
+            {
+                var at = plan.AcrossOf(value);
+                if (Math.Abs(at - standing) < 0.001) continue;
+
+                operations.Add(Stroke([(at, plan.Top), (at, plan.Bottom)]));
+            }
+        }
+
+        if (chart.Kind == ChartKind.Area) operations.AddRange(Areas(chart, plan, theme));
+
         foreach (var bar in Bars(chart, plan))
         {
             // A bar hanging below nought is drawn the other way about unless the series says not
@@ -553,15 +709,13 @@ internal static class ChartComposer
                     Resolve(bar.Fill, theme), null, LineWidth, EvenOdd: false));
         }
 
-        if (chart.Kind == ChartKind.Line) operations.AddRange(Lines(chart, plan, theme));
-
         // The value axis runs along the edge of the plot the numbers are written against, whatever
         // the categories do: up the left of an upright chart, along the foot of one lying down.
         if (chart.ValueAxis is { Deleted: false } valueAxis)
         {
             operations.Add(plan.Lying
                 ? Stroke([(plan.Left, plan.Bottom), (plan.Right, plan.Bottom)])
-                : Stroke([(plan.Left, plan.Top), (plan.Left, plan.Bottom)]));
+                : Stroke([(standing, plan.Top), (standing, plan.Bottom)]));
 
             if (valueAxis.MajorTickMark is not "none")
             {
@@ -571,7 +725,7 @@ internal static class ChartComposer
 
                     operations.Add(plan.Lying
                         ? Stroke([(at, plan.Bottom), (at, plan.Bottom + TickLength)])
-                        : Stroke([(plan.Left - TickLength, at), (plan.Left, at)]));
+                        : Stroke([(standing - TickLength, at), (standing, at)]));
                 }
             }
         }
@@ -583,7 +737,16 @@ internal static class ChartComposer
                 ? Stroke([(crossing, plan.Top), (crossing, plan.Bottom)])
                 : Stroke([(plan.Left, crossing), (plan.Right, crossing)]));
 
-            if (categoryAxis.MajorTickMark is not "none")
+            if (categoryAxis.MajorTickMark is not "none" && plan.Paired)
+            {
+                // A foot that is a scale of its own is marked where its own numbers fall.
+                foreach (var value in MarksAcross(plan))
+                {
+                    var at = plan.AcrossOf(value);
+                    operations.Add(Stroke([(at, crossing), (at, crossing + TickLength)]));
+                }
+            }
+            else if (categoryAxis.MajorTickMark is not "none")
             {
                 // A category axis marks the boundaries between its categories rather than their
                 // middles, so a chart of four categories carries five marks.
@@ -603,6 +766,14 @@ internal static class ChartComposer
                     }
                 }
             }
+        }
+
+        // The lines and what stands at their points go over the axes rather than under them,
+        // which is the order Word writes them in.
+        if (chart.Kind is ChartKind.Line or ChartKind.Scatter)
+        {
+            operations.AddRange(Lines(chart, plan, theme));
+            operations.AddRange(Markers(chart, plan, theme));
         }
 
         return new VectorDrawing(width, height, operations);
@@ -717,38 +888,326 @@ internal static class ChartComposer
     }
 
     /// <summary>
-    /// A line through each series' points, one to a category.
+    /// Where a series' points fall, in the chart's own coordinates.
     /// </summary>
     /// <remarks>
-    /// The points sit at the middles of the categories, as the bars of a bar chart do, and the
-    /// line runs from one to the next — curving through them unless the series says not to, which
-    /// is the format's own default. Measured from Word's export of chart-line-pie: the four points
-    /// of its line land at 175.5, 238.5, 301.5 and 364.5 across a plot running 144 to 396, which
-    /// is the middle of each quarter of it.
+    /// A chart of categories puts them at the middles of the categories, as the bars of a bar
+    /// chart stand — or at the marks themselves where the axes cross at the middle of a category
+    /// rather than between them, which is what an area chart asks for. Measured from Word's export
+    /// of chart-line-pie: the four points of its line land at 175.5, 238.5, 301.5 and 364.5 across
+    /// a plot running 144 to 396, which is the middle of each quarter of it; and from the first
+    /// page of chart-area-scatter, whose four corners land at 162, 240, 318 and 396 across a plot
+    /// running 162 to 396, which is the ends and the thirds.
+    ///
+    /// A chart of pairs has no categories at all and puts each point where its own two numbers
+    /// say, one along each axis.
     /// </remarks>
+    public static List<(double X, double Y)> Points(
+        ChartDefinition chart, ChartSeries series, Plan plan)
+    {
+        var points = new List<(double X, double Y)>();
+
+        if (chart.Paired)
+        {
+            for (var i = 0; i < series.Values.Count; i++)
+            {
+                if (series.Values[i] is not { } value) continue;
+                if (i >= series.XValues.Count || series.XValues[i] is not { } x) continue;
+
+                points.Add((plan.AcrossOf(x), plan.PositionOf(value)));
+            }
+
+            return points;
+        }
+
+        var categories = Math.Max(1, chart.Categories.Count);
+        var spanning = Spanning(chart);
+
+        for (var i = 0; i < series.Values.Count && i < categories; i++)
+        {
+            if (series.Values[i] is not { } value) continue;
+
+            points.Add((plan.PointAt(i, categories, spanning), plan.PositionOf(value)));
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// A line through each series' points, curving through them unless the series says not to,
+    /// which is the format's own default.
+    /// </summary>
     private static IEnumerable<DrawingOperation> Lines(
         ChartDefinition chart, Plan plan, DocumentTheme theme)
     {
+        foreach (var series in chart.Series)
+        {
+            if (!Drawn(chart, series)) continue;
+
+            var points = Points(chart, series, plan);
+            if (points.Count < 2) continue;
+
+            var smooth = chart.Paired
+                ? chart.ScatterStyle is "smooth" or "smoothMarker" || series.Smooth
+                : series.Smooth;
+
+            yield return new PathOperation(
+                smooth ? Curve(points) : Straight(points),
+                null, Resolve(series.Line, theme), series.LineWidthPoints, EvenOdd: false);
+        }
+    }
+
+    /// <summary>
+    /// Whether a series joins its points with a line. A chart of pairs draws one only where its
+    /// style asks for one and the series has not said outright that it wants none; a line chart
+    /// always does.
+    /// </summary>
+    private static bool Drawn(ChartDefinition chart, ChartSeries series) =>
+        !series.NoLine &&
+        (!chart.Paired || chart.ScatterStyle is not ("none" or "marker"));
+
+    /// <summary>
+    /// Each series filled down to the axis, which is what an area chart is: a line chart with the
+    /// space under it coloured in.
+    /// </summary>
+    /// <remarks>
+    /// Measured from chart-area-scatter. The shape runs along the points and back along the axis,
+    /// and where the areas are stacked it runs back along the series below it instead, so that
+    /// each is a band rather than a shape hiding the ones behind. Unstacked, they are drawn one
+    /// over another in the order the chart lists them, opaquely — Word writes no transparency of
+    /// its own, so a taller area behind a shorter one is simply hidden by it.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Areas(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
         var categories = Math.Max(1, chart.Categories.Count);
-        var slot = plan.Width / categories;
+        var spanning = Spanning(chart);
+
+        var stacked = chart.Grouping is ChartGrouping.Stacked or ChartGrouping.PercentStacked;
+        var percent = chart.Grouping == ChartGrouping.PercentStacked;
+
+        var below = new double[categories];
+        var floor = plan.PositionOf(Math.Clamp(0, plan.Minimum, plan.Maximum));
 
         foreach (var series in chart.Series)
         {
-            var points = new List<(double X, double Y)>();
+            var top = new List<(double X, double Y)>();
+            var bottom = new List<(double X, double Y)>();
 
-            for (var i = 0; i < series.Values.Count && i < categories; i++)
+            for (var i = 0; i < categories; i++)
             {
-                if (series.Values[i] is not { } value) continue;
+                if (i >= series.Values.Count || series.Values[i] is not { } value) continue;
 
-                points.Add((plan.Left + slot * (i + 0.5), plan.PositionOf(value)));
+                var whole = percent ? Whole(chart, i) : 1;
+                if (whole <= 0) continue;
+
+                var height = percent ? value / whole : value;
+
+                var x = plan.PointAt(i, categories, spanning);
+                var under = stacked ? below[i] : 0;
+
+                top.Add((x, Along(plan, under + height)));
+                bottom.Add((x, stacked ? Along(plan, under) : floor));
+
+                if (stacked) below[i] = under + height;
             }
 
-            if (points.Count < 2) continue;
+            if (top.Count < 2) continue;
+
+            var steps = new List<PathStep> { new(PathStepKind.Move, [top[0]]) };
+
+            for (var i = 1; i < top.Count; i++) steps.Add(new PathStep(PathStepKind.Line, [top[i]]));
+            for (var i = bottom.Count - 1; i >= 0; i--)
+                steps.Add(new PathStep(PathStepKind.Line, [bottom[i]]));
+
+            steps.Add(new PathStep(PathStepKind.Close, []));
 
             yield return new PathOperation(
-                series.Smooth ? Curve(points) : Straight(points),
-                null, Resolve(series.Line, theme), series.LineWidthPoints, EvenOdd: false);
+                steps, Resolve(series.Fill, theme), null, LineWidth, EvenOdd: false);
         }
+    }
+
+    /// <summary>
+    /// What Word rounds every edge of a marker to: a three-hundredth of an inch.
+    /// </summary>
+    private const double Quantum = 0.24;
+
+    /// <summary>
+    /// The shapes Word runs through for a series that says nothing about its markers, in the order
+    /// it runs through them.
+    /// </summary>
+    /// <remarks>
+    /// The first four are measured, from a chart-area-scatter page holding four series and saying
+    /// nothing about any of them: a diamond, a square, a triangle and a cross. What comes after is
+    /// the order Excel has always used and is not measured here, since a document with five
+    /// unstated series to measure it with is not one Word writes.
+    /// </remarks>
+    private static readonly string[] AutomaticSymbols =
+        ["diamond", "square", "triangle", "x", "star", "dot", "dash", "plus", "circle"];
+
+    /// <summary>
+    /// A mark at each of a series' points, where the series draws them.
+    /// </summary>
+    /// <remarks>
+    /// Everything about where one goes is measured from chart-area-scatter, which holds markers of
+    /// three, five, seven and nine points and two shapes of each. A marker of size s is drawn in a
+    /// box of s rounded to the three-hundredth of an inch, whose corner is the point less half
+    /// that box rounded <em>down</em> to the same, and the shape itself is drawn half a
+    /// three-hundredth inside the box on every side. That accounts for all four sizes exactly: a
+    /// marker of seven comes out 6.72 across and up to a third of a point left of and above the
+    /// point it belongs to, which is Word's rounding and not a mistake.
+    ///
+    /// A series saying nothing gets a marker anyway, in the series' own colour and outlined in it
+    /// at half a point: seven points across where the series draws a line, and six where it does
+    /// not — measured either way, and the only rule here that has no reason behind it.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Markers(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        // Only a chart of pairs marks its points where nothing asks it to. A line chart that says
+        // nothing draws none, which is what Word's own line charts say outright.
+        var drawn = chart.Paired && chart.ScatterStyle is not ("none" or "line" or "smooth");
+
+        for (var index = 0; index < chart.Series.Count; index++)
+        {
+            var series = chart.Series[index];
+
+            var symbol = series.Marker?.Symbol ?? (drawn ? "auto" : "none");
+            if (symbol is "none" or "picture") continue;
+
+            if (symbol == "auto")
+            {
+                if (!drawn) continue;
+                symbol = AutomaticSymbols[index % AutomaticSymbols.Length];
+            }
+
+            var automatic = series.Marker is null;
+
+            var size = automatic
+                ? Drawn(chart, series) ? AutomaticMarker : AutomaticMarker - 1
+                : series.Marker!.SizePoints;
+
+            // Word's own charts take a marker's colours from the series where the marker says
+            // nothing of its own, which is what a marker left to itself looks like.
+            var fill = Resolve(series.Marker?.Fill ?? series.Line ?? series.Fill, theme);
+            var stroke = Resolve(series.Marker?.Line ?? series.Line ?? series.Fill, theme);
+            var width = automatic ? LineWidth : series.Marker!.LineWidthPoints;
+
+            foreach (var (x, y) in Points(chart, series, plan))
+            {
+                var box = Math.Round(size / Quantum, MidpointRounding.AwayFromZero) * Quantum;
+
+                var left = Math.Floor((x - box / 2) / Quantum) * Quantum + Quantum / 2;
+                var top = Math.Floor((y - box / 2) / Quantum) * Quantum + Quantum / 2;
+                var side = box - Quantum;
+
+                yield return Marker(symbol, left, top, side, fill, stroke, width);
+            }
+        }
+    }
+
+    /// <summary>How large a marker is where the series does not say.</summary>
+    private const double AutomaticMarker = 7;
+
+    /// <summary>One marker, in the box measured out for it.</summary>
+    private static PathOperation Marker(
+        string symbol, double left, double top, double side,
+        DrawingColor? fill, DrawingColor? stroke, double width)
+    {
+        var (x, y) = (left + side / 2, top + side / 2);
+        var half = side / 2;
+
+        switch (symbol)
+        {
+            case "square":
+                return new PathOperation(Rectangle(left, top, side, side),
+                    fill, stroke, width, EvenOdd: false);
+
+            case "circle":
+                return new PathOperation(Ellipse(x, y, half), fill, stroke, width, EvenOdd: false);
+
+            // Half the size, which is what a dot is: a marker with nothing but its middle.
+            case "dot":
+                return new PathOperation(Ellipse(x, y, half / 2), fill, stroke, width,
+                    EvenOdd: false);
+
+            case "triangle":
+                return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(x, top)]),
+                    new PathStep(PathStepKind.Line, [(left + side, top + side)]),
+                    new PathStep(PathStepKind.Line, [(left, top + side)]),
+                    new PathStep(PathStepKind.Close, [])
+                ], fill, stroke, width, EvenOdd: false);
+
+            // The crossing kinds are lines rather than shapes, so they are stroked and not filled.
+            case "x":
+                return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(left, top)]),
+                    new PathStep(PathStepKind.Line, [(left + side, top + side)]),
+                    new PathStep(PathStepKind.Move, [(left + side, top)]),
+                    new PathStep(PathStepKind.Line, [(left, top + side)])
+                ], null, stroke, width, EvenOdd: false);
+
+            case "plus":
+                return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(x, top)]),
+                    new PathStep(PathStepKind.Line, [(x, top + side)]),
+                    new PathStep(PathStepKind.Move, [(left, y)]),
+                    new PathStep(PathStepKind.Line, [(left + side, y)])
+                ], null, stroke, width, EvenOdd: false);
+
+            case "star":
+                return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(x, top)]),
+                    new PathStep(PathStepKind.Line, [(x, top + side)]),
+                    new PathStep(PathStepKind.Move, [(left, top)]),
+                    new PathStep(PathStepKind.Line, [(left + side, top + side)]),
+                    new PathStep(PathStepKind.Move, [(left + side, top)]),
+                    new PathStep(PathStepKind.Line, [(left, top + side)])
+                ], null, stroke, width, EvenOdd: false);
+
+            case "dash":
+                return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(left, y)]),
+                    new PathStep(PathStepKind.Line, [(left + side, y)])
+                ], null, stroke, width, EvenOdd: false);
+
+            default:
+                return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(x, top)]),
+                    new PathStep(PathStepKind.Line, [(left + side, y)]),
+                    new PathStep(PathStepKind.Line, [(x, top + side)]),
+                    new PathStep(PathStepKind.Line, [(left, y)]),
+                    new PathStep(PathStepKind.Close, [])
+                ], fill, stroke, width, EvenOdd: false);
+        }
+    }
+
+    /// <summary>A circle, as four Béziers.</summary>
+    private static IReadOnlyList<PathStep> Ellipse(double x, double y, double radius)
+    {
+        const double arc = 0.5523;
+        var control = radius * arc;
+
+        return
+        [
+            new PathStep(PathStepKind.Move, [(x + radius, y)]),
+            new PathStep(PathStepKind.Curve,
+                [(x + radius, y + control), (x + control, y + radius), (x, y + radius)]),
+            new PathStep(PathStepKind.Curve,
+                [(x - control, y + radius), (x - radius, y + control), (x - radius, y)]),
+            new PathStep(PathStepKind.Curve,
+                [(x - radius, y - control), (x - control, y - radius), (x, y - radius)]),
+            new PathStep(PathStepKind.Curve,
+                [(x + control, y - radius), (x + radius, y - control), (x + radius, y)]),
+            new PathStep(PathStepKind.Close, [])
+        ];
     }
 
     private static IReadOnlyList<PathStep> Straight(IReadOnlyList<(double X, double Y)> points)
@@ -885,14 +1344,21 @@ internal static class ChartComposer
     }
 
     /// <summary>The values the value axis marks, from its bottom to its top.</summary>
-    public static IEnumerable<double> Marks(Plan plan)
+    public static IEnumerable<double> Marks(Plan plan) =>
+        Marked(plan.Minimum, plan.Maximum, plan.MajorUnit);
+
+    /// <summary>And the values the foot marks, where the foot is a scale of its own.</summary>
+    public static IEnumerable<double> MarksAcross(Plan plan) =>
+        Marked(plan.AcrossMinimum, plan.AcrossMaximum, plan.AcrossUnit);
+
+    private static IEnumerable<double> Marked(double minimum, double maximum, double unit)
     {
-        if (plan.MajorUnit <= 0) yield break;
+        if (unit <= 0) yield break;
 
         // Counted rather than added up, so that a hundred marks do not drift.
-        var steps = (int)Math.Floor((plan.Maximum - plan.Minimum) / plan.MajorUnit + 0.000001);
+        var steps = (int)Math.Floor((maximum - minimum) / unit + 0.000001);
 
-        for (var i = 0; i <= steps; i++) yield return plan.Minimum + i * plan.MajorUnit;
+        for (var i = 0; i <= steps; i++) yield return minimum + i * unit;
     }
 
     private static PathOperation Stroke(IReadOnlyList<(double X, double Y)> points) =>

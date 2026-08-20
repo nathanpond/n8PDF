@@ -892,6 +892,159 @@ public static class Fixtures
             """;
     }
 
+    /// <summary>
+    /// An area chart: the same shape as a line chart, filled down to the axis.
+    /// </summary>
+    private static string AreaChart(
+        string grouping, int series, bool manualLayout = true, double? maximum = 60,
+        string numberFormat = "General", double[]? values = null, string? firstCategory = null)
+    {
+        var categories = new[] { firstCategory ?? "One", "Two", "Three", "Four" };
+
+        values ??= [30, 45, 20, 55];
+
+        var layout = manualLayout
+            ? """
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.25"/><c:y val="0.1"/><c:w val="0.65"/><c:h val="0.7"/>
+              </c:manualLayout>
+              """
+            : string.Empty;
+
+        var scale = maximum is { } top
+            ? $"""<c:max val="{top.ToString(CultureInfo.InvariantCulture)}"/><c:min val="0"/>"""
+            : string.Empty;
+
+        var unit = maximum is { } value
+            ? $"""<c:majorUnit val="{(value / 3).ToString(CultureInfo.InvariantCulture)}"/>"""
+            : string.Empty;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{layout}</c:layout>
+                <c:areaChart>
+                  <c:grouping val="{grouping}"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", categories, values, "4472C4")}
+                  {(series > 1
+                      ? DocxBuilder.ChartSeries(1, "Others", categories, [10, 25, 50, 15], "ED7D31")
+                      : string.Empty)}
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:areaChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/>{scale}</c:scaling>
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="{numberFormat}" sourceLinked="0"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="midCat"/>{unit}
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
+    /// <summary>
+    /// A scatter chart: pairs of numbers rather than a value against a category, so both of its
+    /// axes are value axes and both have to be scaled.
+    /// </summary>
+    private static string ScatterChart(
+        string style, string? marker = "circle", bool line = true, bool smooth = false,
+        bool stated = true, bool manualLayout = true, int series = 1, double markerSize = 7)
+    {
+        var layout = manualLayout
+            ? """
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.25"/><c:y val="0.1"/><c:w val="0.65"/><c:h val="0.7"/>
+              </c:manualLayout>
+              """
+            : string.Empty;
+
+        static string Scaling(bool stated, double maximum, double unit) => stated
+            ? $"""
+               <c:scaling><c:orientation val="minMax"/>
+                 <c:max val="{maximum.ToString(CultureInfo.InvariantCulture)}"/><c:min val="0"/>
+               </c:scaling>
+               """
+            : "<c:scaling><c:orientation val=\"minMax\"/></c:scaling>";
+
+        static string Unit(bool stated, double unit) => stated
+            ? $"""<c:majorUnit val="{unit.ToString(CultureInfo.InvariantCulture)}"/>"""
+            : string.Empty;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{layout}</c:layout>
+                <c:scatterChart>
+                  <c:scatterStyle val="{style}"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartScatterSeries(0, "Units", [1, 2, 4, 7], [30, 45, 20, 55],
+                      "4472C4", marker, markerSize, line: line, smooth: smooth)}
+                  {(series > 1
+                      ? DocxBuilder.ChartScatterSeries(1, "Others", [1, 3, 5, 7], [10, 25, 50, 15],
+                          "ED7D31", marker is null ? null : "square", markerSize,
+                          line: line, smooth: smooth)
+                      : string.Empty)}
+                  {(series > 2
+                      ? DocxBuilder.ChartScatterSeries(2, "Third", [1, 3, 5, 7], [5, 35, 15, 40],
+                          "A5A5A5", marker is null ? null : "triangle", markerSize,
+                          line: line, smooth: smooth)
+                      : string.Empty)}
+                  {(series > 3
+                      ? DocxBuilder.ChartScatterSeries(3, "Fourth", [1, 3, 5, 7], [50, 5, 40, 25],
+                          "FFC000", marker is null ? null : "x", markerSize,
+                          line: line, smooth: smooth)
+                      : string.Empty)}
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:scatterChart>
+                <c:valAx>
+                  <c:axId val="111111111"/>
+                  {Scaling(stated, 8, 2)}
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="midCat"/>{Unit(stated, 2)}
+                </c:valAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  {Scaling(stated, 60, 20)}
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="midCat"/>{Unit(stated, 20)}
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
     private static string AutoScaleChart(IReadOnlyList<double> values)
     {
         var categories = Enumerable.Range(1, values.Count).Select(i => $"C{i}").ToList();
@@ -2164,6 +2317,93 @@ public static class Fixtures
                     builder.AddRawParagraph(
                         $"<w:p><w:pPr>{(i == 0 ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
                         DocxBuilder.ChartDrawing(288, 180, id: 720 + i, relationshipId: id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // The two kinds of chart that are not a value against a category: an area, which is a
+            // line filled down to the axis, and a scatter, which holds pairs of numbers and so has
+            // a value axis both ways.
+            //
+            //   page 1  one area, placed by hand
+            //   page 2  two areas over each other
+            //   page 3  two areas stacked
+            //   page 4  the same, filled out to the whole
+            //   page 5  one area, left to Word to place and scale
+            //   page 6  a scatter of markers alone
+            //   page 7  a scatter of straight lines and markers
+            //   page 8  a scatter of a smooth line and no markers
+            //   page 9  two scatters, left to Word to scale both ways
+            //   page 10 a scatter that says nothing about its markers
+            //   page 11 markers of three points, 12 of five, 13 of nine
+            //   page 14 two scatters saying nothing about their markers
+            //   page 15 an axis that could divide itself into eleven
+            //   page 16 four scatters saying nothing about their markers
+            //   page 17 one of them, with no line to go with it
+            //   page 18 a scatter left to Word to place
+            //   page 19 an area whose first category is wider than its numbers
+            ["chart-area-scatter"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(AreaChart("standard", 1));
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdArea2", AreaChart("standard", 2)),
+                    ("rIdArea3", AreaChart("stacked", 2, maximum: null)),
+                    ("rIdArea4", AreaChart("percentStacked", 2, maximum: null,
+                        numberFormat: "0%")),
+                    ("rIdArea5", AreaChart("standard", 1, manualLayout: false, maximum: null)),
+                    ("rIdArea6", ScatterChart("lineMarker", line: false)),
+                    ("rIdArea7", ScatterChart("lineMarker")),
+                    ("rIdArea8", ScatterChart("smoothMarker", marker: null, smooth: true)),
+                    ("rIdArea9", ScatterChart("lineMarker", stated: false, series: 2)),
+                    ("rIdArea10", ScatterChart("lineMarker", marker: null)),
+
+                    // How large a marker of a stated size comes out, which one page cannot say,
+                    // and what Word picks for a second series left to itself.
+                    ("rIdArea11", ScatterChart("lineMarker", line: false, markerSize: 3)),
+                    ("rIdArea12", ScatterChart("lineMarker", line: false, markerSize: 5)),
+                    ("rIdArea13", ScatterChart("lineMarker", line: false, markerSize: 9)),
+                    ("rIdArea14", ScatterChart("lineMarker", marker: null, series: 2)),
+
+                    // And whether an axis will divide itself into eleven, which is the one thing
+                    // the scale probes leave open: every axis they hold is either short enough for
+                    // the labels to run out first or lands on ten exactly.
+                    ("rIdArea15", AreaChart("standard", 1, maximum: null,
+                        values: [0.6, 1, 0.4, 0.8])),
+
+                    // And which markers Word runs through when four series in a row say nothing.
+                    ("rIdArea16", ScatterChart("lineMarker", marker: null, line: false, series: 4)),
+
+                    // The same one series again, drawn with markers and no line, which is what
+                    // says whether a marker left to itself is sized by the line or by the company
+                    // it keeps.
+                    ("rIdArea17", ScatterChart("lineMarker", marker: null, line: false)),
+
+                    // And the two left to Word to place: a scatter, whose numbers run along the
+                    // foot as well as up the side, and an area whose first category is far wider
+                    // than any of its numbers.
+                    ("rIdArea18", ScatterChart("lineMarker", stated: false, manualLayout: false,
+                        series: 2)),
+                    ("rIdArea19", AreaChart("standard", 1, manualLayout: false, maximum: null,
+                        values: [3, 5, 2, 4], firstCategory: "Category number one"))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 950) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/area{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 951 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
                 }
 
                 return builder;
