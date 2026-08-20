@@ -22,7 +22,9 @@ public sealed class TrueTypeFont
     private GlyphClasses? _classes;
     private Metamorphosis? _metamorphosis;
     private ExtendedKerning? _extendedKerning;
-    private bool _layoutRead;
+    private volatile bool _layoutRead;
+
+    private readonly object _layoutGate = new();
 
     private readonly Dictionary<int, short> _pairKerning = [];
 
@@ -166,12 +168,31 @@ public sealed class TrueTypeFont
         }
     }
 
+    /// <summary>
+    /// Reads the tables that shape a script, the first time anything asks for them.
+    /// </summary>
+    /// <remarks>
+    /// Under a lock, and with the flag set last, because one face is shared: the library reads a
+    /// file once and hands the same face to every conversion that wants it, so two of them may
+    /// arrive here at the same moment. Setting the flag first would let the second go on with a
+    /// font whose tables the first had not finished reading.
+    /// </remarks>
     private void ReadLayout()
     {
         if (_layoutRead) return;
 
-        _layoutRead = true;
+        lock (_layoutGate)
+        {
+            if (_layoutRead) return;
 
+            ReadLayoutTables();
+
+            _layoutRead = true;
+        }
+    }
+
+    private void ReadLayoutTables()
+    {
         if (Tables.TryGetValue("GDEF", out var gdef)) _classes = GlyphClasses.Read(_data, gdef.Offset);
 
         if (Tables.TryGetValue("GSUB", out var gsub))

@@ -15,6 +15,12 @@ public sealed class ConversionOptions
     /// platform's installed fonts. Supply one with fonts registered explicitly to make output
     /// reproducible regardless of what is installed.
     /// </summary>
+    /// <remarks>
+    /// Leaving it null costs nothing to repeat: what the platform's font directories hold is read
+    /// once for the process and shared, and a face is read from its file only when a document
+    /// actually asks for it. A library of one's own is worth keeping and reusing all the same,
+    /// since anything registered into it is registered once.
+    /// </remarks>
     public FontLibrary? Fonts { get; set; }
 
     public LayoutOptions Layout { get; set; } = new();

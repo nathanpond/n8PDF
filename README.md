@@ -54,6 +54,19 @@ tools/make-reference-pdfs.sh       # generate missing Word reference PDFs (macOS
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
 git-ignored.
 
+### What a conversion costs
+
+A page of text converts in about 1.4ms on the machine this was measured on. Finding the fonts is
+the one thing that costs more than the document does: the platform's font directories here hold 651
+files and 1.3GB, and every one of them has to be read to know what face it holds. That is done once
+for the process and shared — the index is every face's name, style and file, and comes to 1.6MB —
+and a face reads its own file only when a document asks for that face. So the first conversion in a
+process pays about 600ms for the scan and every one after it pays nothing.
+
+Before that, a conversion that said nothing about fonts read all 1.3GB, held 1.5GB while it did,
+threw it away, and did the whole thing again for the next document: 450ms a page, whatever the page
+held.
+
 ## Validation
 
 Four tiers, cheapest and most diagnostic first.

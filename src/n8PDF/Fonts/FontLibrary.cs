@@ -21,11 +21,78 @@ public sealed record FontSelection(TrueTypeFont Font, bool SyntheticBold, bool S
 /// </summary>
 public sealed class FontLibrary
 {
-    private readonly Dictionary<string, List<TrueTypeFont>> _byFamily = new(StringComparer.OrdinalIgnoreCase);
-    private readonly List<TrueTypeFont> _all = [];
+    /// <summary>
+    /// One face the library knows of: what it is called and how it is styled, and where to read
+    /// it from when something actually wants it.
+    /// </summary>
+    /// <remarks>
+    /// A face has to be named and styled to be chosen between, and nothing more: which of a
+    /// family's faces a document wants is decided by the weight and the slant alone. Reading the
+    /// rest of it — the outlines, the tables that shape a script, the kerning — costs what the
+    /// file costs, and the platform's font directories on this machine hold 1.3GB of them. So a
+    /// face is indexed by its name and read by its use, and a document that sets two families
+    /// reads two files rather than six hundred.
+    /// </remarks>
+    private sealed class Face
+    {
+        private readonly Lazy<TrueTypeFont> _font;
+
+        /// <summary>A face already in hand, which is what registering one outright gives.</summary>
+        public Face(TrueTypeFont font)
+        {
+            _font = new Lazy<TrueTypeFont>(font);
+
+            Family = font.FamilyName;
+            IsBold = font.IsBold;
+            IsItalic = font.IsItalic;
+            WeightClass = font.Metrics.WeightClass;
+        }
+
+        /// <summary>A face known of but not yet read.</summary>
+        public Face(string path, int index, TrueTypeFont identity)
+        {
+            _font = new Lazy<TrueTypeFont>(
+                () => TrueTypeFont.Load(File.ReadAllBytes(path), index),
+                LazyThreadSafetyMode.ExecutionAndPublication);
+
+            Family = identity.FamilyName;
+            IsBold = identity.IsBold;
+            IsItalic = identity.IsItalic;
+            WeightClass = identity.Metrics.WeightClass;
+        }
+
+        public string Family { get; }
+
+        public bool IsBold { get; }
+
+        public bool IsItalic { get; }
+
+        public int WeightClass { get; }
+
+        public TrueTypeFont Font => _font.Value;
+    }
+
+    private readonly Dictionary<string, List<Face>> _byFamily = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<Face> _all = [];
     private readonly HashSet<string> _loadedPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
     private bool _systemFontsLoaded;
+
+    /// <summary>
+    /// Every face the platform's font directories hold, read once for the whole process.
+    /// </summary>
+    /// <remarks>
+    /// The scan itself is the expensive part — six hundred files and a second of reading on the
+    /// machine this was measured on — and it gives the same answer every time. Sharing the result
+    /// is what makes a conversion that says nothing about fonts cost a millisecond rather than
+    /// half a second, and what stops a hundred conversions reading the same 1.3GB a hundred times.
+    ///
+    /// What is shared is the index, and the faces in it read themselves on demand — so two
+    /// libraries that both want Calibri end up with the same face rather than two of it, and a
+    /// library that wants nothing reads nothing.
+    /// </remarks>
+    private static readonly Lazy<IReadOnlyList<Face>> SystemFaces =
+        new(ScanSystemFonts, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
     /// When true, a lookup that finds nothing registered falls back to scanning the platform's
@@ -59,7 +126,7 @@ public sealed class FontLibrary
     public void Register(byte[] data)
     {
         foreach (var face in TrueTypeFont.LoadAll(data))
-            Add(face);
+            Add(new Face(face));
     }
 
     public void RegisterFile(string path)
@@ -131,7 +198,7 @@ public sealed class FontLibrary
         {
             if (_all.Count > 0)
             {
-                selection = Select(_all, bold, italic);
+                selection = Select([.. _all], bold, italic);
                 return true;
             }
         }
@@ -169,15 +236,18 @@ public sealed class FontLibrary
             if (Covers(candidate.Font, codePoint)) return candidate;
         }
 
-        lock (_gate)
-        {
-            var ordered = _all
-                .Where(font => Covers(font, codePoint))
-                .OrderBy(font => font.FamilyName, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+        // Every face there is, in a fixed order, until one of them can draw the character. This
+        // is the one path that reads faces it will not use, and it is only reached by a character
+        // nothing in the substitution chain covers.
+        List<Face> everything;
+        lock (_gate) everything = [.. _all];
 
-            if (ordered.Count > 0) return Select(ordered, bold, italic);
-        }
+        var ordered = everything
+            .OrderBy(face => face.Family, StringComparer.OrdinalIgnoreCase)
+            .Where(face => Covers(face.Font, codePoint))
+            .ToList();
+
+        if (ordered.Count > 0) return Select(ordered, bold, italic);
 
         return null;
     }
@@ -203,7 +273,7 @@ public sealed class FontLibrary
         return true;
     }
 
-    private List<TrueTypeFont>? FindFamily(string familyName)
+    private List<Face>? FindFamily(string familyName)
     {
         lock (_gate)
         {
@@ -221,9 +291,9 @@ public sealed class FontLibrary
     /// Picks the best face for the requested style. An exact match wins; otherwise the closest
     /// face is taken and the missing attributes are flagged for synthesis.
     /// </summary>
-    private static FontSelection Select(List<TrueTypeFont> candidates, bool bold, bool italic)
+    private static FontSelection Select(List<Face> candidates, bool bold, bool italic)
     {
-        TrueTypeFont? best = null;
+        Face? best = null;
         var bestScore = int.MinValue;
 
         foreach (var candidate in candidates)
@@ -236,7 +306,7 @@ public sealed class FontLibrary
 
             // Prefer the nearest weight among faces that all claim the same bold flag.
             var targetWeight = bold ? 700 : 400;
-            score -= Math.Abs(candidate.Metrics.WeightClass - targetWeight) / 100;
+            score -= Math.Abs(candidate.WeightClass - targetWeight) / 100;
 
             if (score <= bestScore) continue;
             bestScore = score;
@@ -244,23 +314,23 @@ public sealed class FontLibrary
         }
 
         best ??= candidates[0];
-        return new FontSelection(best, bold && !best.IsBold, italic && !best.IsItalic);
+        return new FontSelection(best.Font, bold && !best.IsBold, italic && !best.IsItalic);
     }
 
-    private void Add(TrueTypeFont font)
+    private void Add(Face face)
     {
         lock (_gate)
         {
-            _all.Add(font);
-            AddToFamily(font.FamilyName, font);
+            _all.Add(face);
+            AddToFamily(face.Family, face);
 
-            var normalized = Normalize(font.FamilyName);
-            if (!string.Equals(normalized, font.FamilyName, StringComparison.OrdinalIgnoreCase))
-                AddToFamily(normalized, font);
+            var normalized = Normalize(face.Family);
+            if (!string.Equals(normalized, face.Family, StringComparison.OrdinalIgnoreCase))
+                AddToFamily(normalized, face);
         }
     }
 
-    private void AddToFamily(string family, TrueTypeFont font)
+    private void AddToFamily(string family, Face face)
     {
         if (!_byFamily.TryGetValue(family, out var list))
         {
@@ -268,7 +338,7 @@ public sealed class FontLibrary
             _byFamily[family] = list;
         }
 
-        list.Add(font);
+        list.Add(face);
     }
 
     private void EnsureSystemFontsLoaded()
@@ -279,8 +349,63 @@ public sealed class FontLibrary
             _systemFontsLoaded = true;
         }
 
+        foreach (var face in SystemFaces.Value) Add(face);
+    }
+
+    /// <summary>
+    /// Every face in the platform's font directories, named and styled but not read.
+    /// </summary>
+    /// <remarks>
+    /// A file is read here to be named — there is nowhere else the name is written — and let go of
+    /// again, so that what is kept is the index rather than the fonts. A directory of fonts is a
+    /// shared space that routinely holds files that cannot be parsed or read, and one of those
+    /// must not take out the whole scan.
+    /// </remarks>
+    private static IReadOnlyList<Face> ScanSystemFonts()
+    {
+        var faces = new List<Face>();
+
         foreach (var directory in GetSystemFontDirectories())
-            RegisterDirectory(directory);
+        {
+            if (!Directory.Exists(directory)) continue;
+
+            IEnumerable<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(directory);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            foreach (var file in files)
+            {
+                if (!IsFontExtension(Path.GetExtension(file))) continue;
+
+                try
+                {
+                    var data = File.ReadAllBytes(file);
+
+                    for (var index = 0; index < TrueTypeFont.GetFaceCount(data); index++)
+                    {
+                        try
+                        {
+                            faces.Add(new Face(file, index, TrueTypeFont.Load(data, index)));
+                        }
+                        catch (FontFormatException)
+                        {
+                            // One malformed face in a collection leaves the rest usable.
+                        }
+                    }
+                }
+                catch (Exception e) when (e is FontFormatException or IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+        }
+
+        return faces;
     }
 
     /// <summary>
