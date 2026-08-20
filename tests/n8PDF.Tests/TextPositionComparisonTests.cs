@@ -101,6 +101,18 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 sum's — see the note on Nary. Down seventeen lines that comes to under two points.
                 """),
 
+            ["math-kern-probe"] = (2.0,
+                """
+                Not the equations: every one of the fifteen scripts on this page sits within four
+                hundredths of a point of where Word puts it, which is what MathKernTests asserts.
+                It is the rails between them — a two point line each, thirty of them — that drift.
+                Word rounds how tall a line is to the three hundredth of an inch it rounds every
+                other position to, which takes a two point line from 2.2998 points to 2.16, and
+                thirty of those come to two points down the page. Nothing here rounds a line's
+                height; the fixtures that show it are the ones whose lines are small enough for a
+                fourteenth of a point to matter.
+                """),
+
             ["math-line-box-probe"] = (2.4,
                 """
                 One of the twenty-five: a bracket round a fraction whose parts are twice the size
@@ -179,6 +191,7 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         // was set — where the letters go is compared like any other fixture's.
         ["equations"] = "Word gives the letters of an equation no map back to what they say",
         ["math-line-box-probe"] = "the same: they are equations and nothing else",
+        ["math-kern-probe"] = "the same again",
         ["math-structure-probe"] = "the same again"
     };
 

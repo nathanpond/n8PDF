@@ -388,6 +388,24 @@ internal sealed class TrueTypeFont
 
     private IReadOnlyDictionary<ushort, IReadOnlyList<(ushort Glyph, int Height)>>? _variants;
 
+    /// <summary>
+    /// What the face says about tucking a script into each corner of each glyph.
+    /// </summary>
+    internal IReadOnlyDictionary<ushort, MathKerns> MathKerns
+    {
+        get
+        {
+            lock (_layoutGate)
+            {
+                return _kerns ??= Tables.TryGetValue("MATH", out var math)
+                    ? MathConstants.ReadKerns(_data, math.Offset)
+                    : new Dictionary<ushort, MathKerns>();
+            }
+        }
+    }
+
+    private IReadOnlyDictionary<ushort, MathKerns>? _kerns;
+
     internal byte[] SourceData => _data;
 
     /// <summary>

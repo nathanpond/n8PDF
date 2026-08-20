@@ -11,9 +11,8 @@ namespace n8PDF.Fonts;
 /// Word sets equations by. The alternative would be fitting a few dozen constants to measurements
 /// of Word's output, which would be guessing at numbers the font states outright.
 ///
-/// The rest of the table is read elsewhere in this file: how far each glyph leans, by
-/// <see cref="ReadItalics"/>, and the taller shapes a bracket grows into, by
-/// <see cref="ReadVariants"/>. What is not read is the recipe for building a bracket taller than
+/// The rest of the table is read elsewhere in this file: how far each glyph leans and how far a
+/// script tucks into each of its corners, and the taller shapes a bracket grows into. What is not read is the recipe for building a bracket taller than
 /// the tallest shape the face keeps, out of a top, a bottom and as many middles as it takes;
 /// nothing an equation asks for at the sizes a document is set at has reached the end of the
 /// shapes yet. See <see cref="Layout.MathComposer"/>.
@@ -361,9 +360,107 @@ internal sealed record MathConstants(
         return glyphs;
     }
 
+    /// <summary>
+    /// What a face says about tucking a script into the corner of the letter it sits on, glyph by
+    /// glyph.
+    /// </summary>
+    /// <remarks>
+    /// A script sits closer to some letters than to others: the two of an <c>f²</c> can come in
+    /// over the f's hook, and the two of an <c>A²</c> has to stand off the A's slope. The face
+    /// states the amount for each of the four corners of each glyph, and states it as a staircase
+    /// — a set of heights and a value for the space between each pair — so that the amount can
+    /// depend on how far up the corner the script sits.
+    ///
+    /// Which height Word reads the staircase at is measured in math-kern-probe: see
+    /// <see cref="Layout.MathComposer"/>, where the reading is done.
+    /// </remarks>
+    public static IReadOnlyDictionary<ushort, MathKerns> ReadKerns(byte[] data, int offset)
+    {
+        var kerns = new Dictionary<ushort, MathKerns>();
+
+        if (offset <= 0 || offset + 8 > data.Length) return kerns;
+
+        // The third table of the glyph information, after the italic corrections and the accent
+        // attachments.
+        var info = ReadUShort(data, offset + 6);
+        if (info == 0) return kerns;
+
+        var glyphInfo = offset + info;
+        if (glyphInfo + 8 > data.Length) return kerns;
+
+        var table = ReadUShort(data, glyphInfo + 6);
+        if (table == 0) return kerns;
+
+        var kernInfo = glyphInfo + table;
+        if (kernInfo + 4 > data.Length) return kerns;
+
+        var coverage = kernInfo + ReadUShort(data, kernInfo);
+        var glyphs = Covered(data, coverage);
+        var count = ReadUShort(data, kernInfo + 2);
+
+        for (var i = 0; i < count && i < glyphs.Count; i++)
+        {
+            var record = kernInfo + 4 + i * 8;
+            if (record + 8 > data.Length) break;
+
+            kerns[glyphs[i]] = new MathKerns(
+                Staircase(data, kernInfo, ReadUShort(data, record)),
+                Staircase(data, kernInfo, ReadUShort(data, record + 2)),
+                Staircase(data, kernInfo, ReadUShort(data, record + 4)),
+                Staircase(data, kernInfo, ReadUShort(data, record + 6)));
+        }
+
+        return kerns;
+    }
+
+    /// <summary>
+    /// One corner's staircase: the heights it turns at, and the value between each pair of them.
+    /// There is always one more value than there are heights.
+    /// </summary>
+    private static MathStaircase? Staircase(byte[] data, int kernInfo, int offset)
+    {
+        if (offset == 0 || kernInfo + offset + 2 > data.Length) return null;
+
+        var at = kernInfo + offset;
+        var steps = ReadUShort(data, at);
+
+        if (at + 2 + steps * 8 + 4 > data.Length) return null;
+
+        var heights = new short[steps];
+        var values = new short[steps + 1];
+
+        for (var i = 0; i < steps; i++) heights[i] = ReadShort(data, at + 2 + i * 4);
+        for (var i = 0; i <= steps; i++) values[i] = ReadShort(data, at + 2 + steps * 4 + i * 4);
+
+        return new MathStaircase(heights, values);
+    }
+
     private static int ReadUShort(byte[] data, int offset) =>
         (data[offset] << 8) | data[offset + 1];
 
     private static short ReadShort(byte[] data, int offset) =>
         (short)((data[offset] << 8) | data[offset + 1]);
 }
+
+/// <summary>
+/// A run of kern values by height: the value up to the first height, then between each pair, then
+/// above the last.
+/// </summary>
+internal sealed record MathStaircase(short[] Heights, short[] Values)
+{
+    /// <summary>What the face states at a given height, in design units.</summary>
+    public short At(double height)
+    {
+        for (var i = 0; i < Heights.Length; i++)
+        {
+            if (height < Heights[i]) return Values[i];
+        }
+
+        return Values[^1];
+    }
+}
+
+/// <summary>The four corners of a glyph, as far as the face states anything about them.</summary>
+internal sealed record MathKerns(
+    MathStaircase? TopRight, MathStaircase? TopLeft,
+    MathStaircase? BottomRight, MathStaircase? BottomLeft);

@@ -50,7 +50,7 @@ public class ContentCoverageTests(ITestOutputHelper output)
             [
         "table-split", "table-vertical-merge", "table-merge-split",
         "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal", "apple",
-        "page-numbering-restart", "equations", "math-line-box-probe", "math-structure-probe"
+        "page-numbering-restart", "equations", "math-line-box-probe", "math-structure-probe", "math-kern-probe"
     ];
 
     public static TheoryData<string> FixtureNames

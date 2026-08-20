@@ -348,8 +348,20 @@ public static class PdfLineComparison
         return new ComparisonReport(name, deltas);
     }
 
+    /// <summary>
+    /// The next line a little way ahead that says the same thing, or -1 where none does.
+    /// </summary>
+    /// <remarks>
+    /// A line of one or two characters is not an anchor: a page of equations has a dozen lines
+    /// reading "2", and matching one of them to another a few lines away pairs up lines that have
+    /// nothing to do with each other and reports as missing everything in between. Only text long
+    /// enough to be distinctive is resynchronised on; where nothing distinctive is near, the lines
+    /// are paired in the order they come and whatever differs is reported.
+    /// </remarks>
     private static int FindMatch(List<TextLine> lines, int from, string text, int lookahead)
     {
+        if (text.Length < 3) return -1;
+
         for (var k = from; k < Math.Min(lines.Count, from + lookahead); k++)
         {
             if (LineDelta.Normalize(lines[k].Text) == text) return k;

@@ -3553,6 +3553,116 @@ public static class Fixtures
                 return builder;
             },
 
+            // Where a script sits along the letter it is on. The face states two things about
+            // that — how far the letter leans (its italic correction) and a kern for the corner
+            // the script sits in, which MathKernInfo gives as a staircase of values by height —
+            // and Word's own equations use them in some places and not others. This says where.
+            //
+            // Every probe is a script on a letter chosen for what the face says about it:
+            //
+            //   x^2, x_2      50 units of top-right kern whatever the height, and a bottom-right
+            //                 staircase that turns from -20 to 0 at 690
+            //   b^2           a top-right staircase that turns from 0 to 20 at 444
+            //   i^2           one that turns from 0 to 40 at 984, which a script of twelve point
+            //                 does not reach and one of twenty does
+            //   n^2           one that turns from -20 to 0 at 612
+            //   A^2           one that turns from 0 to -75 at 620, the only negative one here
+            //   f_x, f^x      the largest of all: -400 units under 420 and -320 under 720
+            //   x^A, x_A      where what the face says belongs to the script rather than the
+            //                 letter: A leans into the corner it sits in
+            //
+            // The first three are the same equation three ways over — nothing stated, twelve point
+            // stated, sixteen point stated — because Word's own equations show the kern applied
+            // where the letters are the size the equation is set at and not where they are larger,
+            // and one of the three has to say whether that is really the rule.
+            ["math-kern-probe"] = () =>
+            {
+                const string Mark =
+                    "<w:rPr><w:rFonts w:ascii=\"Times New Roman\" w:hAnsi=\"Times New Roman\"/>" +
+                    "<w:sz w:val=\"4\"/></w:rPr>";
+
+                static string Run(string text, int? halfPoints = null) =>
+                    "<m:r><w:rPr><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/>" +
+                    (halfPoints is { } size ? $"<w:sz w:val=\"{size}\"/>" : string.Empty) +
+                    $"</w:rPr><m:t>{DocxBuilder.Escape(text)}</m:t></m:r>";
+
+                static string Element(string name, string inner) => $"<m:{name}>{inner}</m:{name}>";
+
+                static string Superscript(string body, string sup) =>
+                    "<m:sSup>" + Element("e", body) + Element("sup", sup) + "</m:sSup>";
+
+                static string Subscript(string body, string sub) =>
+                    "<m:sSub>" + Element("e", body) + Element("sub", sub) + "</m:sSub>";
+
+                var builder = new DocxBuilder().WithStyles(
+                    """
+                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                      <w:docDefaults>
+                        <w:rPrDefault>
+                          <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
+                        </w:rPrDefault>
+                      </w:docDefaults>
+                      <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+                      <w:style w:type="paragraph" w:styleId="Big">
+                        <w:name w:val="Big"/>
+                        <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="32"/></w:rPr>
+                      </w:style>
+                    </w:styles>
+                    """);
+
+                void Rail() => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+
+                void Probe(string math) => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    $"<m:oMath>{math}</m:oMath></w:p>");
+
+                Rail();
+                Rail();
+
+                foreach (var equation in new[]
+                         {
+                             Superscript(Run("x"), Run("2")),
+                             Superscript(Run("x", 24), Run("2", 24)),
+                             Superscript(Run("x", 32), Run("2", 32)),
+
+                             Subscript(Run("x"), Run("2")),
+                             Superscript(Run("b"), Run("2")),
+                             Superscript(Run("i"), Run("2")),
+                             Superscript(Run("n"), Run("2")),
+                             Superscript(Run("A"), Run("2")),
+                             Subscript(Run("f"), Run("x")),
+                             Superscript(Run("f"), Run("x")),
+                             Superscript(Run("x"), Run("A")),
+                             Subscript(Run("x"), Run("A")),
+
+                             // The two that say which height the staircase is read at: the ink of
+                             // the letter itself, or the ink of what is attached to it. A full
+                             // stop is small enough to be under the step where a two is over it —
+                             // i's turns at 984 and A's at 616.
+                             Superscript(Run("i"), Run(".")),
+                             Subscript(Run("."), Run("A"))
+                         })
+                {
+                    Probe(equation);
+                    Rail();
+                }
+
+                // And the same equation again in a sixteen point paragraph with twelve point
+                // runs, to say whether what stops Word kerning is the letters being larger than
+                // the equation or merely being a different size from it.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:pStyle w:val=\"Big\"/>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    $"<m:oMath>{Superscript(Run("x", 24), Run("2", 24))}</m:oMath></w:p>");
+                Rail();
+
+                return builder;
+            },
+
             // What size an equation is set at, which the line box probe could not say: both its
             // fixtures declare eleven point and Word set every equation in them at 11.04, which
             // is eleven rounded to the three hundredth of an inch it rounds a size to — and is

@@ -442,7 +442,7 @@ a `MATH` table — where the axis of an equation sits, how far a superscript ris
 fraction's bar is, how much room a radical leaves over what is under it, and a set of taller shapes
 for every bracket that has to grow. Those are read and used, and the rules that combine them are the
 ones the OpenType specification lays down. What was measured is where Word departs from them, and it
-departs in seven places:
+departs in eight places:
 
 - **An equation is set at the size of the text carrying it, not at the size its own runs state.**
   Its letters are drawn at their runs' size and everything else — every distance from the table,
@@ -462,11 +462,23 @@ departs in seven places:
   out in the equation itself it is four eighteenths of the em its *letters* are and the lean as
   well. `x+y=z` agrees with Word's to four decimal places on every gap of it, and the pair inside a
   radical to a hundredth of a point.
-- A **script hangs off the letter's plain advance**, with none of that lean in between — and the
-  **baseline-drop rules apply to what is built rather than to what is drawn**: the limits of an
-  integral are placed from the integral's own ink, exactly, while the square of a *b* is raised by
-  the stated shift and not by the *b*'s height. Under a radical the cramped shift is used, which is
-  what Word uses.
+- **A script sits in the corner of the letter it is on by what the face says of that corner.** The
+  face states a lean for the letter and a kern for each of its four corners, the kern as a staircase
+  of values by height; a superscript takes the lean and the corner kern, a subscript takes the
+  corner kern alone, and the script's own opposite corner is added to it, each in its own em.
+  Word's *f* with an *x* under it pulls the *x* back 2.35 points — the −400 units the face states
+  for the f's bottom right — and its *f* with an *x* over it pushes the *x* out a point, which is
+  the f's lean, 65 units for its top right corner and 65 more for the x's bottom left. **None of it
+  applies where the letter is not the size the equation is set at**: the same *x²* kerns in a twelve
+  point equation whose letters are twelve point and does not with sixteen point letters, or with
+  twelve point letters in a sixteen point paragraph.
+- The **baseline-drop rules apply to what is built rather than to a letter**, which is TeX's own
+  rule: a script sits on a letter at the shift the table states, and on anything else at that
+  thing's height less a drop. What counts as a letter is one glyph at the size the equation is set
+  at — the *b²* of `math-kern-probe` is one and takes the stated shift, the *i²* of the equations
+  fixture is a twelve point letter in an eleven point equation and takes the drop, and the limits of
+  an integral are placed from the integral's own ink exactly. Under a radical the cramped shift is
+  used, which is what Word uses.
 - Where a superscript and a subscript would close up on each other, **the room wanted is shared
   evenly between them**: Word sets the two of *x* with an *i* under it at 4.56 and 2.64 where the
   shifts alone would give 4.04 and 2.25.
@@ -510,12 +522,19 @@ Word's — most within a quarter, which is the 1/300 inch Word rounds a position
 places lower. Across the whole `equations` fixture the drift down the page is under two points,
 where the reading before this probe existed left it thirteen.
 
-Two things the probes measured are *not* implemented, and are recorded rather than hidden. The face
-states a kern for every glyph by height — `MathKernInfo` — which decides how far a script is pushed
-off the letter it sits on; ours hangs off the plain advance, which is exact at twelve point and 1.09
-points short when the letter under it is twenty. And how far a bracket must reach before Word takes
-the next shape up was measured at twelve point as nine tenths of what it holds, which does not carry
-to a bracket round something twice the size the equation is set at.
+`math-kern-probe` is what settled the corner kerns: fifteen scripts on letters chosen for what the
+face says about them — the largest kern it states, the smallest, a negative one, and a staircase
+whose step a full stop's ink does not reach. Every one of them lands within four hundredths of a
+point of Word's, and fourteen within seven thousandths. Which height Word reads a staircase at
+cannot quite be pinned: it behaves as though it reads the value where the glyph's own ink ends,
+which Cambria Math's data cannot separate from reading it at the script's own baseline in the
+script's em — but both differ from reading it at the height of the script, which is what the
+specification's wording suggests and what Word's own full stop over an *i* rules out.
+
+One thing the probes measured is *not* implemented, and is recorded rather than hidden: how far a
+bracket must reach before Word takes the next shape up was measured at twelve point as nine tenths
+of what it holds, which does not carry to a bracket round something twice the size the equation is
+set at.
 
 An equation's letters are drawn from the mathematical alphabets — an *x* in an equation is U+1D465,
 a character of its own, which is what Word draws — so what a reader copies out of one of our pages

@@ -24,6 +24,17 @@ internal sealed record MathPiece(
     string Text, double X, double Baseline, double SizePoints, FontSelection Font, double Width,
     ushort? Glyph = null);
 
+/// <summary>
+/// The glyph at one end of a box, where there is one: what a script tucks against.
+/// </summary>
+/// <param name="InkTop">How far the glyph's own ink reaches above its baseline, in design units.</param>
+/// <param name="InkBottom">And below it, negative.</param>
+internal readonly record struct MathEdge(
+    FontSelection? Font, ushort Glyph, double Size, double InkTop, double InkBottom)
+{
+    public bool Exists => Font is not null;
+}
+
 /// <summary>A line drawn as part of an equation: a fraction's bar, a radical's overbar.</summary>
 internal sealed record MathRule(double X, double Y, double Width, double Thickness);
 
@@ -59,6 +70,22 @@ internal sealed record MathBox(
 
 
     public double Height => Ascent + Descent;
+
+    /// <summary>
+    /// The glyphs this begins and ends with, where it begins or ends with one at all. A script
+    /// tucks into the corner of the glyph before it, by what the face says of that glyph and of
+    /// the script's own first one.
+    /// </summary>
+    public MathEdge Head { get; init; }
+
+    public MathEdge Tail { get; init; }
+
+    /// <summary>
+    /// Whether this is a single letter rather than something built out of parts or spelled out of
+    /// several. A script sits on a letter by the shifts the table states and on anything else by
+    /// that thing's own height less a drop — which is the rule TeX states, and Word's.
+    /// </summary>
+    public bool Letter { get; init; }
 
     /// <summary>
     /// How much room the line holding this asks for above its baseline, and below it.
@@ -103,10 +130,9 @@ internal sealed record MathBox(
 /// How tall a line holding an equation comes out is worked out here as well, at the end of
 /// <see cref="Compose(MathNode, ResolvedRunFormat, bool)"/>, from math-line-box-probe.
 ///
-/// What is not here is the face's own kerning for scripts — MathKernInfo, a staircase of kerns by
-/// height for every glyph — which decides how far a script is pushed off the letter it sits on. A
-/// script hangs off the plain advance instead, which is exact at twelve point and a point short
-/// when the letter under it is twenty.
+/// Where a script sits along the letter it is on is the face's doing as well — its lean, and a
+/// staircase of kerns for each corner of each glyph — and is measured against Word in
+/// math-kern-probe. See Tucked.
 /// </remarks>
 internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 {
@@ -388,8 +414,26 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         {
             First = first,
             Last = previous,
-            Italic = lean
+            Italic = lean,
+            Head = Edge(selection, pieces[0].Text, drawn, last: false),
+            Tail = Edge(selection, pieces[^1].Text, drawn, last: true),
+            Letter = pieces.Count == 1 && pieces[0].Text.EnumerateRunes().Count() == 1
         };
+    }
+
+    /// <summary>
+    /// The glyph at one end of a run, with what the face says of its own ink.
+    /// </summary>
+    private static MathEdge Edge(FontSelection selection, string text, double size, bool last)
+    {
+        var runes = text.EnumerateRunes().ToList();
+        if (runes.Count == 0) return default;
+
+        var glyph = selection.Font.GetGlyphIndex((last ? runes[^1] : runes[0]).Value);
+        var bounds = selection.Font.GetGlyphBounds(glyph);
+
+        return new MathEdge(selection, glyph, size,
+            bounds?.MaxY ?? 0, bounds?.MinY ?? 0);
     }
 
     /// <summary>
@@ -553,6 +597,9 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var lean = 0.0;
         var any = false;
 
+        var head = default(MathEdge);
+        var tail = default(MathEdge);
+
         foreach (var child in children)
         {
             var box = Compose(child, style with { Started = any, Preceding = previous });
@@ -575,13 +622,18 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             descent = Math.Max(descent, box.Descent);
             x += box.Width;
             lean = box.Italic;
+
+            if (!head.Exists) head = box.Head;
+            tail = box.Tail;
         }
 
         return new MathBox(x, ascent, descent, pieces, rules)
         {
             First = first,
             Last = previous,
-            Italic = lean
+            Italic = lean,
+            Head = head,
+            Tail = tail
         };
     }
 
@@ -728,26 +780,37 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var ascent = body.Ascent;
         var descent = body.Descent;
 
-        // A script hangs off the letter's own advance, not off its lean: Word sets the two of
-        // x² directly after the x, with none of the overhang in between.
+        // Where a script hangs off the letter: its plain advance, and then what the face says
+        // about the corner it sits in — see Tucked.
         var attach = body.Width - body.Italic;
+
+        var supTuck = sup is null ? 0 : Tucked(body, sup, style, above: true);
+        var subTuck = sub is null ? 0 : Tucked(body, sub, style, above: false);
         var width = body.Width;
 
         var supShift = 0.0;
         var subShift = 0.0;
 
+        // A script sits on a letter at the shift the table states, and on anything built out of
+        // parts at that thing's own height less a drop. What counts as a letter is one glyph at
+        // the size the equation is set at: Word raises the two of an x² by the stated shift where
+        // the x is the equation's own size, and by the x's height less the drop where the x is
+        // larger — which is what the b² of math-kern-probe and the i² of the equations fixture
+        // say, the same construct at the same size in equations set at twelve point and eleven.
+        var letter = body.Letter && Math.Abs(body.Tail.Size - style.Size) < 0.001;
+
         if (sup is not null)
         {
             supShift = Math.Max(
                 (style.Cramped ? math.SuperscriptShiftUpCramped : math.SuperscriptShiftUp) * unit,
-                Math.Max(style.Cramped ? 0 : body.Ascent - math.SuperscriptBaselineDropMax * unit,
+                Math.Max(letter ? 0 : body.Ascent - math.SuperscriptBaselineDropMax * unit,
                     math.SuperscriptBottomMin * unit + sup.Descent));
         }
 
         if (sub is not null)
         {
             subShift = Math.Max(math.SubscriptShiftDown * unit,
-                Math.Max(style.Cramped ? 0 : body.Descent + math.SubscriptBaselineDropMin * unit,
+                Math.Max(letter ? 0 : body.Descent + math.SubscriptBaselineDropMin * unit,
                     sub.Ascent - math.SubscriptTopMax * unit));
         }
 
@@ -769,25 +832,103 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
         if (sup is not null)
         {
-            var placed = sup.Shift(attach, supShift);
+            var placed = sup.Shift(attach + supTuck, supShift);
             pieces.AddRange(placed.Pieces);
             rules.AddRange(placed.Rules);
 
             ascent = Math.Max(ascent, supShift + sup.Ascent);
-            width = Math.Max(width, attach + sup.Width + math.SpaceAfterScript * unit);
+            width = Math.Max(width, attach + supTuck + sup.Width + math.SpaceAfterScript * unit);
         }
 
         if (sub is not null)
         {
-            var placed = sub.Shift(attach, -subShift);
+            var placed = sub.Shift(attach + subTuck, -subShift);
             pieces.AddRange(placed.Pieces);
             rules.AddRange(placed.Rules);
 
             descent = Math.Max(descent, subShift + sub.Descent);
-            width = Math.Max(width, attach + sub.Width + math.SpaceAfterScript * unit);
+            width = Math.Max(width, attach + subTuck + sub.Width + math.SpaceAfterScript * unit);
         }
 
         return new MathBox(width, ascent, descent, pieces, rules);
+    }
+
+    /// <summary>
+    /// How far a script moves along the letter it sits on, past that letter's plain advance.
+    /// </summary>
+    /// <remarks>
+    /// Three things, all of them the face's own and all measured against Word in math-kern-probe:
+    ///
+    ///   - a superscript takes the lean of the letter under it, and a subscript takes none. Word
+    ///     sets x² 0.66 of a point past the x's advance at twelve point and x₂ 0.12 short of it,
+    ///     which is the lean plus a kern for the one and a kern alone for the other.
+    ///   - both take a kern for the corner the script sits in, which the face states for the
+    ///     letter and for the script separately and which are added together, each measured in its
+    ///     own em. Word's f with an x under it pulls the x back 2.35 points, which is the -400
+    ///     units the face states for the f's bottom right corner and nothing else; its f with an x
+    ///     over it pushes the x out a point, which is the f's lean, 65 units for the f's top right
+    ///     corner and 65 more for the x's bottom left, the last of those in the x's own smaller em.
+    ///   - and none of it where the letter is not the size the equation is set at. Word kerns the
+    ///     x² of a twelve point equation whose letters are twelve point and does not kern the same
+    ///     equation with sixteen point letters, or with twelve point letters in a sixteen point
+    ///     paragraph: it is the two being equal that matters, not which is larger.
+    ///
+    /// The staircase of kern values is read at the height the glyph's own ink reaches on that side.
+    /// What Word does cannot quite be told apart from reading it at the height of the script's own
+    /// baseline measured in the script's em — Cambria Math states every one of its steps below the
+    /// ink of the glyph it belongs to, so the two answers agree everywhere they can be compared —
+    /// but it can be told apart from reading it at the height of the script, which is what the
+    /// specification's own wording suggests: Word tucks a full stop into the corner of an i by the
+    /// same 40 units it gives a two, although the stop's ink stops well below the 984 the face
+    /// turns at.
+    /// </remarks>
+    private static double Tucked(MathBox body, MathBox script, Style style, bool above)
+    {
+        var letter = body.Tail;
+        var attached = script.Head;
+
+        // Only where the letter is the size the equation is set at.
+        if (!letter.Exists || Math.Abs(letter.Size - style.Size) > 0.001) return 0;
+
+        var tuck = above ? Lean(letter) : 0;
+
+        tuck += Corner(letter, above ? Corners.TopRight : Corners.BottomRight);
+
+        if (attached.Exists) tuck += Corner(attached, above ? Corners.BottomLeft : Corners.TopLeft);
+
+        return tuck;
+
+        static double Lean(MathEdge edge) =>
+            edge.Font!.Font.ItalicCorrections.TryGetValue(edge.Glyph, out var correction)
+                ? correction * edge.Size / edge.Font.Font.Metrics.UnitsPerEm
+                : 0;
+
+        static double Corner(MathEdge edge, Corners corner)
+        {
+            if (!edge.Font!.Font.MathKerns.TryGetValue(edge.Glyph, out var kerns)) return 0;
+
+            var staircase = corner switch
+            {
+                Corners.TopRight => kerns.TopRight,
+                Corners.TopLeft => kerns.TopLeft,
+                Corners.BottomRight => kerns.BottomRight,
+                _ => kerns.BottomLeft
+            };
+
+            if (staircase is null) return 0;
+
+            var height = corner is Corners.TopRight or Corners.TopLeft ? edge.InkTop : edge.InkBottom;
+
+            return staircase.At(height) * edge.Size / edge.Font.Font.Metrics.UnitsPerEm;
+        }
+    }
+
+    private enum Corners
+    {
+        TopRight,
+        TopLeft,
+        BottomRight,
+        BottomLeft
     }
 
     // ------------------------------------------------------------- radicals
