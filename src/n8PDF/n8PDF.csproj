@@ -24,7 +24,7 @@
     <PropertyGroup Label="Package">
         <PackageId>n8PDF</PackageId>
         <Version>1.0.0</Version>
-        <Authors>npond</Authors>
+        <Authors>Nathan Pond</Authors>
         <Product>n8PDF</Product>
         <Title>n8PDF — DOCX to PDF, from scratch</Title>
         <!-- One line: NuGet shows the description as it is written, whitespace and all. -->
