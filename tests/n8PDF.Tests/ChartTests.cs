@@ -217,6 +217,87 @@ public class ChartTests(ITestOutputHelper output)
         return rectangle;
     }
 
+    /// <summary>
+    /// What a value axis runs between where the chart does not say, which is the last thing about
+    /// a chart Word decides for itself.
+    /// </summary>
+    /// <remarks>
+    /// Twelve charts differing only in the numbers they hold. Two rules account for every one: the
+    /// step is the largest of one, two or five times a power of ten that is no more than a fifth
+    /// of the span, and the top is the smallest multiple of that step lying strictly above the
+    /// largest value. The strictness is what puts a chart of exactly 100 at 120 rather than leaving
+    /// its tallest bar against the frame.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "0 0.2 0.4 0.6 0.8 1 1.2")]
+    [InlineData(1, "0 1 2 3 4 5 6 7 8")]
+    [InlineData(2, "0 1 2 3 4 5 6 7 8 9 10")]
+    [InlineData(3, "0 2 4 6 8 10 12")]
+    [InlineData(4, "0 2 4 6 8 10 12 14")]
+    [InlineData(5, "0 5 10 15 20 25 30 35 40 45 50")]
+    [InlineData(6, "0 20 40 60 80 100 120")]
+    [InlineData(7, "0 20 40 60 80 100 120")]
+    [InlineData(8, "0 200 400 600 800 1000 1200")]
+    [InlineData(9, "0 0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45")]
+    [InlineData(10, "-30 -20 -10 0 10 20 30 40 50 60 70")]
+    [InlineData(11, "0 10 20 30 40 50 60")]
+    public void An_axis_left_to_itself_is_scaled_the_way_word_scales_it(int page, string expected)
+    {
+        var (ours, theirs) = BothWays("chart-scale-probe");
+
+        var mine = AxisLabels(ours, page);
+        _output.WriteLine($"page {page + 1}: {string.Join(" ", mine)}");
+
+        Assert.Equal(expected.Split(' '), mine);
+
+        // And the same numbers come out of Word's own drawing of it, run for run: its labels are
+        // written in pieces, so they are compared as the text of the page rather than as lines.
+        var word = AxisLabels(theirs, page);
+        Assert.Equal(expected.Replace(" ", ""), string.Concat(word));
+    }
+
+    /// <summary>
+    /// The numbers up the value axis, read off the page from the top of the axis down.
+    /// </summary>
+    /// <remarks>
+    /// Everything that is not a category, which the probe names so they can be told apart. Word
+    /// writes a label in as many runs as it likes — "-30" comes out as "-3" and "0" — so ours are
+    /// read as lines and Word's as runs, and what is compared is the sequence either way.
+    /// </remarks>
+    private static List<string> AxisLabels(byte[] pdf, int page) =>
+        [.. PdfTextExtractor.Extract(pdf)
+            .Where(run => run.PageIndex == page && !run.Text.Contains('C') &&
+                          !string.IsNullOrWhiteSpace(run.Text))
+            .GroupBy(run => Math.Round(run.BaselineY, 1))
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(run => run.X).Select(run => run.Text.Trim())))
+            .Reverse()];
+
+    /// <summary>
+    /// The words under the bars go beside the nought rather than at the foot of the plot, which is
+    /// only visible once something is negative.
+    /// </summary>
+    [Fact]
+    public void The_categories_sit_where_the_axes_cross()
+    {
+        var (ours, theirs) = BothWays("chart-scale-probe");
+
+        // The eleventh chart runs from −30 to 70, so its nought is three quarters of the way down.
+        var mine = Categories(ours);
+        var word = Categories(theirs);
+
+        _output.WriteLine($"ours at {mine:0.##}, Word at {word:0.##}");
+
+        Assert.True(Math.Abs(mine - word) < 0.3,
+            $"the categories sit at {mine:0.##} where Word puts them at {word:0.##}.");
+
+        static double Categories(byte[] pdf) =>
+            PdfTextExtractor.Extract(pdf)
+                .Where(run => run.PageIndex == 10 && run.Text.Contains("C1"))
+                .Select(run => run.BaselineY)
+                .First();
+    }
+
     /// <summary>What a chart part says, read back off it.</summary>
     [Fact]
     public void A_chart_is_read_from_its_own_part()

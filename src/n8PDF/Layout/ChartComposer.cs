@@ -48,6 +48,18 @@ internal static class ChartComposer
         /// <summary>Where a value sits, measured down from the top of the chart.</summary>
         public double PositionOf(double value) =>
             Bottom - (value - Minimum) / (Maximum - Minimum) * Height;
+
+        /// <summary>
+        /// Where the axis of categories runs, which is where the value axis reads nought rather
+        /// than the foot of the plot.
+        /// </summary>
+        /// <remarks>
+        /// The two are the same thing wherever nothing is negative, since the scale then begins at
+        /// nought. Where something is, they part: Word's drawing of the probe's chart of −20 and 60
+        /// puts the words under the bars a line below the nought, three quarters of the way down
+        /// the plot, and not at the bottom of it. What hangs below nought hangs past them.
+        /// </remarks>
+        public double CrossingY => PositionOf(Math.Clamp(0, Minimum, Maximum));
     }
 
     /// <summary>
@@ -167,10 +179,22 @@ internal static class ChartComposer
     /// say.
     /// </summary>
     /// <remarks>
-    /// The rule here is the plainest one that fits: from nought to a round number above the
-    /// largest value, in steps that give between four and six marks. Word's own choice is not this
-    /// simple, and a chart that leaves its scale to be worked out is where this is furthest from
-    /// Word — which is why the fixture states its own.
+    /// Measured from chart-scale-probe, twelve charts differing only in the numbers they hold. Two
+    /// rules account for every one of them:
+    ///
+    ///   the step is the largest of one, two or five times a power of ten that is no more than a
+    ///   fifth of the span, and the top of the axis is the smallest multiple of that step lying
+    ///   strictly above the largest value
+    ///
+    /// so a chart of 7 runs to 8 in ones, one of 9.5 runs to 10 in ones, one of 10 runs to 12 in
+    /// twos, one of 47 runs to 50 in fives, one of 105 runs to 120 in twenties, and one of 0.4
+    /// runs to 0.45 in twentieths. That the top is strictly above rather than at the largest value
+    /// is what puts a chart of exactly 100 at 120 rather than leaving its tallest bar touching the
+    /// frame.
+    ///
+    /// The foot is nought wherever nothing is negative, whatever the smallest value is — a chart
+    /// of 30 and 55 still starts at nought. Where something is negative the foot steps below it the
+    /// same way the top steps above: a chart of −20 and 60 runs from −30 to 70 in tens.
     /// </remarks>
     private static (double Minimum, double Maximum, double Unit) Scale(ChartDefinition chart)
     {
@@ -180,28 +204,42 @@ internal static class ChartComposer
             .Select(value => value!.Value)
             .ToList();
 
-        var highest = values.Count > 0 ? values.Max() : 0;
-        var lowest = Math.Min(0, values.Count > 0 ? values.Min() : 0);
+        var highest = values.Count > 0 ? Math.Max(0, values.Max()) : 0;
+        var lowest = values.Count > 0 ? Math.Min(0, values.Min()) : 0;
 
-        var minimum = chart.ValueAxis?.Minimum ?? lowest;
-        var maximum = chart.ValueAxis?.Maximum ?? RoundUp(highest);
+        var unit = chart.ValueAxis?.MajorUnit ?? Step(highest - lowest);
 
-        if (maximum <= minimum) maximum = minimum + 1;
+        var maximum = chart.ValueAxis?.Maximum ?? Above(highest, unit);
+        var minimum = chart.ValueAxis?.Minimum ?? (lowest < 0 ? -Above(-lowest, unit) : 0);
 
-        var unit = chart.ValueAxis?.MajorUnit ?? RoundUp((maximum - minimum) / 5);
+        if (maximum <= minimum) maximum = minimum + Math.Max(unit, 1);
 
         return (minimum, maximum, unit <= 0 ? maximum - minimum : unit);
     }
 
-    /// <summary>The next round number at or above a value: one, two or five times a power of ten.</summary>
-    private static double RoundUp(double value)
+    /// <summary>
+    /// How far apart the marks go: the largest of one, two or five times a power of ten that is no
+    /// more than a fifth of what the axis has to span.
+    /// </summary>
+    private static double Step(double span)
     {
-        if (value <= 0) return 1;
+        if (span <= 0 || double.IsNaN(span) || double.IsInfinity(span)) return 1;
 
-        var power = Math.Pow(10, Math.Floor(Math.Log10(value)));
-        var share = value / power;
+        var fifth = span / 5;
+        var power = Math.Pow(10, Math.Floor(Math.Log10(fifth)));
+        var share = fifth / power;
 
-        return power * (share <= 1 ? 1 : share <= 2 ? 2 : share <= 5 ? 5 : 10);
+        return power * (share >= 5 ? 5 : share >= 2 ? 2 : 1);
+    }
+
+    /// <summary>The smallest multiple of a step lying strictly above a value.</summary>
+    private static double Above(double value, double step)
+    {
+        if (step <= 0) return value;
+
+        var steps = Math.Floor(value / step + 0.000000001) + 1;
+
+        return steps * step;
     }
 
     /// <summary>Everything the chart draws that is not text.</summary>
@@ -243,7 +281,9 @@ internal static class ChartComposer
 
         if (chart.CategoryAxis is { Deleted: false })
         {
-            operations.Add(Stroke([(plan.Left, plan.Bottom), (plan.Right, plan.Bottom)]));
+            var crossing = plan.CrossingY;
+
+            operations.Add(Stroke([(plan.Left, crossing), (plan.Right, crossing)]));
 
             if (chart.CategoryAxis.MajorTickMark is not "none")
             {
@@ -254,7 +294,7 @@ internal static class ChartComposer
                 for (var i = 0; i <= categories; i++)
                 {
                     var x = plan.Left + plan.Width * i / categories;
-                    operations.Add(Stroke([(x, plan.Bottom), (x, plan.Bottom + TickLength)]));
+                    operations.Add(Stroke([(x, crossing), (x, crossing + TickLength)]));
                 }
             }
         }

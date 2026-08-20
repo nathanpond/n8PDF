@@ -823,6 +823,64 @@ public static class Fixtures
             """;
     }
 
+    /// <summary>
+    /// A column chart that says nothing about what its value axis runs between, so that Word has
+    /// to choose — which is what the scaling probe measures. Its plotting is placed by hand, so
+    /// that the labels can be read off without the placing moving with them.
+    /// </summary>
+    private static string AutoScaleChart(IReadOnlyList<double> values)
+    {
+        var categories = Enumerable.Range(1, values.Count).Select(i => $"C{i}").ToList();
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout><c:manualLayout>
+                  <c:layoutTarget val="inner"/>
+                  <c:xMode val="edge"/><c:yMode val="edge"/>
+                  <c:x val="0.3"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.7"/>
+                </c:manualLayout></c:layout>
+                <c:barChart>
+                  <c:barDir val="col"/>
+                  <c:grouping val="clustered"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", categories, values, "4472C4")}
+                  <c:gapWidth val="150"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:barChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
+    /// <summary>The data each page of the scaling probe holds, and nothing else varies.</summary>
+    private static readonly double[][] ScaleProbeData =
+    [
+        [1], [3, 7], [9.5], [10], [12], [47], [100], [105], [1000], [0.4], [-20, 60], [55, 30]
+    ];
+
     /// <summary>A chart part, wrapped in the element every one of them begins with.</summary>
     private static string ChartPart(string chartXml) => $"""
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1811,6 +1869,31 @@ public static class Fixtures
                     builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                             DocxBuilder.ChartDrawing(pages[i].Width, pages[i].Height,
                                                 id: 601 + i, relationshipId: pages[i].Name) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // What a value axis runs between when the chart does not say, which is the last thing
+            // about a chart that Word decides for itself. Twelve of them, differing only in the
+            // numbers they hold: the labels up the axis say outright what Word chose.
+            ["chart-scale-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                for (var i = 0; i < ScaleProbeData.Length; i++)
+                {
+                    var id = $"rIdScale{i + 1}";
+
+                    builder.WithPart($"word/charts/scale{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(AutoScaleChart(ScaleProbeData[i])),
+                        fromDocument: (id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(i == 0 ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
+                        DocxBuilder.ChartDrawing(288, 180, id: 700 + i, relationshipId: id) + "</w:p>");
                 }
 
                 return builder;

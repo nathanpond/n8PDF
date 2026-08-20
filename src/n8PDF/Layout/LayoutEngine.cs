@@ -3080,7 +3080,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 var flow = MeasureInside([label], Math.Max(1, slot));
 
                 flow.PlaceOnto(page, plan.Left + slot * i,
-                    plan.Bottom + below - flow.FirstAscent);
+                    plan.CrossingY + below - flow.FirstAscent);
             }
         }
 

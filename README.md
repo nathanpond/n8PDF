@@ -202,9 +202,25 @@ Across the six charts of the probe — varying the frame size, the width of the 
 size, the length of the category labels, and whether there are labels at all — the plot area lands
 within a quarter of a point of Word's, and the chart with no labels lands exactly.
 
-What is still not implemented is a value axis left to scale itself: what is there is the plainest
-rule that fits — from nought to a round number above the largest value, in four to six steps — and
-Word's own choice is not that simple. Both chart fixtures state their bounds.
+**What the axis runs between when the chart does not say** is measured by `chart-scale-probe`,
+twelve charts differing only in the numbers they hold. Two rules account for every one:
+
+> the step is the largest of one, two or five times a power of ten that is no more than a fifth of
+> the span, and the top of the axis is the smallest multiple of that step lying **strictly** above
+> the largest value
+
+So 7 runs to 8 in ones, 9.5 to 10 in ones, 10 to 12 in twos, 47 to 50 in fives, 105 to 120 in
+twenties, 1000 to 1200 in two hundreds, and 0.4 to 0.45 in twentieths. The strictness is what puts a
+chart of exactly 100 at 120 rather than leaving its tallest bar against the frame. The foot is
+nought wherever nothing is negative, whatever the smallest value — a chart of 30 and 55 still starts
+at nought — and where something is negative the foot steps below it the same way the top steps
+above: −20 and 60 give an axis from −30 to 70 in tens. All twelve come out label for label as
+Word's.
+
+The negative case also showed up something the positive ones cannot: the words under the bars go
+beside the **nought** rather than at the foot of the plot, because that is where the two axes cross.
+A chart whose bars all stand up puts the two in the same place; one with a bar hanging down does
+not, and what hangs down hangs past its own label.
 
 ### What a diagram is, and which half of it to draw
 
@@ -402,7 +418,8 @@ four-channel pictures a printing press wants, as either a JPEG or a TIFF; transp
 pictures), column charts (the plot area where the chart places it or, where it does not, worked out
 from the room the labels need, bars sized by the gap and the
 overlap between them, gridlines, both axis lines and their marks, and the labels along each axis,
-read from the numbers the chart part caches), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
+read from the numbers the chart part caches, with the axis scaled and the plot placed the way Word
+does both where the chart leaves them to be worked out), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
 and its text laid out into the rectangle the diagram set aside for it and set at its top, middle or
 foot), watermarks of both kinds (a word set across every page of a section, behind the text,
