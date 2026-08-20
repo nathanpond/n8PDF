@@ -29,7 +29,7 @@
         <Title>n8PDF — DOCX to PDF, from scratch</Title>
         <!-- One line: NuGet shows the description as it is written, whitespace and all. -->
         <Description>Converts .docx to PDF with no third-party DOCX or PDF library, no headless Word or LibreOffice, and no sidecar service: one assembly on top of the base class library. It brings its own OPC reader, WordprocessingML model and style cascade, TrueType and CFF font engine with shaping and bidirectional text, layout engine and PDF writer. Every layout rule in it was measured against Word's own export rather than read out of the specification.</Description>
-        <Copyright>Copyright (c) 2026 npond</Copyright>
+        <Copyright>Copyright (c) 2026 Nathan Pond</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
         <PackageTags>docx;pdf;word;openxml;wordprocessingml;conversion;typesetting;pdf-generation</PackageTags>
