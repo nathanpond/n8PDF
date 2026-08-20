@@ -5122,10 +5122,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         /// Called with the page being left behind, so that whatever was reserved on it can be
         /// filled in before the cursor moves on.
         /// </summary>
-        /// <param name="textBottoms">
-        /// How far down each column of the page its text reached, which is where notes set under
-        /// the text go.
-        /// </param>
+        /// <remarks>
+        /// What it is handed along with the page is how far down each column of it the text
+        /// reached, which is where notes set under the text go.
+        /// </remarks>
         public Action<LaidOutPage, IReadOnlyDictionary<int, double>>? OnPageComplete { get; init; }
 
         /// <summary>How far down each column of this page has been filled.</summary>

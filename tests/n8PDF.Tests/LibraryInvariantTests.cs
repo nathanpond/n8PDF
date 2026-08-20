@@ -32,6 +32,68 @@ public class LibraryInvariantTests
         Assert.Empty(csproj.Descendants("ProjectReference"));
     }
 
+    /// <summary>
+    /// The package says what it is, who wrote it, and on what terms.
+    /// </summary>
+    /// <remarks>
+    /// A package published without these is published without a licence anyone can rely on, and
+    /// without anything on its page to say what it does. They are cheap to state and easy to lose
+    /// in a merge, so they are asserted rather than remembered.
+    /// </remarks>
+    [Fact]
+    public void The_library_carries_the_metadata_a_package_needs()
+    {
+        var csproj = XDocument.Load(Path.Combine(TestPaths.RepoRoot, "src", "n8PDF", "n8PDF.csproj"));
+
+        foreach (var property in new[]
+                 {
+                     "PackageId", "Version", "Authors", "Description", "Copyright",
+                     "PackageLicenseExpression", "PackageReadmeFile", "PackageTags"
+                 })
+        {
+            var value = csproj.Descendants(property).FirstOrDefault()?.Value;
+
+            Assert.False(string.IsNullOrWhiteSpace(value),
+                $"src/n8PDF/n8PDF.csproj states no {property}, which a published package needs.");
+        }
+
+        // The readme the package points at has to be there, and packed with it.
+        var readme = csproj.Descendants("PackageReadmeFile").First().Value;
+
+        Assert.True(File.Exists(Path.Combine(TestPaths.RepoRoot, "src", "n8PDF", readme)),
+            $"the package names {readme} as its readme, and there is no such file.");
+
+        Assert.Contains(csproj.Descendants("None"),
+            none => none.Attribute("Include")?.Value == readme &&
+                    none.Attribute("Pack")?.Value == "true");
+    }
+
+    /// <summary>
+    /// The licence the package claims is the licence the repository carries.
+    /// </summary>
+    [Fact]
+    public void The_licence_is_the_one_the_package_declares()
+    {
+        var csproj = XDocument.Load(Path.Combine(TestPaths.RepoRoot, "src", "n8PDF", "n8PDF.csproj"));
+        var expression = csproj.Descendants("PackageLicenseExpression").First().Value;
+
+        Assert.Equal("MIT", expression);
+
+        var path = Path.Combine(TestPaths.RepoRoot, "LICENSE");
+        Assert.True(File.Exists(path), "the repository has no LICENSE file.");
+
+        var licence = File.ReadAllText(path);
+
+        Assert.StartsWith("MIT License", licence);
+        Assert.Contains("Copyright (c)", licence);
+        Assert.Contains("WITHOUT WARRANTY OF ANY KIND", licence);
+
+        // And it is packed, so that what is installed carries its own terms.
+        Assert.Contains(csproj.Descendants("None"),
+            none => (none.Attribute("Include")?.Value ?? string.Empty).EndsWith("LICENSE") &&
+                    none.Attribute("Pack")?.Value == "true");
+    }
+
     [Fact]
     public void The_library_loads_no_assemblies_outside_the_framework()
     {

@@ -103,7 +103,7 @@ public sealed class TrueTypeFont
     /// A font may say this in either of two places. <c>GPOS</c> is asked first, being where fonts
     /// shipped this century put it — Calibri has no legacy table at all — and the old <c>kern</c>
     /// table answers for the fonts that predate it. Zero either way when neither kerns the pair.
-    /// </summary>
+    /// </remarks>
     /// <summary>
     /// What the font says its glyphs should be swapped for, and where each of them goes, or null
     /// where it says nothing. Read when first asked, since most documents never ask.

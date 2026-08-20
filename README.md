@@ -49,6 +49,7 @@ dotnet test                        # everything
 N8PDF_BLESS=1 dotnet test          # re-bless layout goldens after an intended change
 N8PDF_REQUIRE_QPDF=1 dotnet test   # fail rather than skip if qpdf is missing (use in CI)
 tools/make-reference-pdfs.sh       # generate missing Word reference PDFs (macOS + Word)
+dotnet pack src/n8PDF -c Release   # the package, with its symbols and its documentation
 ```
 
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
@@ -1396,3 +1397,11 @@ else.
 
 `tools/make-real-fixtures.sh` --list shows what would be generated. Add to `RealSeeds` to cover
 more; third-party templates are best avoided, since their licence terms would come with them.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE). The package carries it, and `LibraryInvariantTests` asserts that what
+the package says and what the repository holds are the same thing.
+
+The fixtures are written by this repository rather than taken from anywhere, so nothing here comes
+with terms of its own — which is why third-party templates are kept out of `Fixtures/Real`.

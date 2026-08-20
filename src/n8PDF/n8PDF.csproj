@@ -5,12 +5,52 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>n8PDF</RootNamespace>
+
+        <!--
+          The documentation is shipped: what a rule is and where it was measured from is written
+          on the types that carry it, and that is worth having in a consumer's editor. What is not
+          answered is the compiler's per-member nag — this documents behaviour at the level of a
+          type and a rule rather than restating every property's name as a sentence.
+        -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     </PropertyGroup>
 
     <!--
       This project must never gain a PackageReference. n8PDF converts DOCX to PDF entirely from
       scratch on top of the base class library; a third-party dependency here defeats the point.
     -->
+
+    <PropertyGroup Label="Package">
+        <PackageId>n8PDF</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>npond</Authors>
+        <Product>n8PDF</Product>
+        <Title>n8PDF — DOCX to PDF, from scratch</Title>
+        <!-- One line: NuGet shows the description as it is written, whitespace and all. -->
+        <Description>Converts .docx to PDF with no third-party DOCX or PDF library, no headless Word or LibreOffice, and no sidecar service: one assembly on top of the base class library. It brings its own OPC reader, WordprocessingML model and style cascade, TrueType and CFF font engine with shaping and bidirectional text, layout engine and PDF writer. Every layout rule in it was measured against Word's own export rather than read out of the specification.</Description>
+        <Copyright>Copyright (c) 2026 npond</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+        <PackageTags>docx;pdf;word;openxml;wordprocessingml;conversion;typesetting;pdf-generation</PackageTags>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+        <!--
+          Symbols go alongside so a stack trace through the converter is readable. Once the
+          repository has a public home, add PackageProjectUrl, RepositoryUrl and
+          PublishRepositoryUrl here so the package points back at its source.
+        -->
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <!-- The same input builds the same assembly, whoever builds it. -->
+        <Deterministic>true</Deterministic>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="PACKAGE.md" Pack="true" PackagePath="/" />
+        <None Include="../../LICENSE" Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
 
     <ItemGroup>
         <InternalsVisibleTo Include="n8PDF.Tests" />
