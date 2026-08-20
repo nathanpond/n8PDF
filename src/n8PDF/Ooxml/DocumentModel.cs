@@ -186,10 +186,18 @@ public sealed class DrawingInline(long widthEmu, long heightEmu, string? relatio
 
     public long HeightEmu { get; } = heightEmu;
 
-    public string? RelationshipId { get; } = relationshipId;
+    /// <summary>
+    /// The picture this frame draws. Rewritten to a key naming the part as well as the id where
+    /// the drawing lives in a part of its own: a header's "rId1" and the body's are different
+    /// pictures, and a document holding both would otherwise draw one of them twice.
+    /// </summary>
+    public string? RelationshipId { get; set; } = relationshipId;
 
     /// <summary>The shape drawn here, where this frame holds one rather than a picture.</summary>
     public ShapeFrame? Shape { get; init; }
+
+    /// <summary>What was done to the picture's colours, for a watermark of one.</summary>
+    public PictureWash? Wash { get; init; }
 
     public double WidthPoints => Units.EmuToPoints(WidthEmu);
 
@@ -229,6 +237,35 @@ public enum VerticalAnchor
     Page,
     TopMargin,
     BottomMargin
+}
+
+/// <summary>
+/// How a picture is washed out: the two numbers a watermark of one carries.
+/// </summary>
+/// <remarks>
+/// Measured from watermark-washout-probe, which holds the same bands of flat colour six times over
+/// at different settings. What comes out of a channel, everything in nought to one, is
+///
+///     gain × in + (1 − gain) ÷ 2 + black × (1 + gain)
+///
+/// clamped at both ends. The gain is a contrast about mid grey — half a gain leaves grey alone and
+/// pulls black and white halfway towards it — and the black level a brightness on top of that.
+/// Word writes a gain of 19661 and a black level of 22938, both in sixty-fourths of a thousand, for
+/// every picture watermark it makes: three tenths of the contrast, and pale enough to read through.
+///
+/// Why the black level counts for more when the gain is high is not explained here. The formula is
+/// what six settings fit, two of them at the ends of the scale, and not something derived.
+/// </remarks>
+public sealed record PictureWash(double Gain, double BlackLevel)
+{
+    /// <summary>Nothing done to it, which is what a picture with no washing gets.</summary>
+    public static readonly PictureWash None = new(1, 0);
+
+    public bool IsIdentity => Math.Abs(Gain - 1) < 0.0001 && Math.Abs(BlackLevel) < 0.0001;
+
+    /// <summary>What one sample comes to, in nought to one.</summary>
+    public double Apply(double value) =>
+        Math.Clamp(Gain * value + (1 - Gain) / 2 + BlackLevel * (1 + Gain), 0, 1);
 }
 
 /// <summary>Where a shape's text sits in the height the shape gives it.</summary>
@@ -348,10 +385,14 @@ public sealed class AnchoredDrawing : InlineElement
 
     public required long HeightEmu { get; init; }
 
-    public string? RelationshipId { get; init; }
+    /// <summary>The picture, by the key its part reaches it under.</summary>
+    public string? RelationshipId { get; set; }
 
     /// <summary>The shape drawn here, where this frame holds one rather than a picture.</summary>
     public ShapeFrame? Shape { get; init; }
+
+    /// <summary>What was done to the picture's colours, for a watermark of one.</summary>
+    public PictureWash? Wash { get; init; }
 
     public TextWrapMode Wrap { get; init; } = TextWrapMode.Square;
 

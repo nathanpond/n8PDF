@@ -114,6 +114,142 @@ public class WatermarkTests(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// The other kind of watermark: a picture, washed out until the page can be read through it.
+    /// </summary>
+    /// <remarks>
+    /// The bands of the probe's picture are flat colours, so what the washing did to each can be
+    /// read straight off the page and set against Word's. Six settings, from doing nothing to
+    /// washing everything away to white.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "nothing said")]
+    [InlineData(1, "Word's own watermark")]
+    [InlineData(2, "half the contrast")]
+    [InlineData(3, "half the brightness, which is all of it")]
+    [InlineData(4, "Word's contrast alone")]
+    [InlineData(5, "Word's brightness alone")]
+    public void A_picture_is_washed_out_the_way_word_washes_it(int page, string what)
+    {
+        var bands = Bands("watermark-washout-probe", page);
+        if (bands is null) return;
+
+        _output.WriteLine($"page {page + 1} ({what}):");
+
+        foreach (var (mine, word) in bands)
+        {
+            _output.WriteLine($"    ({mine.R,3},{mine.G,3},{mine.B,3}) against ({word.R,3},{word.G,3},{word.B,3})");
+
+            // One in two hundred and fifty-six, which is a rounding either way of the same answer.
+            Assert.True(Math.Abs(mine.R - word.R) <= 1 &&
+                        Math.Abs(mine.G - word.G) <= 1 &&
+                        Math.Abs(mine.B - word.B) <= 1,
+                $"page {page + 1} ({what}): a band came out ({mine.R},{mine.G},{mine.B}) " +
+                $"where Word has ({word.R},{word.G},{word.B}).");
+        }
+    }
+
+    /// <summary>And the picture watermark itself, on every page of the document.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void A_picture_watermark_is_drawn_on_every_page(int page)
+    {
+        var bands = Bands("watermark-picture", page);
+        if (bands is null) return;
+
+        foreach (var (mine, word) in bands)
+        {
+            Assert.True(Math.Abs(mine.R - word.R) <= 1 &&
+                        Math.Abs(mine.G - word.G) <= 1 &&
+                        Math.Abs(mine.B - word.B) <= 1,
+                $"page {page + 1}: a band came out ({mine.R},{mine.G},{mine.B}) " +
+                $"where Word has ({word.R},{word.G},{word.B}).");
+        }
+
+        // And it is a picture on the page rather than something drawn: one to a page, from the
+        // header, which is the whole of what a picture watermark is.
+        using var stream = new MemoryStream(Fixtures.Build("watermark-picture"));
+
+        var laidOut = Converter.LayoutDocument(stream,
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        var drawn = Assert.Single(laidOut.Pages[page].Images);
+        Assert.False(drawn.Image.IsDrawing);
+        Assert.Equal(288, drawn.Width, 1);
+    }
+
+    /// <summary>
+    /// A header's pictures are its own, even where it numbers them the way the body numbers its.
+    /// </summary>
+    /// <remarks>
+    /// This is the trap: relationship ids belong to the part that declares them, so a document
+    /// with a watermark in its header and a picture in its body can call both "rId1" and mean two
+    /// different pictures. Anything keeping one list of them for the whole document draws
+    /// whichever it read last, in both places, and the document still looks plausible.
+    /// </remarks>
+    [Fact]
+    public void A_header_and_a_body_may_number_their_pictures_alike()
+    {
+        var builder = new DocxBuilder();
+
+        // The body's picture is a wide blue band; the header's is a tall red one, and both are
+        // asked for by the same id.
+        var body = builder.AddImagePart(PngWriter.Solid(64, 16, 40, 80, 200));
+        var header = builder.AddHeaderImage(PngWriter.Solid(16, 64, 200, 40, 40), body);
+
+        Assert.Equal(body, header.Id);
+
+        var docx = builder
+            .WithHeaderFooter(header: true,
+                "<w:p>" + DocxBuilder.PictureWatermark(header.Id, 144, 144, "65536f", "0") + "</w:p>",
+                headerImages: [header])
+            .AddImageParagraph(body, 72, 18)
+            .Build();
+
+        using var stream = new MemoryStream(docx);
+
+        var laidOut = Converter.LayoutDocument(stream,
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        var images = laidOut.Pages[0].Images;
+        Assert.Equal(2, images.Count);
+
+        // Told apart by their shape: one is four times as wide as it is tall, the other the
+        // reverse. Drawing one picture twice would give two of the same.
+        Assert.Contains(images, image => image.Image is { Width: 64, Height: 16 });
+        Assert.Contains(images, image => image.Image is { Width: 16, Height: 64 });
+    }
+
+    /// <summary>What a picture watermark says about itself.</summary>
+    [Fact]
+    public void A_washed_picture_is_read_from_what_it_says()
+    {
+        var drawing = Assert.IsType<AnchoredDrawing>(ReadDrawing("""
+            <v:shape type="#_x0000_t75" style="position:absolute;width:288pt;height:144pt">
+              <v:imagedata r:id="rId7" o:title="" gain="19661f" blacklevel="22938f"/>
+            </v:shape>
+            """));
+
+        Assert.Equal("rId7", drawing.RelationshipId);
+        Assert.Null(drawing.Shape);
+        Assert.Equal(0.3, drawing.Wash?.Gain ?? 0, 3);
+        Assert.Equal(0.35, drawing.Wash?.BlackLevel ?? 0, 3);
+    }
+
+    /// <summary>And one that says nothing about its colours has nothing done to them.</summary>
+    [Fact]
+    public void A_picture_that_says_nothing_is_left_alone()
+    {
+        var drawing = Assert.IsType<AnchoredDrawing>(ReadDrawing("""
+            <v:shape type="#_x0000_t75" style="position:absolute;width:288pt;height:144pt">
+              <v:imagedata r:id="rId7" o:title=""/>
+            </v:shape>
+            """));
+
+        Assert.Null(drawing.Wash);
+    }
+
     /// <summary>What the older markup says a watermark is, read back off it.</summary>
     [Fact]
     public void A_watermark_is_read_from_what_it_says()
@@ -167,6 +303,54 @@ public class WatermarkTests(ITestOutputHelper output)
         // with a half-solid watermark on it has a state saying so.
         Assert.Contains("/ExtGState", text);
         Assert.Contains("/ca 0.5", text);
+    }
+
+    /// <summary>
+    /// The middle of each band of the probe's picture, ours and Word's, or null where nothing can
+    /// rasterise them. The picture is 288 by 144 points, centred on the margins.
+    /// </summary>
+    private List<((byte R, byte G, byte B) Mine, (byte R, byte G, byte B) Word)>? Bands(
+        string fixtureName, int page)
+    {
+        var reference = Path.Combine(TestPaths.ReferencePdfs, fixtureName + ".pdf");
+        Assert.True(File.Exists(reference), $"No Word reference PDF at {reference}");
+
+        var ours = Converter.Convert(Fixtures.Build(fixtureName),
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        const double scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, scale) is not { } mine ||
+            PdfRasterizer.Render(File.ReadAllBytes(reference), page, scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return null;
+        }
+
+        var bands = new List<((byte, byte, byte), (byte, byte, byte))>();
+
+        for (var i = 0; i < 6; i++)
+        {
+            var x = 162 + 24 + i * 48;
+            bands.Add((mine.At(x, 396, scale), word.At(x, 396, scale)));
+        }
+
+        return bands;
+    }
+
+    private static InlineElement ReadDrawing(string shapeXml)
+    {
+        var run = XDocument.Parse($"""
+            <w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                 xmlns:v="urn:schemas-microsoft-com:vml"
+                 xmlns:o="urn:schemas-microsoft-com:office:office">
+              <w:pict>{shapeXml}</w:pict>
+            </w:r>
+            """);
+
+        return Assert.Single(DocumentParser.ParseRun(run.Root!).Content);
     }
 
     private static ShapeFrame Read(string shapeXml)

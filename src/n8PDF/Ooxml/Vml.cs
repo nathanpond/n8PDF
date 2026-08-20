@@ -65,12 +65,19 @@ public static class Vml
         var height = Length(style.GetValueOrDefault("height"));
         if (width is not { } wide || height is not { } tall || wide <= 0 || tall <= 0) return null;
 
-        var shape = ReadShape(element);
+        // A shape holding a picture is a picture: what it draws is the image rather than any
+        // geometry, and the only thing the shape adds is where it goes and what was done to the
+        // colours on the way.
+        var picture = element.Element(Main + "imagedata");
+        var image = picture?.Attribute(W.Relationships + "id")?.Value;
+        var wash = picture is null ? null : ReadWash(picture);
+
+        var shape = image is null ? ReadShape(element) : null;
 
         // VML turns a shape clockwise, and writes the watermark it offers as 315 degrees — which
         // is the same as a quarter turn the other way, and is the diagonal every draft is stamped
         // with.
-        if (style.GetValueOrDefault("rotation") is { } rotation &&
+        if (shape is not null && style.GetValueOrDefault("rotation") is { } rotation &&
             double.TryParse(rotation.TrimEnd('d', 'e', 'g'), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out var degrees))
         {
@@ -83,11 +90,13 @@ public static class Vml
         // A shape positioned absolutely floats; one that says nothing about its position sits in
         // the line like a picture.
         if (style.GetValueOrDefault("position") != "absolute")
-            return new DrawingInline(widthEmu, heightEmu, null) { Shape = shape };
+            return new DrawingInline(widthEmu, heightEmu, image) { Shape = shape, Wash = wash };
 
         return new AnchoredDrawing
         {
             Shape = shape,
+            RelationshipId = image,
+            Wash = wash,
             WidthEmu = widthEmu,
             HeightEmu = heightEmu,
             Wrap = ReadWrap(element),
@@ -301,6 +310,34 @@ public static class Vml
         }
 
         return values;
+    }
+
+    /// <summary>
+    /// What was done to a picture's colours: a contrast and a brightness, both written in
+    /// sixty-fourths of a thousand, and both meaning nothing was done where they are absent.
+    /// </summary>
+    private static PictureWash? ReadWash(XElement imagedata)
+    {
+        var wash = new PictureWash(
+            imagedata.Attribute("gain")?.Value is { } gain ? Fixed(gain, 1) : 1,
+            imagedata.Attribute("blacklevel")?.Value is { } black ? Fixed(black, 0) : 0);
+
+        return wash.IsIdentity ? null : wash;
+    }
+
+    /// <summary>A number in sixty-fourths of a thousand, or a plain one where it says so.</summary>
+    private static double Fixed(string value, double fallback)
+    {
+        var text = value.Trim();
+        var sixtyFourths = text.EndsWith('f');
+
+        if (!double.TryParse(sixtyFourths ? text[..^1] : text,
+                NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            return fallback;
+        }
+
+        return sixtyFourths ? number / 65536 : number;
     }
 
     /// <summary>

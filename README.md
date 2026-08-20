@@ -174,6 +174,24 @@ asked for — the probe's sixth page asks for Times New Roman and gets Calibri �
 the face that was asked for. That page is the only one of the seven that agrees on less than 99.8%
 of its ink; it agrees on 98%.
 
+### What washing a picture out does
+
+The other kind of watermark is a picture, faded until the page can be read through it, and the
+fading is two numbers on the image: a gain and a black level, both written in sixty-fourths of a
+thousand. `watermark-washout-probe` holds the same bands of flat colour six times over at different
+settings, and what comes out of each channel — everything in nought to one — is
+
+    gain × in + (1 − gain) ÷ 2 + black × (1 + gain)
+
+clamped at both ends. The gain is a contrast about mid grey: half a gain leaves grey alone and pulls
+black and white halfway towards it. The black level is a brightness on top of that, and counts for
+more when the gain is high, which is the part of this that is fitted rather than explained. Word
+writes a gain of 19661 and a black level of 22938 for every picture watermark it makes — three
+tenths of the contrast, and pale enough to read a page through.
+
+Every band of every setting comes out within one part in 256 of Word's, including the two that
+saturate.
+
 ### Where an old-style shape is drawn
 
 A shape in the older `w:pict` spelling is drawn a little way down and to the right of where its own
@@ -294,9 +312,10 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), watermarks (a word set across every page of a section, behind the text, stretched to fill
-the shape that holds it, turned, and painted see-through — which is a graphics state of its own,
-since a PDF carries transparency there rather than in the colour), text boxes and the shapes they are a kind of, in both spellings (rectangles, rounded rectangles, ellipses
+pictures), watermarks of both kinds (a word set across every page of a section, behind the text,
+stretched to fill the shape that holds it, turned, and painted see-through — which is a graphics
+state of its own, since a PDF carries transparency there rather than in the colour; or a picture,
+washed out to the contrast and brightness it carries), text boxes and the shapes they are a kind of, in both spellings (rectangles, rounded rectangles, ellipses
 and triangles drawn as themselves and every other preset geometry as the rectangle it is bounded
 by; filled and outlined in a colour named outright or taken from the theme; in the line of text or
 anchored with the text flowing round them; and holding a document of their own — paragraphs and
@@ -332,9 +351,11 @@ fit the other (a box holding more than it has room for overflows, which is what 
 for and what Word does with that setting), fill with anything but one flat colour, or carry a
 shadow.
 
-Watermarks are drawn: the word, in the face and colour and half-solidity it asks for, turned the way
-it asks to be turned, behind everything else on every page of its section. A picture watermark is
-not — that is an image in a header, and an image referred to from a header part is not yet read.
+Watermarks are drawn, of both kinds: the word, in the face and colour and half-solidity it asks for,
+turned the way it asks to be turned; or the picture, washed out to the gain and black level it
+carries. Both go behind everything else on every page of their section. A picture in a running head
+is read from that part's own relationships, so a header and a body may number their pictures alike
+— which they routinely do, both calling their first one `rId1` — without either drawing the other's.
 
 Table autofit is the one piece here that approximates rather than reproduces. Word's algorithm is
 undocumented; ours measures each column's minimum (widest word) and maximum (unwrapped) width and

@@ -264,6 +264,7 @@ public static class Converter
 
                 document.HeadersAndFooters[relationship.Id] = content;
                 LoadHyperlinks(package, partName, partName, content.Body, document);
+                LoadPartImages(package, partName, content.Body, document);
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
             {
@@ -332,6 +333,65 @@ public static class Converter
             if (targets.TryGetValue(id, out var target)) document.Hyperlinks[key] = target;
 
             run.Hyperlink = link with { RelationshipId = key };
+        }
+    }
+
+    /// <summary>
+    /// Reads the pictures a part of its own refers to, under keys naming the part as well as the
+    /// relationship.
+    /// </summary>
+    /// <remarks>
+    /// A header owns its relationships, so its "rId1" and the body's are different pictures
+    /// entirely — a document with a watermark and a logo has both, and one list keyed by id alone
+    /// would draw one of them in both places. The drawings are rewritten to the same scoped key,
+    /// which is how a link in a header is already handled.
+    /// </remarks>
+    private static void LoadPartImages(
+        OpcPackage package, string partName, List<BlockElement> blocks, WordDocument document)
+    {
+        Dictionary<string, string>? targets = null;
+
+        foreach (var run in EnumerateRuns(blocks))
+        foreach (var content in run.Content)
+        {
+            string? id = content switch
+            {
+                DrawingInline inline => inline.RelationshipId,
+                AnchoredDrawing anchored => anchored.RelationshipId,
+                _ => null
+            };
+
+            if (id is null) continue;
+
+            targets ??= package.GetRelationships(partName)
+                .Where(r => r.Type == OpcPackage.ImageRelationship && !r.IsExternal)
+                .GroupBy(r => r.Id, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First().Target, StringComparer.Ordinal);
+
+            var key = partName + "|" + id;
+
+            if (targets.TryGetValue(id, out var target))
+            {
+                try
+                {
+                    var image = package.ResolveTarget(partName, target);
+                    if (package.HasPart(image)) document.Images[key] = package.ReadPart(image);
+                }
+                catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+                {
+                }
+            }
+
+            switch (content)
+            {
+                case DrawingInline inline:
+                    inline.RelationshipId = key;
+                    break;
+
+                case AnchoredDrawing anchored:
+                    anchored.RelationshipId = key;
+                    break;
+            }
         }
     }
 

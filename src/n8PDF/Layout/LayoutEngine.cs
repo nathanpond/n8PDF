@@ -1031,7 +1031,9 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 anchored.Shape is { } shape ? ComposeShape(shape, width, height) : null;
 
             var image = composed?.Frame ??
-                        (anchored.RelationshipId is null ? null : DecodeImage(anchored.RelationshipId));
+                        (anchored.RelationshipId is null
+                            ? null
+                            : DecodeImage(anchored.RelationshipId, anchored.Wash));
 
             if (image is null) continue;
 
@@ -4155,7 +4157,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         if (drawing.RelationshipId is null) return;
 
-        var image = DecodeImage(drawing.RelationshipId);
+        var image = DecodeImage(drawing.RelationshipId, drawing.Wash);
         if (image is null) return;
 
         atoms.Add(new ImageAtom
@@ -4272,16 +4274,48 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// picture used several times yields the same instance — which is what lets the writer embed
     /// it once.
     /// </remarks>
-    private Images.ImageData? DecodeImage(string relationshipId)
+    private Images.ImageData? DecodeImage(string relationshipId, PictureWash? wash = null)
     {
-        if (_decodedImages.TryGetValue(relationshipId, out var cached)) return cached;
+        var key = wash is null ? relationshipId : $"{relationshipId}|{wash.Gain}|{wash.BlackLevel}";
+
+        if (_decodedImages.TryGetValue(key, out var cached)) return cached;
 
         var image = _images.TryGetValue(relationshipId, out var bytes)
             ? Images.ImageReader.TryRead(bytes)
             : null;
 
-        _decodedImages[relationshipId] = image;
+        if (image is not null && wash is not null) image = Washed(image, wash);
+
+        _decodedImages[key] = image;
         return image;
+    }
+
+    /// <summary>
+    /// A picture with its colours washed out, which is what a watermark of one is.
+    /// </summary>
+    /// <remarks>
+    /// Done to the samples rather than left to the PDF, because a PDF has no such transform: it
+    /// can carry a transfer function on the graphics state, but not one that a reader is obliged
+    /// to apply to an image. A picture that arrived as a JPEG is left alone — it would have to be
+    /// decoded and written out again to touch it, and no watermark this has met is one.
+    /// </remarks>
+    private static Images.ImageData Washed(Images.ImageData image, PictureWash wash)
+    {
+        if (wash.IsIdentity || image.Encoding != Images.ImageEncoding.Raw || image.IsDrawing)
+            return image;
+
+        // Sixteen bits a sample is left alone too: nothing that needs washing out is that
+        // precise, and the arithmetic below is written for bytes.
+        if (image.BitsPerComponent != 8) return image;
+
+        var table = new byte[256];
+        for (var i = 0; i < table.Length; i++)
+            table[i] = (byte)Math.Round(wash.Apply(i / 255.0) * 255);
+
+        var data = new byte[image.Data.Length];
+        for (var i = 0; i < data.Length; i++) data[i] = table[image.Data[i]];
+
+        return image with { Data = data };
     }
 
     /// <summary>

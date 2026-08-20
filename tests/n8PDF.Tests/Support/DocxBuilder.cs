@@ -461,6 +461,13 @@ public sealed class DocxBuilder
     private readonly List<(string Id, string PartName, byte[] Data)> _images = [];
 
     /// <summary>
+    /// Pictures a running head reaches, which are parts of the package like any other but are not
+    /// referred to from the body. Their relationships belong to the header part, and their ids may
+    /// be the same ids the body uses for different pictures entirely.
+    /// </summary>
+    private readonly List<(string PartName, byte[] Data)> _headerImages = [];
+
+    /// <summary>
     /// Adds an image part and returns the relationship id a drawing refers to it by.
     /// </summary>
     public string AddImagePart(byte[] data, string extension = "png")
@@ -777,6 +784,51 @@ public sealed class DocxBuilder
             """;
     }
 
+    /// <summary>
+    /// A watermark made of a picture rather than a word: the same shape in the same place, holding
+    /// an image instead of text, and washed out so the page can be read through it.
+    /// </summary>
+    /// <remarks>
+    /// The washing out is two numbers on the image itself — a gain and a black level, both in
+    /// sixty-fourths of a thousand — and Word writes the same pair for every picture watermark it
+    /// makes: a gain of about three tenths and a black level of about a third.
+    /// </remarks>
+    public static string PictureWatermark(
+        string relationshipId, double widthPoints, double heightPoints,
+        string gain = "19661f", string blackLevel = "22938f", int id = 2049)
+    {
+        var style =
+            "position:absolute;margin-left:0;margin-top:0;" +
+            $"width:{widthPoints.ToString(CultureInfo.InvariantCulture)}pt;" +
+            $"height:{heightPoints.ToString(CultureInfo.InvariantCulture)}pt;" +
+            "z-index:-251658752;mso-position-horizontal:center;" +
+            "mso-position-horizontal-relative:margin;mso-position-vertical:center;" +
+            "mso-position-vertical-relative:margin";
+
+        return $"""
+            <w:r><w:pict>
+              <v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t"
+                           path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+                <v:stroke joinstyle="miter"/>
+                <v:formulas>
+                  <v:f eqn="if lineDrawn pixelLineWidth 0"/><v:f eqn="sum @0 1 0"/>
+                  <v:f eqn="sum 0 0 @1"/><v:f eqn="prod @2 1 2"/>
+                  <v:f eqn="prod @3 21600 pixelWidth"/><v:f eqn="prod @3 21600 pixelHeight"/>
+                  <v:f eqn="sum @0 0 1"/><v:f eqn="prod @6 1 2"/>
+                  <v:f eqn="prod @7 21600 pixelWidth"/><v:f eqn="sum @8 21600 0"/>
+                  <v:f eqn="prod @7 21600 pixelHeight"/><v:f eqn="sum @10 21600 0"/>
+                </v:formulas>
+                <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+                <o:lock v:ext="edit" aspectratio="t"/>
+              </v:shapetype>
+              <v:shape id="WordPictureWatermark{id}" o:spid="_x0000_s{id}" type="#_x0000_t75"
+                       style="{style}" o:allowincell="f">
+                <v:imagedata r:id="{relationshipId}" o:title="" gain="{gain}" blacklevel="{blackLevel}"/>
+              </v:shape>
+            </w:pict></w:r>
+            """;
+    }
+
     /// <summary>A shape sitting in the line of text, like an inline picture.</summary>
     public static string InlineShape(
         double widthPoints, double heightPoints, string? content = null, string geometry = "rect",
@@ -843,7 +895,8 @@ public sealed class DocxBuilder
     }
 
     private readonly List<(string Id, string PartName, string Kind, string Body,
-        IReadOnlyList<(string Id, string Url)> Hyperlinks)> _headersFooters = [];
+        IReadOnlyList<(string Id, string Url)> Hyperlinks,
+        IReadOnlyList<(string Id, string Target)> Images)> _headersFooters = [];
     private bool _titlePage;
 
     /// <summary>
@@ -874,7 +927,8 @@ public sealed class DocxBuilder
     /// </param>
     public DocxBuilder WithHeaderFooter(bool header, string paragraphsXml, string kind = "default",
         IReadOnlyList<(string Id, string Url)>? headerHyperlinks = null,
-        bool referenceFromFinalSection = true)
+        bool referenceFromFinalSection = true,
+        IReadOnlyList<(string Id, string Target)>? headerImages = null)
     {
         var index = _headersFooters.Count + 1;
         var id = $"rIdHF{index}";
@@ -897,9 +951,25 @@ public sealed class DocxBuilder
                {paragraphsXml}
              </w:{root}>
              """,
-            headerHyperlinks ?? []));
+            headerHyperlinks ?? [], headerImages ?? []));
 
         return this;
+    }
+
+    /// <summary>
+    /// Adds a picture and returns a relationship for a running head to reach it by.
+    /// </summary>
+    /// <remarks>
+    /// A header owns its relationships, so the id here belongs to that part alone and may be the
+    /// same id the body uses for a different picture entirely — which is the trap a watermark of a
+    /// picture lays for anything that keeps one list of them for the whole document.
+    /// </remarks>
+    public (string Id, string Target) AddHeaderImage(byte[] data, string id, string extension = "png")
+    {
+        var name = $"word/media/header{_headerImages.Count + 1}.{extension}";
+        _headerImages.Add((name, data));
+
+        return (id, name["word/".Length..]);
     }
 
     /// <summary>The first page takes its own header and footer.</summary>
@@ -1048,13 +1118,13 @@ public sealed class DocxBuilder
             if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildNotes("footnote", _footnotes));
             if (_endnotes.Count > 0) Write(archive, "word/endnotes.xml", BuildNotes("endnote", _endnotes));
 
-            foreach (var (_, partName, _, body, hyperlinks) in _headersFooters)
+            foreach (var (_, partName, _, body, hyperlinks, images) in _headersFooters)
             {
                 Write(archive, partName, body);
 
                 // A part that references anything needs its own relationship part beside it, in a
                 // _rels folder next to the part itself.
-                if (hyperlinks.Count == 0) continue;
+                if (hyperlinks.Count == 0 && images.Count == 0) continue;
 
                 var relationships = new StringBuilder();
                 foreach (var (id, url) in hyperlinks)
@@ -1065,12 +1135,28 @@ public sealed class DocxBuilder
                         $"Target=\"{Escape(url)}\" TargetMode=\"External\"/>");
                 }
 
+                foreach (var (id, target) in images)
+                {
+                    relationships.Append(
+                        $"<Relationship Id=\"{id}\" " +
+                        "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image\" " +
+                        $"Target=\"{target}\"/>");
+                }
+
                 var directory = Path.GetDirectoryName(partName)!.Replace('\\', '/');
                 Write(archive,
                     $"{directory}/_rels/{Path.GetFileName(partName)}.rels",
                     "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                     "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
                     relationships + "</Relationships>");
+            }
+
+            foreach (var (partName, data) in _headerImages)
+            {
+                var part = archive.CreateEntry(partName, CompressionLevel.Optimal);
+                part.LastWriteTime = FixedTimestamp;
+                using var bytes = part.Open();
+                bytes.Write(data);
             }
 
             foreach (var (_, partName, data) in _images)
@@ -1114,7 +1200,7 @@ public sealed class DocxBuilder
         if (_headersFooters.Count == 0 && !_titlePage) return _sectionProperties;
 
         var references = new StringBuilder();
-        foreach (var (id, _, kind, _, _) in _headersFooters)
+        foreach (var (id, _, kind, _, _, _) in _headersFooters)
         {
             if (_unreferenced.Contains(id)) continue;
 
@@ -1201,6 +1287,7 @@ public sealed class DocxBuilder
     {
         var defaults = new StringBuilder();
         foreach (var extension in _images.Select(i => Path.GetExtension(i.PartName).TrimStart('.'))
+                     .Concat(_headerImages.Select(i => Path.GetExtension(i.PartName).TrimStart('.')))
                      .Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var type = extension.ToLowerInvariant() switch
@@ -1217,7 +1304,7 @@ public sealed class DocxBuilder
             defaults.Append($"<Default Extension=\"{extension}\" ContentType=\"{type}\"/>");
         }
 
-        foreach (var (_, partName, kind, _, _) in _headersFooters)
+        foreach (var (_, partName, kind, _, _, _) in _headersFooters)
         {
             var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
             defaults.Append(
@@ -1308,7 +1395,7 @@ public sealed class DocxBuilder
                 "Target=\"numbering.xml\"/>");
         }
 
-        foreach (var (id, partName, kind, _, _) in _headersFooters)
+        foreach (var (id, partName, kind, _, _, _) in _headersFooters)
         {
             var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
             extra.Append(

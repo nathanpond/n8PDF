@@ -675,6 +675,34 @@ public static class Fixtures
         $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
         $"<w:t xml:space=\"preserve\">{element} {strokeWeight ?? "unstroked"}</w:t></w:r></w:p>";
 
+    /// <summary>
+    /// A picture of flat bands, from black through to white and then one of colour, so that what
+    /// washing a picture out does to each shade can be read straight off the page.
+    /// </summary>
+    private static byte[] BandedImage()
+    {
+        (byte Red, byte Green, byte Blue)[] bands =
+            [(0, 0, 0), (64, 64, 64), (128, 128, 128), (192, 192, 192), (255, 255, 255), (220, 40, 40)];
+
+        const int band = 16;
+        const int height = 32;
+
+        var pixels = new byte[bands.Length * band * height * 3];
+
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < bands.Length * band; x++)
+        {
+            var (red, green, blue) = bands[x / band];
+            var at = (y * bands.Length * band + x) * 3;
+
+            pixels[at] = red;
+            pixels[at + 1] = green;
+            pixels[at + 2] = blue;
+        }
+
+        return PngWriter.Write(bands.Length * band, height, pixels, hasAlpha: false);
+    }
+
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
@@ -1361,6 +1389,60 @@ public static class Fixtures
                                  DocxBuilder.Watermark("DRAFT", 200, 100, rotation: null, id: 2066) +
                                  "</w:p>")
                 .AddParagraph("And in a narrower box.", ZeroSpacing, Times12),
+
+            // A watermark of a picture rather than a word, which is the other kind Word makes: an
+            // image in the header, washed out so the page can be read through it. The picture is
+            // flat bands of known colours, so what the washing out did to each can be read off.
+            ["watermark-picture"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var image = builder.AddHeaderImage(BandedImage(), "rIdWatermark");
+
+                return builder
+                    .WithHeaderFooter(header: true,
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        DocxBuilder.PictureWatermark(image.Id, 288, 144) + "</w:p>",
+                        headerImages: [image])
+                    .AddParagraph("The first page under the picture.", ZeroSpacing, Times12)
+                    .AddParagraph("The second page under it.", ZeroSpacingNewPage, Times12);
+            },
+
+            // What washing a picture out actually does, measured rather than assumed: the same
+            // bands six times over, varying the two numbers that describe it. The shapes sit in
+            // the body rather than in a header, since what is being measured is the transform and
+            // not where a watermark goes.
+            //
+            //   page 1  nothing said            -> what a picture with no washing looks like
+            //   page 2  Word's own watermark    -> the pair it writes for every one it makes
+            //   page 3  half the gain, no black level
+            //   page 4  full gain, half the black level
+            //   page 5  Word's gain, no black level
+            //   page 6  Word's black level, full gain
+            ["watermark-washout-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var image = builder.AddImagePart(BandedImage());
+
+                (string Gain, string Black)[] settings =
+                [
+                    ("65536f", "0"), ("19661f", "22938f"), ("32768f", "0"),
+                    ("65536f", "32768f"), ("19661f", "0"), ("65536f", "22938f")
+                ];
+
+                for (var i = 0; i < settings.Length; i++)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(i == 0 ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
+                        DocxBuilder.PictureWatermark(image, 288, 144,
+                            settings[i].Gain, settings[i].Black, id: 2070 + i) +
+                        "</w:p>");
+
+                    builder.AddParagraph($"Gain {settings[i].Gain}, black level {settings[i].Black}.",
+                        ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
 
             // Word draws an older shape a little way off from where a newer one of the same size
             // goes, and how far depends on how thick its stroke is. Eight pages, one shape each,
