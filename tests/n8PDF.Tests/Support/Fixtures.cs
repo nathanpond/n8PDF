@@ -1,3 +1,4 @@
+using System.Globalization;
 namespace n8PDF.Tests.Support;
 
 /// <summary>
@@ -752,6 +753,75 @@ public static class Fixtures
           <c:plotVisOnly val="1"/>
         </c:chart>
         """;
+
+    /// <summary>
+    /// A column chart that says nothing about where its plotting goes, so that Word has to work it
+    /// out — which is what the automatic layout probe measures.
+    /// </summary>
+    /// <param name="maximum">
+    /// What the value axis runs to, which is what makes its labels wide or narrow without changing
+    /// anything else.
+    /// </param>
+    private static string AutoLayoutChart(
+        double maximum, int labelSize = 1000, string? category = null,
+        string tickLabels = "nextTo")
+    {
+        var text = $"""
+            <c:txPr><a:bodyPr/><a:lstStyle/>
+              <a:p><a:pPr><a:defRPr sz="{labelSize}"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p>
+            </c:txPr>
+            """;
+
+        var categories = category is null
+            ? new[] { "One", "Two" }
+            : [category, category];
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout/>
+                <c:barChart>
+                  <c:barDir val="col"/>
+                  <c:grouping val="clustered"/>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartSeries(0, "Units", categories,
+                      [maximum * 0.4, maximum * 0.8], "4472C4")}
+                  <c:gapWidth val="150"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:barChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="{tickLabels}"/>
+                  {text}
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                  <c:noMultiLvlLbl val="0"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/>
+                    <c:max val="{maximum.ToString(CultureInfo.InvariantCulture)}"/>
+                    <c:min val="0"/>
+                  </c:scaling>
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="{tickLabels}"/>
+                  {text}
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>
+                  <c:majorUnit val="{(maximum / 2).ToString(CultureInfo.InvariantCulture)}"/>
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
 
     /// <summary>A chart part, wrapped in the element every one of them begins with.</summary>
     private static string ChartPart(string chartXml) => $"""
@@ -1702,6 +1772,49 @@ public static class Fixtures
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 505, relationshipId: "rIdChart5") +
                                  "</w:p>"),
+
+            // Where Word puts the plotting when the chart does not say, which is what every chart
+            // in a real document leaves to it. Six of them, varying one thing each: how wide the
+            // numbers up the axis are, how large they are set, how big the frame is, how long the
+            // words under the bars are, and whether there are any labels at all.
+            //
+            //   page 1  the plain case
+            //   page 2  numbers a hundred thousand times larger -> how the left edge follows them
+            //   page 3  the same chart at twenty point          -> what the type size does
+            //   page 4  a frame half the size                   -> fixed margins or proportional
+            //   page 5  a long word under the bars              -> what the foot does
+            //   page 6  no labels at all                        -> what is left when nothing is
+            ["chart-layout-probe"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(AutoLayoutChart(100));
+
+                (string Name, string Chart, double Width, double Height)[] pages =
+                [
+                    ("rIdChart2", AutoLayoutChart(10000000), 360, 216),
+                    ("rIdChart3", AutoLayoutChart(100, labelSize: 2000), 360, 216),
+                    ("rIdChart4", AutoLayoutChart(100), 180, 108),
+                    ("rIdChart5", AutoLayoutChart(100, category: "Category number one"), 360, 216),
+                    ("rIdChart6", AutoLayoutChart(100, tickLabels: "none"), 360, 216)
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 600) + "</w:p>");
+
+                for (var i = 0; i < pages.Length; i++)
+                {
+                    builder.WithPart($"word/charts/chart{i + 2}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(pages[i].Chart),
+                        fromDocument: (pages[i].Name,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(pages[i].Width, pages[i].Height,
+                                                id: 601 + i, relationshipId: pages[i].Name) + "</w:p>");
+                }
+
+                return builder;
+            },
 
             // Word draws an older shape a little way off from where a newer one of the same size
             // goes, and how far depends on how thick its stroke is. Eight pages, one shape each,

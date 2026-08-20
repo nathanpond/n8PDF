@@ -51,24 +51,116 @@ internal static class ChartComposer
     }
 
     /// <summary>
+    /// The margin a chart keeps on a side that carries nothing, and the one it keeps outside the
+    /// labels on a side that does.
+    /// </summary>
+    /// <remarks>
+    /// Both measured from chart-layout-probe. A chart whose labels are all turned off puts its
+    /// plotting eleven points inside its frame on every side; one that carries them begins the
+    /// labels 6.5pt inside the frame, at every type size and however wide the numbers are — the
+    /// widest label starts at exactly 6.5pt from the edge on all five pages that have one.
+    /// </remarks>
+    private const double BareMargin = 11;
+
+    private const double LabelMargin = 6.5;
+
+    /// <summary>
+    /// How far above the plot the topmost label reaches, over and above five points: half the
+    /// height of the label as Windows reads the face, which for Calibri is 0.611 of the type size.
+    /// Measured at ten point and at twenty, where Word leaves 11.10pt and 17.21pt.
+    /// </summary>
+    private const double TopMargin = 5;
+
+    /// <summary>
     /// Works out where the plotting goes and what the value axis runs between.
     /// </summary>
     /// <remarks>
-    /// A chart that places its plot area by hand is followed exactly: Word's export of the fixture
-    /// puts it at the fractions the chart gives, to the last decimal place. One that does not is
-    /// given the same proportions Word's own automatic placing came to on that fixture, which is
-    /// where this is weakest — see the note in the README.
+    /// A chart that places its plot area by hand is followed exactly: Word's export puts it at the
+    /// fractions the chart gives, to the last decimal place. One that does not has its plotting
+    /// worked out from what has to fit around it, which is what chart-layout-probe measures:
+    ///
+    ///   the left  makes room for the widest number up the value axis, and the gap it keeps from
+    ///             the axis, beginning 6.5pt inside the frame
+    ///   the foot  makes room for a category's own line, which sits 1.584 type sizes below the
+    ///             axis and reaches its descender below that
+    ///   the top   leaves half a label's height, so the topmost number does not overrun the frame
+    ///   the right leaves the bare margin, since nothing is drawn there — a category label wider
+    ///             than its bars is left to overrun, which is what Word does with one
+    ///
+    /// and every side falls back to the bare margin where the labels it would make room for are
+    /// not drawn at all.
     /// </remarks>
-    public static Plan Arrange(ChartDefinition chart, double width, double height)
+    /// <param name="measure">
+    /// How wide a string is in the face the labels are set in, at a given size. The labels have to
+    /// be measured to be made room for, and only the font library can measure them.
+    /// </param>
+    /// <param name="labelHeight">
+    /// How far a label reaches above and below its own baseline, as the face Windows reads it
+    /// gives them.
+    /// </param>
+    public static Plan Arrange(
+        ChartDefinition chart, double width, double height,
+        Func<string, double, double> measure,
+        Func<double, (double Ascent, double Descent)> labelHeight)
     {
-        var layout = chart.PlotArea ?? new ChartLayout(0.2, 0.1, 0.7, 0.7);
-
         var (minimum, maximum, unit) = Scale(chart);
 
+        if (chart.PlotArea is { } stated)
+        {
+            return new Plan(
+                stated.X * width, stated.Y * height, stated.Width * width, stated.Height * height,
+                minimum, maximum, unit);
+        }
+
+        var plan = new Plan(0, 0, width, height, minimum, maximum, unit);
+
+        var left = BareMargin;
+        var top = BareMargin;
+        var bottom = BareMargin;
+
+        if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
+        {
+            var size = valueAxis.LabelSizePoints;
+
+            var widest = Marks(plan)
+                .Select(value => measure(Format(value), size))
+                .DefaultIfEmpty(0)
+                .Max();
+
+            left = Math.Max(left, LabelMargin + widest + size * ValueLabelGap);
+
+            var (ascent, descent) = labelHeight(size);
+            top = Math.Max(top, TopMargin + (ascent + descent) / 2);
+        }
+
+        if (chart.CategoryAxis is { Deleted: false, TickLabelPosition: not "none" } categoryAxis)
+        {
+            var size = categoryAxis.LabelSizePoints;
+            var (_, descent) = labelHeight(size);
+
+            bottom = Math.Max(bottom,
+                LabelMargin + size * CategoryLabelBaseline + descent);
+        }
+
         return new Plan(
-            layout.X * width, layout.Y * height, layout.Width * width, layout.Height * height,
+            left, top, Math.Max(1, width - left - BareMargin), Math.Max(1, height - top - bottom),
             minimum, maximum, unit);
     }
+
+    /// <summary>
+    /// How far a number on the value axis ends short of its axis, as a share of its type size, and
+    /// how far below the axis a category's baseline sits. Both measured at two sizes; see
+    /// <see cref="LayoutEngine"/>, which places the labels these leave room for.
+    /// </summary>
+    public const double ValueLabelGap = 0.94;
+
+    public const double CategoryLabelBaseline = 1.584;
+
+    /// <summary>A number as an axis writes it: whole where it is whole.</summary>
+    public static string Format(double value) =>
+        value == Math.Floor(value) && Math.Abs(value) < 1e15
+            ? ((long)value).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>
     /// What the value axis runs between and how far apart its marks are, where the chart does not

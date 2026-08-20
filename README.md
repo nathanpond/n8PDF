@@ -181,13 +181,30 @@ from Word's export rather than read anywhere.
 Every line of both chart fixtures lands within 0.26pt of Word's across the page and 0.28pt down it,
 and the two agree on better than 99.4% of the ink.
 
-What is not implemented is the **automatic placing** of the plot area — where Word puts it when the
-chart does not say, which it works out from the labels, the title and the legend it has to fit
-around. Both fixtures state their own layout, which is why they agree so closely; a chart that
-leaves it to be worked out gets a fixed fifth-and-a-tenth of the frame here, and will not agree.
-The same goes for a value axis left to scale itself: what is implemented is the plainest rule that
-fits — from nought to a round number above the largest value, in four to six steps — and Word's own
-choice is not that simple.
+**Where the plotting goes when the chart does not say** — which is what every chart in a real
+document leaves to be worked out — is measured too, by `chart-layout-probe`. A chart carrying no
+labels at all puts its plotting **eleven points inside its frame on every side**, whatever size the
+frame is; a chart carrying them begins its labels **6.5pt inside the frame** and gives the plotting
+what is left:
+
+| side | what it makes room for |
+|---|---|
+| left | the widest number up the axis, plus the gap that number keeps from the axis |
+| foot | a category's line: 1.584 type sizes below the axis, and its descender below that |
+| top | half a label's height, so the topmost number does not overrun the frame |
+| right | nothing — a category label wider than its bars is left to overrun, as Word leaves it |
+
+The heights in that table are the face as *Windows* reads it, where the baselines are the face as it
+reads *itself*: for Calibri, 1950 and 550 of its 2048 against 1536 and 512. Two questions, two
+answers, and using the second for both put the plot area two points out at twenty point type.
+
+Across the six charts of the probe — varying the frame size, the width of the numbers, the type
+size, the length of the category labels, and whether there are labels at all — the plot area lands
+within a quarter of a point of Word's, and the chart with no labels lands exactly.
+
+What is still not implemented is a value axis left to scale itself: what is there is the plainest
+rule that fits — from nought to a round number above the largest value, in four to six steps — and
+Word's own choice is not that simple. Both chart fixtures state their bounds.
 
 ### What a diagram is, and which half of it to draw
 
@@ -382,7 +399,8 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), column charts (the plot area where the chart places it, bars sized by the gap and the
+pictures), column charts (the plot area where the chart places it or, where it does not, worked out
+from the room the labels need, bars sized by the gap and the
 overlap between them, gridlines, both axis lines and their marks, and the labels along each axis,
 read from the numbers the chart part caches), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,

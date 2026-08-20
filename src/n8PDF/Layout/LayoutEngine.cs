@@ -3030,7 +3030,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeChart(
         ChartDefinition chart, double width, double height)
     {
-        var plan = ChartComposer.Arrange(chart, width, height);
+        var plan = ChartComposer.Arrange(chart, width, height, MeasureLabel, LabelBox);
 
         var frame = new Images.ImageData(1, 1, [],
             Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
@@ -3048,7 +3048,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
             foreach (var value in ChartComposer.Marks(plan))
             {
-                var label = ChartLabel(Format(value), Justification.Right, size);
+                var label = ChartLabel(ChartComposer.Format(value), Justification.Right, size);
                 var flow = MeasureInside([label], Math.Max(1, plan.Left - size * ValueLabelGap));
 
                 // The letters are set about the mark rather than under it: what is centred on it
@@ -3088,24 +3088,49 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
-    /// How far a number on the value axis ends short of it, as a share of the type it is set in.
+    /// How much a hundred of label offset moves a category's line, as a share of its type size.
+    /// The two rules it works with — the gap a number keeps from its axis, and where a category's
+    /// baseline falls — are <see cref="ChartComposer"/>'s, since the placing of the plot area has
+    /// to make room for them.
     /// </summary>
-    /// <remarks>
-    /// A little under one em. Measured from chart-axis-probe, where ten point labels end 9.27pt
-    /// short of the axis and twenty point ones 18.65pt — so it is proportional, with nothing fixed
-    /// about it, and the marks along the axis make no difference to it either way. A share of the
-    /// label's line height fits the same two measurements just as well; there is nothing here to
-    /// tell the two readings apart.
-    /// </remarks>
-    private const double ValueLabelGap = 0.94;
+    private const double CategoryLabelStep = 0.312;
+
+    private const double ValueLabelGap = ChartComposer.ValueLabelGap;
+
+    private const double CategoryLabelBaseline = ChartComposer.CategoryLabelBaseline;
+
+    /// <summary>How wide a chart's label is in the face it is set in.</summary>
+    private double MeasureLabel(string text, double sizePoints)
+    {
+        var format = _styles.ResolveRun(null, null);
+
+        return _fonts.TryResolve(format.FontFamily, format.Bold, format.Italic, out var selection)
+            ? TextMeasurer.Measure(selection.Font, text, sizePoints)
+            : text.Length * sizePoints * 0.5;
+    }
 
     /// <summary>
-    /// How far below the axis a category's own baseline sits, as a share of its type size, and how
-    /// much a hundred of label offset moves it. Both measured at two sizes.
+    /// How much room a chart's label takes above and below its baseline, for leaving space around
+    /// the plotting.
     /// </summary>
-    private const double CategoryLabelBaseline = 1.584;
+    /// <remarks>
+    /// The face as Windows reads it, which is not the pair the label is set by: Calibri's 1950 and
+    /// 550 of 2048 rather than its 1536 and 512. The margins Word leaves are the first pair's — a
+    /// twenty point label leaves 17.21pt above the plot, which is five points and half of 1.221
+    /// ems — and where the baseline itself falls is the second's. Two questions, two answers.
+    /// </remarks>
+    private (double Ascent, double Descent) LabelBox(double sizePoints)
+    {
+        var format = _styles.ResolveRun(null, null);
 
-    private const double CategoryLabelStep = 0.312;
+        if (!_fonts.TryResolve(format.FontFamily, format.Bold, format.Italic, out var selection))
+            return (sizePoints * 0.75, sizePoints * 0.25);
+
+        var metrics = selection.Font.Metrics;
+
+        return (metrics.WinAscent * sizePoints / metrics.UnitsPerEm,
+            metrics.WinDescent * sizePoints / metrics.UnitsPerEm);
+    }
 
     /// <summary>
     /// How far a chart's label reaches above and below its baseline, for setting it against a mark.
@@ -3149,12 +3174,6 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
         return paragraph;
     }
-
-    /// <summary>A number as an axis writes it: whole where it is whole.</summary>
-    private static string Format(double value) =>
-        value == Math.Floor(value) && Math.Abs(value) < 1e15
-            ? ((long)value).ToString(System.Globalization.CultureInfo.InvariantCulture)
-            : value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Draws a diagram: every shape of it into one drawing, and every shape's words into one flow

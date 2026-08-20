@@ -168,6 +168,55 @@ public class ChartTests(ITestOutputHelper output)
         Assert.InRange((double)inkOfMine / inkOfTheirs, 0.9, 1.1);
     }
 
+    /// <summary>
+    /// Where a chart puts its plotting when it does not say, which is what every chart in a real
+    /// document leaves to be worked out.
+    /// </summary>
+    /// <remarks>
+    /// Six charts, varying one thing each: how wide the numbers up the axis are, how large they
+    /// are set, how big the frame is, how long the words under the bars are, and whether there are
+    /// any labels at all. What comes out of them is that a chart carrying no labels sits eleven
+    /// points inside its frame on every side, and one carrying them begins its labels 6.5pt inside
+    /// the frame and gives the plotting whatever is left.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "the plain case")]
+    [InlineData(1, "numbers a hundred thousand times larger")]
+    [InlineData(2, "the same chart at twenty point")]
+    [InlineData(3, "a frame half the size")]
+    [InlineData(4, "a long word under the bars")]
+    [InlineData(5, "no labels at all")]
+    public void A_chart_that_says_nothing_is_laid_out_the_way_word_lays_it_out(int page, string what)
+    {
+        var (ours, theirs) = BothWays("chart-layout-probe");
+
+        var mine = PlotArea(ours, page);
+        var word = PlotArea(theirs, page);
+
+        _output.WriteLine($"page {page + 1} ({what}): {mine} against Word's {word}");
+
+        Assert.True(Math.Abs(mine.Left - word.Left) < 0.3 &&
+                    Math.Abs(mine.Top - word.Top) < 0.3 &&
+                    Math.Abs(mine.Width - word.Width) < 0.3 &&
+                    Math.Abs(mine.Height - word.Height) < 0.3,
+            $"page {page + 1} ({what}): the plotting is at {mine} where Word puts it at {word}.");
+    }
+
+    /// <summary>
+    /// The plot area of a page: the white rectangle inside the frame, which is the second largest
+    /// thing a chart fills.
+    /// </summary>
+    private static ExtractedRectangle PlotArea(byte[] pdf, int page)
+    {
+        var rectangle = PdfPathExtractor.Extract(pdf)
+            .Where(r => r.PageIndex == page && r.ColorHex == "FFFFFF" && r.Width > 20 && r.Height > 20)
+            .OrderByDescending(r => r.Width * r.Height)
+            .FirstOrDefault();
+
+        Assert.NotNull(rectangle);
+        return rectangle;
+    }
+
     /// <summary>What a chart part says, read back off it.</summary>
     [Fact]
     public void A_chart_is_read_from_its_own_part()
