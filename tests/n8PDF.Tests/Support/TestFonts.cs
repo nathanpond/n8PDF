@@ -16,6 +16,12 @@ public static class TestFonts
     private const string OfficeFonts = "/Applications/Microsoft Word.app/Contents/Resources/DFonts";
 
     public static string CalibriPath => Path.Combine(OfficeFonts, "Calibri.ttf");
+
+    /// <summary>
+    /// The face Word sets equations in, which travels as the second face of Cambria's collection
+    /// rather than as a file of its own.
+    /// </summary>
+    public static string CambriaMathPath => Path.Combine(OfficeFonts, "Cambria.ttc");
     public static string CalibriBoldPath => Path.Combine(OfficeFonts, "Calibrib.ttf");
 
     /// <summary>
@@ -93,7 +99,7 @@ public static class TestFonts
         foreach (var path in new[]
                  {
                      TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath,
-                     ArialPath, CalibriPath, CalibriBoldPath, ArialHebrewPath,
+                     ArialPath, CalibriPath, CalibriBoldPath, CambriaMathPath, ArialHebrewPath,
                      Mincho, Gothic, Kaiti, MingLiu
                  }.Concat(ComplexScriptPaths))
         {

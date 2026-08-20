@@ -3281,6 +3281,129 @@ public static class Fixtures
                 return builder.WithSection(DocxBuilder.Section(columns: 2));
             },
 
+            // Equations, which are a document within a document: their own markup, their own
+            // face, and a typesetting of their own that Word does with the MATH table of Cambria
+            // Math rather than by laying out lines.
+            //
+            // One to a paragraph, each named on the line before it so that a line out of place is
+            // obvious, and the last two are what a reader that does not know a construct has to do
+            // with it: keep what it holds rather than drop it.
+            ["equations"] = () =>
+            {
+                static string Run(string text) =>
+                    $"<m:r><w:rPr><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/>" +
+                    $"<w:sz w:val=\"24\"/></w:rPr><m:t>{DocxBuilder.Escape(text)}</m:t></m:r>";
+
+                static string Element(string name, string inner) => $"<m:{name}>{inner}</m:{name}>";
+
+                static string Math(string inner) => $"<m:oMath>{inner}</m:oMath>";
+
+                static string Fraction(string numerator, string denominator, string type = "") =>
+                    "<m:f>" +
+                    (type.Length > 0 ? $"<m:fPr><m:type m:val=\"{type}\"/></m:fPr>" : string.Empty) +
+                    Element("num", numerator) + Element("den", denominator) + "</m:f>";
+
+                static string Superscript(string body, string sup) =>
+                    "<m:sSup>" + Element("e", body) + Element("sup", sup) + "</m:sSup>";
+
+                static string Subscript(string body, string sub) =>
+                    "<m:sSub>" + Element("e", body) + Element("sub", sub) + "</m:sSub>";
+
+                static string SubSuperscript(string body, string sub, string sup) =>
+                    "<m:sSubSup>" + Element("e", body) + Element("sub", sub) +
+                    Element("sup", sup) + "</m:sSubSup>";
+
+                static string Radical(string body, string degree = "") =>
+                    "<m:rad>" +
+                    (degree.Length > 0
+                        ? "<m:radPr><m:degHide m:val=\"0\"/></m:radPr>"
+                        : "<m:radPr><m:degHide m:val=\"1\"/></m:radPr>") +
+                    Element("deg", degree) + Element("e", body) + "</m:rad>";
+
+                static string Delimited(string inner, string open = "(", string close = ")") =>
+                    "<m:d><m:dPr>" +
+                    $"<m:begChr m:val=\"{open}\"/><m:endChr m:val=\"{close}\"/>" +
+                    "</m:dPr>" + Element("e", inner) + "</m:d>";
+
+                static string Nary(string character, string sub, string sup, string body) =>
+                    "<m:nary><m:naryPr>" +
+                    $"<m:chr m:val=\"{character}\"/><m:limLoc m:val=\"undOvr\"/>" +
+                    "</m:naryPr>" + Element("sub", sub) + Element("sup", sup) +
+                    Element("e", body) + "</m:nary>";
+
+                static string Function(string name, string argument) =>
+                    "<m:func>" + Element("fName", name) + Element("e", argument) + "</m:func>";
+
+                string Line(string label, string math, bool display = false) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                    $"<w:t xml:space=\"preserve\">{label} </w:t></w:r>" +
+                    (display ? $"<m:oMathPara>{math}</m:oMathPara>" : math) +
+                    "</w:p>";
+
+                var builder = new DocxBuilder();
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                    "<w:t xml:space=\"preserve\">Before </w:t></w:r>" +
+                    Math(Run("x+y=z")) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> after.</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(Line("Fraction:",
+                    Math(Fraction(Run("a"), Run("b")))));
+
+                builder.AddRawParagraph(Line("Fraction of sums:",
+                    Math(Fraction(Run("x+1"), Run("x-1")))));
+
+                builder.AddRawParagraph(Line("Skewed:",
+                    Math(Fraction(Run("a"), Run("b"), "skw"))));
+
+                builder.AddRawParagraph(Line("Superscript:", Math(Superscript(Run("x"), Run("2")))));
+                builder.AddRawParagraph(Line("Subscript:", Math(Subscript(Run("a"), Run("n")))));
+                builder.AddRawParagraph(Line("Both:",
+                    Math(SubSuperscript(Run("x"), Run("i"), Run("2")))));
+
+                builder.AddRawParagraph(Line("Root:", Math(Radical(Run("x+1")))));
+                builder.AddRawParagraph(Line("Cube root:", Math(Radical(Run("x"), Run("3")))));
+
+                builder.AddRawParagraph(Line("Delimited:", Math(Delimited(Run("a+b")))));
+                builder.AddRawParagraph(Line("Delimited fraction:",
+                    Math(Delimited(Fraction(Run("a"), Run("b"))))));
+
+                builder.AddRawParagraph(Line("Sum:",
+                    Math(Nary("\u2211", Run("i=1"), Run("n"), Superscript(Run("i"), Run("2"))))));
+
+                builder.AddRawParagraph(Line("Integral:",
+                    Math(Nary("\u222b", Run("0"), Run("1"), Run("x dx")))));
+
+                builder.AddRawParagraph(Line("Function:", Math(Function(Run("sin"), Run("x")))));
+
+                // On a line of its own, centred, which is what a display equation is — so the
+                // words that name it have to be on a line of their own as well.
+                builder.AddRawParagraph(Line("The quadratic formula:", string.Empty));
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><m:oMathPara>" +
+                    Math(Run("x=") + Fraction(
+                        Run("-b\u00b1") + Radical(Superscript(Run("b"), Run("2")) + Run("-4ac")),
+                        Run("2a"))) +
+                    "</m:oMathPara></w:p>");
+
+                // And two a reader may not know: what matters is that it keeps what they hold.
+                builder.AddRawParagraph(Line("Matrix:",
+                    Math("<m:m><m:mPr><m:mcs><m:mc><m:mcPr>" +
+                         "<m:count m:val=\"2\"/><m:mcJc m:val=\"center\"/>" +
+                         "</m:mcPr></m:mc></m:mcs></m:mPr>" +
+                         "<m:mr>" + Element("e", Run("1")) + Element("e", Run("2")) + "</m:mr>" +
+                         "<m:mr>" + Element("e", Run("3")) + Element("e", Run("4")) + "</m:mr>" +
+                         "</m:m>")));
+
+                builder.AddRawParagraph(Line("Accented:",
+                    Math("<m:acc><m:accPr><m:chr m:val=\"\u0303\"/></m:accPr>" +
+                         Element("e", Run("x")) + "</m:acc>")));
+
+                return builder;
+            },
+
             // Content wrapped in something that is neither a paragraph nor a table: a content
             // control, a compatibility alternative, the old custom-XML wrapper. Word writes these
             // round whole paragraphs and whole tables — a cover page, a table of contents, every

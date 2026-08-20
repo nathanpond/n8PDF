@@ -1539,7 +1539,8 @@ public sealed class DocxBuilder
                         xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
                         xmlns:v="urn:schemas-microsoft-com:vml"
                         xmlns:o="urn:schemas-microsoft-com:office:office"
-                        xmlns:w10="urn:schemas-microsoft-com:office:word">
+                        xmlns:w10="urn:schemas-microsoft-com:office:word"
+                        xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
               <w:body>{_body}{BuildSectionProperties()}</w:body>
             </w:document>
             """;

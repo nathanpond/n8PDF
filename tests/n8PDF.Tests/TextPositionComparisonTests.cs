@@ -79,6 +79,28 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 on the narrowest of the four and within a fifth of a point on the rest.
                 """),
 
+            ["equations"] = (14.0,
+                """
+                How tall a line holding an equation is, which is measured and not explained. Word
+                sets these seventeen from 13.68 points apart to 32.64, growing the line with what
+                the equation holds; each piece of an equation here asks the line for the room a
+                line of its own face and size would ask for, which gives every one of them within
+                two and a half points of Word's and most within one. Down a page of nothing but
+                equations those differences run one way more often than the other, and the last
+                lines of the fixture are twelve points high.
+
+                Two other readings were measured and are further off: the ink alone leaves the
+                page 40 points short by the end, and the typographic ascent 25. What Word measures
+                is between a glyph's ink and its face's ascent, and seventeen equations were not
+                enough to say where. Half of what is left comes from one line, the quadratic
+                formula on a line of its own, which Word gives eight points more room than this
+                does.
+
+                Where each equation goes inside its own line is exact: the comparison's horizontal
+                column is within a third of a point on every line of the fixture, and within four
+                hundredths on all but the two that hold a display equation.
+                """),
+
             ["vml-stroke-probe"] = (5.5,
                 """
                 An old-style shape with an outline thicker than a point makes its line taller in
@@ -134,7 +156,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         // run's own cannot draw is a choice rather than a fact, Word's is not discoverable, and
         // the two are not the same width. Where the text goes is compared like any other fixture's
         // and agrees exactly; how wide a borrowed face draws it is not something to hold Word to.
-        ["font-fallback"] = "the face borrowed for what a font cannot draw is a choice, and not Word's"
+        ["font-fallback"] = "the face borrowed for what a font cannot draw is a choice, and not Word's",
+
+        // An equation for the same reason once removed: Word draws the letters of one from the
+        // block Unicode keeps for mathematics, and gives its subset of them no map back to
+        // characters at all. What comes out of Word's own file is the codes of its subset. Ours
+        // are the mathematical letters themselves, so an x copied out of our page is the 𝑥 that
+        // was set — where the letters go is compared like any other fixture's.
+        ["equations"] = "Word gives the letters of an equation no map back to what they say"
     };
 
     /// <summary>

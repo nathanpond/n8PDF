@@ -3738,15 +3738,19 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
 
         foreach (var (image, x) in line.Images)
         {
-            // The image rests on the baseline, so its top edge is its own height above it.
-            page.Images.Add(new PositionedImage
+            // The image rests on the baseline, so its top edge is its own height above it. An
+            // equation has none — it is text and rules — and only its content is placed.
+            if (image.Image is { } picture)
             {
-                X = contentLeft + x,
-                Y = baselineY - image.Height,
-                Width = image.Width,
-                Height = image.Height,
-                Image = image.Image
-            });
+                page.Images.Add(new PositionedImage
+                {
+                    X = contentLeft + x,
+                    Y = baselineY - image.Height,
+                    Width = image.Width,
+                    Height = image.Height,
+                    Image = picture
+                });
+            }
 
             // A shape's text goes down after its frame, so the frame is under it.
             image.Content?.PlaceOnto(page,
@@ -4488,6 +4492,10 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
                         AddImageAtom(atoms, drawing);
                         break;
 
+                    case MathInline math:
+                        AddMathAtom(atoms, math, runFormat);
+                        break;
+
                     case NoteReferenceInline reference:
                         AddNoteMark(atoms, reference, runFormat, selection,
                             ascent, naturalHeight, descent, link);
@@ -4638,6 +4646,117 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         if (kerning == 0) return 0;
 
         return font.Font.Metrics.ToPoints(kerning, format.EffectiveFontSizePoints) * format.ScaleFactor;
+    }
+
+    /// <summary>
+    /// An equation, set and put on the line as one thing.
+    /// </summary>
+    /// <remarks>
+    /// What comes back from the composer is text and rules at exact places, and both go onto the
+    /// page as ordinary text and ordinary rules — so an equation is selectable, searchable and in
+    /// the layout trace like anything else, rather than a picture of itself.
+    ///
+    /// It straddles the baseline rather than standing on it, which is the one way it differs from
+    /// an inline picture: a fraction reaches below the line as well as above it.
+    /// </remarks>
+    private void AddMathAtom(List<Atom> atoms, MathInline math, ResolvedRunFormat format)
+    {
+        var box = new MathComposer(_fonts, _styles).Compose(math.Node, format, math.Display);
+        if (box.Pieces.Count == 0 && box.Rules.Count == 0) return;
+
+        var page = new LaidOutPage { WidthPoints = box.Width, HeightPoints = box.Height };
+
+        foreach (var piece in box.Pieces)
+        {
+            var metrics = piece.Font.Font.Metrics;
+            var ascent = metrics.WinAscent * piece.SizePoints / metrics.UnitsPerEm;
+            var descent = metrics.WinDescent * piece.SizePoints / metrics.UnitsPerEm;
+
+            // Rounded the way Word rounds a position: every offset in Word's own equations is a
+            // whole number of three hundredths of an inch away from the line's baseline.
+            var baseline = box.Ascent + MathComposer.Quantised(piece.Baseline);
+
+            var line = new LaidOutLine
+            {
+                BaselineY = baseline,
+                Height = ascent + descent,
+                Ascent = ascent
+            };
+
+            line.Texts.Add(new PositionedText
+            {
+                X = piece.X,
+                BaselineY = baseline,
+                Text = piece.Text,
+                Format = format with
+                {
+                    FontSizePoints = piece.SizePoints,
+                    FontFamily = piece.Font.Font.FamilyName,
+                    Bold = false,
+                    Italic = false
+                },
+                Font = piece.Font,
+                Width = piece.Width,
+                Glyph = piece.Glyph
+            });
+
+            page.Lines.Add(line);
+        }
+
+        foreach (var rule in box.Rules)
+        {
+            // How thick a bar is rounds like a position does: the table asks for 0.717 of a point
+            // in a sentence and 0.779 on a line of its own, and Word draws both at 0.72. Where it
+            // begins and how far it runs are not rounded — Word's own are a shade wider than what
+            // stands over them and land on the grid more often than not but not always, and
+            // rounding them moves as many away from Word's as towards them.
+            page.Rules.Add(new PositionedRule
+            {
+                X = rule.X,
+                Y = box.Ascent + rule.Y,
+                Width = rule.Width,
+                Thickness = MathComposer.Quantised(rule.Thickness),
+                Color = (0, 0, 0)
+            });
+        }
+
+        // What the line makes of it: every piece asks for the room a line of its own face and size
+        // would ask for, from wherever it has been put — so a numerator raised half a line raises
+        // the top of the line with it.
+        //
+        // This is the part of an equation that is not yet Word's. Word's lines holding these
+        // seventeen equations run from 13.68 points apart to 32.64, and this rule gives a line
+        // within two and a half points of each of them — closer than the ink alone, which is out
+        // by twice that, and closer than the typographic metrics, which are out by more still.
+        // What Word is measuring is somewhere between a glyph's ink and its face's ascent, and
+        // seventeen equations were not enough to say where. The cost is 10 points of drift down a
+        // page of nothing but equations; it is recorded in TextPositionComparisonTests.
+        var lineAscent = box.Ascent;
+        var lineDescent = box.Descent;
+
+        foreach (var piece in box.Pieces)
+        {
+            var metrics = piece.Font.Font.Metrics;
+
+            var above = metrics.Ascender * piece.SizePoints / metrics.UnitsPerEm;
+            var below = -metrics.Descender * piece.SizePoints / metrics.UnitsPerEm;
+
+            lineAscent = Math.Max(lineAscent, above - piece.Baseline);
+            lineDescent = Math.Max(lineDescent, below + piece.Baseline);
+        }
+
+        atoms.Add(new ImageAtom
+        {
+            Image = null,
+            Width = box.Width,
+            Height = box.Height,
+            Ascent = lineAscent,
+            NaturalHeight = box.Height,
+            Descent = lineDescent,
+            Content = new DetachedFlow(page, box.Height),
+            ContentLeft = 0,
+            ContentTop = box.Descent
+        });
     }
 
     /// <summary>
@@ -5746,7 +5865,11 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
     /// </summary>
     private sealed class ImageAtom : Atom
     {
-        public required Images.ImageData Image { get; init; }
+        /// <summary>
+        /// What is drawn behind the content, or null where there is nothing to draw: an equation
+        /// is text and rules and no picture at all.
+        /// </summary>
+        public required Images.ImageData? Image { get; init; }
 
         public required double Width { get; init; }
 

@@ -110,6 +110,22 @@ internal static class DocumentParser
         }
 
         CollectParagraphContent(element, paragraph, scope);
+
+        // An equation on a line of its own is centred, and says so in its own properties rather
+        // than the paragraph's: a paragraph holding nothing but an m:oMathPara has no w:jc at all
+        // and Word still centres it. What the equation says wins where it says anything.
+        if (element.Element(OfficeMath.Main + "oMathPara") is { } display)
+        {
+            paragraph.Properties.Justification =
+                display.Element(OfficeMath.Main + "oMathParaPr")?
+                    .Element(OfficeMath.Main + "jc")?.Attribute(OfficeMath.Main + "val")?.Value switch
+                    {
+                        "left" => Justification.Left,
+                        "right" => Justification.Right,
+                        _ => Justification.Center
+                    };
+        }
+
         return paragraph;
     }
 
@@ -239,6 +255,25 @@ internal static class DocumentParser
         if (element.Name == W.Main + "r")
         {
             runs.Add(ParseRun(element));
+            return;
+        }
+
+        // An equation, which is markup of its own in a namespace of its own. It is read into a
+        // tree here and set later; what matters at this point is that it is not passed over.
+        if (element.Name == OfficeMath.Main + "oMath" ||
+            element.Name == OfficeMath.Main + "oMathPara")
+        {
+            var display = element.Name == OfficeMath.Main + "oMathPara";
+
+            foreach (var math in display
+                         ? element.Elements(OfficeMath.Main + "oMath")
+                         : [element])
+            {
+                var run = new Run();
+                run.Content.Add(new MathInline(OfficeMath.Parse(math), display));
+                runs.Add(run);
+            }
+
             return;
         }
 

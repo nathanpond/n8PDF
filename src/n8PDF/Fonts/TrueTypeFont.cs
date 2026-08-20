@@ -330,6 +330,64 @@ internal sealed class TrueTypeFont
 
     internal IReadOnlyDictionary<string, TableRecord> Tables => _tables;
 
+    /// <summary>
+    /// What the face says about setting mathematics, where it says anything: a face meant for it
+    /// carries a <c>MATH</c> table, and one that does not borrows the proportions of a face that
+    /// does. Read the first time it is asked for, since most documents hold no equations.
+    /// </summary>
+    internal MathConstants Mathematics
+    {
+        get
+        {
+            lock (_layoutGate)
+            {
+                return _math ??= Tables.TryGetValue("MATH", out var math)
+                    ? MathConstants.Read(_data, math.Offset, Metrics.UnitsPerEm)
+                      ?? MathConstants.Fallback(Metrics.UnitsPerEm)
+                    : MathConstants.Fallback(Metrics.UnitsPerEm);
+            }
+        }
+    }
+
+    private MathConstants? _math;
+
+    /// <summary>
+    /// How much room each sloped glyph wants after it, where the face says. Empty for a face that
+    /// says nothing about mathematics.
+    /// </summary>
+    internal IReadOnlyDictionary<ushort, short> ItalicCorrections
+    {
+        get
+        {
+            lock (_layoutGate)
+            {
+                return _italics ??= Tables.TryGetValue("MATH", out var math)
+                    ? MathConstants.ReadItalics(_data, math.Offset)
+                    : new Dictionary<ushort, short>();
+            }
+        }
+    }
+
+    private IReadOnlyDictionary<ushort, short>? _italics;
+
+    /// <summary>
+    /// The taller shapes the face offers for each glyph that grows, with the height of each.
+    /// </summary>
+    internal IReadOnlyDictionary<ushort, IReadOnlyList<(ushort Glyph, int Height)>> MathVariants
+    {
+        get
+        {
+            lock (_layoutGate)
+            {
+                return _variants ??= Tables.TryGetValue("MATH", out var math)
+                    ? MathConstants.ReadVariants(_data, math.Offset)
+                    : new Dictionary<ushort, IReadOnlyList<(ushort, int)>>();
+            }
+        }
+    }
+
+    private IReadOnlyDictionary<ushort, IReadOnlyList<(ushort Glyph, int Height)>>? _variants;
+
     internal byte[] SourceData => _data;
 
     /// <summary>

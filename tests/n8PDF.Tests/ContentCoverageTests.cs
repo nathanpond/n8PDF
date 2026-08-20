@@ -1,4 +1,5 @@
 using n8PDF;
+using System.Text;
 using n8PDF.Ooxml;
 using n8PDF.Packaging;
 using n8PDF.Tests.Support;
@@ -38,11 +39,18 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// shows a number the document never stored, so the text on the page and the text in the part
     /// genuinely differ. What has to be true of it is the same — that nothing went missing.
     /// </remarks>
+    /// <remarks>
+    /// And the equations fixture for a fourth: an equation is set as a page of its own and drawn
+    /// into the line that holds it, so its letters reach the file as a group rather than in among
+    /// the words on either side of them. Every letter is there and selectable, and each is where
+    /// Word puts it; what a reader dragging across the whole line copies comes out in a different
+    /// order from Word's, which is worth writing down and is not content lost.
+    /// </remarks>
     private static readonly HashSet<string> Reorders =
             [
         "table-split", "table-vertical-merge", "table-merge-split",
         "hebrew", "font-fallback", "marks", "arabic", "indic", "southeast-asian", "universal", "apple",
-        "page-numbering-restart"
+        "page-numbering-restart", "equations"
     ];
 
     public static TheoryData<string> FixtureNames
@@ -243,7 +251,14 @@ public class ContentCoverageTests(ITestOutputHelper output)
 
         foreach (var element in root.Descendants())
         {
-            if (element.Name != W.Main + "t" && element.Name != W.Main + "tab") continue;
+            // An equation's text is in a namespace of its own and is content like any other: it
+            // is what used to go missing wholesale, and what has to be counted for that not to
+            // happen again quietly.
+            if (element.Name != W.Main + "t" && element.Name != W.Main + "tab" &&
+                element.Name != OfficeMath.Main + "t")
+            {
+                continue;
+            }
 
             if (element.Ancestors().Any(ancestor =>
                     ancestor.Name == W.Main + "sdtPr" ||
@@ -305,8 +320,36 @@ public class ContentCoverageTests(ITestOutputHelper output)
     /// the caps and small-caps properties change the case of what is drawn, so neither carries
     /// information about whether content survived.
     /// </summary>
-    private static string Normalize(string text) =>
-        new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray()).ToLowerInvariant();
+    private static string Normalize(string text)
+    {
+        var plain = new System.Text.StringBuilder(text.Length);
+
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (Rune.IsWhiteSpace(rune)) continue;
+
+            plain.Append(Plain(rune));
+        }
+
+        return plain.ToString().ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// A letter of an equation written back as the letter it stands for.
+    /// </summary>
+    /// <remarks>
+    /// A variable is not an italic x: it is U+1D465, a character of its own that a face meant for
+    /// mathematics draws differently. So the document says x and the page says 𝑥, and both are
+    /// right. The two are compared as the letter, which is what a reader would say either is.
+    /// </remarks>
+    private static string Plain(Rune rune) => rune.Value switch
+    {
+        >= 0x1D434 and <= 0x1D44D => ((char)('A' + rune.Value - 0x1D434)).ToString(),
+        >= 0x1D44E and <= 0x1D467 => ((char)('a' + rune.Value - 0x1D44E)).ToString(),
+        0x210E => "h",
+        0x2212 => "-",
+        _ => rune.ToString()
+    };
 
     /// <summary>
     /// Index of the first character of <paramref name="expected"/> that does not appear, in

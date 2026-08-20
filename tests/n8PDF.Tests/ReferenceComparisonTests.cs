@@ -101,8 +101,11 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // The Indic and South-East Asian fixtures are here for the same reason and more so: a
         // shaped syllable is one glyph standing for several characters, and Word's file names it
         // by whatever code that glyph happens to sit at.
+        // An equation is here for a third reason: Word writes the letters of one from the block
+        // Unicode sets aside for mathematics and gives them no map back at all, so the text read
+        // out of its file is the private codes of a subset rather than anything anyone typed.
         if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
-            or "southeast-asian" or "universal" or "apple")
+            or "southeast-asian" or "universal" or "apple" or "equations")
         {
             return;
         }

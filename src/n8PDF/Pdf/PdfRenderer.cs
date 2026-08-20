@@ -406,6 +406,15 @@ internal static class PdfRenderer
     private static void ShowText(ContentStreamBuilder content, PdfFont font, PositionedText text, double size)
     {
         var face = text.Font.Font;
+
+        // A glyph asked for by number is drawn as itself: it is a shape the face keeps for a
+        // bracket that has grown, and shaping the text would find the ordinary one instead.
+        if (text.Glyph is { } named)
+        {
+            content.ShowGlyphs(font.EncodeGlyphs([named], [text.Text]));
+            return;
+        }
+
         var shaped = TextShaper.Shape(face, text.Text, text.Kerned, text.RightToLeft);
 
         if (shaped.Count == 0) return;

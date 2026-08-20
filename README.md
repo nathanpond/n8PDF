@@ -169,10 +169,12 @@ The shifts themselves were measured at three sizes rather than fitted to one. A 
 about a twelfth of its size, which is far less than it looks like it should be and was nearly twice
 that here; a raised one rises about a third.
 
-Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented — our
-residuals are already smaller than one quantum — but it is the floor on how closely anything can
-match Word vertically. The one place it is implemented is a chart's markers, which are small enough
-that a quantum of it is a twentieth of the marker and shows. It quantises the type size it writes to the same 1/300 inch, which is why a
+Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented for ordinary
+text — our residuals are already smaller than one quantum — but it is the floor on how closely
+anything can match Word vertically. It is implemented in the two places where a quantum is a large
+share of what is being placed and shows: a chart's markers, and everything inside an equation,
+where the difference between rounding and not is the difference between agreeing with Word exactly
+and agreeing to a hundredth. It quantises the type size it writes to the same 1/300 inch, which is why a
 15pt run comes out of one of its PDFs as 15.12.
 
 ### How far inside its own edges a shape sets its text
@@ -428,6 +430,78 @@ of their slice, which is the one place on these pages where two points of disagr
 Everything else agrees with Word to within 0.73pt vertically and half a point horizontally, and the
 ink of a page agrees on better than 99.3% of it.
 
+### Setting an equation
+
+An equation is not a line of runs. Word writes it in a language of its own — Office Math Markup, in
+its own namespace — and what is in it is fractions and radicals rather than paragraphs and runs, so
+a reader walking a paragraph looking for `w:r` finds nothing at all in one. That is what used to
+happen here: an equation reached the page as the space it took up and nothing else.
+
+Almost nothing about how one is set is a number anybody chose. A face meant for mathematics carries
+a `MATH` table — where the axis of an equation sits, how far a superscript rises, how thick a
+fraction's bar is, how much room a radical leaves over what is under it, and a set of taller shapes
+for every bracket that has to grow. Those are read and used, and the rules that combine them are the
+ones the OpenType specification lays down. What was measured is where Word departs from them, and it
+departs in seven places:
+
+- Word sets an inline equation's **distances at 0.92 of the type size** while drawing its letters at
+  the size itself. One factor accounts for the fraction shifts, the script shifts and the size of
+  every stretched glyph at once — a bracket in a twelve point sentence comes out of Word's own file
+  at 11.04. **On a line of its own it does not**: the same radical is at twelve point there, and the
+  numerator of the quadratic formula rises 9.12 points, which is the table's display shift at twelve
+  and not at 11.04.
+- Its **script sizes are seven tenths and 0.58** of the type size, not the 73% and 60% the face
+  states.
+- **Inside something** — a bracket, a radical — the room between a letter and the sign after it is
+  four eighteenths of 0.92 of the size and the letter's lean is not counted at all; out in the
+  equation itself it is four eighteenths of the size *and* the lean. `x+y=z` agrees with Word's to
+  four decimal places on every gap of it.
+- A **script hangs off the letter's plain advance**, with none of that lean in between — and the
+  **baseline-drop rules apply to what is built rather than to what is drawn**: the limits of an
+  integral are placed from the integral's own ink, exactly, while the square of a *b* is raised by
+  the stated shift and not by the *b*'s height. Under a radical the cramped shift is used, which is
+  what Word uses.
+- Where a superscript and a subscript would close up on each other, **the room wanted is shared
+  evenly between them**: Word sets the two of *x* with an *i* under it at 4.56 and 2.64 where the
+  shifts alone would give 4.04 and 2.25.
+- A **bracket grows by the shapes the face keeps** rather than by being drawn larger, and it need
+  only cover **nine tenths** of what it holds before Word stops reaching for a taller one — the same
+  factor TeX uses. Round *a+b* Word draws the plain bracket for a gap that asks for 10.46 points and
+  gets 10.23; round *a* over *b* it passes over a 13.34 shape for an 18.21 one.
+- An **n-ary operator is centred on the axis** — which raises Word's sum half a point and drops its
+  integral by as much — and the **1.8886 points** it leaves after the limits before what the sum is
+  taken of is a number no constant of the table and no fraction of an em accounts for. It is written
+  down as what it was measured to be, from a sum and an integral that agree on it exactly although
+  they agree on nothing else.
+
+A slanted fraction is set at the full size with a taller *fraction slash* — not the solidus, which
+the face keeps no shapes for — its numerator raised 0.3 of the type size and its denominator dropped
+by the table's own shift. A matrix stands its columns an em apart and its rows a line apart, the
+line being the face's ascent and descent and the leading the table asks for.
+
+Every position in an equation is rounded to Word's own 1/300 inch, which is the only reason the
+figures above come out exactly rather than a hundredth away.
+
+The `equations` fixture holds seventeen of them beside Word's export of the same file. Drawn and
+compared line by line, the two agree on **99.5%** of their ink, and every equation begins within a
+third of a point of where Word begins it — most within four hundredths.
+
+What is not Word's is **how tall a line holding an equation is**. Word's own lines here run from
+13.68 points apart to 32.64, growing with what the equation holds; each piece of an equation asks
+its line for the room a line of its own face and size would ask for, which gives every one of them
+within two and a half points of Word's and most within one. Two other readings were measured and are
+further off: the ink alone leaves the page forty points short by the end and the typographic ascent
+twenty-five. What Word is measuring is somewhere between a glyph's ink and its face's ascent, and
+seventeen equations were not enough to say where. The cost is ten points of drift down a page of
+nothing but equations, and it is recorded in `TextPositionComparisonTests` rather than hidden.
+
+An equation's letters are drawn from the mathematical alphabets — an *x* in an equation is U+1D465,
+a character of its own, which is what Word draws — so what a reader copies out of one of our pages
+is the letter that was set. Word's own file maps them back to nothing at all. The letters are drawn
+into the line as a group of their own rather than in among the words on either side, so everything
+is there and selectable and each is where Word puts it, but dragging across a whole line copies it
+in a different order from Word's.
+
 ### Content wrapped in something else
 
 A body holds paragraphs and tables, and a reader that walks it looking only for those two is right
@@ -656,7 +730,13 @@ centred and divided clockwise from the top; gridlines, both axis lines and their
 labels along each axis in the number format it asks for, a title over the chart and one on each
 axis, a legend on any side, and a number at every point,
 read from the numbers the chart part caches, with the axis scaled and the plot placed the way Word
-does both where the chart leaves them to be worked out), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
+does both where the chart leaves them to be worked out), equations (fractions stacked, slanted and
+written on one line; superscripts and subscripts, alone and together, before what they belong to as
+well as after; radicals with and without a degree; brackets of any character, grown to fit what they
+hold out of the shapes the face keeps for the purpose; sums, integrals and the rest of the n-ary
+operators with limits beside them or above and below; functions, matrices, aligned arrays, accents
+and bars — set from the face's own `MATH` table, in the mathematical alphabets Unicode keeps for the
+purpose, on a line of their own where the markup says so), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
 with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
 and its text laid out into the rectangle the diagram set aside for it and set at its top, middle or
 foot), watermarks of both kinds (a word set across every page of a section, behind the text,

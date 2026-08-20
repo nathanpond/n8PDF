@@ -34,6 +34,13 @@ internal sealed class PositionedText
     public double WordSpacing { get; init; }
 
     /// <summary>
+    /// The glyph to draw, where the text does not name it. A bracket grown to fit what it holds is
+    /// a shape of its own that no character stands for, and the only way to ask for it is by
+    /// number. The text is still what the run says, so what a reader copies out is a bracket.
+    /// </summary>
+    public ushort? Glyph { get; init; }
+
+    /// <summary>
     /// Where this run links to, if anywhere. Carried to the writer, which turns it into a link
     /// annotation over the run's box.
     /// </summary>

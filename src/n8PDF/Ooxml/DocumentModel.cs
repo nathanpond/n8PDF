@@ -171,6 +171,21 @@ internal enum BreakKind
     Column
 }
 
+/// <summary>
+/// An equation, which is a document of its own inside a run: its own markup, its own face, and a
+/// setting that has nothing to do with lines of text.
+/// </summary>
+internal sealed class MathInline(MathNode node, bool display) : InlineElement
+{
+    public MathNode Node { get; } = node;
+
+    /// <summary>
+    /// True where it stands on a line of its own rather than in the middle of a sentence, which
+    /// changes how it is set as well as where it goes.
+    /// </summary>
+    public bool Display { get; } = display;
+}
+
 internal sealed class BreakInline(BreakKind kind) : InlineElement
 {
     public BreakKind Kind { get; } = kind;
