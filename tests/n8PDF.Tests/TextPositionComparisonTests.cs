@@ -120,6 +120,25 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         ["font-fallback"] = "the face borrowed for what a font cannot draw is a choice, and not Word's"
     };
 
+    /// <summary>
+    /// Fixtures holding text that Word's own file does not hold as text at all, and what it is.
+    /// </summary>
+    /// <remarks>
+    /// A watermark is a word drawn along a path, and Word's export turns it into outlines: its
+    /// PDF has the shape of the letters and no letters, so the word cannot be found in it, let
+    /// alone compared line for line. This reader keeps it as text, which is the better of the two
+    /// — the word stays searchable — and means our page has a line Word's has not.
+    ///
+    /// What holds these to Word is <c>WatermarkTests</c>, which rasterises both and compares the
+    /// ink: the two agree on better than 99% of every page. Everything else on these pages is
+    /// compared here like any other fixture's.
+    /// </remarks>
+    private static readonly Dictionary<string, (int Lines, string Reason)> DrawnAsOutlines = new()
+    {
+        ["watermark"] = (2, "a watermark is outlines in Word's file and text in ours, one to a page"),
+        ["watermark-fit-probe"] = (7, "the same, seven boxes over")
+    };
+
     public static TheoryData<string> FixtureNames
     {
         get
@@ -140,8 +159,22 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         var report = Compare(name, referencePath);
         _output.WriteLine(report.ToText());
 
-        Assert.True(report.UnmatchedCount == 0,
-            $"'{name}': {report.UnmatchedCount} line(s) had no counterpart.\n{report.ToText()}");
+        if (DrawnAsOutlines.TryGetValue(name, out var outlined))
+        {
+            // Exactly the watermarks may be unmatched, and every one of them must be a line of
+            // ours rather than one of Word's: a line of Word's with no counterpart here would be
+            // something dropped, which is what this test is for.
+            var ours = report.Deltas.Count(delta => delta.Theirs is null);
+
+            Assert.True(report.UnmatchedCount == outlined.Lines && ours == outlined.Lines,
+                $"'{name}': {report.UnmatchedCount} line(s) had no counterpart, {ours} of them " +
+                $"ours; {outlined.Lines} of ours were expected — {outlined.Reason}.\n{report.ToText()}");
+        }
+        else
+        {
+            Assert.True(report.UnmatchedCount == 0,
+                $"'{name}': {report.UnmatchedCount} line(s) had no counterpart.\n{report.ToText()}");
+        }
 
         if (!TextNotComparable.TryGetValue(name, out var untellable))
         {

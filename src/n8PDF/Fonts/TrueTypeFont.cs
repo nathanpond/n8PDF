@@ -251,6 +251,51 @@ public sealed class TrueTypeFont
         return adjustment;
     }
 
+    /// <summary>
+    /// The box one glyph's ink fits in, in design units, or null where the face does not say.
+    /// </summary>
+    /// <remarks>
+    /// Every glyph record begins with its own bounding box, which is what this reads; a glyph with
+    /// no outline at all — a space — has no record and no box. A PostScript-outlined face keeps
+    /// its glyphs somewhere else entirely and answers nothing here, which is why the one thing
+    /// that asks, WordArt, falls back on the face's own overall box.
+    /// </remarks>
+    public (int MinX, int MinY, int MaxX, int MaxY)? GetGlyphBounds(ushort glyph)
+    {
+        if (HasCffOutlines || glyph >= GlyphCount) return null;
+        if (!_tables.TryGetValue("glyf", out var glyf) || !_tables.TryGetValue("loca", out var loca))
+            return null;
+
+        if (!_tables.TryGetValue("head", out var head)) return null;
+
+        try
+        {
+            var longLoca = new BigEndianReader(_data, head.Offset + 50).ReadInt16() != 0;
+
+            var (start, end) = longLoca
+                ? (Offset32(loca, glyph), Offset32(loca, glyph + 1))
+                : (Offset16(loca, glyph), Offset16(loca, glyph + 1));
+
+            // Nothing between one offset and the next means a glyph that draws nothing.
+            if (end <= start || start + 10 > glyf.Length) return null;
+
+            var reader = new BigEndianReader(_data, glyf.Offset + start + 2);
+
+            return (reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16(), reader.ReadInt16());
+        }
+        catch (Exception e) when (e is FontFormatException or IndexOutOfRangeException
+                                     or ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+
+        int Offset16(TableRecord table, int index) =>
+            new BigEndianReader(_data, table.Offset + index * 2).ReadUInt16() * 2;
+
+        int Offset32(TableRecord table, int index) =>
+            (int)new BigEndianReader(_data, table.Offset + index * 4).ReadUInt32();
+    }
+
     public bool HasTable(string tag) => _tables.ContainsKey(tag);
 
     internal ReadOnlySpan<byte> GetTable(string tag)

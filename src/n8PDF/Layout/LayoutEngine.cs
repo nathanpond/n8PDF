@@ -1151,14 +1151,22 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     private static double ResolveHorizontalPosition(Cursor cursor, AnchoredDrawing anchored, double width)
     {
-        var pageWidth = cursor.Section.PageWidthPoints;
+        var frame = cursor.Frame;
+        var section = frame?.Section ?? cursor.Section;
+        var pageWidth = section.PageWidthPoints;
+
+        // In a flow of its own, everything is measured from where that flow will be put; taking
+        // the page's frame back off leaves a position that lands where the page says once it is.
+        var textLeft = frame is null ? cursor.Left : Units.TwipsToPoints(
+            section.MarginLeftTwips + section.GutterTwips) - frame.Left;
+        var textWidth = frame is null ? cursor.Width : section.ContentWidthPoints;
 
         var (origin, available) = anchored.HorizontalFrom switch
         {
-            HorizontalAnchor.Page => (0.0, pageWidth),
-            HorizontalAnchor.LeftMargin => (0.0, cursor.Left),
-            HorizontalAnchor.RightMargin => (cursor.Left + cursor.Width, pageWidth - cursor.Left - cursor.Width),
-            _ => (cursor.Left, cursor.Width)
+            HorizontalAnchor.Page => (frame is null ? 0.0 : -frame.Left, pageWidth),
+            HorizontalAnchor.LeftMargin => (frame is null ? 0.0 : -frame.Left, textLeft),
+            HorizontalAnchor.RightMargin => (textLeft + textWidth, pageWidth - textLeft - textWidth),
+            _ => (textLeft, textWidth)
         };
 
         if (anchored.HorizontalOffsetEmu is { } offset)
@@ -1176,16 +1184,23 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
 
     private static double ResolveVerticalPosition(Cursor cursor, AnchoredDrawing anchored, double height)
     {
-        var pageHeight = cursor.Section.PageHeightPoints;
+        var frame = cursor.Frame;
+        var pageHeight = (frame?.Section ?? cursor.Section).PageHeightPoints;
+
+        var contentTop = frame is null ? cursor.ContentTop : frame.ContentTop - frame.Top;
+        var contentBottom = frame is null ? cursor.ContentBottom : frame.ContentBottom - frame.Top;
 
         var (origin, available) = anchored.VerticalFrom switch
         {
-            VerticalAnchor.Page => (0.0, pageHeight),
+            VerticalAnchor.Page => (frame is null ? 0.0 : -frame.Top, pageHeight),
             VerticalAnchor.Margin or VerticalAnchor.TopMargin =>
-                (cursor.ContentTop, cursor.ContentBottom - cursor.ContentTop),
-            VerticalAnchor.BottomMargin => (cursor.ContentBottom, pageHeight - cursor.ContentBottom),
-            // Paragraph and line are both relative to where the text has reached.
-            _ => (cursor.Y, cursor.ContentBottom - cursor.Y)
+                (contentTop, contentBottom - contentTop),
+            VerticalAnchor.BottomMargin => (contentBottom, pageHeight - contentBottom),
+            // Paragraph and line are both relative to where the text has reached, and in a flow
+            // of its own that is where the flow has reached.
+            _ => frame is null
+                ? (cursor.Y, cursor.ContentBottom - cursor.Y)
+                : (cursor.Y, contentBottom - cursor.Y)
         };
 
         if (anchored.VerticalOffsetEmu is { } offset)
@@ -1235,22 +1250,35 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             {
                 // The header starts at its declared distance from the top of the page and grows
                 // downwards, into the margin it was given.
-                var flow = MeasureBlocks(header.Body, width);
-                flow.PlaceOnto(page, left, Units.TwipsToPoints(section.HeaderDistanceTwips));
+                var top = Units.TwipsToPoints(section.HeaderDistanceTwips);
+                var flow = MeasureBlocks(header.Body, width, PageFrameOf(section, left, top));
+                flow.PlaceOnto(page, left, top);
             }
 
             if (Resolve(document, section.FooterReferences, kind) is { } footer)
             {
                 // The footer's distance is measured from the bottom of the page to its own
                 // bottom, so its top depends on how tall it turned out to be.
-                var flow = MeasureBlocks(footer.Body, width);
                 var bottom = section.PageHeightPoints - Units.TwipsToPoints(section.FooterDistanceTwips);
+
+                // How tall it is decides where it starts, so it is measured twice: once to find
+                // that out, and once knowing where on the page it will be put.
+                var height = MeasureBlocks(footer.Body, width).Height;
+                var flow = MeasureBlocks(footer.Body, width,
+                    PageFrameOf(section, left, bottom - height));
+
                 flow.PlaceOnto(page, left, bottom - flow.Height);
             }
         }
 
         _currentPage = 0;
     }
+
+    /// <summary>Where a running head will sit on the page it belongs to.</summary>
+    private static PageFrame PageFrameOf(SectionProperties section, double left, double top) =>
+        new(section, left, top,
+            Units.TwipsToPoints(section.MarginTopTwips),
+            section.PageHeightPoints - Units.TwipsToPoints(section.MarginBottomTwips));
 
     // ----- vertical alignment -----
 
@@ -2990,10 +3018,10 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var frame = new Images.ImageData(1, 1, [],
             Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
         {
-            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme)
+            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme, _fonts)
         };
 
-        if (!shape.HasText) return (frame, null, 0, 0);
+        if (!shape.HasText || shape.WordArt is not null) return (frame, null, 0, 0);
 
         var edge = shape.Line is null ? 0 : shape.LineWidthPoints / 2;
 
@@ -3023,7 +3051,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>
     /// Lays out blocks into a detached page so their height can be measured before placement.
     /// </summary>
-    private DetachedFlow MeasureBlocks(IReadOnlyList<BlockElement> blocks, double width)
+    private DetachedFlow MeasureBlocks(
+        IReadOnlyList<BlockElement> blocks, double width, PageFrame? frame = null)
     {
         var footnotes = new List<int>();
         var section = new SectionProperties();
@@ -3046,7 +3075,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             Paginate = false,
             FootnoteSink = footnotes,
             SectionWidth = width,
-            Columns = [(0, width)]
+            Columns = [(0, width)],
+            Frame = frame
         };
 
         LayoutBlocks(cursor, blocks);
@@ -4447,6 +4477,14 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         public required double Width { get; set; }
 
         /// <summary>The content box the columns divide up, which is the section's own measure.</summary>
+        /// <summary>
+        /// Where the page sits, for a flow that is not the page's own: a header is laid out on a
+        /// detached page of its own and put onto the real one afterwards, and a shape in it
+        /// anchored to the page or to the margins has to be placed as though it knew that. Null
+        /// for the body, which is already on the page it will be drawn on.
+        /// </summary>
+        public PageFrame? Frame { get; init; }
+
         public double SectionLeft { get; set; }
 
         public double SectionWidth { get; set; }
@@ -4686,6 +4724,12 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     /// <summary>
     /// Content laid out at the origin of a detached page, ready to be translated into position.
     /// </summary>
+    /// <summary>
+    /// Where a detached flow will end up: the page it will be put onto, and where on it.
+    /// </summary>
+    private sealed record PageFrame(
+        SectionProperties Section, double Left, double Top, double ContentTop, double ContentBottom);
+
     private sealed class DetachedFlow(LaidOutPage page, double height, List<int>? footnotes = null)
     {
         public static readonly DetachedFlow Empty =

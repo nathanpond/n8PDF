@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 
@@ -720,6 +721,62 @@ public sealed class DocxBuilder
             """;
     }
 
+    /// <summary>
+    /// A watermark, in the markup Word writes one in: a shape in a header, holding its text on a
+    /// path rather than in paragraphs, turned, and set behind everything else on the page.
+    /// </summary>
+    /// <remarks>
+    /// The shape type is <c>_x0000_t136</c>, which is Word's WordArt, and the whole of the
+    /// watermark is in its attributes — the string itself, the face to set it in, and a size of
+    /// one point standing for "as large as the shape will hold", which is what the shape type's
+    /// own <c>fitshape</c> asks for.
+    /// </remarks>
+    /// <param name="rotation">
+    /// How far it is turned, clockwise, in degrees. Word writes 315 for the diagonal watermark it
+    /// offers and nothing at all for the horizontal one.
+    /// </param>
+    public static string Watermark(
+        string text, double widthPoints, double heightPoints, string fontFamily = "Calibri",
+        string fillColor = "#d9d9d9", double opacity = 0.5, int? rotation = 315, int id = 2049)
+    {
+        var style =
+            "position:absolute;margin-left:0;margin-top:0;" +
+            $"width:{widthPoints.ToString(CultureInfo.InvariantCulture)}pt;" +
+            $"height:{heightPoints.ToString(CultureInfo.InvariantCulture)}pt;" +
+            (rotation is null ? string.Empty : $"rotation:{rotation};") +
+            "z-index:-251658752;mso-position-horizontal:center;" +
+            "mso-position-horizontal-relative:margin;mso-position-vertical:center;" +
+            "mso-position-vertical-relative:margin";
+
+        return $"""
+            <w:r><w:pict>
+              <v:shapetype id="_x0000_t136" coordsize="21600,21600" o:spt="136" adj="10800"
+                           path="m@7,l@8,m@5,21600l@6,21600e">
+                <v:formulas>
+                  <v:f eqn="sum #0 0 10800"/><v:f eqn="prod #0 2 1"/>
+                  <v:f eqn="sum 21600 0 @1"/><v:f eqn="sum 0 0 @2"/>
+                  <v:f eqn="sum 21600 0 @3"/><v:f eqn="if @0 @3 0"/>
+                  <v:f eqn="if @0 21600 @1"/><v:f eqn="if @0 0 @2"/>
+                  <v:f eqn="if @0 @4 21600"/><v:f eqn="mid @5 @6"/>
+                  <v:f eqn="mid @8 @5"/><v:f eqn="mid @7 @8"/>
+                  <v:f eqn="mid @6 @7"/><v:f eqn="sum @6 0 @5"/>
+                </v:formulas>
+                <v:path textpathok="t" o:connecttype="custom"
+                        o:connectlocs="@9,0;@10,10800;@11,21600;@12,10800"
+                        o:connectangles="270,180,90,0"/>
+                <v:textpath on="t" fitshape="t"/>
+                <v:handles><v:h position="#0,bottomRight" xrange="6629,14971"/></v:handles>
+                <o:lock v:ext="edit" text="t" shapetype="t"/>
+              </v:shapetype>
+              <v:shape id="PowerPlusWaterMarkObject{id}" o:spid="_x0000_s{id}" type="#_x0000_t136"
+                       style="{style}" o:allowincell="f" fillcolor="{fillColor}" stroked="f">
+                <v:fill opacity="{opacity.ToString(CultureInfo.InvariantCulture)}"/>
+                <v:textpath style="font-family:&quot;{fontFamily}&quot;;font-size:1pt" string="{Escape(text)}"/>
+              </v:shape>
+            </w:pict></w:r>
+            """;
+    }
+
     /// <summary>A shape sitting in the line of text, like an inline picture.</summary>
     public static string InlineShape(
         double widthPoints, double heightPoints, string? content = null, string geometry = "rect",
@@ -833,7 +890,10 @@ public sealed class DocxBuilder
             $"""
              <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
              <w:{root} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-                       xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+                       xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                       xmlns:v="urn:schemas-microsoft-com:vml"
+                       xmlns:o="urn:schemas-microsoft-com:office:office"
+                       xmlns:w10="urn:schemas-microsoft-com:office:word">
                {paragraphsXml}
              </w:{root}>
              """,

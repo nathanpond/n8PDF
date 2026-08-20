@@ -67,6 +67,16 @@ public static class Vml
 
         var shape = ReadShape(element);
 
+        // VML turns a shape clockwise, and writes the watermark it offers as 315 degrees — which
+        // is the same as a quarter turn the other way, and is the diagonal every draft is stamped
+        // with.
+        if (style.GetValueOrDefault("rotation") is { } rotation &&
+            double.TryParse(rotation.TrimEnd('d', 'e', 'g'), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out var degrees))
+        {
+            shape.RotationDegrees = degrees;
+        }
+
         var widthEmu = (long)Math.Round(Units.PointsToEmu(wide));
         var heightEmu = (long)Math.Round(Units.PointsToEmu(tall));
 
@@ -83,11 +93,15 @@ public static class Vml
             Wrap = ReadWrap(element),
             BehindText = style.GetValueOrDefault("z-index")?.StartsWith('-') ?? false,
             HorizontalFrom = Relative(style.GetValueOrDefault("mso-position-horizontal-relative")),
-            HorizontalAlign = style.GetValueOrDefault("mso-position-horizontal"),
-            HorizontalOffsetEmu = Offset(style, "margin-left", "left"),
+            HorizontalAlign = Alignment(style, "mso-position-horizontal"),
+            HorizontalOffsetEmu = Alignment(style, "mso-position-horizontal") is null
+                ? Offset(style, "margin-left", "left")
+                : null,
             VerticalFrom = VerticalRelative(style.GetValueOrDefault("mso-position-vertical-relative")),
-            VerticalAlign = style.GetValueOrDefault("mso-position-vertical"),
-            VerticalOffsetEmu = Offset(style, "margin-top", "top"),
+            VerticalAlign = Alignment(style, "mso-position-vertical"),
+            VerticalOffsetEmu = Alignment(style, "mso-position-vertical") is null
+                ? Offset(style, "margin-top", "top")
+                : null,
             DistanceLeftEmu = WrapDistance(style, "mso-wrap-distance-left", DefaultSideWrapPoints),
             DistanceRightEmu = WrapDistance(style, "mso-wrap-distance-right", DefaultSideWrapPoints),
             DistanceTopEmu = WrapDistance(style, "mso-wrap-distance-top", 0),
@@ -122,6 +136,22 @@ public static class Vml
                 shape.LineWidthPoints = weight;
 
             shape.DrawnOffsetPoints = DrawnOffset(shape.LineWidthPoints);
+        }
+
+        if (element.Element(Main + "fill")?.Attribute("opacity")?.Value is { } opacity)
+            shape.FillOpacity = Opacity(opacity);
+
+        // A word on a path is a watermark: one string filling the shape, rather than paragraphs
+        // laid out inside it.
+        if (element.Element(Main + "textpath") is { } textpath &&
+            textpath.Attribute("string")?.Value is { Length: > 0 } written)
+        {
+            var style = ReadStyle(textpath.Attribute("style")?.Value);
+            var family = style.GetValueOrDefault("font-family")?.Trim('"', '\'') ?? "Calibri";
+
+            shape.WordArt = new ShapeWordArt(written, family,
+                style.GetValueOrDefault("font-weight") == "bold",
+                style.GetValueOrDefault("font-style") == "italic");
         }
 
         var textbox = element.Element(Main + "textbox");
@@ -191,6 +221,26 @@ public static class Vml
     private static long WrapDistance(Dictionary<string, string> style, string name, double fallback) =>
         (long)Math.Round(Units.PointsToEmu(Length(style.GetValueOrDefault(name)) ?? fallback));
 
+    /// <summary>
+    /// An alignment, where the shape asks to be put somewhere rather than at a distance.
+    /// </summary>
+    /// <remarks>
+    /// The newer spelling makes these two a choice of one or the other; VML writes both, a
+    /// watermark carrying <c>margin-left:0</c> alongside the centring that is what it means. The
+    /// alignment is what Word follows, so where there is one the distance is not read.
+    /// </remarks>
+    private static string? Alignment(Dictionary<string, string> style, string name) =>
+        style.GetValueOrDefault(name) switch
+        {
+            "center" => "center",
+            "left" => "left",
+            "right" => "right",
+            "top" => "top",
+            "bottom" => "bottom",
+            "inside" or "outside" => null,
+            _ => null
+        };
+
     private static long? Offset(Dictionary<string, string> style, params string[] names)
     {
         foreach (var name in names)
@@ -251,6 +301,24 @@ public static class Vml
         }
 
         return values;
+    }
+
+    /// <summary>
+    /// How solid a fill is, which VML writes either as a fraction or in sixty-fourths of a
+    /// thousand — <c>.5</c> and <c>32768f</c> are the same half.
+    /// </summary>
+    private static double Opacity(string value)
+    {
+        var text = value.Trim();
+        var fixedPoint = text.EndsWith('f');
+
+        if (!double.TryParse(fixedPoint ? text[..^1] : text,
+                NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            return 1;
+        }
+
+        return Math.Clamp(fixedPoint ? number / 65536 : number, 0, 1);
     }
 
     /// <summary>

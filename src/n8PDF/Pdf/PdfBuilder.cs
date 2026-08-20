@@ -42,6 +42,8 @@ public sealed class PdfBuilder
     private readonly List<PdfPage> _pages = [];
     private readonly PdfDictionary _fontResources = new();
     private readonly PdfDictionary _xObjectResources = new();
+    private readonly PdfDictionary _alphaResources = new();
+    private readonly Dictionary<double, string> _alphaNames = [];
     private readonly PdfDictionary _sharedResources = new();
     private readonly PdfReference _sharedResourcesRef;
 
@@ -49,6 +51,7 @@ public sealed class PdfBuilder
     {
         _sharedResources.Set("Font", _fontResources);
         _sharedResources.Set("XObject", _xObjectResources);
+        _sharedResources.Set("ExtGState", _alphaResources);
         _sharedResourcesRef = _document.Add(_sharedResources);
     }
 
@@ -97,6 +100,28 @@ public sealed class PdfBuilder
     /// Returns the PDF image for some decoded image data, registering it on first use. The same
     /// picture used twice is embedded once.
     /// </summary>
+    /// <summary>
+    /// The graphics state that paints at the given opacity, named so a content stream can ask for
+    /// it. A PDF carries transparency in the state rather than in the colour, so anything drawn
+    /// see-through has to name one of these first.
+    /// </summary>
+    public string UseAlpha(double opacity)
+    {
+        var rounded = Math.Round(Math.Clamp(opacity, 0, 1), 3);
+
+        if (_alphaNames.TryGetValue(rounded, out var existing)) return existing;
+
+        var name = $"Ga{_alphaNames.Count + 1}";
+        var state = new PdfDictionary();
+        state.Set("ca", new PdfNumber(rounded));
+        state.Set("CA", new PdfNumber(rounded));
+
+        _alphaResources.Set(name, state);
+        _alphaNames[rounded] = name;
+
+        return name;
+    }
+
     public PdfImage UseImage(Images.ImageData image)
     {
         if (_images.TryGetValue(image, out var existing)) return existing;

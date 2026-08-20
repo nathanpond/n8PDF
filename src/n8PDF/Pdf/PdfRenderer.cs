@@ -282,6 +282,38 @@ internal static class PdfRenderer
                     break;
                 }
 
+                case Images.WordArtOperation word when fonts is not null:
+                {
+                    var selection = fonts.Resolve(word.FontFamily, word.Bold, word.Italic);
+                    var font = builder.UseFont(selection.Font);
+
+                    var radians = -word.AngleDegrees * Math.PI / 180;
+                    var (cos, sin) = (Math.Cos(radians), Math.Sin(radians));
+
+                    var (sx, sy) = (word.ScaleX * scaleX, word.ScaleY * scaleY);
+
+                    content.Save();
+
+                    if (word.Opacity < 1) content.SetGraphicsState(builder.UseAlpha(word.Opacity));
+
+                    content.SetFillColor(
+                        word.Color.Red / 255.0, word.Color.Green / 255.0, word.Color.Blue / 255.0);
+
+                    content.BeginText();
+                    content.SetFont(font.ResourceName, word.SizePoints);
+
+                    // Turned about where it begins, and stretched along its own axes, which is
+                    // what puts a watermark across the corner of a page.
+                    content.SetTextMatrix(
+                        sx * cos, sx * sin, -sy * sin, sy * cos, X(word.X), Y(word.Y));
+
+                    content.ShowGlyphs(Encode(font, selection.Font, word.Text));
+                    content.EndText();
+                    content.Restore();
+
+                    break;
+                }
+
                 case Images.ImageOperation picture:
                 {
                     var width = picture.Width * scaleX;

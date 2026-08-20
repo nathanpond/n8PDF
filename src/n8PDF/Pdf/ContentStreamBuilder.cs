@@ -101,6 +101,20 @@ public sealed class ContentStreamBuilder
         return Op($"1 0 {N(skew)} 1 {N(x)} {N(y)} Tm");
     }
 
+    /// <summary>
+    /// Sets the text matrix outright: the whole of where the text goes, how far it is stretched
+    /// each way, and how far it is turned.
+    /// </summary>
+    public ContentStreamBuilder SetTextMatrix(
+        double a, double b, double c, double d, double e, double f)
+    {
+        EnsureInText();
+        return Op($"{N(a)} {N(b)} {N(c)} {N(d)} {N(e)} {N(f)} Tm");
+    }
+
+    /// <summary>Names a graphics state to draw with, which is how a PDF carries transparency.</summary>
+    public ContentStreamBuilder SetGraphicsState(string resourceName) => Op($"/{resourceName} gs");
+
     /// <summary>Sets the text rise, used for superscript and subscript.</summary>
     public ContentStreamBuilder SetTextRise(double rise)
     {

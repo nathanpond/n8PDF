@@ -1311,6 +1311,57 @@ public static class Fixtures
                                      id: 1031) +
                                  "</w:p>"),
 
+            // A watermark: a word set across the page behind everything else, which is a shape in
+            // the header holding its text on a path rather than in paragraphs. Two pages of body
+            // text, so that it is drawn on both.
+            ["watermark"] = () => new DocxBuilder()
+                .WithHeaderFooter(header: true,
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>{DocxBuilder.Watermark("DRAFT", 527.85, 131.95)}</w:p>")
+                .AddParagraph("The first page under the watermark.", ZeroSpacing, Times12)
+                .AddParagraph("The second page under it.", ZeroSpacingNewPage, Times12),
+
+            // How large Word sets a word on a path, which is the question a watermark turns on:
+            // the size it declares is a single point, standing for "as large as the shape holds".
+            //
+            //   page 1  DRAFT in a wide box
+            //   page 2  the same word in a box half as tall  -> does the height decide?
+            //   page 3  a longer word in the first box       -> does the width?
+            //   page 4  a short word in the first box
+            ["watermark-fit-probe"] = () => new DocxBuilder()
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.Watermark("DRAFT", 400, 100, rotation: null, id: 2060) +
+                                 "</w:p>")
+                .AddParagraph("DRAFT in four hundred by one hundred.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.Watermark("DRAFT", 400, 50, rotation: null, id: 2061) +
+                                 "</w:p>")
+                .AddParagraph("The same word in half the height.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.Watermark("CONFIDENTIAL", 400, 100, rotation: null, id: 2062) +
+                                 "</w:p>")
+                .AddParagraph("A longer word in the first box.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.Watermark("II", 400, 100, rotation: null, id: 2063) +
+                                 "</w:p>")
+                .AddParagraph("A short one in the first box.", ZeroSpacing, Times12)
+
+                // A word that reaches below the line, a different face, and a narrower box: what
+                // the first four pages cannot tell apart is whether the fitting is of the letters
+                // themselves or of the box the face would set them in.
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.Watermark("Apply", 400, 100, rotation: null, id: 2064) +
+                                 "</w:p>")
+                .AddParagraph("A word that reaches below the line.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.Watermark("DRAFT", 400, 100, fontFamily: "Times New Roman",
+                                     rotation: null, id: 2065) +
+                                 "</w:p>")
+                .AddParagraph("The first word in another face.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.Watermark("DRAFT", 200, 100, rotation: null, id: 2066) +
+                                 "</w:p>")
+                .AddParagraph("And in a narrower box.", ZeroSpacing, Times12),
+
             // Word draws an older shape a little way off from where a newer one of the same size
             // goes, and how far depends on how thick its stroke is. Eight pages, one shape each,
             // varying nothing but the stroke: whatever the rule is, it is in these numbers.

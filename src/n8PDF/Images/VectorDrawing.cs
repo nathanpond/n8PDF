@@ -53,6 +53,35 @@ public sealed record TextOperation(
     DrawingColor Color,
     double Angle = 0) : DrawingOperation;
 
+/// <summary>
+/// One word, stretched and turned: what a watermark is drawn as.
+/// </summary>
+/// <remarks>
+/// Unlike the text a metafile carries, this says exactly where its baseline goes and how far the
+/// letters are stretched each way, because the whole point of it is that the ink fills a box
+/// rather than that the type is set at a size. It stays text rather than becoming outlines, so a
+/// reader can still find the word — Word's own export turns it into paths, and the word can no
+/// longer be searched for.
+/// </remarks>
+/// <param name="X">Where the baseline of the first letter is, in the drawing's coordinates.</param>
+/// <param name="ScaleX">How far the letters are stretched across, over the size given.</param>
+/// <param name="ScaleY">And down.</param>
+/// <param name="AngleDegrees">How far it is turned, clockwise.</param>
+/// <param name="Opacity">How solid it is, from nought to one.</param>
+public sealed record WordArtOperation(
+    string Text,
+    double X,
+    double Y,
+    string FontFamily,
+    double SizePoints,
+    bool Bold,
+    bool Italic,
+    DrawingColor Color,
+    double ScaleX = 1,
+    double ScaleY = 1,
+    double AngleDegrees = 0,
+    double Opacity = 1) : DrawingOperation;
+
 /// <summary>A picture drawn into a rectangle of the drawing.</summary>
 public sealed record ImageOperation(
     ImageData Image,

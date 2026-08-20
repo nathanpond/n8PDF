@@ -249,6 +249,17 @@ public enum ShapeTextAnchor
 public sealed record DrawingColorReference(string? Hex, string? ThemeSlot);
 
 /// <summary>
+/// A word drawn as a shape: one string, in one face, stretched to fill the shape it is in.
+/// </summary>
+/// <remarks>
+/// The size the document gives it means nothing — Word writes a single point — because the shape
+/// type says the text is to be fitted to the shape, and that is what decides how large it comes
+/// out. What is stretched is the ink itself rather than the box the face would set it in, so a
+/// word with a tail below the line is squashed to the same height as one without.
+/// </remarks>
+public sealed record ShapeWordArt(string Text, string FontFamily, bool Bold = false, bool Italic = false);
+
+/// <summary>
 /// A shape drawn in the text: an outline of some geometry, filled or not, holding text or not.
 /// </summary>
 /// <remarks>
@@ -293,6 +304,21 @@ public sealed class ShapeFrame
     public double InsetBottomPoints { get; set; } = 3.6;
 
     public ShapeTextAnchor Anchor { get; set; } = ShapeTextAnchor.Top;
+
+    /// <summary>
+    /// A word set to fill the shape rather than paragraphs laid out inside it, or null for an
+    /// ordinary shape. This is what a watermark is.
+    /// </summary>
+    public ShapeWordArt? WordArt { get; set; }
+
+    /// <summary>How far the shape is turned, clockwise, in degrees.</summary>
+    public double RotationDegrees { get; set; }
+
+    /// <summary>
+    /// How solid its fill is, from nought for invisible to one for opaque. A watermark is set at
+    /// a half, which is what makes it a watermark rather than a heading across the page.
+    /// </summary>
+    public double FillOpacity { get; set; } = 1;
 
     /// <summary>
     /// How far down and to the right the shape is drawn from where its size puts it, in points.

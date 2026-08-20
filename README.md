@@ -152,6 +152,28 @@ The outline itself straddles the edge. Word's export fills the whole extent and 
 same rectangle, insetting neither, which is what a PDF does with a stroked path anyway — so the
 frame here is drawn the same way and the two agree to a hundredth of a point.
 
+### How large a watermark is set
+
+A watermark is a word on a path, and the size the document gives it is a single point — the shape
+type says the letters are to be fitted to the shape, and that is what decides how large they come
+out. What is fitted is the **ink itself**, stretched to fill the shape less its own insets, and not
+the box the face would set the word in. `watermark-fit-probe` says so seven times over: the same
+rectangle of ink comes back whether the box is asked for DRAFT, for CONFIDENTIAL, for a short word,
+for a word with a tail below the line, or for the same word in another face — and it is the box
+less the tenth of an inch at the sides and half of that above and below that every text box has.
+
+The letters are stretched to that box rather than scaled to it, so a word with a descender is
+squashed to the same height as one without. Every page of the probe agrees with Word on better than
+99.8% of its ink, and the diagonal watermark of the `watermark` fixture on 99.89%.
+
+Two things about it are deliberately not Word's. Word's export turns the letters into outlines, so
+its own file holds no watermark text at all and a reader cannot search for the word; this keeps it
+as text, which is why the line-by-line comparison has to allow the two files a different number of
+lines. And Word for Mac draws a watermark in the document's own face whatever face the document
+asked for — the probe's sixth page asks for Times New Roman and gets Calibri — where this sets it in
+the face that was asked for. That page is the only one of the seven that agrees on less than 99.8%
+of its ink; it agrees on 98%.
+
 ### Where an old-style shape is drawn
 
 A shape in the older `w:pict` spelling is drawn a little way down and to the right of where its own
@@ -272,7 +294,9 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), text boxes and the shapes they are a kind of, in both spellings (rectangles, rounded rectangles, ellipses
+pictures), watermarks (a word set across every page of a section, behind the text, stretched to fill
+the shape that holds it, turned, and painted see-through — which is a graphics state of its own,
+since a PDF carries transparency there rather than in the colour), text boxes and the shapes they are a kind of, in both spellings (rectangles, rounded rectangles, ellipses
 and triangles drawn as themselves and every other preset geometry as the rectangle it is bounded
 by; filled and outlined in a colour named outright or taken from the theme; in the line of text or
 anchored with the text flowing round them; and holding a document of their own — paragraphs and
@@ -306,8 +330,11 @@ wrapper, the newer is read and the older passed over so the shape is drawn once.
 What a shape does not do yet: turn (a rotated shape is drawn square), resize itself or its text to
 fit the other (a box holding more than it has room for overflows, which is what `noAutofit` asks
 for and what Word does with that setting), fill with anything but one flat colour, or carry a
-shadow. Nor is WordArt drawn along a path (`v:textpath`), which is what a watermark's text is: the
-shape it sits in comes out, and its lettering does not.
+shadow.
+
+Watermarks are drawn: the word, in the face and colour and half-solidity it asks for, turned the way
+it asks to be turned, behind everything else on every page of its section. A picture watermark is
+not — that is an image in a header, and an image referred to from a header part is not yet read.
 
 Table autofit is the one piece here that approximates rather than reproduces. Word's algorithm is
 undocumented; ours measures each column's minimum (widest word) and maximum (unwrapped) width and

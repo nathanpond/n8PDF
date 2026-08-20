@@ -1,0 +1,47 @@
+{
+  "pageCount": 2,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 171.926, "font": "Times New Roman", "size": 12, "text": "The first page under the watermark."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 46.474,
+          "height": 13.428,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 1,
+          "baselineY": 83.203,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 123.621, "font": "Times New Roman", "size": 12, "text": "The second page under it."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 46.474,
+          "height": 13.428,
+          "runs": [
+          ]
+        }
+      ]
+    }
+  ]
+}
