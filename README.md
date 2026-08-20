@@ -152,6 +152,39 @@ The outline itself straddles the edge. Word's export fills the whole extent and 
 same rectangle, insetting neither, which is what a PDF does with a stroked path anyway — so the
 frame here is drawn the same way and the two agree to a hundredth of a point.
 
+### What a diagram is, and which half of it to draw
+
+SmartArt is written down twice. There is what it means — points, the connections between them, and
+a layout definition saying how points of that shape are arranged — and there is the arrangement it
+last came to, kept beside it as a flat list of shapes at absolute positions with their geometry,
+colours and text. The first is a language, a system of constraints and algorithms with a hundred
+layouts written in it. **Word runs it afresh every time it opens a document**; every other reader
+draws the cached arrangement, and so does this.
+
+That is measured, not assumed: the seed for the `smartart` fixture carries a cache no layout would
+produce — three boxes stepping down the frame — and Word's export shows three boxes in a row filling
+it. `Word_lays_a_diagram_out_again_rather_than_trusting_the_cache` keeps that fact in the suite.
+
+It also decides how a diagram can be held to Word at all. A hand-authored cache says nothing, since
+Word throws it away; the only cache worth comparing is the one Word itself wrote, so the fixture is
+a **real** document — the seed goes through Word, which rebuilds the diagram and saves its own
+arrangement, and that is what gets rendered and compared.
+
+Two things about diagram text differ from anything on a page. Its spacing is a percentage of a
+line, where DrawingML's line is a flat six fifths of the type size rather than whatever the face
+asks for — Word sets the fixture's paragraphs 15.6pt apart where 35% of the type size would be
+12.6pt and 35% of six fifths of it is 15.1pt. And a word too wide for its box **comes apart between
+its letters**: Word sets "Three" in a 67.84pt box as "Thre" and "e", where a page would let the word
+overrun the margin whole.
+
+What is left is a constant 3.1pt: every line of the diagram is where Word puts it across the page,
+and every line the right distance below the one above it, but each box's block of text sits 3.1pt
+high. The block is centred, so that is either a 6.2pt disagreement about how tall the block is or a
+3.1pt one about where the first baseline sits inside it — and those cannot be told apart here,
+because Word writes the cache itself and so chooses the type size, the line spacing and the
+anchoring. Both readings fit every line. It is recorded as a known divergence rather than fitted
+away.
+
 ### How large a watermark is set
 
 A watermark is a word on a path, and the size the document gives it is a single point — the shape
@@ -312,7 +345,10 @@ letters, ordinals, words, hex or dollars, and cased by Upper, Lower, FirstCap or
 independent counters and multi-level templates, hanging indents), images, inline and floating (PNG — interlaced or not — GIF, BMP, TIFF and EMF all read from scratch, JPEG passed through untouched — and decoded, in every
 form including progressive, arithmetic and four channels of ink, where a TIFF holds one; the
 four-channel pictures a printing press wants, as either a JPEG or a TIFF; transparency via a soft mask; square, top-and-bottom and no-wrap text flow around anchored
-pictures), watermarks of both kinds (a word set across every page of a section, behind the text,
+pictures), diagrams — SmartArt — drawn from the arrangement the document keeps of them (every shape
+with its geometry, its fill and outline in colours named outright, by theme slot or as percentages,
+and its text laid out into the rectangle the diagram set aside for it and set at its top, middle or
+foot), watermarks of both kinds (a word set across every page of a section, behind the text,
 stretched to fill the shape that holds it, turned, and painted see-through — which is a graphics
 state of its own, since a PDF carries transparency there rather than in the colour; or a picture,
 washed out to the contrast and brightness it carries), text boxes and the shapes they are a kind of, in both spellings (rectangles, rounded rectangles, ellipses
@@ -338,6 +374,11 @@ italic, underline, strikethrough, colour, caps, super/subscript, character spaci
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
+
+Charts are not drawn. A chart is the one thing here a document describes only as data — series,
+axes and formatting, with no cached rendering of any kind — so drawing one means writing a chart
+engine: scales, automatic tick units, axes, gridlines, legends and each plot type. That is its own
+piece of work rather than a corner of this one.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

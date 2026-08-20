@@ -148,6 +148,7 @@ public sealed class StyleResolver(
         private bool _hidden;
         private UnderlineStyle? _underline;
         private string? _color;
+        private string? _colorTheme;
         private string? _highlight;
         private VerticalTextAlignment? _verticalAlignment;
         private double? _characterSpacingPoints;
@@ -180,6 +181,7 @@ public sealed class StyleResolver(
 
             if (source.Underline is { } underline) _underline = underline;
             if (source.Color is not null) _color = source.Color;
+            if (source.ColorThemeSlot is not null) _colorTheme = source.ColorThemeSlot;
             if (source.Highlight is not null) _highlight = source.Highlight;
             if (source.VerticalAlignment is { } vertical) _verticalAlignment = vertical;
             if (source.CharacterSpacingTwips is { } spacing)
@@ -208,7 +210,7 @@ public sealed class StyleResolver(
                 Strike = _strike,
                 Hidden = _hidden,
                 Underline = _underline ?? UnderlineStyle.None,
-                ColorHex = _color,
+                ColorHex = theme.ResolveColor(_colorTheme) ?? _color,
                 HighlightColor = _highlight,
                 VerticalAlignment = _verticalAlignment ?? VerticalTextAlignment.Baseline,
                 CharacterSpacingPoints = _characterSpacingPoints ?? 0,

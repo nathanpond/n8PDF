@@ -475,7 +475,8 @@ public static class DocumentParser
 
         return new DrawingInline(width, height, ReadEmbeddedRelationship(inline))
         {
-            Shape = ReadShape(inline)
+            Shape = ReadShape(inline),
+            DiagramRelationshipId = ReadDiagram(inline)
         };
     }
 
@@ -546,6 +547,17 @@ public static class DocumentParser
     }
 
     /// <summary>
+    /// The relationship a diagram's data is reached by, where the frame holds a diagram.
+    /// </summary>
+    /// <remarks>
+    /// Four parts describe a diagram and the frame names all four; this is the one that matters,
+    /// since the arrangement to be drawn is a part beside it rather than one the frame names.
+    /// </remarks>
+    private static string? ReadDiagram(XElement container) =>
+        container.Descendants(W.Diagram + "relIds").FirstOrDefault()
+            ?.Attribute(W.Relationships + "dm")?.Value;
+
+    /// <summary>
     /// The colour something is painted in: a literal one, a theme slot, or nothing at all where
     /// it declares <c>a:noFill</c>.
     /// </summary>
@@ -587,6 +599,7 @@ public static class DocumentParser
         return new AnchoredDrawing
         {
             Shape = ReadShape(anchor),
+            DiagramRelationshipId = ReadDiagram(anchor),
             WidthEmu = width,
             HeightEmu = height,
             RelationshipId = ReadEmbeddedRelationship(anchor),

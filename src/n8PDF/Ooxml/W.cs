@@ -17,6 +17,10 @@ public static class W
     public static readonly XNamespace WordDrawing =
         "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 
+    /// <summary>DrawingML diagrams, which is what SmartArt is.</summary>
+    public static readonly XNamespace Diagram =
+        "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+
     /// <summary>Word's own extension for a shape drawn in the text, which is where a text box lives.</summary>
     public static readonly XNamespace Shape =
         "http://schemas.microsoft.com/office/word/2010/wordprocessingShape";

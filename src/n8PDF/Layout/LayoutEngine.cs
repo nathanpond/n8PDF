@@ -31,6 +31,13 @@ public sealed class LayoutOptions
 public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, LayoutOptions? options = null)
 {
     private readonly FontLibrary _fonts = fonts;
+
+    /// <summary>
+    /// The measure a word must fit, where a word that does not is to be broken between its
+    /// letters. Set only while the inside of a shape is being laid out; null everywhere else,
+    /// because nothing on a page is broken that way.
+    /// </summary>
+    private double? _breakInsideWords;
     private readonly StyleResolver _styles = styles;
     private readonly LayoutOptions _options = options ?? new LayoutOptions();
     private IReadOnlyDictionary<string, byte[]> _images = new Dictionary<string, byte[]>();
@@ -1028,7 +1035,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
             if (width <= 0 || height <= 0) continue;
 
             (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top)? composed =
-                anchored.Shape is { } shape ? ComposeShape(shape, width, height) : null;
+                anchored.Diagram is { Count: > 0 } diagram
+                    ? ComposeDiagram(diagram, width, height)
+                    : anchored.Shape is { } shape
+                        ? ComposeShape(shape, width, height)
+                        : null;
 
             var image = composed?.Frame ??
                         (anchored.RelationshipId is null
@@ -3006,6 +3017,49 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
     }
 
     /// <summary>
+    /// Draws a diagram: every shape of it into one drawing, and every shape's words into one flow
+    /// of text over the top.
+    /// </summary>
+    /// <remarks>
+    /// Both are one thing rather than many because a diagram moves as a whole — it sits on a line
+    /// like a picture, or is anchored like one — and because the machinery that carries a shape
+    /// to the page carries exactly one drawing and one flow. The words are laid out into the
+    /// rectangle the diagram set aside for each shape, and set in it by that shape's anchor.
+    /// </remarks>
+    private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeDiagram(
+        IReadOnlyList<DiagramShape> diagram, double width, double height)
+    {
+        var frame = new Images.ImageData(1, 1, [],
+            Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
+        {
+            Drawing = ShapeOutline.Draw(diagram, width, height, _styles.Theme)
+        };
+
+        var page = new LaidOutPage { WidthPoints = width, HeightPoints = height };
+
+        foreach (var shape in diagram)
+        {
+            if (!shape.Shape.HasText || shape.TextWidth <= 0) continue;
+
+            var content = MeasureInside(shape.Shape.Content, shape.TextWidth);
+
+            // Text taller than the box it is in is still set in the middle of it, standing out
+            // above and below rather than starting at the top: Word's own drawing of the diagram
+            // fixture has a box whose three lines overrun it at both ends.
+            var top = shape.Shape.Anchor switch
+            {
+                ShapeTextAnchor.Center => shape.TextY + (shape.TextHeight - content.Height) / 2,
+                ShapeTextAnchor.Bottom => shape.TextY + shape.TextHeight - content.Height,
+                _ => shape.TextY
+            };
+
+            content.PlaceOnto(page, shape.TextX, top);
+        }
+
+        return (frame, new DetachedFlow(page, height), 0, 0);
+    }
+
+    /// <summary>
     /// Draws a shape's frame and lays out what it holds, in the shape's own coordinates.
     /// </summary>
     /// <remarks>
@@ -3031,8 +3085,8 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var carried = shape.DrawnOffsetPoints / 2;
 
         var left = shape.InsetLeftPoints + edge + carried;
-        var available = width - shape.InsetLeftPoints - shape.InsetRightPoints - 2 * edge;
-        var content = MeasureBlocks(shape.Content, Math.Max(1, available));
+        var available = Math.Max(1, width - shape.InsetLeftPoints - shape.InsetRightPoints - 2 * edge);
+        var content = MeasureInside(shape.Content, available);
 
         // Where in the height the text sits, which is what the shape's anchor decides. A box
         // whose text is taller than it is runs on out of the bottom of it, which is what Word
@@ -3048,6 +3102,25 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         };
 
         return (frame, content, left, top);
+    }
+
+    /// <summary>
+    /// Lays out what a shape holds, which is measured like anything else but breaks a word that
+    /// will not fit rather than letting it overrun the shape.
+    /// </summary>
+    private DetachedFlow MeasureInside(IReadOnlyList<BlockElement> blocks, double width)
+    {
+        var outer = _breakInsideWords;
+        _breakInsideWords = width;
+
+        try
+        {
+            return MeasureBlocks(blocks, width);
+        }
+        finally
+        {
+            _breakInsideWords = outer;
+        }
     }
 
     /// <summary>
@@ -4135,9 +4208,11 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
         var height = drawing.HeightPoints;
         if (width <= 0 || height <= 0) return;
 
-        if (drawing.Shape is { } shape)
+        if (drawing.Diagram is { Count: > 0 } || drawing.Shape is not null)
         {
-            var composed = ComposeShape(shape, width, height);
+            var composed = drawing.Diagram is { Count: > 0 } diagram
+                ? ComposeDiagram(diagram, width, height)
+                : ComposeShape(drawing.Shape!, width, height);
 
             atoms.Add(new ImageAtom
             {
@@ -4463,6 +4538,42 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 ? naturalHeight
                 : TextMeasurer.GetNaturalLineHeight(face.Font, box);
 
+            var width = TextMeasurer.Measure(
+                face.Font, slice, format.EffectiveFontSizePoints,
+                format.CharacterSpacingPoints, kerned) * format.ScaleFactor + leadingKern;
+
+            // A word too wide for the box it is in comes apart between its letters, where the box
+            // is a shape's rather than the page's. Nothing on a page does that — a long word
+            // overruns the margin and stays whole — but a shape holds its text and Word breaks a
+            // word that will not fit wherever it has to. Its own drawing of the diagram fixture
+            // sets "Three" across two lines as "Thre" and "e".
+            if (_breakInsideWords is { } measure && width > measure && slice.Length > 1 && !isSpace)
+            {
+                foreach (var rune in slice.EnumerateRunes())
+                {
+                    var letter = rune.ToString();
+
+                    atoms.Add(new TextAtom
+                    {
+                        Text = letter,
+                        Level = level,
+                        IsSpace = false,
+                        Format = format,
+                        Font = face,
+                        Ascent = pieceAscent,
+                        NaturalHeight = pieceHeight,
+                        Descent = pieceHeight - pieceAscent,
+                        Link = link,
+                        Kerned = false,
+                        Width = TextMeasurer.Measure(
+                            face.Font, letter, format.EffectiveFontSizePoints,
+                            format.CharacterSpacingPoints, applyKerning: false) * format.ScaleFactor
+                    });
+                }
+
+                continue;
+            }
+
             atoms.Add(new TextAtom
             {
                 Text = slice,
@@ -4476,9 +4587,7 @@ public sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layout
                 Link = link,
                 Kerned = kerned,
                 LeadingKern = leadingKern,
-                Width = TextMeasurer.Measure(
-                    face.Font, slice, format.EffectiveFontSizePoints,
-                    format.CharacterSpacingPoints, kerned) * format.ScaleFactor + leadingKern
+                Width = width
             });
         }
     }

@@ -199,6 +199,15 @@ public sealed class DrawingInline(long widthEmu, long heightEmu, string? relatio
     /// <summary>What was done to the picture's colours, for a watermark of one.</summary>
     public PictureWash? Wash { get; init; }
 
+    /// <summary>
+    /// The relationship the diagram's data is reached by, where this frame holds a diagram. What
+    /// is drawn comes from a part beside that one, which is why the shapes are filled in later.
+    /// </summary>
+    public string? DiagramRelationshipId { get; set; }
+
+    /// <summary>The shapes of that diagram, once they have been read.</summary>
+    public IReadOnlyList<DiagramShape>? Diagram { get; set; }
+
     public double WidthPoints => Units.EmuToPoints(WidthEmu);
 
     public double HeightPoints => Units.EmuToPoints(HeightEmu);
@@ -267,6 +276,20 @@ public sealed record PictureWash(double Gain, double BlackLevel)
     public double Apply(double value) =>
         Math.Clamp(Gain * value + (1 - Gain) / 2 + BlackLevel * (1 + Gain), 0, 1);
 }
+
+/// <summary>
+/// One shape of a diagram: what it is drawn as, where it is in the frame, and where inside it the
+/// words go.
+/// </summary>
+/// <remarks>
+/// The text rectangle is given outright rather than as an inset from the shape, because a diagram
+/// works out for itself how much of an odd shape its words will fit in — the text of a chevron
+/// clears its point, and no inset says that.
+/// </remarks>
+public sealed record DiagramShape(
+    ShapeFrame Shape,
+    double X, double Y, double Width, double Height,
+    double TextX, double TextY, double TextWidth, double TextHeight);
 
 /// <summary>Where a shape's text sits in the height the shape gives it.</summary>
 public enum ShapeTextAnchor
@@ -393,6 +416,12 @@ public sealed class AnchoredDrawing : InlineElement
 
     /// <summary>What was done to the picture's colours, for a watermark of one.</summary>
     public PictureWash? Wash { get; init; }
+
+    /// <summary>The relationship a diagram's data is reached by, where this frame holds one.</summary>
+    public string? DiagramRelationshipId { get; set; }
+
+    /// <summary>The shapes of that diagram, once they have been read.</summary>
+    public IReadOnlyList<DiagramShape>? Diagram { get; set; }
 
     public TextWrapMode Wrap { get; init; } = TextWrapMode.Square;
 

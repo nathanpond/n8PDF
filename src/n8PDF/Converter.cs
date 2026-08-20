@@ -140,6 +140,7 @@ public static class Converter
         LoadNotes(package, mainPartName, document, NoteKind.Footnote);
         LoadNotes(package, mainPartName, document, NoteKind.Endnote);
         LoadHyperlinks(package, mainPartName, mainPartName, document.Body, document);
+        LoadDiagrams(package, mainPartName, document.Body);
 
         var settingsPart = package.GetRelatedPartName(mainPartName, OpcPackage.SettingsRelationship);
         if (settingsPart is not null)
@@ -265,6 +266,7 @@ public static class Converter
                 document.HeadersAndFooters[relationship.Id] = content;
                 LoadHyperlinks(package, partName, partName, content.Body, document);
                 LoadPartImages(package, partName, content.Body, document);
+                LoadDiagrams(package, partName, content.Body);
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
             {
@@ -392,6 +394,88 @@ public static class Converter
                     anchored.RelationshipId = key;
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// Reads the arrangement of every diagram a run of blocks holds.
+    /// </summary>
+    /// <remarks>
+    /// The frame names the diagram's data; the drawing to be drawn is a part beside that one,
+    /// reached by a relationship of the data part's own. So it takes two hops, and the second is
+    /// through a part the document itself never mentions.
+    /// </remarks>
+    private static void LoadDiagrams(OpcPackage package, string partName, List<BlockElement> blocks)
+    {
+        foreach (var run in EnumerateRuns(blocks))
+        foreach (var content in run.Content)
+        {
+            string? id = content switch
+            {
+                DrawingInline inline => inline.DiagramRelationshipId,
+                AnchoredDrawing anchored => anchored.DiagramRelationshipId,
+                _ => null
+            };
+
+            if (id is null) continue;
+
+            var shapes = ReadDiagram(package, partName, id);
+            if (shapes.Count == 0) continue;
+
+            switch (content)
+            {
+                case DrawingInline inline:
+                    inline.Diagram = shapes;
+                    break;
+
+                case AnchoredDrawing anchored:
+                    anchored.Diagram = shapes;
+                    break;
+            }
+        }
+    }
+
+    private static List<DiagramShape> ReadDiagram(
+        OpcPackage package, string partName, string relationshipId)
+    {
+        try
+        {
+            var data = package.GetRelationships(partName)
+                .FirstOrDefault(r => r.Id == relationshipId && !r.IsExternal);
+
+            if (data is null) return [];
+
+            var dataPart = package.ResolveTarget(partName, data.Target);
+            if (!package.HasPart(dataPart)) return [];
+
+            // Which drawing holds the arrangement is written inside the data, in an extension of
+            // Word's own: a relationship id, which is resolved against the part that declared it.
+            // Word declares it beside the diagram's own four, on the document rather than on the
+            // data — so both are looked in, the data's own first.
+            var named = package.ReadPartAsXml(dataPart).Root
+                ?.Descendants(Diagram.Drawing + "dataModelExt").FirstOrDefault()
+                ?.Attribute("relId")?.Value;
+
+            foreach (var owner in new[] { dataPart, partName })
+            {
+                var drawing = package.GetRelationships(owner).FirstOrDefault(r =>
+                    !r.IsExternal &&
+                    (named is not null ? r.Id == named : r.Type == Diagram.DrawingRelationship));
+
+                if (drawing is null || drawing.Type != Diagram.DrawingRelationship) continue;
+
+                var drawingPart = package.ResolveTarget(owner, drawing.Target);
+
+                if (package.HasPart(drawingPart))
+                    return Diagram.Parse(package.ReadPartAsXml(drawingPart));
+            }
+
+            return [];
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                                     or System.Xml.XmlException)
+        {
+            return [];
         }
     }
 

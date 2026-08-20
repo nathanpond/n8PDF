@@ -115,6 +115,13 @@ public sealed class RunProperties
     /// <summary>Text colour as RRGGBB, or null when unspecified or "auto".</summary>
     public string? Color { get; set; }
 
+    /// <summary>
+    /// The theme slot the colour came from, where it was named rather than given. Only a diagram's
+    /// text says it this way — WordprocessingML has a slot of its own for the purpose, and this is
+    /// DrawingML's.
+    /// </summary>
+    public string? ColorThemeSlot { get; set; }
+
     /// <summary>Highlight colour name, or null.</summary>
     public string? Highlight { get; set; }
 

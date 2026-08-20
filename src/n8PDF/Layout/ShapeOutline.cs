@@ -184,10 +184,39 @@ internal static class ShapeOutline
     }
 
     private static IReadOnlyList<PathStep> Shift(IReadOnlyList<PathStep> steps, double by) =>
+        Shift(steps, by, by);
+
+    private static IReadOnlyList<PathStep> Shift(
+        IReadOnlyList<PathStep> steps, double byX, double byY) =>
         [.. steps.Select(step => step with
         {
-            Points = [.. step.Points.Select(point => (point.X + by, point.Y + by))]
+            Points = [.. step.Points.Select(point => (point.X + byX, point.Y + byY))]
         })];
+
+    /// <summary>
+    /// Every shape of a diagram in one drawing, since they are drawn together and move together.
+    /// </summary>
+    public static VectorDrawing Draw(
+        IReadOnlyList<DiagramShape> diagram, double width, double height, DocumentTheme theme)
+    {
+        var operations = new List<DrawingOperation>();
+
+        foreach (var shape in diagram)
+        {
+            var fill = Resolve(shape.Shape.Fill, theme);
+            var stroke = Resolve(shape.Shape.Line, theme);
+
+            if (fill is null && stroke is null) continue;
+
+            var steps = Path(shape.Shape.Geometry, shape.Width, shape.Height);
+
+            operations.Add(new PathOperation(
+                Shift(steps, shape.X, shape.Y), fill, stroke,
+                shape.Shape.LineWidthPoints, EvenOdd: false));
+        }
+
+        return new VectorDrawing(width, height, operations);
+    }
 
     /// <summary>The colour something is painted in, as the drawing named it.</summary>
     private static DrawingColor? Resolve(DrawingColorReference? color, DocumentTheme theme)

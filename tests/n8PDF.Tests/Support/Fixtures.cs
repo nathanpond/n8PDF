@@ -3293,6 +3293,24 @@ public static class Fixtures
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> RealSeeds { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
         {
+            // A diagram, which is the one thing here that has to come back through Word to be
+            // worth anything: a document describes a diagram twice over, as what it means and as
+            // the arrangement it last came to, and Word rebuilds the second from the first every
+            // time it opens one. Every other reader draws the cached arrangement, and so does
+            // this — so the only cache worth comparing against Word's own drawing is the one Word
+            // itself wrote, which is what saving this seed through Word produces.
+            ["smartart"] = () => new DocxBuilder()
+                .WithSmartArt(DocxBuilder.SmartArtCachedDrawing(
+                    DocxBuilder.SmartArtShape("One", 0, 0, 144, 54),
+                    DocxBuilder.SmartArtShape("Two", 108, 63, 144, 54, geometry: "ellipse",
+                        fillHex: "ED7D31"),
+                    DocxBuilder.SmartArtShape("Three", 216, 126, 144, 54, geometry: "rect",
+                        fillHex: "70AD47")))
+                .AddParagraph("Paragraph before the diagram.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.SmartArtDrawing(360, 180) + "</w:p>")
+                .AddParagraph("Paragraph after the diagram.", ZeroSpacing, Times12),
+
             ["report"] = () => new DocxBuilder()
                 .AddParagraph("Quarterly Operations Review",
                     "<w:spacing w:after=\"240\"/><w:jc w:val=\"center\"/>", Times(40, bold: true))

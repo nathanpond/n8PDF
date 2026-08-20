@@ -267,13 +267,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
 
         _output.WriteLine(report.ToText());
 
-        if (KnownRealDivergences.TryGetValue(name, out var reason))
-        {
-            // Still compared, and the report is still printed, so the numbers stay visible and a
-            // regression elsewhere in the document is not masked by the one known problem.
-            _output.WriteLine($"KNOWN DIVERGENCE: {reason}");
-            return;
-        }
+        // A known divergence buys one number a wider allowance and nothing else: everything a
+        // document gets right stays held to the ordinary tolerance, so a regression beside a known
+        // problem still fails.
+        var (baselineTolerance, reason) = KnownRealDivergences.TryGetValue(name, out var known)
+            ? known
+            : (BaselineTolerance, string.Empty);
+
+        if (reason.Length > 0) _output.WriteLine($"KNOWN DIVERGENCE: {reason}");
 
         Assert.True(report.UnmatchedCount == 0,
             $"'{name}': {report.UnmatchedCount} line(s) had no counterpart.\n{report.ToText()}");
@@ -281,20 +282,42 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         Assert.True(report.MaxAbsStartXDelta <= StartXTolerance,
             $"'{name}': a line starts {report.MaxAbsStartXDelta:0.###}pt from Word's.\n{report.ToText()}");
 
-        Assert.True(report.MaxAbsBaselineDelta <= BaselineTolerance,
-            $"'{name}': a baseline sits {report.MaxAbsBaselineDelta:0.###}pt from Word's.\n{report.ToText()}");
+        Assert.True(report.MaxAbsBaselineDelta <= baselineTolerance,
+            $"'{name}': a baseline sits {report.MaxAbsBaselineDelta:0.###}pt from Word's" +
+            $"{(reason.Length > 0 ? $" (allowed {baselineTolerance}pt: {reason})" : "")}.\n{report.ToText()}");
     }
 
     /// <summary>
     /// Real documents whose geometry is known to diverge, with why.
     /// </summary>
     /// <remarks>
-    /// Empty. The one entry it held — the report's table sitting 1.02pt right of Word's, enough
-    /// to wrap a cell Word fits on one line — was resolved by table-inset-probe: a declared
+    /// One entry. An earlier one — the report's table sitting 1.02pt right of Word's, enough to
+    /// wrap a cell Word fits on one line — was resolved by table-inset-probe: a declared
     /// w:tblInd is measured to the cell content edge rather than the table edge, and our autofit
     /// was sizing columns without allowing for the borders that layout later subtracted.
     /// </remarks>
-    private static readonly Dictionary<string, string> KnownRealDivergences = [];
+    private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownRealDivergences =
+        new()
+        {
+            ["smartart"] = (3.5,
+                """
+                Every line of the diagram is where Word puts it across the page and every line
+                sits the right distance from the one above it — the two agree on the line spacing
+                to 0.3pt and on the space between paragraphs to 0.5pt — but each box's text as a
+                whole sits 3.1pt above Word's.
+
+                The block is centred in the box, so a constant offset means the two disagree by
+                6.2pt about how tall the block is, or by 3.1pt about where the first baseline sits
+                inside it. Those two cannot be told apart here, and the fixture cannot be made to
+                tell them apart: Word writes the diagram's cache itself, so its type size, its
+                line spacing and its anchoring are Word's to choose and not the document's. Both
+                readings fit every line of it.
+
+                What is measured is that the block is centred whether or not it fits — the tallest
+                box's three lines overrun their box at both ends in Word's own drawing, and did
+                not here until they were let to.
+                """)
+        };
 
     /// <summary>
     /// Writes the full per-fixture comparison to the artifacts directory and prints the summary.

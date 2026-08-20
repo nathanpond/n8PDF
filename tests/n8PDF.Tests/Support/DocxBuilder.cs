@@ -458,6 +458,24 @@ public sealed class DocxBuilder
     public static string Bookmark(string name, int id = 1) =>
         $"<w:bookmarkStart w:id=\"{id}\" w:name=\"{Escape(name)}\"/><w:bookmarkEnd w:id=\"{id}\"/>";
 
+    /// <summary>
+    /// Parts of the package beyond the ones every document has: what each holds, what it is called,
+    /// how the document reaches it, and what it reaches in turn.
+    /// </summary>
+    private readonly List<(string PartName, string ContentType, string Body,
+        (string Id, string Type)? FromDocument,
+        IReadOnlyList<(string Id, string Type, string Target)> Own)> _parts = [];
+
+    /// <summary>Adds a part, its content type, and the relationships either side of it.</summary>
+    public DocxBuilder WithPart(
+        string partName, string contentType, string body,
+        (string Id, string Type)? fromDocument = null,
+        IReadOnlyList<(string Id, string Type, string Target)>? own = null)
+    {
+        _parts.Add((partName, contentType, body, fromDocument, own ?? []));
+        return this;
+    }
+
     private readonly List<(string Id, string PartName, byte[] Data)> _images = [];
 
     /// <summary>
@@ -829,6 +847,257 @@ public sealed class DocxBuilder
             """;
     }
 
+    private const string DiagramNamespace = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+
+    private const string OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    /// <summary>
+    /// A diagram — SmartArt — with its five parts, and the paragraph markup that reaches it.
+    /// </summary>
+    /// <remarks>
+    /// A diagram is described twice over. The data and the layout say what it means and how it is
+    /// to be arranged, and are what Word rebuilds it from; beside them sits a drawing part holding
+    /// the arrangement it last came to, shape by shape, at absolute positions. Every reader but
+    /// Word draws that cached arrangement, since rebuilding it means implementing the layout
+    /// language, and so does this.
+    ///
+    /// The cached drawing here is deliberately not what any layout would produce — three shapes
+    /// stepping down the frame — so that Word's export says outright which of the two it drew.
+    /// </remarks>
+    public DocxBuilder WithSmartArt(string drawingXml)
+    {
+        const string diagrams = "word/diagrams";
+
+        WithPart($"{diagrams}/drawing1.xml",
+            "application/vnd.ms-office.drawingml.diagramDrawing+xml", drawingXml);
+
+        WithPart($"{diagrams}/data1.xml",
+            "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml",
+            DiagramData,
+            fromDocument: ("rIdDgmData", $"{OfficeRelationships}/diagramData"),
+            own: [("rIdDgmDrawing",
+                "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing", "drawing1.xml")]);
+
+        WithPart($"{diagrams}/layout1.xml",
+            "application/vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml",
+            DiagramLayout,
+            fromDocument: ("rIdDgmLayout", $"{OfficeRelationships}/diagramLayout"));
+
+        WithPart($"{diagrams}/quickStyle1.xml",
+            "application/vnd.openxmlformats-officedocument.drawingml.diagramStyle+xml",
+            DiagramQuickStyle,
+            fromDocument: ("rIdDgmStyle", $"{OfficeRelationships}/diagramQuickStyle"));
+
+        WithPart($"{diagrams}/colors1.xml",
+            "application/vnd.openxmlformats-officedocument.drawingml.diagramColors+xml",
+            DiagramColors,
+            fromDocument: ("rIdDgmColors", $"{OfficeRelationships}/diagramColors"));
+
+        return this;
+    }
+
+    /// <summary>The drawing frame a diagram sits in, inline like a picture.</summary>
+    public static string SmartArtDrawing(double widthPoints, double heightPoints, int id = 400)
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+
+        return $"""
+            <w:r><w:drawing>
+              <wp:inline distT="0" distB="0" distL="0" distR="0">
+                <wp:extent cx="{cx}" cy="{cy}"/>
+                <wp:docPr id="{id}" name="Diagram {id}"/>
+                <a:graphic>
+                  <a:graphicData uri="{DiagramNamespace}">
+                    <dgm:relIds xmlns:dgm="{DiagramNamespace}"
+                                r:dm="rIdDgmData" r:lo="rIdDgmLayout"
+                                r:qs="rIdDgmStyle" r:cs="rIdDgmColors"/>
+                  </a:graphicData>
+                </a:graphic>
+              </wp:inline>
+            </w:drawing></w:r>
+            """;
+    }
+
+    /// <summary>
+    /// One shape of a cached diagram: where it is in the frame, what it is drawn as, and what it
+    /// says. The text rectangle is given separately, as Word gives it.
+    /// </summary>
+    public static string SmartArtShape(
+        string text, double xPoints, double yPoints, double widthPoints, double heightPoints,
+        string geometry = "roundRect", string fillHex = "4472C4", int sizeHundredths = 1800,
+        double textInsetPoints = 6)
+    {
+        static long Emu(double points) => (long)Math.Round(points * 12700);
+
+        return $"""
+            <dsp:sp modelId="{Guid.Empty.ToString("B")}">
+              <dsp:nvSpPr>
+                <dsp:cNvPr id="0" name=""/>
+                <dsp:cNvSpPr/>
+              </dsp:nvSpPr>
+              <dsp:spPr>
+                <a:xfrm>
+                  <a:off x="{Emu(xPoints)}" y="{Emu(yPoints)}"/>
+                  <a:ext cx="{Emu(widthPoints)}" cy="{Emu(heightPoints)}"/>
+                </a:xfrm>
+                <a:prstGeom prst="{geometry}"><a:avLst/></a:prstGeom>
+                <a:solidFill><a:srgbClr val="{fillHex}"/></a:solidFill>
+                <a:ln w="12700"><a:solidFill><a:srgbClr val="2F528F"/></a:solidFill></a:ln>
+              </dsp:spPr>
+              <dsp:txBody>
+                <a:bodyPr spcFirstLastPara="0" vert="horz" wrap="square" anchor="ctr"/>
+                <a:lstStyle/>
+                <a:p>
+                  <a:pPr algn="ctr"/>
+                  <a:r>
+                    <a:rPr lang="en-GB" sz="{sizeHundredths}" kern="1200">
+                      <a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>
+                      <a:latin typeface="Times New Roman"/>
+                    </a:rPr>
+                    <a:t>{Escape(text)}</a:t>
+                  </a:r>
+                </a:p>
+              </dsp:txBody>
+              <dsp:txXfrm>
+                <a:off x="{Emu(xPoints + textInsetPoints)}" y="{Emu(yPoints + textInsetPoints)}"/>
+                <a:ext cx="{Emu(widthPoints - 2 * textInsetPoints)}" cy="{Emu(heightPoints - 2 * textInsetPoints)}"/>
+              </dsp:txXfrm>
+            </dsp:sp>
+            """;
+    }
+
+    /// <summary>The cached drawing part, holding the shapes as they were last arranged.</summary>
+    public static string SmartArtCachedDrawing(params string[] shapes) => $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <dsp:drawing xmlns:dsp="http://schemas.microsoft.com/office/drawing/2008/diagram"
+                     xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+          <dsp:spTree>
+            <dsp:nvGrpSpPr><dsp:cNvPr id="0" name=""/><dsp:cNvGrpSpPr/></dsp:nvGrpSpPr>
+            <dsp:grpSpPr/>
+            {string.Concat(shapes)}
+          </dsp:spTree>
+        </dsp:drawing>
+        """;
+
+    /// <summary>
+    /// What the diagram means: three points of text and nothing else. Word rebuilds the drawing
+    /// from this and the layout beside it, so it has to hold the same words the cache does.
+    /// </summary>
+    private static readonly string DiagramData = $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <dgm:dataModel xmlns:dgm="{DiagramNamespace}"
+                       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+          <dgm:ptLst>
+            <dgm:pt modelId="1" type="doc">
+              <dgm:prSet loTypeId="urn:microsoft.com/office/officeart/2005/8/layout/default"
+                         qsTypeId="urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1"
+                         csTypeId="urn:microsoft.com/office/officeart/2005/8/colors/accent1_2"/>
+              <dgm:spPr/>
+              <dgm:t><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="en-GB"/></a:p></dgm:t>
+            </dgm:pt>
+            {DiagramPoint(2, "One")}
+            {DiagramPoint(3, "Two")}
+            {DiagramPoint(4, "Three", "Four")}
+          </dgm:ptLst>
+          <dgm:cxnLst>
+            <dgm:cxn modelId="10" srcId="1" destId="2" srcOrd="0" destOrd="0"/>
+            <dgm:cxn modelId="11" srcId="1" destId="3" srcOrd="1" destOrd="0"/>
+            <dgm:cxn modelId="12" srcId="1" destId="4" srcOrd="2" destOrd="0"/>
+          </dgm:cxnLst>
+          <dgm:bg/>
+          <dgm:whole/>
+        </dgm:dataModel>
+        """;
+
+    /// <summary>
+    /// One point of a diagram, holding a paragraph for each line of text given it. A point of two
+    /// is what separates the space between paragraphs from the space after the last of them.
+    /// </summary>
+    private static string DiagramPoint(int id, params string[] paragraphs) => $"""
+        <dgm:pt modelId="{id}">
+          <dgm:prSet phldrT="[Text]"/>
+          <dgm:spPr/>
+          <dgm:t>
+            <a:bodyPr/><a:lstStyle/>
+            {string.Concat(paragraphs.Select(text =>
+                $"<a:p><a:r><a:rPr lang=\"en-GB\"/><a:t>{Escape(text)}</a:t></a:r></a:p>"))}
+          </dgm:t>
+        </dgm:pt>
+        """;
+
+    /// <summary>A layout that puts its points in a row, which is the simplest one there is.</summary>
+    private static readonly string DiagramLayout = $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <dgm:layoutDef xmlns:dgm="{DiagramNamespace}"
+                       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                       uniqueId="urn:microsoft.com/office/officeart/2005/8/layout/default">
+          <dgm:title val="Basic Block List"/>
+          <dgm:desc val=""/>
+          <dgm:catLst><dgm:cat type="list" pri="1000"/></dgm:catLst>
+          <dgm:sampData><dgm:dataModel><dgm:ptLst/></dgm:dataModel></dgm:sampData>
+          <dgm:styleData><dgm:dataModel><dgm:ptLst/></dgm:dataModel></dgm:styleData>
+          <dgm:clrData><dgm:dataModel><dgm:ptLst/></dgm:dataModel></dgm:clrData>
+          <dgm:layoutNode name="diagram">
+            <dgm:varLst><dgm:animLvl val="lvl"/><dgm:resizeHandles val="exact"/></dgm:varLst>
+            <dgm:alg type="lin"/>
+            <dgm:shape xmlns:r="{OfficeRelationships}" r:blip=""><dgm:adjLst/></dgm:shape>
+            <dgm:presOf/>
+            <dgm:constrLst/>
+            <dgm:ruleLst/>
+            <dgm:forEach name="Name0" axis="ch" ptType="node">
+              <dgm:layoutNode name="node">
+                <dgm:alg type="tx"/>
+                <dgm:shape xmlns:r="{OfficeRelationships}" type="roundRect" r:blip=""><dgm:adjLst/></dgm:shape>
+                <dgm:presOf axis="desOrSelf" ptType="node"/>
+                <dgm:constrLst/>
+                <dgm:ruleLst/>
+              </dgm:layoutNode>
+            </dgm:forEach>
+          </dgm:layoutNode>
+        </dgm:layoutDef>
+        """;
+
+    private static readonly string DiagramQuickStyle = $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <dgm:styleDef xmlns:dgm="{DiagramNamespace}"
+                      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                      uniqueId="urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1">
+          <dgm:title val=""/>
+          <dgm:desc val=""/>
+          <dgm:catLst><dgm:cat type="simple" pri="10100"/></dgm:catLst>
+          <dgm:scene3d><a:camera prst="orthographicFront"/><a:lightRig rig="threePt" dir="t"/></dgm:scene3d>
+          <dgm:styleLbl name="node0">
+            <dgm:scene3d><a:camera prst="orthographicFront"/><a:lightRig rig="threePt" dir="t"/></dgm:scene3d>
+            <dgm:sp3d/>
+            <dgm:txPr/>
+            <dgm:style>
+              <a:lnRef idx="2"><a:scrgbClr r="0" g="0" b="0"/></a:lnRef>
+              <a:fillRef idx="1"><a:scrgbClr r="0" g="0" b="0"/></a:fillRef>
+              <a:effectRef idx="0"><a:scrgbClr r="0" g="0" b="0"/></a:effectRef>
+              <a:fontRef idx="minor"><a:schemeClr val="lt1"/></a:fontRef>
+            </dgm:style>
+          </dgm:styleLbl>
+        </dgm:styleDef>
+        """;
+
+    private static readonly string DiagramColors = $"""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <dgm:colorsDef xmlns:dgm="{DiagramNamespace}"
+                       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                       uniqueId="urn:microsoft.com/office/officeart/2005/8/colors/accent1_2">
+          <dgm:title val=""/>
+          <dgm:desc val=""/>
+          <dgm:catLst><dgm:cat type="accent1" pri="11200"/></dgm:catLst>
+          <dgm:styleLbl name="node0">
+            <dgm:fillClrLst meth="repeat"><a:schemeClr val="accent1"/></dgm:fillClrLst>
+            <dgm:linClrLst meth="repeat"><a:schemeClr val="lt1"/></dgm:linClrLst>
+            <dgm:txLinClrLst/>
+            <dgm:txFillClrLst/>
+          </dgm:styleLbl>
+        </dgm:colorsDef>
+        """;
+
     /// <summary>A shape sitting in the line of text, like an inline picture.</summary>
     public static string InlineShape(
         double widthPoints, double heightPoints, string? content = null, string geometry = "rect",
@@ -1115,6 +1384,23 @@ public sealed class DocxBuilder
             if (_customProperties is not null) Write(archive, "docProps/custom.xml", _customProperties);
             if (HasSettings) Write(archive, "word/settings.xml", BuildSettings());
 
+            foreach (var (partName, _, body, _, own) in _parts)
+            {
+                Write(archive, partName, body);
+                if (own.Count == 0) continue;
+
+                var relationships = new StringBuilder();
+                foreach (var (id, type, target) in own)
+                    relationships.Append($"<Relationship Id=\"{id}\" Type=\"{type}\" Target=\"{target}\"/>");
+
+                var directory = Path.GetDirectoryName(partName)!.Replace('\\', '/');
+                Write(archive,
+                    $"{directory}/_rels/{Path.GetFileName(partName)}.rels",
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                    relationships + "</Relationships>");
+            }
+
             if (_footnotes.Count > 0) Write(archive, "word/footnotes.xml", BuildNotes("footnote", _footnotes));
             if (_endnotes.Count > 0) Write(archive, "word/endnotes.xml", BuildNotes("endnote", _endnotes));
 
@@ -1304,6 +1590,9 @@ public sealed class DocxBuilder
             defaults.Append($"<Default Extension=\"{extension}\" ContentType=\"{type}\"/>");
         }
 
+        foreach (var (partName, contentType, _, _, _) in _parts)
+            defaults.Append($"<Override PartName=\"/{partName}\" ContentType=\"{contentType}\"/>");
+
         foreach (var (_, partName, kind, _, _, _) in _headersFooters)
         {
             var type = kind.StartsWith("header", StringComparison.Ordinal) ? "header" : "footer";
@@ -1379,6 +1668,16 @@ public sealed class DocxBuilder
     private string BuildDocumentRelationships()
     {
         var extra = new StringBuilder();
+
+        foreach (var (partName, _, _, fromDocument, _) in _parts)
+        {
+            if (fromDocument is not { } reference) continue;
+
+            extra.Append(
+                $"<Relationship Id=\"{reference.Id}\" Type=\"{reference.Type}\" " +
+                $"Target=\"{partName["word/".Length..]}\"/>");
+        }
+
         foreach (var (id, partName, _) in _images)
         {
             extra.Append(
