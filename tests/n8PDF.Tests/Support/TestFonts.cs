@@ -41,16 +41,15 @@ public static class TestFonts
 
     /// <summary>
     /// The faces a <c>w:sym</c> names, which keep their glyphs in the private-use block rather
-    /// than at the characters they look like. Wingdings and Webdings are macOS's own; Symbol
-    /// travels with Word.
+    /// than at the characters they look like. These are macOS's own; Symbol travels with Word
+    /// instead, and so goes with the rest of Word's faces rather than here.
     /// </summary>
     public static readonly string[] SymbolPaths =
     [
         "/System/Library/Fonts/Supplemental/Wingdings.ttf",
         "/System/Library/Fonts/Supplemental/Wingdings 2.ttf",
         "/System/Library/Fonts/Supplemental/Wingdings 3.ttf",
-        "/System/Library/Fonts/Supplemental/Webdings.ttf",
-        Path.Combine(OfficeFonts, "symbol.ttf")
+        "/System/Library/Fonts/Supplemental/Webdings.ttf"
     ];
 
     /// <summary>A font collection, for exercising the <c>.ttc</c> path.</summary>
@@ -148,7 +147,7 @@ public static class TestFonts
         "line-ascent-probe", "line-grid-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
         "numbering", "page-numbering-restart", "smartart", "smartart-lines",
-        "superscript-shift-probe", "tab-bars", "table-inset-weights-probe",
+        "superscript-shift-probe", "symbols", "tab-bars", "table-inset-weights-probe",
         "table-heading-probe", "table-vertical-merge", "toc", "vml-stroke-stack-probe",
         "watermark",
         "watermark-fit-probe", "watermark-picture",
@@ -249,7 +248,11 @@ public static class TestFonts
     {
         var library = new FontLibrary { UseSystemFonts = false };
 
-        string[] office = [CalibriPath, CalibriBoldPath, CambriaMathPath, Mincho, Gothic, Kaiti, MingLiu];
+        string[] office =
+        [
+            CalibriPath, CalibriBoldPath, CambriaMathPath, Mincho, Gothic, Kaiti, MingLiu,
+            Path.Combine(OfficeFonts, "symbol.ttf")
+        ];
 
         IEnumerable<string> paths =
         [

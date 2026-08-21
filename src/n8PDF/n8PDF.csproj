@@ -23,6 +23,11 @@
 
     <PropertyGroup Label="Package">
         <PackageId>n8PDF</PackageId>
+
+        <!--
+          What a local build gets. A release states its own version on the command line, taken
+          from the tag it is cut at, so that the tag is the one place a version is written down.
+        -->
         <Version>1.0.0</Version>
         <Authors>Nathan Pond</Authors>
         <Product>n8PDF</Product>
@@ -35,16 +40,23 @@
         <PackageTags>docx;pdf;word;openxml;wordprocessingml;conversion;typesetting;pdf-generation</PackageTags>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
+        <!-- Where the package came from, so a consumer can get back to the source of a rule. -->
+        <PackageProjectUrl>https://github.com/nathanpond/n8PDF</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/nathanpond/n8PDF</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
         <!--
-          Symbols go alongside so a stack trace through the converter is readable. Once the
-          repository has a public home, add PackageProjectUrl, RepositoryUrl and
-          PublishRepositoryUrl here so the package points back at its source.
+          Symbols go alongside so a stack trace through the converter is readable. They are not
+          source-linked: SourceLink is a PackageReference, and this project may not have one. What
+          stands in for it is RepositoryCommit, which the release workflow stamps with the commit
+          it built — enough to find the source of a frame by hand.
         -->
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
         <!-- The same input builds the same assembly, whoever builds it. -->
         <Deterministic>true</Deterministic>
+
     </PropertyGroup>
 
     <ItemGroup>
