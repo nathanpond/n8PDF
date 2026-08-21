@@ -583,6 +583,59 @@ internal sealed class FieldScope
     }
 }
 
+/// <summary>What a floating table's position is measured from.</summary>
+internal enum TableAnchor
+{
+    /// <summary>The text: where the table would have stood had it not been floating.</summary>
+    Text,
+
+    /// <summary>The margin, which is the text's own box on the page.</summary>
+    Margin,
+
+    /// <summary>The paper.</summary>
+    Page
+}
+
+/// <summary>A place named rather than measured, as <c>left</c> or <c>center</c>.</summary>
+internal enum TableAlignSpec
+{
+    None,
+    Left,
+    Center,
+    Right,
+    Inside,
+    Outside,
+    Top,
+    Bottom,
+    Inline
+}
+
+/// <summary>
+/// A table taken out of the flow, from <c>w:tblpPr</c>: it stands where it is put and the text
+/// runs round it.
+/// </summary>
+/// <remarks>
+/// Measured against Word in floating-table-probe. The distances are the daylight Word keeps
+/// between the table and the text — an eighth of an inch either side is what Word writes itself —
+/// and the anchors say what the place is measured from.
+///
+/// The place names the *cell's own text edge* rather than the table's edge, which is the same rule
+/// a declared indent follows: a table put at the margin has its first column's text on the margin
+/// and its border hanging outside it. The probe says so twice over, once with a half point border
+/// and once with a three point one: the border grows outward and the text stays where it was.
+/// </remarks>
+internal sealed record TablePosition(
+    double LeftFromTextPoints,
+    double RightFromTextPoints,
+    double TopFromTextPoints,
+    double BottomFromTextPoints,
+    TableAnchor HorizontalAnchor,
+    TableAnchor VerticalAnchor,
+    double XPoints,
+    TableAlignSpec XSpec,
+    double YPoints,
+    TableAlignSpec YSpec);
+
 /// <summary>Where a dropped capital sits.</summary>
 internal enum DropCapKind
 {
@@ -832,6 +885,9 @@ internal sealed class TableProperties
     /// element on every table it saves, so real documents always take the first path.
     /// </remarks>
     public int? IndentTwips { get; set; }
+
+    /// <summary>Where the table floats, or null where it stands in the flow like any other.</summary>
+    public TablePosition? Position { get; set; }
 
     public BorderSet Borders { get; } = new();
 

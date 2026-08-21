@@ -980,6 +980,46 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### A table that floats
+
+`w:tblpPr` takes a table out of the flow: it stands where it is put and the text runs round it.
+`floating-table-probe` puts seven of them to Word — against each margin, on the paper itself, with
+half an inch of daylight, with none, half an inch further down, and one drawn with a three point
+border — and reads the answers off the ink and the text together.
+
+- **The place names the cell's text edge, not the table's edge.** The same rule `w:tblInd` follows.
+  The thick-bordered page is what proves it: thicken the border from half a point to three and the
+  border grows outward while the text stays on the margin.
+- **Down the page the place names the outer edge instead.** Word draws the thin border and the
+  thick one with their tops in the same place, which only holds if what is put there is the outside
+  of the line.
+- **The daylight is measured from the outside of the border too**, which is why the text beside the
+  thick-bordered table stands a point and a half further out than beside the thin one.
+- **`tblpXSpec` names a place rather than measuring one** — `right` puts the table's right text
+  edge on the right margin, `center` centres the box, since it hangs out equally at both ends.
+- **A table anchored to the text stands where it would have stood** plus whatever `w:tblpY` says;
+  one anchored to the paper stands where it is told and the flow takes no notice of it beyond
+  making room.
+
+The table is placed as a float in the same machinery a wrapped picture uses, so the lines it
+reaches give up its width and the ones past it come back to the full measure. Every one of the
+seven pages agrees with Word: the box within a tenth of a point sideways, and the text beside it
+within half of one.
+
+**Two things Word does here that this does not yet**, both held in `floating-table-wrap-probe`
+rather than left unsaid:
+
+- **Word flows text down both sides of a table with room either side of it.** This puts the text
+  down the wider side and leaves the narrower empty, so a paragraph beside a centred table takes
+  twice as many lines here as in Word. The same limit applies to a floating picture, and lifting it
+  means composing one line across two bands.
+- **Word shortens a line its clearance reaches back over.** A table with half an inch of daylight
+  above it shortens the line already written above it; this leaves that line whole, because by the
+  time the table is reached that line has been placed.
+
+A floating table is also not broken across pages here — Word moves one that will not fit rather
+than splitting it, and a probe for that is work still to do.
+
 ### A dropped capital
 
 `w:framePr` with `w:dropCap` is the big first letter a document opens a chapter with. It is not a

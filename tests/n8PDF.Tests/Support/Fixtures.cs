@@ -199,6 +199,40 @@ public static class Fixtures
     /// say which they are in their own text, so a page of the export says outright which of them
     /// Word put there.
     /// </summary>
+    /// <summary>
+    /// A narrow table of two columns, with the positioning properties it is given. Narrow so that
+    /// there is room for text beside it, and bordered so its edges can be found in the ink.
+    /// </summary>
+    private static string PositionedTable(string label, int rows, string positioning, int borderSize = 4)
+    {
+        static string Cell(string text) =>
+            $"<w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+            $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(text)}</w:t></w:r></w:p></w:tc>";
+
+        var body = string.Concat(Enumerable.Range(1, rows).Select(i =>
+            $"<w:tr>{Cell($"{label} {i}")}{Cell("cell")}</w:tr>"));
+
+        return $"""
+                <w:tbl>
+                  <w:tblPr>
+                    {positioning}
+                    <w:tblW w:w="2880" w:type="dxa"/>
+                    <w:tblBorders>
+                      <w:top w:val="single" w:sz="{borderSize}" w:color="auto"/>
+                      <w:left w:val="single" w:sz="{borderSize}" w:color="auto"/>
+                      <w:bottom w:val="single" w:sz="{borderSize}" w:color="auto"/>
+                      <w:right w:val="single" w:sz="{borderSize}" w:color="auto"/>
+                      <w:insideH w:val="single" w:sz="{borderSize}" w:color="auto"/>
+                      <w:insideV w:val="single" w:sz="{borderSize}" w:color="auto"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="1800"/><w:gridCol w:w="1080"/></w:tblGrid>
+                  {body}
+                </w:tbl>
+                """;
+    }
+
     private static string HeadingTable(string label, int rows, params int[] headings)
     {
         static string Cell(string text) =>
@@ -5124,6 +5158,122 @@ public static class Fixtures
             //      passed over
             //   2  every fifth line, counting on from the section before, starting at ten
             //   3  every line again, half an inch out, beginning again with the section
+            // A table that floats: w:tblpPr takes it out of the flow and the text runs round it.
+            // Seven pages, so that one export answers the whole of it:
+            //
+            //   1  against the left margin, anchored to the text it was written among
+            //   2  against the right margin
+            //   3  anchored to the page rather than the text, at a stated place
+            //   4  half an inch of daylight on every side of it
+            //   5  no daylight at all
+            //   6  a stated distance down from the paragraph it belongs to
+            //   7  the same in the left-hand place, drawn with a three point border
+            //
+            // A table with room on both sides of it is floating-table-sides-probe, which is a
+            // fixture of its own because Word does something there this does not.
+            ["floating-table-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label, string positioning, int rows = 4, int lines = 12,
+                    int borderSize = 4, bool above = true)
+                {
+                    if (!first) builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                    first = false;
+
+                    // The table is written among the text rather than before it, so that what it
+                    // is anchored to is a paragraph with lines of its own. The one exception is the
+                    // page whose clearance is half an inch: a clearance that reaches back over a
+                    // line already written is one of the two things floating-table-wrap-probe is
+                    // for, and this page is about the room the table takes beside and below it.
+                    if (above)
+                        builder.AddParagraph($"{label}: the first line of the page, above the table.",
+                            ZeroSpacing, Times12);
+                    builder.AddRawParagraph(PositionedTable(label, rows, positioning, borderSize));
+
+                    for (var i = 1; i <= lines; i++)
+                        builder.AddParagraph(
+                            $"{label} line {i}, long enough to reach the table and be shortened by it.",
+                            ZeroSpacing, Times12);
+                }
+
+                // What Word itself writes for a floating table: an eighth of an inch of daylight
+                // either side, and anchored to the text. Six points down from where the table
+                // would have stood, so that its rows' baselines and the text's fall clear of one
+                // another and each can be read off the export on its own.
+                const string Daylight = "w:leftFromText=\"180\" w:rightFromText=\"180\" ";
+
+                Page("Left", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
+                             "w:tblpX=\"0\" w:tblpY=\"120\"/>");
+
+                Page("Right", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
+                              "w:tblpXSpec=\"right\" w:tblpY=\"120\"/>");
+
+                // Two inches down the paper and one inch across it, wherever the text is.
+                Page("Page", $"<w:tblpPr {Daylight}w:vertAnchor=\"page\" w:horzAnchor=\"page\" " +
+                             "w:tblpX=\"1440\" w:tblpY=\"2880\"/>");
+
+                Page("Wide", "<w:tblpPr w:leftFromText=\"720\" w:rightFromText=\"720\" " +
+                             "w:topFromText=\"720\" w:bottomFromText=\"720\" " +
+                             "w:vertAnchor=\"text\" w:horzAnchor=\"margin\" w:tblpX=\"0\" w:tblpY=\"120\"/>",
+                    above: false);
+
+                Page("Tight", "<w:tblpPr w:leftFromText=\"0\" w:rightFromText=\"0\" " +
+                              "w:topFromText=\"0\" w:bottomFromText=\"0\" " +
+                              "w:vertAnchor=\"text\" w:horzAnchor=\"margin\" w:tblpX=\"0\" w:tblpY=\"120\"/>");
+
+                Page("Down", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
+                             "w:tblpX=\"0\" w:tblpY=\"720\"/>");
+
+                // The same place with a three point border rather than half a point: the table
+                // stands a border's width left of where it is put, and this says whether that is
+                // the border's width or a fixed step.
+                Page("Thick", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
+                              "w:tblpX=\"0\" w:tblpY=\"300\"/>", borderSize: 24);
+
+                return builder;
+            },
+
+            // The two things Word does with a floating table that this does not, each on a page
+            // of its own, so that the fixtures compared against Word elsewhere stay exact and
+            // these stand out as the differences they are:
+            //
+            //   1  room either side of the table, where Word puts text down both sides of it and
+            //      this puts it down the wider one
+            //   2  a clearance above the table that reaches back over a line already written,
+            //      where Word shortens that line and this leaves it whole
+            ["floating-table-wrap-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Lines(string label, int count)
+                {
+                    for (var i = 1; i <= count; i++)
+                        builder.AddParagraph(
+                            $"{label} line {i}, long enough to reach the table and be shortened by it.",
+                            ZeroSpacing, Times12);
+                }
+
+                builder.AddParagraph("The line above the table, which is not shortened at all.",
+                    ZeroSpacing, Times12);
+                builder.AddRawParagraph(PositionedTable("Middle", 4,
+                    "<w:tblpPr w:leftFromText=\"180\" w:rightFromText=\"180\" " +
+                    "w:vertAnchor=\"text\" w:horzAnchor=\"margin\" w:tblpXSpec=\"center\" w:tblpY=\"120\"/>"));
+                Lines("Middle", 12);
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                builder.AddParagraph("The line above the table, which Word shortens and this does not.",
+                    ZeroSpacing, Times12);
+                builder.AddRawParagraph(PositionedTable("Reach", 4,
+                    "<w:tblpPr w:leftFromText=\"180\" w:rightFromText=\"180\" " +
+                    "w:topFromText=\"720\" w:bottomFromText=\"720\" " +
+                    "w:vertAnchor=\"text\" w:horzAnchor=\"margin\" w:tblpX=\"0\" w:tblpY=\"120\"/>"));
+                Lines("Reach", 12);
+
+                return builder;
+            },
+
             // Where an exact line puts its baseline. w:lineRule="exact" fixes the height of the
             // line and says nothing about how the room is divided above and below the baseline,
             // and at twelve point every reading of that is within a step of every other. At

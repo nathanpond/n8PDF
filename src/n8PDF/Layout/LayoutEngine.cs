@@ -882,6 +882,109 @@ internal sealed class LayoutEngine(
         cursor.Y += line.Height;
     }
 
+
+    /// <summary>
+    /// Places a table that floats: it stands where <c>w:tblpPr</c> puts it, takes no room in the
+    /// flow, and the lines it reaches make way for it.
+    /// </summary>
+    /// <remarks>
+    /// Measured from floating-table-probe, eight pages of one export:
+    ///
+    ///   * The place names the cell's own text edge, not the table's edge — the same rule a
+    ///     declared indent follows. A table put at the margin has its first column's text on the
+    ///     margin and its border hanging outside it, and the probe shows the border growing
+    ///     outward from there when it is thickened from half a point to three.
+    ///   * <c>tblpXSpec</c> names a place instead of measuring one: left, centre and right of
+    ///     whatever the anchor is.
+    ///   * Anchored to the text, the place is measured from where the table would have stood had
+    ///     it not been floating — the flow's own position, which is why a table written among
+    ///     paragraphs lands beside the ones that follow it rather than the ones above.
+    ///   * The daylight is part of what the text keeps away from, and nothing else: the table is
+    ///     drawn at its place whatever the distances say.
+    ///
+    /// A floating table is not broken across pages here. Word moves one that will not fit rather
+    /// than splitting it, and a probe for that is work still to do.
+    /// </remarks>
+    private void LayoutFloatingTable(
+        Cursor cursor, Table table, TablePosition position, List<double> columns)
+    {
+        var width = columns.Sum();
+        var inset = LeadingCellInset(table, columns.Count);
+
+        var left = position.HorizontalAnchor switch
+        {
+            TableAnchor.Page => 0.0,
+            TableAnchor.Margin => cursor.SectionLeft,
+            _ => cursor.Left
+        };
+
+        // The width the named places are measured across: the text's own for the margin and for
+        // the text, the whole paper for the page.
+        var measure = position.HorizontalAnchor == TableAnchor.Page
+            ? cursor.Page.WidthPoints
+            : cursor.SectionWidth;
+
+        // Where the table's own box begins. A place stated is measured to the cell's text edge,
+        // so the box hangs its border and margin outside it; a place named puts the same text box
+        // against the same place at the other end, which for the middle is the box itself since
+        // the two ends hang out equally.
+        var boxLeft = position.XSpec switch
+        {
+            TableAlignSpec.Center => left + Math.Max(0, measure - width) / 2,
+            TableAlignSpec.Right => left + measure + inset - width,
+            _ => left + position.XPoints - inset
+        };
+
+        var edges = OuterBorderHalves(table, columns.Count);
+
+        var top = position.VerticalAnchor switch
+        {
+            TableAnchor.Page => position.YPoints,
+            TableAnchor.Margin => cursor.ContentTop + position.YPoints,
+            _ => cursor.Y + position.YPoints
+        };
+
+        // The table is laid out as any other, at the place worked out and against its own width,
+        // and the flow is put back exactly as it was: a float takes none of it.
+        var savedLeft = cursor.Left;
+        var savedWidth = cursor.Width;
+        var savedY = cursor.Y;
+        var savedPaginate = cursor.Paginate;
+        var savedSpaceAfter = cursor.PendingSpaceAfter;
+        var savedFormat = cursor.PreviousFormat;
+
+        cursor.Left = boxLeft;
+        cursor.Width = width;
+        cursor.Y = top;
+        cursor.PendingSpaceAfter = 0;
+
+        // Nothing here may break the page: the flow's own place on it is being borrowed.
+        cursor.Paginate = false;
+
+        LayoutTableRows(cursor, table, columns, cursor.Left);
+
+        var bottom = cursor.Y;
+
+        cursor.Left = savedLeft;
+        cursor.Width = savedWidth;
+        cursor.Y = savedY;
+        cursor.Paginate = savedPaginate;
+        cursor.PendingSpaceAfter = savedSpaceAfter;
+        cursor.PreviousFormat = savedFormat;
+
+        // The daylight is measured from the outside of the line the table is drawn with rather
+        // than from the box the rows sit in — sideways and below, at least. Above it is measured
+        // from the place itself, because that is where Word's own outer edge falls: Word draws the
+        // line inside the table's box where this straddles the edge with it, which is why the
+        // probe's thick border reaches a step and a half higher here than in Word's own export and
+        // why the text inside it stands in the same place all the same.
+        cursor.Floats.Add(new FloatRegion(
+            boxLeft - edges.Left - position.LeftFromTextPoints,
+            top - position.TopFromTextPoints,
+            boxLeft + width + edges.Right + position.RightFromTextPoints,
+            bottom + edges.Bottom + position.BottomFromTextPoints));
+    }
+
     /// <summary>
     /// Places a dropped capital: one letter set large, standing beside the lines that follow it
     /// rather than above them.
@@ -2468,6 +2571,13 @@ internal sealed class LayoutEngine(
         var columns = ComputeColumnWidths(table, cursor.Width);
         if (columns.Count == 0) return;
 
+        // A table with a place of its own is taken out of the flow and the text runs round it.
+        if (table.Properties.Position is { } position)
+        {
+            LayoutFloatingTable(cursor, table, position, columns);
+            return;
+        }
+
         var properties = table.Properties;
         var totalWidth = columns.Sum();
 
@@ -2492,6 +2602,17 @@ internal sealed class LayoutEngine(
         cursor.Y += cursor.PendingSpaceAfter;
         cursor.PendingSpaceAfter = 0;
         cursor.PreviousFormat = null;
+
+        LayoutTableRows(cursor, table, columns, tableLeft);
+    }
+
+    /// <summary>
+    /// Lays the rows of a table down the page from where the cursor stands, at the left edge it
+    /// is given. Separated from the table's own placement so that a floating table can borrow it.
+    /// </summary>
+    private void LayoutTableRows(Cursor cursor, Table table, List<double> columns, double tableLeft)
+    {
+        var properties = table.Properties;
 
         // Merged runs open here and close some rows further down, so they outlive any one row.
         var merges = new Dictionary<int, OpenMerge>();
@@ -2952,6 +3073,41 @@ internal sealed class LayoutEngine(
     /// How far the first column's content sits inside the table's left edge: its left cell margin
     /// plus its left border.
     /// </summary>
+    /// <summary>
+    /// Half of each line the table is drawn round with, which is how far its outer edge stands
+    /// outside the box the rows are laid in.
+    /// </summary>
+    /// <remarks>
+    /// It is the outer edge that the daylight round a floating table is measured from, not the
+    /// box: floating-table-probe draws the same table with a half point border and a three point
+    /// one, and the text beside the thick one stands a point and a half further out.
+    /// </remarks>
+    private static (double Left, double Top, double Right, double Bottom) OuterBorderHalves(
+        Table table, int columnCount)
+    {
+        var firstRow = table.Rows.FirstOrDefault();
+        var first = firstRow?.Cells.FirstOrDefault();
+        if (firstRow is null || first is null) return (0, 0, 0, 0);
+
+        var span = Math.Min(Math.Max(1, first.GridSpan), Math.Max(1, columnCount));
+        var leading = ResolveCellBorders(table, first, 0, 0, span, columnCount);
+
+        var lastRow = table.Rows[^1];
+        var last = firstRow.Cells[^1];
+        var lastSpan = Math.Min(Math.Max(1, last.GridSpan), Math.Max(1, columnCount));
+
+        var trailing = ResolveCellBorders(
+            table, last, 0, Math.Max(0, columnCount - lastSpan), lastSpan, columnCount);
+
+        var bottom = lastRow.Cells.FirstOrDefault() is { } foot
+            ? ResolveCellBorders(table, foot, table.Rows.Count - 1, 0,
+                Math.Min(Math.Max(1, foot.GridSpan), Math.Max(1, columnCount)), columnCount)
+            : leading;
+
+        return (BorderWidth(leading.Left) / 2, BorderWidth(leading.Top) / 2,
+            BorderWidth(trailing.Right) / 2, BorderWidth(bottom.Bottom) / 2);
+    }
+
     private static double LeadingCellInset(Table table, int columnCount)
     {
         var first = table.Rows.FirstOrDefault()?.Cells.FirstOrDefault();
@@ -5622,7 +5778,11 @@ internal sealed class LayoutEngine(
         public List<int>? FootnoteSink { get; init; }
 
         /// <summary>False inside a table cell, whose height is measured before it is placed.</summary>
-        public required bool Paginate { get; init; }
+        /// <summary>
+        /// Whether what is being laid out may break the page. Settable because a floating table
+        /// borrows the flow's own place on the page and must not break it while it does.
+        /// </summary>
+        public required bool Paginate { get; set; }
 
         public ResolvedParagraphFormat? PreviousFormat { get; set; }
 

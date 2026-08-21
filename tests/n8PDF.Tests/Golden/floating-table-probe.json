@@ -1,0 +1,1385 @@
+{
+  "pageCount": 7,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 222.246, "font": "Times New Roman", "size": 12, "text": "Left: the first line of the page, above the table."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 103.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 28.986, "font": "Times New Roman", "size": 12, "text": "Left 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 103.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 117.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 28.986, "font": "Times New Roman", "size": 12, "text": "Left 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 117.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 132,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 28.986, "font": "Times New Roman", "size": 12, "text": "Left 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 132,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 146.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 28.986, "font": "Times New Roman", "size": 12, "text": "Left 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 146.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 1, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 2, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 3, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 4, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 5, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 6, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 193.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 207.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 312.902, "font": "Times New Roman", "size": 12, "text": "Left line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 221.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Left line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 234.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Left line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 248.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Left line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 228.932, "font": "Times New Roman", "size": 12, "text": "Right: the first line of the page, above the table."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 397, "width": 35.672, "font": "Times New Roman", "size": 12, "text": "Right 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 487, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 397, "width": 35.672, "font": "Times New Roman", "size": 12, "text": "Right 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 487, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 397, "width": 35.672, "font": "Times New Roman", "size": 12, "text": "Right 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 487, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 159.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 397, "width": 35.672, "font": "Times New Roman", "size": 12, "text": "Right 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 159.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 487, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 306.92, "font": "Times New Roman", "size": 12, "text": "Right line 1, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 306.92, "font": "Times New Roman", "size": 12, "text": "Right line 2, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 306.92, "font": "Times New Roman", "size": 12, "text": "Right line 3, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 319.588, "font": "Times New Roman", "size": 12, "text": "Right line 4, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 319.588, "font": "Times New Roman", "size": 12, "text": "Right line 5, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 319.588, "font": "Times New Roman", "size": 12, "text": "Right line 6, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 319.588, "font": "Times New Roman", "size": 12, "text": "Right line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 24,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 319.588, "font": "Times New Roman", "size": 12, "text": "Right line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 262.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 319.588, "font": "Times New Roman", "size": 12, "text": "Right line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 276,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 325.588, "font": "Times New Roman", "size": 12, "text": "Right line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 289.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 325.588, "font": "Times New Roman", "size": 12, "text": "Right line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 303.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 325.588, "font": "Times New Roman", "size": 12, "text": "Right line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 29,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 225.586, "font": "Times New Roman", "size": 12, "text": "Page: the first line of the page, above the table."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 155.52,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.326, "font": "Times New Roman", "size": 12, "text": "Page 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 155.52,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 169.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.326, "font": "Times New Roman", "size": 12, "text": "Page 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 169.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 184.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.326, "font": "Times New Roman", "size": 12, "text": "Page 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 184.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 198.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 32.326, "font": "Times New Roman", "size": 12, "text": "Page 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 198.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 316.242, "font": "Times New Roman", "size": 12, "text": "Page line 1, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 316.242, "font": "Times New Roman", "size": 12, "text": "Page line 2, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 316.242, "font": "Times New Roman", "size": 12, "text": "Page line 3, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 303.574, "font": "Times New Roman", "size": 12, "text": "Page line 4, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 303.574, "font": "Times New Roman", "size": 12, "text": "Page line 5, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 303.574, "font": "Times New Roman", "size": 12, "text": "Page line 6, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 316.242, "font": "Times New Roman", "size": 12, "text": "Page line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 316.242, "font": "Times New Roman", "size": 12, "text": "Page line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 262.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 316.242, "font": "Times New Roman", "size": 12, "text": "Page line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 276,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.242, "font": "Times New Roman", "size": 12, "text": "Page line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 289.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.242, "font": "Times New Roman", "size": 12, "text": "Page line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 303.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.242, "font": "Times New Roman", "size": 12, "text": "Page line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 44,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.986, "font": "Times New Roman", "size": 12, "text": "Wide 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 117.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.986, "font": "Times New Roman", "size": 12, "text": "Wide 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 117.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.52,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.986, "font": "Times New Roman", "size": 12, "text": "Wide 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.52,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.986, "font": "Times New Roman", "size": 12, "text": "Wide 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 46,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 241.582, "font": "Times New Roman", "size": 12, "text": "Wide line 1, long enough to reach the table and be"}
+          ]
+        },
+        {
+          "paragraph": 46,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 74.32, "font": "Times New Roman", "size": 12, "text": "shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 241.582, "font": "Times New Roman", "size": 12, "text": "Wide line 2, long enough to reach the table and be"}
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 74.32, "font": "Times New Roman", "size": 12, "text": "shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 241.582, "font": "Times New Roman", "size": 12, "text": "Wide line 3, long enough to reach the table and be"}
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 74.32, "font": "Times New Roman", "size": 12, "text": "shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 241.582, "font": "Times New Roman", "size": 12, "text": "Wide line 4, long enough to reach the table and be"}
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 251.75, "width": 74.32, "font": "Times New Roman", "size": 12, "text": "shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 50,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Wide line 5, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 51,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Wide line 6, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 52,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Wide line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 53,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Wide line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 54,
+          "baselineY": 262.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.902, "font": "Times New Roman", "size": 12, "text": "Wide line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 55,
+          "baselineY": 276,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 324.902, "font": "Times New Roman", "size": 12, "text": "Wide line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 56,
+          "baselineY": 289.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 324.902, "font": "Times New Roman", "size": 12, "text": "Wide line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 57,
+          "baselineY": 303.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 324.902, "font": "Times New Roman", "size": 12, "text": "Wide line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 58,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 59,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 228.258, "font": "Times New Roman", "size": 12, "text": "Tight: the first line of the page, above the table."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.998, "font": "Times New Roman", "size": 12, "text": "Tight 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 116.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.998, "font": "Times New Roman", "size": 12, "text": "Tight 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 131.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.998, "font": "Times New Roman", "size": 12, "text": "Tight 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 159.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 34.998, "font": "Times New Roman", "size": 12, "text": "Tight 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 159.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 61,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 215.75, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 1, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 62,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 215.75, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 2, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 63,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 215.75, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 3, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 64,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 215.75, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 4, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 65,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 215.75, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 5, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 66,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 6, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 67,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 68,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 69,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 318.914, "font": "Times New Roman", "size": 12, "text": "Tight line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 70,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 324.914, "font": "Times New Roman", "size": 12, "text": "Tight line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 71,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 324.914, "font": "Times New Roman", "size": 12, "text": "Tight line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 72,
+          "baselineY": 262.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 324.914, "font": "Times New Roman", "size": 12, "text": "Tight line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 73,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 74,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 231.592, "font": "Times New Roman", "size": 12, "text": "Down: the first line of the page, above the table."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 146.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.332, "font": "Times New Roman", "size": 12, "text": "Down 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 146.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 161.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.332, "font": "Times New Roman", "size": 12, "text": "Down 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 161.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.332, "font": "Times New Roman", "size": 12, "text": "Down 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 175.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 189.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.332, "font": "Times New Roman", "size": 12, "text": "Down 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 189.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 76,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.248, "font": "Times New Roman", "size": 12, "text": "Down line 1, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 77,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.248, "font": "Times New Roman", "size": 12, "text": "Down line 2, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 78,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 309.58, "font": "Times New Roman", "size": 12, "text": "Down line 3, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 78,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 79,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 309.58, "font": "Times New Roman", "size": 12, "text": "Down line 4, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 79,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 80,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 224.75, "width": 309.58, "font": "Times New Roman", "size": 12, "text": "Down line 5, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 80,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 81,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.248, "font": "Times New Roman", "size": 12, "text": "Down line 6, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 82,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.248, "font": "Times New Roman", "size": 12, "text": "Down line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 83,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.248, "font": "Times New Roman", "size": 12, "text": "Down line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 84,
+          "baselineY": 262.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 322.248, "font": "Times New Roman", "size": 12, "text": "Down line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 85,
+          "baselineY": 276,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 328.248, "font": "Times New Roman", "size": 12, "text": "Down line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 86,
+          "baselineY": 289.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 328.248, "font": "Times New Roman", "size": 12, "text": "Down line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 87,
+          "baselineY": 303.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 328.248, "font": "Times New Roman", "size": 12, "text": "Down line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 88,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 89,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 230.25, "font": "Times New Roman", "size": 12, "text": "Thick: the first line of the page, above the table."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 128.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Thick 1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 128.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 144.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Thick 2"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 144.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 161.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Thick 3"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 161.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 178.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Thick 4"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 178.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 17.32, "font": "Times New Roman", "size": 12, "text": "cell"}
+          ]
+        },
+        {
+          "paragraph": 91,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 320.906, "font": "Times New Roman", "size": 12, "text": "Thick line 1, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 92,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 225, "width": 308.238, "font": "Times New Roman", "size": 12, "text": "Thick line 2, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 92,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 225, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 93,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 225, "width": 308.238, "font": "Times New Roman", "size": 12, "text": "Thick line 3, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 93,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 225, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 94,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 225, "width": 308.238, "font": "Times New Roman", "size": 12, "text": "Thick line 4, long enough to reach the table and be shortened by"}
+          ]
+        },
+        {
+          "paragraph": 94,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 225, "width": 9.668, "font": "Times New Roman", "size": 12, "text": "it."}
+          ]
+        },
+        {
+          "paragraph": 95,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 320.906, "font": "Times New Roman", "size": 12, "text": "Thick line 5, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 96,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 320.906, "font": "Times New Roman", "size": 12, "text": "Thick line 6, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 97,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 320.906, "font": "Times New Roman", "size": 12, "text": "Thick line 7, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 98,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 320.906, "font": "Times New Roman", "size": 12, "text": "Thick line 8, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 99,
+          "baselineY": 262.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 320.906, "font": "Times New Roman", "size": 12, "text": "Thick line 9, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 100,
+          "baselineY": 276,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 326.906, "font": "Times New Roman", "size": 12, "text": "Thick line 10, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 101,
+          "baselineY": 289.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 326.906, "font": "Times New Roman", "size": 12, "text": "Thick line 11, long enough to reach the table and be shortened by it."}
+          ]
+        },
+        {
+          "paragraph": 102,
+          "baselineY": 303.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 326.906, "font": "Times New Roman", "size": 12, "text": "Thick line 12, long enough to reach the table and be shortened by it."}
+          ]
+        }
+      ]
+    }
+  ]
+}

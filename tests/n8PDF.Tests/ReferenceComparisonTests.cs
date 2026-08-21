@@ -106,6 +106,13 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         // An equation is here for a third reason: Word writes the letters of one from the block
         // Unicode sets aside for mathematics and gives them no map back at all, so the text read
         // out of its file is the private codes of a subset rather than anything anyone typed.
+        // And floating-table-wrap-probe for a fourth: Word puts text down both sides of the table
+        // it holds, so its lines are broken in other places than this breaks them and the table's
+        // own text falls between other pieces. The words are the same words; the order they are
+        // read back in is not. That the reference is the right document is asserted for it by
+        // FloatingTableTests, which reads the two things it is for straight out of Word's export.
+        if (name is "floating-table-wrap-probe") return;
+
         if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
             or "southeast-asian" or "universal" or "apple" or "equations"
             or "math-line-box-probe" or "math-structure-probe" or "math-kern-probe"

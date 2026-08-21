@@ -1107,6 +1107,7 @@ internal static class DocumentParser
         if (tblPr.Element(W.Main + "tblLook") is { } look) properties.Look = ReadTableLook(look);
 
         properties.IndentTwips = tblPr.Element(W.Main + "tblInd")?.IntAttr("w");
+        properties.Position = ReadTablePosition(tblPr.Element(W.Main + "tblpPr"));
 
         if (tblPr.Element(W.Main + "tblLayout")?.Attr("type") is { } layout)
             properties.FixedLayout = layout == "fixed";
@@ -1306,6 +1307,47 @@ internal static class DocumentParser
         target.Right = ReadBorderEdge(container.Element(W.Main + "right") ?? container.Element(W.Main + "end"));
         target.InsideHorizontal = ReadBorderEdge(container.Element(W.Main + "insideH"));
         target.InsideVertical = ReadBorderEdge(container.Element(W.Main + "insideV"));
+    }
+
+    /// <summary>Reads <c>w:tblpPr</c>: where a floating table stands and what it is measured from.</summary>
+    private static TablePosition? ReadTablePosition(XElement? element)
+    {
+        if (element is null) return null;
+
+        static double Distance(XElement element, string name) =>
+            Units.TwipsToPoints(element.IntAttr(name) ?? 0);
+
+        static TableAnchor Anchor(string? value) => value switch
+        {
+            "page" => TableAnchor.Page,
+            "margin" => TableAnchor.Margin,
+            _ => TableAnchor.Text
+        };
+
+        static TableAlignSpec Spec(string? value) => value switch
+        {
+            "left" => TableAlignSpec.Left,
+            "center" => TableAlignSpec.Center,
+            "right" => TableAlignSpec.Right,
+            "inside" => TableAlignSpec.Inside,
+            "outside" => TableAlignSpec.Outside,
+            "top" => TableAlignSpec.Top,
+            "bottom" => TableAlignSpec.Bottom,
+            "inline" => TableAlignSpec.Inline,
+            _ => TableAlignSpec.None
+        };
+
+        return new TablePosition(
+            Distance(element, "leftFromText"),
+            Distance(element, "rightFromText"),
+            Distance(element, "topFromText"),
+            Distance(element, "bottomFromText"),
+            Anchor(element.Attr("horzAnchor")),
+            Anchor(element.Attr("vertAnchor")),
+            Distance(element, "tblpX"),
+            Spec(element.Attr("tblpXSpec")),
+            Distance(element, "tblpY"),
+            Spec(element.Attr("tblpYSpec")));
     }
 
     /// <summary>
