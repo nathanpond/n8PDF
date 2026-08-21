@@ -78,9 +78,15 @@ public class LineGridTests(ITestOutputHelper output)
     /// Text that is not written along the line: a mark placed against the letter it belongs to by
     /// the font's own attachment rules, and anything written under a transform of its own — a
     /// watermark turned across the page, a label turned up the side of a chart, the text inside a
-    /// drawing. Word's own pages put these off the grid too, save for the watermarks, which are
-    /// compared against Word's elsewhere and agree to the millipoint.
+    /// drawing. Word's own pages put these off the grid too.
     /// </summary>
+    /// <remarks>
+    /// Except the watermarks, where Word's pages say nothing either way: Word draws a watermark as
+    /// outlines and writes no text for it at all, so it has no baseline there to be on the grid or
+    /// off it. Ours is text, turned, and lands where Word's ink lands — edge for edge, to the
+    /// third of a point a page can be read to, which is what
+    /// <c>WatermarkTests.A_watermark_covers_the_same_ground_as_words</c> holds it to.
+    /// </remarks>
     private static readonly HashSet<string> NotWrittenAlongTheLine =
     [
         "arabic", "indic", "marks", "chart-title-legend-label", "images-metafile",

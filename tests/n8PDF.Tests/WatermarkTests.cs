@@ -61,6 +61,89 @@ public class WatermarkTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// Where the watermark's ink actually falls, edge for edge, against Word's.
+    /// </summary>
+    /// <remarks>
+    /// The agreement above is a share of the page's points, which answers "does this look like
+    /// Word's" and not "is it in the same place": a watermark drawn a point out of position still
+    /// agrees on 99% of a page, because most of a page is white in both. This asks the sharper
+    /// question — the bounding box of the grey — and gets the same answer to a third of a point,
+    /// which is as fine as the drawing is read.
+    ///
+    /// Worth having because ours is text and Word's is outlines. Word writes no text at all for a
+    /// watermark, which is why its pages have no baseline off the grid there and why nothing about
+    /// the grid can be read from them; what can be compared is the ink, and this is it.
+    /// </remarks>
+    [Theory]
+    [InlineData("watermark", 0)]
+    [InlineData("watermark", 1)]
+    [InlineData("watermark-fit-probe", 0)]
+    [InlineData("watermark-fit-probe", 2)]
+    [InlineData("watermark-fit-probe", 6)]
+    public void A_watermark_covers_the_same_ground_as_words(string fixture, int page)
+    {
+        if (TestFonts.SkipForMissingFonts(fixture)) return;
+
+        var ours = Converter.Convert(Fixtures.Build(fixture),
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+        var reference = File.ReadAllBytes(Path.Combine(TestPaths.ReferencePdfs, fixture + ".pdf"));
+
+        const double Scale = 3;
+
+        if (PdfRasterizer.Render(ours, page, Scale) is not { } mine ||
+            PdfRasterizer.Render(reference, page, Scale) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var a = GreyExtent(mine);
+        var b = GreyExtent(word);
+
+        _output.WriteLine($"ours {a.Left:0.##} {a.Top:0.##} {a.Right:0.##} {a.Bottom:0.##}");
+        _output.WriteLine($"word {b.Left:0.##} {b.Top:0.##} {b.Right:0.##} {b.Bottom:0.##}");
+
+        // Within one step of the raster, which is the finest this can see: a page is read three
+        // times a point, and whether the outermost third of a point of a rounded edge counts as
+        // ink is a question about anti-aliasing rather than about position.
+        const double Step = 1.0 / 3 + 0.001;
+
+        Assert.InRange(a.Left, b.Left - Step, b.Left + Step);
+        Assert.InRange(a.Top, b.Top - Step, b.Top + Step);
+        Assert.InRange(a.Right, b.Right - Step, b.Right + Step);
+        Assert.InRange(a.Bottom, b.Bottom - Step, b.Bottom + Step);
+    }
+
+    /// <summary>
+    /// The bounds of the pale grey a watermark is drawn in — neither the white of the page nor the
+    /// black of the text over it.
+    /// </summary>
+    private static (double Left, double Top, double Right, double Bottom) GreyExtent(RenderedPage page)
+    {
+        const double Scale = 3;
+        const double Step = 1.0 / 3;
+
+        double left = 1e9, top = 1e9, right = -1, bottom = -1;
+
+        for (var y = 30.0; y < 760; y += Step)
+        for (var x = 10.0; x < 600; x += Step)
+        {
+            var (r, g, b) = page.At(x, y, Scale);
+            if (r is < 150 or > 244 || Math.Abs(r - g) > 12 || Math.Abs(g - b) > 12) continue;
+
+            left = Math.Min(left, x);
+            right = Math.Max(right, x);
+            top = Math.Min(top, y);
+            bottom = Math.Max(bottom, y);
+        }
+
+        Assert.True(right > 0, "the page holds no watermark grey at all");
+
+        return (left, top, right, bottom);
+    }
+
+    /// <summary>
     /// And the whole of one: turned, grey, half see-through, and on every page of the document.
     /// </summary>
     [Theory]
