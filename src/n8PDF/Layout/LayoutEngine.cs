@@ -155,6 +155,14 @@ internal sealed class LayoutEngine(
     private int _nextLineNumber = 1;
 
     /// <summary>
+    /// What is left of a floating table that ran off the foot of a page, waiting for the next one.
+    /// </summary>
+    private CarriedTable? _carriedTable;
+
+    /// <summary>How far down the last floating table laid reached, before its daylight.</summary>
+    private double _tableBottom;
+
+    /// <summary>
     /// The paragraph last laid out, and everything needed to lay it again. A float's clearance can
     /// reach back over lines already written, and Word breaks those lines again round it.
     /// </summary>
@@ -325,6 +333,12 @@ internal sealed class LayoutEngine(
         // each holding nothing but the rest of the note, and so does this — dropping the end of a
         // note would lose text the document has.
         DrainFootnotes(cursor);
+
+        // And a floating table may outlast it the same way: one begun near the end with more rows
+        // than the page can hold has nothing left to carry it over. The pages are made for it, as
+        // Word makes them — the probe's sixty rows come out forty on one page and twenty on a page
+        // of their own, with nothing else on it.
+        for (var guard = 0; _carriedTable is not null && guard < 256; guard++) cursor.BreakPage();
 
         // The last page never breaks, so nothing has settled it yet.
         cursor.FinishPage();
@@ -762,6 +776,7 @@ internal sealed class LayoutEngine(
             if (composer.PendingPageBreak && cursor.CanBreak) cursor.BreakPage();
             else if (composer.PendingColumnBreak && cursor.CanAdvance) cursor.AdvanceColumn();
 
+            var stood = composer.Mark;
             var bands = ResolveBandsForLine(cursor, composer.ProvisionalHeight);
             var line = composer.Next(bands);
 
@@ -802,6 +817,26 @@ internal sealed class LayoutEngine(
 
                 cursor.AdvanceColumn();
                 RePlaceLines(cursor, pulled);
+
+                // The measure here is not always the measure the line was broken against: a float
+                // on the page just left behind narrowed it and there may be none here, or one in
+                // another place. Word breaks such a line again rather than carrying its old shape
+                // over — floating-table-break-probe has a line composed beside a table at the foot
+                // of one page and set at the full measure at the head of the next.
+                var moved = ResolveBandsForLine(cursor, composer.ProvisionalHeight);
+
+                if (!SameBands(bands, moved))
+                {
+                    composer.Rewind(stood);
+                    line = composer.Next(moved);
+                    bands = moved;
+
+                    if (paragraph.SectionBreak is not null && line.Segments.Count == 0)
+                        line.SuppressNumber = true;
+
+                    footnoteIds = FootnotesOn(line);
+                    if (cursor.FootnoteSink is not null) cursor.FootnoteSink.AddRange(footnoteIds);
+                }
 
                 // A pulled-back first line takes its paragraph's bookmarks with it.
                 if (takesTheOpening) firstLine = true;
@@ -940,6 +975,19 @@ internal sealed class LayoutEngine(
     }
 
     // ----- widow and orphan control -----
+
+    /// <summary>
+    /// The rest of a floating table, to be laid at the top of the next page.
+    /// </summary>
+    /// <param name="From">The first row still to be laid.</param>
+    private sealed record CarriedTable(
+        Table Table,
+        List<double> Columns,
+        TablePosition Position,
+        double Left,
+        double Width,
+        (double Left, double Top, double Right, double Bottom) Edges,
+        int From);
 
     /// <summary>
     /// A paragraph that has been laid out and could be laid again from where it began.
@@ -1085,18 +1133,25 @@ internal sealed class LayoutEngine(
         var region = PlaceRows(stood);
         _reflowable = above;
 
+        // A table anchored to the paper does not break, so one that runs off the foot of it is
+        // moved up until it ends at the paper's own edge — bottom margin and all. Word's own: the
+        // probe puts a table a foot down the page whose height carries it past the edge, and Word
+        // draws it 28 points higher, ending exactly at 792.
+        if (position.VerticalAnchor == TableAnchor.Page && _tableBottom > cursor.Page.HeightPoints)
+        {
+            var lifted = Math.Max(0, stood - (_tableBottom - cursor.Page.HeightPoints));
+
+            Undo();
+            region = PlaceRows(lifted);
+        }
+
         // A table whose daylight reaches back over lines already written has those lines broken
         // again round it. The table itself comes off the page while that happens — it is anchored
         // to the text, so it stands wherever the flow ends up — and goes back on afterwards, at
         // whatever place the flow has reached by then.
-        if (region.Top < cursor.Y - 0.001 && _reflowable is not null)
+        if (region.Top < cursor.Y - 0.001 && _reflowable is not null && _carriedTable is null)
         {
-            cursor.Page.Lines.RemoveRange(before.Item1, cursor.Page.Lines.Count - before.Item1);
-            cursor.Page.Rules.RemoveRange(before.Item2, cursor.Page.Rules.Count - before.Item2);
-            cursor.Page.Images.RemoveRange(before.Item3, cursor.Page.Images.Count - before.Item3);
-            cursor.Page.Rectangles.RemoveRange(before.Item4, cursor.Page.Rectangles.Count - before.Item4);
-            cursor.Floats.RemoveRange(before.Item5, cursor.Floats.Count - before.Item5);
-
+            Undo();
             ReflowLinesReachedBy(cursor, region);
 
             // Back where it stood, not where the flow has got to: breaking those lines again can
@@ -1107,11 +1162,28 @@ internal sealed class LayoutEngine(
             PlaceRows(stood);
         }
 
+        // A table that broke takes the rest of the page with it: Word writes nothing beside the
+        // part that stayed, and the text that follows the table begins on the page the rest of it
+        // carries on to. So the flow is put below what was laid rather than back where it was —
+        // which leaves it at the foot of the page, and the next line breaks to the next page.
+        if (_carriedTable is not null) cursor.Y = Math.Max(cursor.Y, _tableBottom);
+
         return;
 
-        // Lays the table's rows at the place given and registers the room it takes. The flow is
-        // put back exactly as it was afterwards: a float takes none of it.
-        FloatRegion PlaceRows(double top)
+        // Takes the table back off the page, leaving it as it was before any of it was laid.
+        void Undo()
+        {
+            cursor.Page.Lines.RemoveRange(before.Item1, cursor.Page.Lines.Count - before.Item1);
+            cursor.Page.Rules.RemoveRange(before.Item2, cursor.Page.Rules.Count - before.Item2);
+            cursor.Page.Images.RemoveRange(before.Item3, cursor.Page.Images.Count - before.Item3);
+            cursor.Page.Rectangles.RemoveRange(before.Item4, cursor.Page.Rectangles.Count - before.Item4);
+            cursor.Floats.RemoveRange(before.Item5, cursor.Floats.Count - before.Item5);
+            _carriedTable = null;
+        }
+
+        // Lays the table's rows at the place given, from the row given, and registers the room it
+        // takes. The flow is put back exactly as it was afterwards: a float takes none of it.
+        FloatRegion PlaceRows(double top, int from = 0)
         {
             var savedLeft = cursor.Left;
             var savedWidth = cursor.Width;
@@ -1128,9 +1200,19 @@ internal sealed class LayoutEngine(
             // Nothing here may break the page: the flow's own place on it is being borrowed.
             cursor.Paginate = false;
 
-            LayoutTableRows(cursor, table, columns, cursor.Left);
+            // A table anchored to the text breaks at the foot of the page and carries on at the
+            // top of the next, which is what Word does with one. A table anchored to the paper
+            // does not: floating-table-break-probe puts one a foot down a page whose text fills
+            // it, and Word runs the table on past the bottom margin to the paper's own edge.
+            var breaks = position.VerticalAnchor != TableAnchor.Page;
+            var next = LayoutTableRows(cursor, table, columns, cursor.Left, from, breaks);
 
             var bottom = cursor.Y;
+            _tableBottom = bottom;
+
+            _carriedTable = next < table.Rows.Count
+                ? new CarriedTable(table, columns, position, boxLeft, width, edges, next)
+                : null;
 
             cursor.Left = savedLeft;
             cursor.Width = savedWidth;
@@ -1154,6 +1236,60 @@ internal sealed class LayoutEngine(
             cursor.Floats.Add(taken);
             return taken;
         }
+    }
+
+    /// <summary>
+    /// Lays what is left of a floating table that ran off the foot of the page before, at the top
+    /// of the page just started.
+    /// </summary>
+    /// <remarks>
+    /// Word breaks a floating table at a row and carries the rest over rather than moving the
+    /// whole of it: floating-table-break-probe has twenty rows where six of them fit, and Word
+    /// writes six at the foot of one page and fourteen at the head of the next, in the same place
+    /// across the measure and with the text beside them shortened on both pages. Sixty rows come
+    /// out forty and twenty, which is the same rule twice over.
+    ///
+    /// The rest begins at the top margin, whatever the table's own place said: what put the table
+    /// where it stands belongs to the page it began on.
+    /// </remarks>
+    private void ResumeCarriedTable(Cursor cursor)
+    {
+        if (_carriedTable is not { } carried) return;
+        _carriedTable = null;
+
+        var savedLeft = cursor.Left;
+        var savedWidth = cursor.Width;
+        var savedY = cursor.Y;
+        var savedPaginate = cursor.Paginate;
+        var savedSpaceAfter = cursor.PendingSpaceAfter;
+        var savedFormat = cursor.PreviousFormat;
+
+        cursor.Left = carried.Left;
+        cursor.Width = carried.Width;
+        cursor.Y = cursor.ContentTop;
+        cursor.PendingSpaceAfter = 0;
+        cursor.Paginate = false;
+
+        var next = LayoutTableRows(
+            cursor, carried.Table, carried.Columns, carried.Left, carried.From, floating: true);
+
+        var bottom = cursor.Y;
+
+        cursor.Left = savedLeft;
+        cursor.Width = savedWidth;
+        cursor.Y = savedY;
+        cursor.Paginate = savedPaginate;
+        cursor.PendingSpaceAfter = savedSpaceAfter;
+        cursor.PreviousFormat = savedFormat;
+
+        cursor.Floats.Add(new FloatRegion(
+            carried.Left - carried.Edges.Left - carried.Position.LeftFromTextPoints,
+            cursor.ContentTop,
+            carried.Left + carried.Width + carried.Edges.Right + carried.Position.RightFromTextPoints,
+            bottom + carried.Edges.Bottom + carried.Position.BottomFromTextPoints));
+
+        // Still more of it than this page can hold: the rest goes on to the next.
+        if (next < carried.Table.Rows.Count) _carriedTable = carried with { From = next };
     }
 
     /// <summary>
@@ -1433,6 +1569,24 @@ internal sealed class LayoutEngine(
             Place(cursor, line.Line, line.ParagraphIndex, line.ParagraphOrdinal, line.KeepNext,
                 line.FootnoteIds, footnotes);
         }
+    }
+
+    /// <summary>Whether two sets of free bands are the same measure.</summary>
+    private static bool SameBands(
+        List<(double Left, double Width)> first, List<(double Left, double Width)> second)
+    {
+        if (first.Count != second.Count) return false;
+
+        for (var i = 0; i < first.Count; i++)
+        {
+            if (Math.Abs(first[i].Left - second[i].Left) > 0.001 ||
+                Math.Abs(first[i].Width - second[i].Width) > 0.001)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -2819,7 +2973,17 @@ internal sealed class LayoutEngine(
     /// Lays the rows of a table down the page from where the cursor stands, at the left edge it
     /// is given. Separated from the table's own placement so that a floating table can borrow it.
     /// </summary>
-    private void LayoutTableRows(Cursor cursor, Table table, List<double> columns, double tableLeft)
+    /// <param name="from">The first row to lay, which is not the first where a table was carried
+    /// over from the page before.</param>
+    /// <param name="floating">
+    /// Whether the table stands out of the flow. A floating table breaks at a row rather than
+    /// running past the foot of the page: the rows that fit are laid here and the number of the
+    /// first that did not is returned, for the next page to carry on from.
+    /// </param>
+    /// <returns>The row to carry on at, which is the count of rows where none was left.</returns>
+    private int LayoutTableRows(
+        Cursor cursor, Table table, List<double> columns, double tableLeft,
+        int from = 0, bool floating = false)
     {
         var properties = table.Properties;
 
@@ -2861,7 +3025,7 @@ internal sealed class LayoutEngine(
             return taken;
         }
 
-        for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+        for (var rowIndex = from; rowIndex < table.Rows.Count; rowIndex++)
         {
             var row = table.Rows[rowIndex];
             var placed = MeasureRow(table, row, rowIndex, columns, tableLeft);
@@ -2873,6 +3037,13 @@ internal sealed class LayoutEngine(
                 ComputeRowHeight(row, cells, PendingMergeHeight(merges, cells, cursor.Y));
 
             var rowHeight = HeightOf(placed);
+
+            // A floating table breaks at the foot of the page and carries on at the top of the
+            // next, which is what Word does with one: floating-table-break-probe puts twenty rows
+            // where six of them fit and Word writes six, then fourteen. One row goes down whatever
+            // is left, so that a page always takes something and the table cannot carry for ever.
+            if (floating && rowIndex > from && cursor.Y + rowHeight > cursor.ContentBottom + 0.001)
+                return rowIndex;
 
             // Opened before the row is drawn, so that a merged cell's fill goes into the page
             // underneath the borders of every row it runs through rather than over the top of
@@ -2955,6 +3126,8 @@ internal sealed class LayoutEngine(
                 cursor.Y += bottom;
             }
         }
+
+        return table.Rows.Count;
     }
 
     /// <summary>
@@ -4556,6 +4729,20 @@ internal sealed class LayoutEngine(
 
         /// <summary>An empty paragraph still gets one pass, so that it occupies a line.</summary>
         public bool HasMore => _index < atoms.Count || !_producedAny;
+
+        /// <summary>
+        /// Where the composer stands, so that a line can be composed again. A line that does not
+        /// fit moves to the next page, where the measure may not be the one it was broken
+        /// against — a float narrowed it here and there is none there.
+        /// </summary>
+        public (int Index, bool FirstLine, bool Produced) Mark => (_index, _isFirstLine, _producedAny);
+
+        public void Rewind((int Index, bool FirstLine, bool Produced) mark)
+        {
+            _index = mark.Index;
+            _isFirstLine = mark.FirstLine;
+            _producedAny = mark.Produced;
+        }
 
         /// <summary>
         /// A height to resolve the float band with, before the line's real height is known. The
@@ -6270,6 +6457,10 @@ internal sealed class LayoutEngine(
 
             // A float belongs to the page its anchor landed on; it does not follow the text.
             Floats.Clear();
+
+            // Except what is left of a floating table too tall for the page it began on, which
+            // carries on at the top of this one.
+            Engine.ResumeCarriedTable(this);
         }
 
         public void BreakPage()

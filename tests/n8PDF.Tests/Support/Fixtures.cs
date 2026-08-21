@@ -5243,6 +5243,58 @@ public static class Fixtures
                 return builder;
             },
 
+            // A floating table with less of the page left than it needs. Four pages, so that one
+            // export says what Word does with each:
+            //
+            //   1  anchored to the text near the foot of the page, and twice as tall as the room
+            //   2  the same table with room enough, so the two can be set against each other
+            //   3  anchored to the paper, put a foot down a page that has nine inches of text
+            //   4  taller than any page, which cannot fit wherever it is put
+            ["floating-table-break-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label, string positioning, int rows, int before, int after = 4)
+                {
+                    if (!first) builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                    first = false;
+
+                    for (var i = 1; i <= before; i++)
+                        builder.AddParagraph($"{label} above {i}.", ZeroSpacing, Times12);
+
+                    builder.AddRawParagraph(PositionedTable(label, rows, positioning));
+
+                    // Short lines, and set at sixteen point rather than twelve: where the text
+                    // beside a floating table goes is settled by floating-table-probe, and this is
+                    // about where the table's rows go. What matters here is that a line of the
+                    // text and a line of a cell can be told apart in the export, which they cannot
+                    // where the two fall within a point of each other — and at sixteen point the
+                    // text keeps a rhythm of its own against the rows'.
+                    for (var i = 1; i <= after; i++)
+                        builder.AddParagraph($"{label} after {i}.", ZeroSpacing, Times(halfPoints: 32));
+                }
+
+                const string Daylight = "w:leftFromText=\"180\" w:rightFromText=\"180\" ";
+                const string ToText = "w:vertAnchor=\"text\" w:horzAnchor=\"margin\" w:tblpX=\"0\" w:tblpY=\"120\"/>";
+
+                // Forty lines of text leaves about four inches of the page, and twenty rows of it
+                // want rather more than that.
+                Page("Tall", $"<w:tblpPr {Daylight}{ToText}", rows: 20, before: 40);
+
+                // The same twenty rows with the whole page in front of them.
+                Page("Room", $"<w:tblpPr {Daylight}{ToText}", rows: 20, before: 2);
+
+                // A foot down the paper, on a page whose text runs to the bottom of it.
+                Page("Paper", $"<w:tblpPr {Daylight}w:vertAnchor=\"page\" w:horzAnchor=\"page\" " +
+                              "w:tblpX=\"1440\" w:tblpY=\"12960\"/>", rows: 12, before: 4, after: 44);
+
+                // Sixty rows is taller than the paper, let alone what is left of it.
+                Page("Longer", $"<w:tblpPr {Daylight}{ToText}", rows: 60, before: 4);
+
+                return builder;
+            },
+
             // The two things Word does with a floating table that this does not, each on a page
             // of its own, so that the fixtures compared against Word elsewhere stay exact and
             // these stand out as the differences they are:

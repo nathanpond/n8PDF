@@ -1006,8 +1006,25 @@ reaches give up its width and the ones past it come back to the full measure. Ev
 seven pages agrees with Word: the box within a tenth of a point sideways, and the text beside it
 within half of one.
 
-A floating table is not broken across pages here — Word moves one that will not fit rather than
-splitting it, and a probe for that is work still to do.
+**A floating table with less of the page left than it needs breaks at a row**, and the rest carries
+on at the top of the next page in the same place across the measure. That is what Word does with
+one — `floating-table-break-probe` puts twenty rows where six of them fit and Word writes six, then
+fourteen; sixty rows come out forty and twenty. Three more things the same probe settles:
+
+- **The text that follows a broken table begins on the page the rest of it carries on to.** Word
+  writes nothing beside the part that stayed behind, though it writes plenty beside a table that
+  did not break — so the flow resumes below what was laid rather than beside it, which leaves it at
+  the foot of the page.
+- **A table anchored to the paper does not break.** One too tall for what is left below it is moved
+  up until it ends at the paper's own edge, bottom margin and all: the probe puts one a foot down
+  the page and Word draws it 28 points higher, ending exactly at 792.
+- **A table with nothing left to carry it makes its own pages.** Sixty rows begun near the end of a
+  document come out on a page of their own with nothing else on it, which is what Word does and
+  what this already did for a footnote too long for its page.
+
+A line that moves to the next page is **broken again there**. The measure it was composed against
+is not always the measure it lands in — a float narrowed it on the page left behind and there may
+be none here — and Word breaks such a line again rather than carrying its old shape over.
 
 ### Text down both sides of a float
 

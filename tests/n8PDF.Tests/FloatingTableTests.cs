@@ -183,6 +183,79 @@ public class FloatingTableTests(ITestOutputHelper output)
             .GroupBy(run => Math.Round(run.BaselineY, 2))
             .Count();
 
+    /// <summary>
+    /// A floating table with less of the page left than it needs breaks at a row and carries on at
+    /// the top of the next page, in the same place across the measure.
+    /// </summary>
+    /// <remarks>
+    /// Word does not move such a table, nor let it run off the page: <c>floating-table-break-probe</c>
+    /// puts twenty rows where six of them fit and Word writes six, then fourteen. Sixty rows come
+    /// out forty and twenty, on a page made for them — there is no text left to carry them.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 6, 1, 14, "twenty rows with six of the page left")]
+    [InlineData(5, 40, 6, 20, "sixty rows, which no page could hold")]
+    public void A_table_too_tall_for_the_page_breaks_at_a_row(
+        int page, int here, int next, int there, string what)
+    {
+        if (TestFonts.SkipForMissingFonts("floating-table-break-probe")) return;
+
+        output.WriteLine(what);
+
+        var word = File.ReadAllBytes(Path.Combine(TestPaths.ReferencePdfs, "floating-table-break-probe.pdf"));
+        var pdf = Ours("floating-table-break-probe");
+
+        Assert.Equal(here, Rows(word, page));
+        Assert.Equal(here, Rows(pdf, page));
+        Assert.Equal(there, Rows(word, next));
+        Assert.Equal(there, Rows(pdf, next));
+
+        // The rest begins at the top margin, in the same place across the measure.
+        var above = Box(pdf, page);
+        var below = Box(pdf, next);
+
+        output.WriteLine($"ours: page {page} {above}, page {next} {below}");
+        output.WriteLine($"word: page {page} {Box(word, page)}, page {next} {Box(word, next)}");
+
+        Assert.Equal(above.Left, below.Left, 0.01);
+        Assert.Equal(Box(word, next).Top, below.Top, 0.3);
+    }
+
+    /// <summary>
+    /// A table anchored to the paper does not break. One too tall for what is left below it is
+    /// moved up until it ends at the paper's own edge, bottom margin and all.
+    /// </summary>
+    [Fact]
+    public void A_table_anchored_to_the_paper_is_moved_up_to_fit_it()
+    {
+        if (TestFonts.SkipForMissingFonts("floating-table-break-probe")) return;
+
+        var word = File.ReadAllBytes(Path.Combine(TestPaths.ReferencePdfs, "floating-table-break-probe.pdf"));
+        var pdf = Ours("floating-table-break-probe");
+
+        // Twelve rows put a foot down the page, which is more than the three inches left below.
+        Assert.Equal(12, Rows(word, 3));
+        Assert.Equal(12, Rows(pdf, 3));
+        Assert.Equal(0, Rows(pdf, 4));
+
+        var ours = Box(pdf, 3);
+        var theirs = Box(word, 3);
+
+        output.WriteLine($"word {theirs}, ours {ours}");
+
+        // Not where it was put — 648 points down — but as far up as it had to come.
+        Assert.Equal(theirs.Top, ours.Top, 0.3);
+        Assert.True(ours.Top < 640, $"the table stands at {ours.Top:0.##}, where it was put");
+        Assert.Equal(792, ours.Bottom, 0.3);
+    }
+
+    /// <summary>How many rows of the table were written on a page.</summary>
+    private static int Rows(byte[] pdf, int page) =>
+        PdfTextExtractor.Extract(pdf)
+            .Where(run => run.PageIndex == page && run.Text.Contains("cell"))
+            .GroupBy(run => Math.Round(run.BaselineY, 2))
+            .Count();
+
     private static byte[] Ours(string fixture) =>
         Converter.Convert(Fixtures.Build(fixture),
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
