@@ -19,7 +19,22 @@ internal enum LineSpacingRule
     Exact,
 
     /// <summary>A minimum height in twips; the line grows for taller content.</summary>
-    AtLeast
+    AtLeast,
+
+    /// <summary>
+    /// A multiple, as a drawing spells it: the room the multiple takes or gives comes off the top
+    /// of the line rather than the bottom.
+    /// </summary>
+    /// <remarks>
+    /// The same number means something different inside a drawing. A paragraph in a document set
+    /// at 90% keeps its ascent and loses the room below the baseline, which is what
+    /// line-spacing-multiples measures; a paragraph in a diagram keeps its <em>descent</em> and
+    /// loses the room above. smartart-lines says so outright: its text is anchored to the top of
+    /// its box, so Word's first baseline is the frame plus one ascent and nothing else, and that
+    /// ascent is 29.90 where the face's own is 34.28 and nine tenths of it is 30.85. What fits is
+    /// the line at nine tenths less the descent whole: 39.55 − 9.67 = 29.88.
+    /// </remarks>
+    Scaled
 }
 
 internal enum UnderlineStyle

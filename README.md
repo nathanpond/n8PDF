@@ -756,6 +756,32 @@ because Word writes the cache itself and so chooses the type size, the line spac
 anchoring. Both readings fit every line. It is recorded as a known divergence rather than fitted
 away.
 
+### How a diagram sets the text in its boxes
+
+Two rules, and each was worth a point or two of the smartart fixture's divergence:
+
+- **A percentage line spacing in a drawing takes its room off the top.** The same 90% that leaves a
+  document's paragraph sitting at its natural ascent — losing the room below the baseline, which
+  `line-spacing-multiples` measures — takes the room from above in a diagram, so the ascent is the
+  scaled line less the *whole* descent. At 36pt Calibri: the line is 39.55, the descent 9.67, and
+  Word's first baseline sits 29.90 below the frame where the face's own ascent is 34.28 and nine
+  tenths of it is 30.85.
+- **No space is kept after the last paragraph of a box, nor before the first**, unless its body
+  says `spcFirstLastPara="1"`. Word's diagrams put 35% of a line between paragraphs, so keeping it
+  at the end makes the block a third of a line too tall — and a block centred in its box then sits
+  half of that too high.
+
+`smartart-lines` is what separates them, and the separation is the whole point of it: with the text
+centred, as a diagram normally sets it, the height of the block and the place of the first baseline
+inside it are added together and no measurement can pull them apart. So the probe asks Word for
+text anchored to the *top* of its boxes — through the layout, since Word rebuilds a diagram's cache
+from that and not from what the document last held — and then the first baseline is the frame plus
+one ascent and nothing else. Its three boxes hold one, two and three paragraphs, which is what says
+the remaining error is constant rather than per line.
+
+With both, the diagram in `smartart` agrees with Word to a single step of the grid, where it stood
+at 3.36 points.
+
 ### How large a watermark is set
 
 A watermark is a word on a path, and the size the document gives it is a single point — the shape

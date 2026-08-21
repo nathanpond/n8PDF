@@ -88,10 +88,16 @@ public class DiagramTests(ITestOutputHelper output)
                   <a:t>Written down</a:t>
                 </a:r>
               </a:p>
+              <a:p><a:r><a:rPr lang="en-GB" sz="3800"/><a:t>And again</a:t></a:r></a:p>
             </a:txBody>
             """);
 
-        var paragraph = Assert.IsType<Paragraph>(Assert.Single(DrawingText.Parse(body)));
+        // Two paragraphs, because the space after the last of them is not kept: see
+        // A_diagram_keeps_no_space_after_its_last_paragraph.
+        var blocks = DrawingText.Parse(body);
+        Assert.Equal(2, blocks.Count);
+
+        var paragraph = Assert.IsType<Paragraph>(blocks[0]);
 
         Assert.Equal("Written down", paragraph.GetText());
         Assert.Equal(Justification.Center, paragraph.Properties.Justification);
@@ -102,6 +108,7 @@ public class DiagramTests(ITestOutputHelper output)
         // And 35% of one, where DrawingML's line is six fifths of the type size: 19pt of type
         // makes a 22.8pt line, and a third of that is 7.98pt, which is 160 twips.
         Assert.Equal(160, paragraph.Properties.SpacingAfterTwips);
+        Assert.Equal(0, ((Paragraph)blocks[1]).Properties.SpacingAfterTwips);
 
         var run = Assert.Single(paragraph.Runs);
         Assert.Equal(38, run.Properties.SizeHalfPoints);
@@ -167,6 +174,81 @@ public class DiagramTests(ITestOutputHelper output)
     /// readings that would explain it cannot be told apart from a document whose diagram Word
     /// arranged itself.
     /// </remarks>
+    /// <summary>
+    /// Where the first line of a diagram's box sits, against Word, with the text anchored to the
+    /// top of its box so that the answer depends on nothing else.
+    /// </summary>
+    /// <remarks>
+    /// Centred — which is how a diagram normally sets its text, and how the smartart fixture has
+    /// it — the height of the block and the place of the first baseline inside it are added
+    /// together and no measurement can separate them. Against the top they come apart: the first
+    /// baseline is the text frame plus one ascent, and that ascent is the line at nine tenths less
+    /// the whole descent, which is what LineSpacingRule.Scaled says.
+    ///
+    /// The three boxes hold one, two and three paragraphs, so a difference that grew with the
+    /// count would show as well.
+    /// </remarks>
+    [Fact]
+    public void A_diagram_sets_its_first_line_where_word_sets_it()
+    {
+        if (TestFonts.SkipForMissingFonts("smartart-lines")) return;
+
+        var docx = File.ReadAllBytes(Path.Combine(TestPaths.RealFixtures, "smartart-lines.docx"));
+
+        var ours = PdfTextExtractor.Extract(Converter.Convert(docx,
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }));
+        var word = PdfTextExtractor.ExtractFile(
+            Path.Combine(TestPaths.ReferencePdfs, "real-smartart-lines.pdf"));
+
+        static List<double> Baselines(IReadOnlyList<ExtractedTextRun> runs, int box) =>
+        [
+            .. runs.Where(r => r.FontSize > 20 && (int)((r.X - 72) / 152) == box)
+                .Select(r => Math.Round(r.BaselineY, 2)).Distinct().Order()
+        ];
+
+        for (var box = 0; box < 3; box++)
+        {
+            var theirs = Baselines(word, box);
+            var mine = Baselines(ours, box);
+
+            Assert.Equal(box + 1, theirs.Count);
+            Assert.Equal(theirs.Count, mine.Count);
+
+            // Every line within a step of the grid Word writes on, and the first exactly.
+            Assert.Equal(theirs[0], mine[0], 2);
+
+            for (var line = 0; line < theirs.Count; line++)
+                Assert.InRange(mine[line], theirs[line] - 0.481, theirs[line] + 0.481);
+        }
+    }
+
+    /// <summary>
+    /// A diagram's box keeps no space after its last paragraph, nor before its first, unless its
+    /// body asks for them. Word's own diagrams put 35% of a line between paragraphs, so keeping it
+    /// at the end makes the block a third of a line too tall — and text centred in its box then
+    /// sits half of that too high, which was three points of the smartart fixture's divergence.
+    /// </summary>
+    [Theory]
+    [InlineData(null, 0)]
+    [InlineData("0", 0)]
+    [InlineData("1", 319)]  // 35% of a 38pt line, in twips
+    public void A_diagram_keeps_no_space_after_its_last_paragraph(string? asked, int expected)
+    {
+        var body = XElement.Parse($"""
+            <a:txBody xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:bodyPr{(asked is null ? "" : $" spcFirstLastPara=\"{asked}\"")}/>
+              <a:p>
+                <a:pPr><a:spcAft><a:spcPct val="35000"/></a:spcAft></a:pPr>
+                <a:r><a:rPr lang="en-GB" sz="3800"/><a:t>Alone</a:t></a:r>
+              </a:p>
+            </a:txBody>
+            """);
+
+        var paragraph = Assert.IsType<Paragraph>(Assert.Single(DrawingText.Parse(body)));
+
+        Assert.Equal(expected, paragraph.Properties.SpacingAfterTwips);
+    }
+
     [Fact]
     public void The_diagram_is_drawn_where_word_draws_it()
     {

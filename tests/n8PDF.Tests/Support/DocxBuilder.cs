@@ -1039,7 +1039,12 @@ public sealed class DocxBuilder
     /// The cached drawing here is deliberately not what any layout would produce — three shapes
     /// stepping down the frame — so that Word's export says outright which of the two it drew.
     /// </remarks>
-    public DocxBuilder WithSmartArt(string drawingXml)
+    /// <param name="nodes">
+    /// The words each node holds, which must be the words the cached drawing holds: Word rebuilds
+    /// the cache from the data every time it opens the document, and a data part saying something
+    /// else would rebuild it into something else.
+    /// </param>
+    public DocxBuilder WithSmartArt(string drawingXml, params string[] nodes)
     {
         const string diagrams = "word/diagrams";
 
@@ -1048,7 +1053,7 @@ public sealed class DocxBuilder
 
         WithPart($"{diagrams}/data1.xml",
             "application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml",
-            DiagramData,
+            DiagramData(nodes.Length > 0 ? nodes : ["One", "Two", "Three\nFour"]),
             fromDocument: ("rIdDgmData", $"{OfficeRelationships}/diagramData"),
             own: [("rIdDgmDrawing",
                 "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing", "drawing1.xml")]);
@@ -1159,7 +1164,7 @@ public sealed class DocxBuilder
     /// What the diagram means: three points of text and nothing else. Word rebuilds the drawing
     /// from this and the layout beside it, so it has to hold the same words the cache does.
     /// </summary>
-    private static readonly string DiagramData = $"""
+    private static string DiagramData(string[] nodes) => $"""
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <dgm:dataModel xmlns:dgm="{DiagramNamespace}"
                        xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
@@ -1171,24 +1176,17 @@ public sealed class DocxBuilder
               <dgm:spPr/>
               <dgm:t><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr lang="en-GB"/></a:p></dgm:t>
             </dgm:pt>
-            {DiagramPoint(2, "One")}
-            {DiagramPoint(3, "Two")}
-            {DiagramPoint(4, "Three", "Four")}
+            {string.Concat(nodes.Select((text, i) => DiagramPoint(i + 2, text.Split('\n'))))}
           </dgm:ptLst>
           <dgm:cxnLst>
-            <dgm:cxn modelId="10" srcId="1" destId="2" srcOrd="0" destOrd="0"/>
-            <dgm:cxn modelId="11" srcId="1" destId="3" srcOrd="1" destOrd="0"/>
-            <dgm:cxn modelId="12" srcId="1" destId="4" srcOrd="2" destOrd="0"/>
+            {string.Concat(nodes.Select((_, i) =>
+                $"<dgm:cxn modelId=\"{10 + i}\" srcId=\"1\" destId=\"{i + 2}\" srcOrd=\"{i}\" destOrd=\"0\"/>"))}
           </dgm:cxnLst>
           <dgm:bg/>
           <dgm:whole/>
         </dgm:dataModel>
         """;
 
-    /// <summary>
-    /// One point of a diagram, holding a paragraph for each line of text given it. A point of two
-    /// is what separates the space between paragraphs from the space after the last of them.
-    /// </summary>
     private static string DiagramPoint(int id, params string[] paragraphs) => $"""
         <dgm:pt modelId="{id}">
           <dgm:prSet phldrT="[Text]"/>
@@ -1202,7 +1200,15 @@ public sealed class DocxBuilder
         """;
 
     /// <summary>A layout that puts its points in a row, which is the simplest one there is.</summary>
-    private static readonly string DiagramLayout = $"""
+    /// <summary>
+    /// Where the text sits in a node's box, as a layout parameter rather than in the cache: Word
+    /// rebuilds the cache from the layout, so this is the only way to ask it for anything but the
+    /// default. <c>t</c> puts the text at the top of the box, which is what tells the height of a
+    /// block apart from where its first line sits inside it.
+    /// </summary>
+    public string? DiagramTextAnchor { get; set; }
+
+    private string DiagramLayout => $"""
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <dgm:layoutDef xmlns:dgm="{DiagramNamespace}"
                        xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
@@ -1222,7 +1228,7 @@ public sealed class DocxBuilder
             <dgm:ruleLst/>
             <dgm:forEach name="Name0" axis="ch" ptType="node">
               <dgm:layoutNode name="node">
-                <dgm:alg type="tx"/>
+                <dgm:alg type="tx">{(DiagramTextAnchor is null ? string.Empty : $"<dgm:param type=\"txAnchorVert\" val=\"{DiagramTextAnchor}\"/>")}</dgm:alg>
                 <dgm:shape xmlns:r="{OfficeRelationships}" type="roundRect" r:blip=""><dgm:adjLst/></dgm:shape>
                 <dgm:presOf axis="desOrSelf" ptType="node"/>
                 <dgm:constrLst/>

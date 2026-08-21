@@ -11,6 +11,7 @@
 # rewrites the whole package in Word's own terms while leaving the content alone.
 #
 #   tools/make-real-fixtures.sh            regenerate the real fixtures
+#   tools/make-real-fixtures.sh smartart   regenerate only the seeds named
 #   tools/make-real-fixtures.sh --list     show what would be generated and exit
 #
 # Requires macOS and Microsoft Word. Also generates a reference PDF for each, so the same fidelity
@@ -24,11 +25,13 @@ REAL="$REPO_ROOT/tests/n8PDF.Tests/Fixtures/Real"
 REFERENCES="$REPO_ROOT/tests/n8PDF.Tests/Fixtures/Reference"
 
 LIST_ONLY=0
+wanted_seeds=()
 for arg in "$@"; do
     case "$arg" in
         --list) LIST_ONLY=1 ;;
         -h|--help) sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
-        *) echo "unknown option: $arg" >&2; exit 2 ;;
+        -*) echo "unknown option: $arg" >&2; exit 2 ;;
+        *) wanted_seeds+=("$arg") ;;
     esac
 done
 
@@ -44,6 +47,20 @@ dotnet test "$REPO_ROOT/n8PDF.sln" \
 
 shopt -s nullglob
 seeds=("$SEEDS"/*.docx)
+
+# Named seeds only, where any were named: re-saving a fixture through Word rewrites the whole
+# package, so a document nobody is working on is best left as it is.
+if [[ ${#wanted_seeds[@]} -gt 0 ]]; then
+    chosen=()
+    for want in "${wanted_seeds[@]}"; do
+        found=0
+        for seed in "${seeds[@]}"; do
+            [[ "$(basename "$seed" .docx)" == "$want" ]] && { chosen+=("$seed"); found=1; }
+        done
+        [[ $found -eq 0 ]] && { echo "No seed named '$want'." >&2; exit 2; }
+    done
+    seeds=("${chosen[@]}")
+fi
 shopt -u nullglob
 
 if [[ ${#seeds[@]} -eq 0 ]]; then

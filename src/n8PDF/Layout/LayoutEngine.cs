@@ -4325,6 +4325,13 @@ internal sealed class LayoutEngine(
                 line.Ascent = maxAscent;
                 break;
 
+            // A drawing's multiple takes its room off the top: the descent stays whole and the
+            // baseline moves. See LineSpacingRule.Scaled for the measurement.
+            case LineSpacingRule.Scaled:
+                line.Height = naturalHeight * format.LineSpacingMultiple;
+                line.Ascent = line.Height - (naturalHeight - maxAscent);
+                break;
+
             default:
                 line.Height = naturalHeight * format.LineSpacingMultiple;
 

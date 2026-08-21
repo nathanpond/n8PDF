@@ -408,24 +408,6 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownRealDivergences =
         new()
         {
-            ["smartart"] = (3.5,
-                """
-                Every line of the diagram is where Word puts it across the page and every line
-                sits the right distance from the one above it — the two agree on the line spacing
-                to 0.3pt and on the space between paragraphs to 0.5pt — but each box's text as a
-                whole sits 3.1pt above Word's.
-
-                The block is centred in the box, so a constant offset means the two disagree by
-                6.2pt about how tall the block is, or by 3.1pt about where the first baseline sits
-                inside it. Those two cannot be told apart here, and the fixture cannot be made to
-                tell them apart: Word writes the diagram's cache itself, so its type size, its
-                line spacing and its anchoring are Word's to choose and not the document's. Both
-                readings fit every line of it.
-
-                What is measured is that the block is centred whether or not it fits — the tallest
-                box's three lines overrun their box at both ends in Word's own drawing, and did
-                not here until they were let to.
-                """)
         };
 
     /// <summary>

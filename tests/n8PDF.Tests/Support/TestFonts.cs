@@ -133,7 +133,7 @@ public static class TestFonts
         "inline-picture-line-probe", "kerning",
         "line-ascent-probe", "line-grid-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
-        "numbering", "page-numbering-restart", "smartart", "tab-bars", "table-inset-weights-probe",
+        "numbering", "page-numbering-restart", "smartart", "smartart-lines", "tab-bars", "table-inset-weights-probe",
         "table-vertical-merge", "toc", "vml-stroke-stack-probe", "watermark",
         "watermark-fit-probe", "watermark-picture",
         "watermark-washout-probe", "wrapping"

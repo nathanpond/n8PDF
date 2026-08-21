@@ -157,6 +157,19 @@ internal static class DrawingText
         foreach (var element in body.Elements(W.Drawing + "p"))
             blocks.Add(ReadParagraph(element, scale));
 
+        // The space before the first paragraph and after the last are not kept unless the body
+        // asks for them, and a body that says nothing is taken not to. It is a whole paragraph's
+        // worth in a diagram — Word's own is 35% of the line — and keeping it makes the block too
+        // tall, which for text centred in its box puts every line half of it too high. That is
+        // half of what smartart-lines was built to find.
+        var keep = body.Element(W.Drawing + "bodyPr")?.Attribute("spcFirstLastPara")?.Value;
+
+        if (keep is not ("1" or "true") && blocks.Count > 0)
+        {
+            if (blocks[0] is Paragraph first) first.Properties.SpacingBeforeTwips = 0;
+            if (blocks[^1] is Paragraph last) last.Properties.SpacingAfterTwips = 0;
+        }
+
         return blocks;
     }
 
@@ -184,7 +197,10 @@ internal static class DrawingText
         // Line spacing here is a percentage of the line rather than a multiple of it, which is
         // the same thing counted in hundreds instead of 240ths.
         if (Percentage(Spacing(properties, "lnSpc")) is { } line)
+        {
             paragraph.Properties.Line = (int)Math.Round(240 * line);
+            paragraph.Properties.LineRule = LineSpacingRule.Scaled;
+        }
 
         // Space between paragraphs is a percentage too, of the type size rather than of the page,
         // so it can only be worked out once the size is known: see below.

@@ -177,7 +177,8 @@ internal sealed record ResolvedParagraphFormat
     public ResolvedRunFormat MarkFormat { get; init; } = new();
 
     /// <summary>Line spacing as a multiple of single spacing; only meaningful for Auto.</summary>
-    public double LineSpacingMultiple => LineRule == LineSpacingRule.Auto ? Line / 240.0 : 1.0;
+    public double LineSpacingMultiple =>
+        LineRule is LineSpacingRule.Auto or LineSpacingRule.Scaled ? Line / 240.0 : 1.0;
 
     /// <summary>Line spacing in points; only meaningful for Exact and AtLeast.</summary>
     public double LineSpacingPoints => Units.TwipsToPoints(Line);

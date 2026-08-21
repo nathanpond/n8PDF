@@ -5599,6 +5599,36 @@ public static class Fixtures
                                  DocxBuilder.SmartArtDrawing(360, 180) + "</w:p>")
                 .AddParagraph("Paragraph after the diagram.", ZeroSpacing, Times12),
 
+            // The same diagram again, and the reason for a second one: in the first, every box
+            // holds a line or two, and how the text is placed in a box can be read two ways that
+            // no number there tells apart — that the block is the wrong height, or that its first
+            // baseline sits wrong inside it. A box of five lines separates them, since the first
+            // reading grows with the line count and the second does not.
+            //
+            // The boxes are tall and hold one, two and three short paragraphs, so that every
+            // block fits inside its box. That matters: a block too tall for its box brings a
+            // second rule into it — Word grows the whole drawing to hold the overflow — and one
+            // question at a time is the point of a probe. Wrapping was tried and would not do,
+            // because Word picks the type size for a diagram itself and kept it at thirty-six.
+            //
+            // And the text is anchored to the top of its box rather than centred, which is what
+            // makes the whole thing readable: centred, the height of the block and the place of
+            // its first baseline inside it enter the answer added together, and no measurement
+            // can separate them. Against the top, the first baseline is the frame plus one ascent
+            // and nothing else. The centred case is what the smartart fixture already holds.
+            ["smartart-lines"] = () => new DocxBuilder { DiagramTextAnchor = "t" }
+                .WithSmartArt(DocxBuilder.SmartArtCachedDrawing(
+                    DocxBuilder.SmartArtShape("One", 0, 0, 150, 216, sizeHundredths: 1200),
+                    DocxBuilder.SmartArtShape("Two", 152, 0, 150, 216,
+                        sizeHundredths: 1200, fillHex: "ED7D31"),
+                    DocxBuilder.SmartArtShape("Three", 304, 0, 150, 216,
+                        sizeHundredths: 1200, fillHex: "70AD47")),
+                    "One", "Two\nlines", "Three\nlines\nhere")
+                .AddParagraph("Paragraph before the diagram.", ZeroSpacing, Times12)
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.SmartArtDrawing(456, 216) + "</w:p>")
+                .AddParagraph("Paragraph after the diagram.", ZeroSpacing, Times12),
+
             ["report"] = () => new DocxBuilder()
                 .AddParagraph("Quarterly Operations Review",
                     "<w:spacing w:after=\"240\"/><w:jc w:val=\"center\"/>", Times(40, bold: true))
