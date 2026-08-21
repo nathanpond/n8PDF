@@ -1,0 +1,429 @@
+{
+  "pageCount": 8,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 105.12,
+          "height": 41.35,
+          "runs": [
+            {"x": 72, "width": 34.207, "font": "Times New Roman", "size": 56, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 431.191, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 420.527, "font": "Times New Roman", "size": 12, "text": "the frame is passed and the measure comes back to what it was. This sentence is here to"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 426.855, "font": "Times New Roman", "size": 12, "text": "carry the paragraph past the foot of the frame so that both the shortened lines and the full"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 466.031, "font": "Times New Roman", "size": 12, "text": "ones can be measured against Word's own, which is the only thing that can settle where the room"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.639, "font": "Times New Roman", "size": 12, "text": "came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 94.08,
+          "height": 27.55,
+          "runs": [
+            {"x": 72, "width": 21.379, "font": "Times New Roman", "size": 35, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 102.48, "width": 431.191, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 102.48, "width": 420.527, "font": "Times New Roman", "size": 12, "text": "the frame is passed and the measure comes back to what it was. This sentence is here to"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 451.852, "font": "Times New Roman", "size": 12, "text": "carry the paragraph past the foot of the frame so that both the shortened lines and the full ones"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 441.035, "font": "Times New Roman", "size": 12, "text": "can be measured against Word's own, which is the only thing that can settle where the room"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.639, "font": "Times New Roman", "size": 12, "text": "came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 105.12,
+          "height": 41.35,
+          "runs": [
+            {"x": 37.68, "width": 34.207, "font": "Times New Roman", "size": 56, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 448.852, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until the"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 448.172, "font": "Times New Roman", "size": 12, "text": "frame is passed and the measure comes back to what it was. This sentence is here to carry the"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 440.525, "font": "Times New Roman", "size": 12, "text": "paragraph past the foot of the frame so that both the shortened lines and the full ones can be"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 464.695, "font": "Times New Roman", "size": 12, "text": "measured against Word's own, which is the only thing that can settle where the room came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 105.12,
+          "height": 41.35,
+          "runs": [
+            {"x": 72, "width": 34.207, "font": "Times New Roman", "size": 56, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 49.998, "font": "Times New Roman", "size": 12, "text": "wo words."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 431.191, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 420.527, "font": "Times New Roman", "size": 12, "text": "the frame is passed and the measure comes back to what it was. This sentence is here to"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 451.852, "font": "Times New Roman", "size": 12, "text": "carry the paragraph past the foot of the frame so that both the shortened lines and the full ones"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 441.035, "font": "Times New Roman", "size": 12, "text": "can be measured against Word's own, which is the only thing that can settle where the room"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.639, "font": "Times New Roman", "size": 12, "text": "came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 7.33, "font": "Times New Roman", "size": 12, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 79.44, "width": 448.852, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until the"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 448.172, "font": "Times New Roman", "size": 12, "text": "frame is passed and the measure comes back to what it was. This sentence is here to carry the"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 440.525, "font": "Times New Roman", "size": 12, "text": "paragraph past the foot of the frame so that both the shortened lines and the full ones can be"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 464.695, "font": "Times New Roman", "size": 12, "text": "measured against Word's own, which is the only thing that can settle where the room came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 120.48,
+          "height": 59.795,
+          "runs": [
+            {"x": 72, "width": 31.764, "font": "Times New Roman", "size": 52, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 103.68, "width": 431.191, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 103.68, "width": 420.527, "font": "Times New Roman", "size": 12, "text": "the frame is passed and the measure comes back to what it was. This sentence is here to"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 103.68, "width": 426.855, "font": "Times New Roman", "size": 12, "text": "carry the paragraph past the foot of the frame so that both the shortened lines and the full"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 103.68, "width": 420.041, "font": "Times New Roman", "size": 12, "text": "ones can be measured against Word's own, which is the only thing that can settle where"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 103.68, "width": 100.629, "font": "Times New Roman", "size": 12, "text": "the room came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 105.12,
+          "height": 41.35,
+          "runs": [
+            {"x": 72, "width": 34.207, "font": "Times New Roman", "size": 56, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 431.191, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 420.527, "font": "Times New Roman", "size": 12, "text": "the frame is passed and the measure comes back to what it was. This sentence is here to"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 426.855, "font": "Times New Roman", "size": 12, "text": "carry the paragraph past the foot of the frame so that both the shortened lines and the full"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 466.031, "font": "Times New Roman", "size": 12, "text": "ones can be measured against Word's own, which is the only thing that can settle where the room"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.639, "font": "Times New Roman", "size": 12, "text": "came from."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": -1,
+          "baselineY": 96,
+          "height": 30,
+          "runs": [
+            {"x": 72, "width": 34.207, "font": "Times New Roman", "size": 56, "text": "T"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 431.191, "font": "Times New Roman", "size": 12, "text": "he rest of the paragraph follows the letter and has to make room for it, line after line, until"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 420.527, "font": "Times New Roman", "size": 12, "text": "the frame is passed and the measure comes back to what it was. This sentence is here to"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.32, "width": 426.855, "font": "Times New Roman", "size": 12, "text": "carry the paragraph past the foot of the frame so that both the shortened lines and the full"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 466.031, "font": "Times New Roman", "size": 12, "text": "ones can be measured against Word's own, which is the only thing that can settle where the room"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.639, "font": "Times New Roman", "size": 12, "text": "came from."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -864,6 +864,9 @@ internal static class DocumentParser
                 case "spacing":
                     properties.CharacterSpacingTwips = element.IntVal();
                     break;
+                case "position":
+                    properties.PositionHalfPoints = element.IntVal();
+                    break;
                 case "w":
                     properties.ScalePercent = element.IntVal();
                     break;
@@ -920,6 +923,10 @@ internal static class DocumentParser
                     break;
                 case "keepLines":
                     properties.KeepLines = element.OnOff();
+                    break;
+
+                case "framePr":
+                    properties.Frame = ReadFrame(element);
                     break;
 
                 case "suppressLineNumbers":
@@ -1299,6 +1306,32 @@ internal static class DocumentParser
         target.Right = ReadBorderEdge(container.Element(W.Main + "right") ?? container.Element(W.Main + "end"));
         target.InsideHorizontal = ReadBorderEdge(container.Element(W.Main + "insideH"));
         target.InsideVertical = ReadBorderEdge(container.Element(W.Main + "insideV"));
+    }
+
+    /// <summary>
+    /// Reads <c>w:framePr</c>, of which only the dropped capital is honoured.
+    /// </summary>
+    /// <remarks>
+    /// <c>w:lines</c> is read and kept, but nothing is drawn from it: Word writes the size it
+    /// worked out onto the run and the height it worked out onto the paragraph, and those are what
+    /// the letter is drawn by. drop-cap-probe puts a frame of three lines round a letter of
+    /// ordinary size and Word shortens one line, not three.
+    /// </remarks>
+    private static FrameProperties? ReadFrame(XElement element)
+    {
+        var kind = element.Attr("dropCap") switch
+        {
+            "drop" => DropCapKind.Drop,
+            "margin" => DropCapKind.Margin,
+            _ => DropCapKind.None
+        };
+
+        if (kind == DropCapKind.None) return null;
+
+        return new FrameProperties(
+            kind,
+            Math.Max(1, element.IntAttr("lines") ?? 1),
+            Units.TwipsToPoints(element.IntAttr("hSpace") ?? 0));
     }
 
     /// <summary>

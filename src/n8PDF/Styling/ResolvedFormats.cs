@@ -105,12 +105,19 @@ internal sealed record ResolvedRunFormat
     /// The lowered run is fitted the same way, and 0.083 is the share that keeps all three faces
     /// within two steps at the sizes a document uses.
     /// </remarks>
-    public double BaselineShiftPoints => VerticalAlignment switch
+    public double BaselineShiftPoints => PositionPoints + VerticalAlignment switch
     {
         VerticalTextAlignment.Superscript => FontSizePoints * 0.358,
         VerticalTextAlignment.Subscript => FontSizePoints * -0.083,
         _ => 0
     };
+
+    /// <summary>
+    /// How far <c>w:position</c> raises the run off its baseline, negative to lower it. Unlike
+    /// the shift a superscript takes, this one is stated rather than worked out — a dropped
+    /// capital is written with the drop Word measured when it made it.
+    /// </summary>
+    public double PositionPoints { get; init; }
 
     /// <summary>Splits the colour into PDF's 0..1 components, defaulting to black.</summary>
     public (double Red, double Green, double Blue) GetColor()
@@ -178,6 +185,9 @@ internal sealed record ResolvedParagraphFormat
     /// either, so the line after it carries the number it would have had.
     /// </summary>
     public bool SuppressLineNumbers { get; init; }
+
+    /// <summary>The frame round this paragraph, or null where it has none.</summary>
+    public FrameProperties? Frame { get; init; }
 
     public bool PageBreakBefore { get; init; }
 

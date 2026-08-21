@@ -980,6 +980,65 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### A dropped capital
+
+`w:framePr` with `w:dropCap` is the big first letter a document opens a chapter with. It is not a
+run but a **frame**: the letter is a paragraph of its own, and the paragraph after it makes room.
+`drop-cap-probe` is written the way Word writes one — Word's own AppleScript was asked for a
+dropped capital, and this is the markup that came back:
+
+```xml
+<w:pPr>
+  <w:keepNext/>
+  <w:framePr w:dropCap="drop" w:lines="3" w:wrap="around" w:vAnchor="text" w:hAnchor="text"/>
+  <w:spacing w:after="0" w:line="827" w:lineRule="exact"/>
+  <w:textAlignment w:val="baseline"/>
+</w:pPr>
+<w:r><w:rPr><w:position w:val="-11"/><w:sz w:val="112"/></w:rPr><w:t>T</w:t></w:r>
+```
+
+Everything needed to draw it is in that markup, and `w:lines` is not part of it:
+
+- **`w:lines` is a record of what was asked for, not what is drawn.** Word writes the size it
+  worked out onto the run and the height onto the paragraph, and the drawing follows those. A
+  frame of three lines round a letter of ordinary size shortens **one** line, not three — the probe
+  puts that case to Word and Word shortens one.
+- **The frame is the letter's advance plus `w:hSpace`, rounded to the grid.** Word's own
+  fifty-six point `T` measures 34.2167 and the lines beside it begin 34.32 in; with 180 twips of
+  space beside a thirty-five point one measuring 21.3823, they begin 30.48 in.
+- **Which lines make room is a matter of where the frame reaches**, not of paragraphs: a frame that
+  outlasts a two-word paragraph goes on shortening the next one.
+- **A cap in the margin hangs its own width to the left** and the text keeps the whole measure.
+  Word writes `w:hAnchor="page"` for that one, which is the only difference between the two kinds.
+- **`w:position` is the drop**, in half-points, and it is applied where every other raised or
+  lowered run's shift is applied — after the line's baseline is on the grid.
+
+Every page of the probe agrees with Word's: the letter in the same place at the same size, the same
+lines shortened, and each of them beginning where Word's begins.
+
+### Where an exact line puts its baseline
+
+`w:lineRule="exact"` fixes the height of a line and says nothing about how the room is divided
+above and below the baseline. At twelve point every reading of that is within a step of every
+other, so it went unnoticed until a dropped capital asked for an exact line of forty-one points.
+
+`exact-line-probe` settles it, and a sweep of fifty-three heights from twenty points to seventy-two
+was run twice while it was written — once in fifty-six point Times, once in twenty-four point
+Verdana. **Word put every baseline of the second sweep in exactly the place it put the first.** So
+the share is Word's own and not the font's, which is the finding: the reading this replaced took
+the share from the font's ascent and descent, and that is within a step of the truth at twelve
+point and two steps out at fifty. The probe holds the same height in Times, Arial and Calibri —
+whose own descents are 0.1953, 0.1897 and 0.2200 of their lines, five steps of the grid apart at
+that size — and Word sets all three on one baseline.
+
+**Four fifths of an exact line stands above the baseline.** That lands on Word's answer at
+thirty-six of the fifty-three heights swept and one step of the grid from it at the other
+seventeen, never further. What Word does with that last step is not a rounding of anything that
+could be measured here: the residual repeats every six points, and no rule of the form
+round(*aH* + *b*) — in points, in twips, or in the grid's own units — reproduces it. `ExactLineTests`
+holds both sets, the heights that agree exactly and the ones a step out, so the day the rule is
+found the test will say what changed.
+
 ### A character named by its code
 
 `w:sym` is how Word writes a tick, an arrow, or anything else from the symbol faces: the run names

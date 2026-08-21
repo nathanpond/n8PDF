@@ -151,6 +151,7 @@ internal sealed class StyleResolver(
         private string? _colorTheme;
         private string? _highlight;
         private VerticalTextAlignment? _verticalAlignment;
+        private int? _positionHalfPoints;
         private double? _characterSpacingPoints;
         private int? _kerningMinimumHalfPoints;
         private double? _scale;
@@ -184,6 +185,7 @@ internal sealed class StyleResolver(
             if (source.ColorThemeSlot is not null) _colorTheme = source.ColorThemeSlot;
             if (source.Highlight is not null) _highlight = source.Highlight;
             if (source.VerticalAlignment is { } vertical) _verticalAlignment = vertical;
+            if (source.PositionHalfPoints is { } position) _positionHalfPoints = position;
             if (source.CharacterSpacingTwips is { } spacing)
                 _characterSpacingPoints = Units.TwipsToPoints(spacing);
 
@@ -213,6 +215,7 @@ internal sealed class StyleResolver(
                 ColorHex = theme.ResolveColor(_colorTheme) ?? _color,
                 HighlightColor = _highlight,
                 VerticalAlignment = _verticalAlignment ?? VerticalTextAlignment.Baseline,
+                PositionPoints = (_positionHalfPoints ?? 0) / 2.0,
                 CharacterSpacingPoints = _characterSpacingPoints ?? 0,
                 KerningMinimumHalfPoints = _kerningMinimumHalfPoints ?? 0,
                 ScaleFactor = _scale ?? 1.0
@@ -240,6 +243,7 @@ internal sealed class StyleResolver(
         private bool? _keepNext;
         private bool? _keepLines;
         private bool? _suppressLineNumbers;
+        private FrameProperties? _frame;
         private bool? _pageBreakBefore;
         private bool? _widowControl;
         private int? _outlineLevel;
@@ -278,6 +282,7 @@ internal sealed class StyleResolver(
             if (source.KeepNext is { } keepNext) _keepNext = keepNext;
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
             if (source.SuppressLineNumbers is { } suppress) _suppressLineNumbers = suppress;
+            if (source.Frame is { } frame) _frame = frame;
             if (source.PageBreakBefore is { } pageBreak) _pageBreakBefore = pageBreak;
             if (source.WidowControl is { } widow) _widowControl = widow;
             if (source.OutlineLevel is { } outline) _outlineLevel = outline;
@@ -306,6 +311,7 @@ internal sealed class StyleResolver(
             Line = _line ?? 240,
             LineRule = _lineRule ?? LineSpacingRule.Auto,
             ContextualSpacing = _contextualSpacing ?? false,
+            Frame = _frame,
             KeepNext = _keepNext ?? false,
             KeepLines = _keepLines ?? false,
             SuppressLineNumbers = _suppressLineNumbers ?? false,

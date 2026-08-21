@@ -21,11 +21,12 @@ public static class Fixtures
         bool strike = false,
         string? color = null,
         string? underline = null,
-        int? kerningHalfPoints = null) =>
+        int? kerningHalfPoints = null,
+        int? positionHalfPoints = null) =>
         DocxBuilder.RunProperties(
             font: TimesNewRoman, halfPoints: halfPoints, bold: bold, italic: italic,
             strike: strike, color: color, underline: underline,
-            kerningHalfPoints: kerningHalfPoints);
+            kerningHalfPoints: kerningHalfPoints, positionHalfPoints: positionHalfPoints);
 
     private static readonly string Times12 = Times();
 
@@ -5123,6 +5124,148 @@ public static class Fixtures
             //      passed over
             //   2  every fifth line, counting on from the section before, starting at ten
             //   3  every line again, half an inch out, beginning again with the section
+            // Where an exact line puts its baseline. w:lineRule="exact" fixes the height of the
+            // line and says nothing about how the room is divided above and below the baseline,
+            // and at twelve point every reading of that is within a step of every other. At
+            // fifty-six they are points apart, which is what this measures: nine pages, each one
+            // line of large text on an exact line, and the last three in other faces to show
+            // whether the share is the font's or the same for all of them.
+            ["exact-line-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Line(string label, int exactTwips, string font = TimesNewRoman, int halfPoints = 112)
+                {
+                    var before = first ? string.Empty : "<w:pageBreakBefore/>";
+                    first = false;
+
+                    // Two lines rather than one: the gap between their baselines is the height
+                    // the exact rule actually produced, which is a different question from where
+                    // the first of them sits.
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{before}<w:spacing w:before=\"0\" w:after=\"0\" " +
+                        $"w:line=\"{exactTwips}\" w:lineRule=\"exact\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{DocxBuilder.RunProperties(font: font, halfPoints: halfPoints)}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{label}</w:t><w:br/>" +
+                        $"<w:t xml:space=\"preserve\">{label}</w:t></w:r></w:p>");
+
+                    builder.AddParagraph("And an ordinary line beneath it.", ZeroSpacing, Times12);
+                }
+
+                // Six heights of the same text, so the share of the line above the baseline can be
+                // read off six times over rather than fitted to one.
+                // Nine heights of the same text, so the share of the line above the baseline can
+                // be read off nine times over rather than fitted to one. Three of them — 25, 40
+                // and 55 points — are the ones that say which way the rounding goes, being the
+                // heights where four fifths lands a third of a step above a whole one.
+                foreach (var twips in new[] { 400, 500, 600, 800, 827, 1000, 1100, 1200, 1400 })
+                    Line("Hxg", twips);
+
+                // The same height in two other faces. Times keeps 0.1953 of its own line below
+                // the baseline, Arial 0.1897 and Calibri 0.2200: were the share the font's, the
+                // Calibri line's baseline would stand five steps of the grid from the Times one.
+                // It stands in the same place. (Verdana and Georgia say the same and are left out
+                // only because the pinned library has neither, so this machine cannot draw what
+                // Word drew; Helvetica is out because Word sets it in Arial.)
+                Line("Hxg", 1000, font: "Arial");
+                Line("Hxg", 1000, font: "Calibri");
+
+                return builder;
+            },
+
+            // A dropped capital, which is a frame rather than a run: the letter is a paragraph
+            // of its own that the paragraph after it wraps around. Written as Word writes it —
+            // Word's own AppleScript was asked to make one, and this is what it produced, exact
+            // line spacing, keepNext, baseline alignment and all. Six pages, so that one export
+            // answers the whole of it:
+            //
+            //   1  Word's own three-line cap: 56 point, dropped 5.5, on an exact 41.35pt line
+            //   2  Word's own two-line cap, with a ninth of an inch of daylight beside it
+            //   3  the same dropped into the margin, which Word anchors to the page instead
+            //   4  a paragraph shorter than the frame, then another: how far the wrap reaches
+            //   5  a frame of three lines holding a letter of ordinary size: which one governs
+            //   6  a cap written by hand, with no exact spacing to say how tall the frame is
+            ["drop-cap-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                // Long enough to run to five lines at twelve point across a six-and-a-half inch
+                // measure, so that the lines the frame reaches and the lines past it are both in
+                // the same paragraph.
+                const string Flowing =
+                    "he rest of the paragraph follows the letter and has to make room for it, " +
+                    "line after line, until the frame is passed and the measure comes back to " +
+                    "what it was. This sentence is here to carry the paragraph past the foot of " +
+                    "the frame so that both the shortened lines and the full ones can be " +
+                    "measured against Word's own, which is the only thing that can settle where " +
+                    "the room came from.";
+
+                // A cap paragraph in Word's own terms. Word keeps it with the paragraph it
+                // belongs to, pins the line to the height of the frame, and sets the letter on
+                // the baseline of the last line the frame covers by dropping it.
+                void Cap(string frame, int halfPoints, int? dropHalfPoints = null,
+                    int? exactTwips = null, bool firstPage = false)
+                {
+                    var before = firstPage ? string.Empty : "<w:pageBreakBefore/>";
+                    var spacing = exactTwips is { } twips
+                        ? $"<w:spacing w:before=\"0\" w:after=\"0\" w:line=\"{twips}\" w:lineRule=\"exact\"/>"
+                        : ZeroSpacing;
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr><w:keepNext/>{before}{frame}{spacing}" +
+                        "<w:textAlignment w:val=\"baseline\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{Times(halfPoints: halfPoints, positionHalfPoints: dropHalfPoints)}</w:rPr>" +
+                        "<w:t>T</w:t></w:r></w:p>");
+                }
+
+                const string Drop3 =
+                    "<w:framePr w:dropCap=\"drop\" w:lines=\"3\" w:wrap=\"around\" " +
+                    "w:vAnchor=\"text\" w:hAnchor=\"text\"/>";
+
+                Cap(Drop3, halfPoints: 112, dropHalfPoints: -11, exactTwips: 827, firstPage: true);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                Cap("<w:framePr w:dropCap=\"drop\" w:lines=\"2\" w:hSpace=\"180\" w:wrap=\"around\" " +
+                    "w:vAnchor=\"text\" w:hAnchor=\"text\"/>",
+                    halfPoints: 70, dropHalfPoints: -6, exactTwips: 551);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                // Word anchors a margin cap to the page rather than to the text, which is the
+                // whole of the difference between the two kinds.
+                Cap("<w:framePr w:dropCap=\"margin\" w:lines=\"3\" w:wrap=\"around\" " +
+                    "w:vAnchor=\"text\" w:hAnchor=\"page\"/>",
+                    halfPoints: 112, dropHalfPoints: -11, exactTwips: 827);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                Cap(Drop3, halfPoints: 112, dropHalfPoints: -11, exactTwips: 827);
+                builder.AddParagraph("wo words.", ZeroSpacing, Times12);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                // A frame that says three lines round a letter of ordinary size: if the count is
+                // what shortens the lines, three of them are shortened, and if it is the letter,
+                // one is.
+                Cap(Drop3, halfPoints: 24);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                // No exact spacing, which is what a document written by hand rather than by Word
+                // is likely to have: the frame is as tall as the letter's own line.
+                Cap(Drop3, halfPoints: 104);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                // The last two are the same letter on an exact line and not dropped at all, which
+                // is the only way to see where an exact line puts its baseline without the drop
+                // sitting on top of the answer. Two heights, so the share of the line that falls
+                // above the baseline can be read off rather than guessed at.
+                Cap(Drop3, halfPoints: 112, exactTwips: 827);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                Cap(Drop3, halfPoints: 112, exactTwips: 600);
+                builder.AddParagraph(Flowing, ZeroSpacing, Times12);
+
+                return builder;
+            },
+
             ["line-number-probe"] = () =>
             {
                 var builder = new DocxBuilder()

@@ -139,7 +139,7 @@ public static class TestFonts
         "chart-area-scatter", "chart-axis-probe", "chart-bar-scale-probe", "chart-bar-stacked",
         "chart-column", "chart-layout-probe", "chart-line-pie", "chart-scale-probe",
         "chart-title-legend-label", "columns-uneven", "content-controls", "east-asian-line-box-probe",
-        "endnote-restart-section", "endnote-section-end", "endnotes", "equations", "font-fallback",
+        "exact-line-probe", "endnote-restart-section", "endnote-section-end", "endnotes", "equations", "font-fallback",
         "footnote-beneath-text", "footnote-carry-probe", "footnote-columns", "footnote-overrun-probe",
         "footnote-restart-page", "footnote-restart-section", "footnote-separator-probe",
         "footnote-split-probe", "footnotes", "images", "images-formats", "index",

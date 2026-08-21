@@ -583,6 +583,39 @@ internal sealed class FieldScope
     }
 }
 
+/// <summary>Where a dropped capital sits.</summary>
+internal enum DropCapKind
+{
+    /// <summary>Nowhere: the frame is not a dropped capital at all.</summary>
+    None,
+
+    /// <summary>Inside the text, which is shortened to make room for it.</summary>
+    Drop,
+
+    /// <summary>Out in the margin, where the text is left at its full measure.</summary>
+    Margin
+}
+
+/// <summary>
+/// A frame round a paragraph, from <c>w:framePr</c>. Only the dropped capital is honoured: the
+/// general case, a paragraph placed anywhere on the page with text flowing round it, is not.
+/// </summary>
+/// <remarks>
+/// Measured against Word in drop-cap-probe, and written the way Word itself writes it — its own
+/// AppleScript was asked for a dropped capital and this is the markup that came back:
+///
+///   * <c>w:lines</c> is a record of what was asked for, not what is drawn. Word writes the size
+///     it worked out onto the run and pins the paragraph's line to the height of the frame, and
+///     the drawing follows those. A frame of three lines round a letter of ordinary size shortens
+///     one line, not three.
+///   * The frame is as wide as the letter's own advance plus <c>w:hSpace</c>, rounded to the
+///     1/300 inch grid, and the lines it reaches are shortened by exactly that.
+///   * <c>margin</c> differs from <c>drop</c> in where the frame sits and nowhere else: Word
+///     anchors it to the page instead of the text, so the letter hangs its own width out to the
+///     left and the text keeps the whole measure.
+/// </remarks>
+internal sealed record FrameProperties(DropCapKind DropCap, int Lines, double HorizontalSpacePoints);
+
 /// <summary>Where the count of lines begins again.</summary>
 internal enum LineNumberRestart
 {

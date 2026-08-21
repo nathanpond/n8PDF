@@ -142,6 +142,12 @@ internal sealed class RunProperties
 
     public VerticalTextAlignment? VerticalAlignment { get; set; }
 
+    /// <summary>
+    /// How far the text is raised off its baseline in half-points (<c>w:position</c>), negative
+    /// to lower it. What a dropped capital is dropped by.
+    /// </summary>
+    public int? PositionHalfPoints { get; set; }
+
     /// <summary>Extra character spacing in twips (<c>w:spacing</c> inside rPr).</summary>
     public int? CharacterSpacingTwips { get; set; }
 
@@ -204,6 +210,9 @@ internal sealed class ParagraphProperties
     public bool? KeepNext { get; set; }
 
     public bool? KeepLines { get; set; }
+
+    /// <summary>The frame round this paragraph, or null where it has none.</summary>
+    public FrameProperties? Frame { get; set; }
 
     /// <summary>Whether the lines of this paragraph are passed over by the margin's numbering.</summary>
     public bool? SuppressLineNumbers { get; set; }

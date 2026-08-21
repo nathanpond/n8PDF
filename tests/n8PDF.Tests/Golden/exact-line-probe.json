@@ -1,0 +1,335 @@
+{
+  "pageCount": 11,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 87.84,
+          "height": 20,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 108,
+          "height": 20,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 123.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 91.92,
+          "height": 25,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 116.88,
+          "height": 25,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 133.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 96,
+          "height": 30,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 126,
+          "height": 30,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 143.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 104.16,
+          "height": 40,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 144,
+          "height": 40,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 163.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 105.12,
+          "height": 41.35,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 146.64,
+          "height": 41.35,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 111.84,
+          "height": 50,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 162,
+          "height": 50,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 183.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 115.92,
+          "height": 55,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 170.88,
+          "height": 55,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 120,
+          "height": 60,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 180,
+          "height": 60,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 203.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 16,
+          "baselineY": 128.16,
+          "height": 70,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 198,
+          "height": 70,
+          "runs": [
+            {"x": 72, "width": 96.441, "font": "Times New Roman", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 223.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 18,
+          "baselineY": 111.84,
+          "height": 50,
+          "runs": [
+            {"x": 72, "width": 99.586, "font": "Arial", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 162,
+          "height": 50,
+          "runs": [
+            {"x": 72, "width": 99.586, "font": "Arial", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 183.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 20,
+          "baselineY": 111.84,
+          "height": 50,
+          "runs": [
+            {"x": 72, "width": 85.504, "font": "Calibri", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 162,
+          "height": 50,
+          "runs": [
+            {"x": 72, "width": 85.504, "font": "Calibri", "size": 56, "text": "Hxg"}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 183.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 152.619, "font": "Times New Roman", "size": 12, "text": "And an ordinary line beneath it."}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -155,6 +155,12 @@ internal sealed class LayoutEngine(
     private int _nextLineNumber = 1;
 
     /// <summary>
+    /// The ordinal given to a line that belongs to no paragraph of the flow: a number down the
+    /// margin, or a dropped capital's own line.
+    /// </summary>
+    private const int ParagraphIndexNone = -1;
+
+    /// <summary>
     /// The number the last page made was printed as, and the number the next section's first page
     /// is to be printed as where it begins its numbering again.
     /// </summary>
@@ -670,6 +676,14 @@ internal sealed class LayoutEngine(
             startedNewPage = true;
         }
 
+        // A dropped capital is a frame rather than a line of the paragraph flow: it takes no room
+        // of its own and the paragraph after it makes room for it instead.
+        if (format.Frame is { DropCap: not DropCapKind.None } frame)
+        {
+            LayoutDropCap(cursor, paragraph, format, frame);
+            return;
+        }
+
         // Contextual spacing suppresses spacing between paragraphs sharing a style, which is
         // what keeps list items tight.
         var spaceBefore = format.SpaceBeforePoints;
@@ -869,6 +883,55 @@ internal sealed class LayoutEngine(
     }
 
     /// <summary>
+    /// Places a dropped capital: one letter set large, standing beside the lines that follow it
+    /// rather than above them.
+    /// </summary>
+    /// <remarks>
+    /// All of it measured from drop-cap-probe, whose caps are written the way Word writes them —
+    /// its own AppleScript was asked for a dropped capital and this is the markup it produced:
+    ///
+    ///   * The frame is as wide as the letter's advance at the size the run states, plus
+    ///     w:hSpace, rounded to the grid. Word's own: a fifty-six point T is 34.2167 wide and the
+    ///     lines beside it begin 34.32 in, and with 180 twips of space they begin 30.48 in from
+    ///     a thirty-five point one measuring 21.3823.
+    ///   * The letter sits in a paragraph of its own with the height Word worked out written on
+    ///     it as exact spacing, and the drop written on the run as w:position. Both are honoured
+    ///     as written: nothing here works out how tall a cap of three lines should be, because
+    ///     nothing in the document asks it to.
+    ///   * Which lines make room for it follows from the frame's height and nothing else — it is
+    ///     the lines the frame reaches, whether they belong to one paragraph or two, and w:lines
+    ///     has no say in it.
+    ///   * A cap in the margin hangs its own width to the left of the text, which then keeps the
+    ///     whole measure. That falls out of the frame standing outside the text's box.
+    /// </remarks>
+    private void LayoutDropCap(
+        Cursor cursor, Paragraph paragraph, ResolvedParagraphFormat format, FrameProperties frame)
+    {
+        _pendingBookmarks.Clear();
+        _pendingMarks.Clear();
+
+        var composer = new ParagraphComposer(
+            BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format));
+
+        if (!composer.HasMore) return;
+
+        // A measure wide enough that the letter is never broken across lines: a frame holds one
+        // letter, and the paragraph mark after it is not to take a line of its own.
+        var line = composer.Next(0, cursor.Width * 4);
+        if (line.Segments.Count == 0) return;
+
+        var text = line.Segments.Max(segment => segment.X + segment.Width);
+        var width = Grid.Snap(text + frame.HorizontalSpacePoints);
+        var left = frame.DropCap == DropCapKind.Margin ? cursor.Left - width : cursor.Left;
+
+        EmitLine(cursor.Page, line, left, cursor.Y, ParagraphIndexNone, TabSettings());
+
+        // The room the letter takes is what the lines after it flow around. A cap in the margin
+        // registers its room too, which lies outside the text's box and so shortens nothing.
+        cursor.Floats.Add(new FloatRegion(left, cursor.Y, left + width, cursor.Y + line.Height));
+    }
+
+    /// <summary>
     /// Writes the line's number down the margin, where the section asks for numbering.
     /// </summary>
     /// <remarks>
@@ -924,7 +987,7 @@ internal sealed class LayoutEngine(
             BaselineY = baseline,
             Height = 0,
             Ascent = 0,
-            ParagraphIndex = -1,
+            ParagraphIndex = ParagraphIndexNone,
             Texts =
             {
                 new PositionedText
@@ -4535,9 +4598,22 @@ internal sealed class LayoutEngine(
             case LineSpacingRule.Exact:
                 line.Height = format.LineSpacingPoints;
 
-                // With an exact rule the baseline sits proportionally where it would naturally,
-                // so that text does not drift to the top of a tightened line.
-                line.Ascent = naturalHeight > 0 ? line.Height * (maxAscent / naturalHeight) : line.Height;
+                // Four fifths of an exact line stands above the baseline, whatever is set on it.
+                // exact-line-probe measures fifty-three heights from twenty points to seventy-two,
+                // twice over — fifty-six point Times and twenty-four point Verdana — and Word puts
+                // the baseline in the same place both times, to the last hundredth. So the share
+                // is Word's and not the font's, which is the whole of the finding: the reading
+                // this replaced took the share from the font's own ascent and descent, which is
+                // within a step of four fifths at twelve point and two steps out at fifty.
+                //
+                // Four fifths lands exactly on Word's answer at thirty-six of the fifty-three and
+                // one step of the grid from it at the other seventeen, never further. What Word
+                // does with the last step is not a rounding of anything measured here: the
+                // residual repeats every six points, and no rule of the form round(aH + b), in
+                // points, twips or the grid's own units, reproduces it. LineBoxTests holds the
+                // heights that are exact and the ones that are a step out, so the day the rule
+                // is found the test will say so.
+                line.Ascent = line.Height * 0.8;
                 break;
 
             case LineSpacingRule.AtLeast:

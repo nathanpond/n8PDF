@@ -1759,7 +1759,8 @@ public sealed class DocxBuilder
         string? underline = null,
         string? verticalAlign = null,
         string? styleId = null,
-        int? kerningHalfPoints = null)
+        int? kerningHalfPoints = null,
+        int? positionHalfPoints = null)
     {
         var sb = new StringBuilder();
 
@@ -1773,6 +1774,7 @@ public sealed class DocxBuilder
         if (strike) sb.Append("<w:strike/>");
         if (color is not null) sb.Append($"<w:color w:val=\"{color}\"/>");
         if (kerningHalfPoints is not null) sb.Append($"<w:kern w:val=\"{kerningHalfPoints}\"/>");
+        if (positionHalfPoints is not null) sb.Append($"<w:position w:val=\"{positionHalfPoints}\"/>");
         if (halfPoints is not null) sb.Append($"<w:sz w:val=\"{halfPoints}\"/>");
         if (underline is not null) sb.Append($"<w:u w:val=\"{underline}\"/>");
         if (verticalAlign is not null) sb.Append($"<w:vertAlign w:val=\"{verticalAlign}\"/>");
