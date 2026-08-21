@@ -70,6 +70,16 @@ jobs:
           --logger "console;verbosity=normal"
           --results-directory artifacts/test-results
 
+      # A passing test's output is not printed at normal verbosity, so the count of what was left
+      # alone for want of Word's faces — the whole point of stating it — would go unseen. This asks
+      # that one test again, for the log.
+      - name: Say how much was skipped for want of Word
+        if: always()
+        run: >
+          dotnet test tests/n8PDF.Tests --configuration Release --no-build
+          --filter "FullyQualifiedName~OfficeFontTests"
+          --logger "console;verbosity=detailed"
+
       # The per-line table of where every line of every fixture sits against Word's own, which is
       # what a failure here is usually about.
       - name: Keep what the run measured
