@@ -117,6 +117,25 @@ internal sealed class PositionedRule
     public required (double Red, double Green, double Blue) Color { get; init; }
 }
 
+/// <summary>
+/// A line drawn from one point to another, for what a rule cannot draw: a rule is a bar lying
+/// along the page, and the cross in a ticked checkbox runs corner to corner.
+/// </summary>
+internal sealed class PositionedStroke
+{
+    public required double FromX { get; init; }
+
+    public required double FromY { get; init; }
+
+    public required double ToX { get; init; }
+
+    public required double ToY { get; init; }
+
+    public required double Thickness { get; init; }
+
+    public required (double Red, double Green, double Blue) Color { get; init; }
+}
+
 /// <summary>One composed line, retained so that diagnostics can describe layout by line.</summary>
 internal sealed class LaidOutLine
 {
@@ -201,6 +220,9 @@ internal sealed class LaidOutPage
     public List<PositionedImage> Images { get; } = [];
 
     public List<PositionedRule> Rules { get; } = [];
+
+    /// <summary>Lines drawn corner to corner, which a rule cannot do.</summary>
+    public List<PositionedStroke> Strokes { get; } = [];
 
     /// <summary>
     /// Shading and borders, in paint order: everything here is drawn before any text, and fills

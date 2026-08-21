@@ -980,6 +980,29 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### The boxes a form is filled in by
+
+A legacy form field holding `w:checkBox` draws no text at all: the box **is** the field, and Word
+draws it with lines rather than setting a character from a face — which is why a document full of
+them came out with nothing where the boxes should be. `checkbox-probe` puts fifteen of them to
+Word, ten sizes from eight point to seventy-two, some stating their own size and some taking the
+text's, and three numbers come straight off the drawing:
+
+- **The field is 1.15 times the size wide.** Exactly that, at every size measured — 13.8 points for
+  a twelve point box, 82.8 for a seventy-two point one.
+- **The box is drawn in the middle of that**, 2.2 points narrower, so it is inset 1.1 either side.
+- **Its foot sits below the baseline** by 0.216 of the size, less 1.2 points: level with the
+  baseline at eight point, a fifth of an inch below it at seventy-two.
+
+The square is drawn three quarters of a point thick whatever its size, and a ticked one takes a
+cross of two half-point lines corner to corner. Word strokes its square where this fills the four
+sides of one, which covers the same ground; the cross needed a new primitive, since a rule is a bar
+lying along the page and a diagonal is not.
+
+A box that states its own size takes it whatever the text around it is set in, and one that does
+not takes the text's — and either way the line grows as though a letter of that size were on it.
+Every line of the probe sits where Word puts it, and the ink of the boxes covers what Word's covers.
+
 ### Breaking a word at the end of a line
 
 `w:autoHyphenation` lets Word break a word between two lines. Where a word may be broken is not

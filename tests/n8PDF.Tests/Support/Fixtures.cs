@@ -5374,6 +5374,85 @@ public static class Fixtures
                 return builder;
             },
 
+            // The boxes a form is filled in by: w:checkBox inside a legacy form field, which draws
+            // nothing of its own — the box is the field. Six of them on one page:
+            //
+            //   1  empty, sized to the text round it
+            //   2  ticked, the same
+            //   3  empty at fourteen point, stated rather than left to the text
+            //   4  ticked at fourteen point
+            //   5  empty in a run of twenty point text, to see what "sized to the text" follows
+            //   6  the modern kind, a content control, which carries its own character
+            ["checkbox-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                // CT_FFData is a sequence: the name comes first, then whether it may be filled in,
+                // then the box itself.
+                static string Field(bool ticked, int? halfPoints, string runProperties)
+                {
+                    var size = halfPoints is { } stated
+                        ? $"<w:size w:val=\"{stated}\"/>"
+                        : "<w:sizeAuto/>";
+
+                    var data =
+                        "<w:ffData><w:name w:val=\"Box\"/><w:enabled/>" +
+                        $"<w:checkBox>{size}<w:default w:val=\"0\"/>" +
+                        (ticked ? "<w:checked w:val=\"1\"/>" : string.Empty) +
+                        "</w:checkBox></w:ffData>";
+
+                    return
+                        $"<w:r><w:rPr>{runProperties}</w:rPr>" +
+                        $"<w:fldChar w:fldCharType=\"begin\">{data}</w:fldChar></w:r>" +
+                        $"<w:r><w:rPr>{runProperties}</w:rPr>" +
+                        "<w:instrText xml:space=\"preserve\"> FORMCHECKBOX </w:instrText></w:r>" +
+                        $"<w:r><w:rPr>{runProperties}</w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r>";
+                }
+
+                void Line(string label, string field, string runProperties)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{runProperties}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(label)} </w:t></w:r>" +
+                        field +
+                        $"<w:r><w:rPr>{runProperties}</w:rPr>" +
+                        "<w:t xml:space=\"preserve\"> after.</w:t></w:r></w:p>");
+                }
+
+                Line("Empty:", Field(false, null, Times12), Times12);
+                Line("Ticked:", Field(true, null, Times12), Times12);
+                Line("Empty at fourteen:", Field(false, 28, Times12), Times12);
+                Line("Ticked at fourteen:", Field(true, 28, Times12), Times12);
+
+                var large = Times(halfPoints: 40);
+                Line("Empty in twenty point:", Field(false, null, large), large);
+
+                // More sizes, so that how big a box is can be read off rather than guessed at:
+                // three more stated, and three more taken from the text round them.
+                foreach (var halfPoints in new[] { 16, 20, 32, 48, 72, 96, 144 })
+                    Line($"Stated {halfPoints / 2}:", Field(false, halfPoints, Times12), Times12);
+
+                foreach (var halfPoints in new[] { 16, 32, 48 })
+                {
+                    var run = Times(halfPoints: halfPoints);
+                    Line($"Text {halfPoints / 2}:", Field(false, null, run), run);
+                }
+
+                // The modern kind: a content control holding the character itself, which Word
+                // writes in a face of its own naming.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Modern: </w:t></w:r>" +
+                    "<w:sdt><w:sdtPr><w:id w:val=\"11\"/></w:sdtPr><w:sdtContent>" +
+                    "<w:r><w:rPr><w:rFonts w:ascii=\"MS Gothic\" w:hAnsi=\"MS Gothic\" " +
+                    "w:eastAsia=\"MS Gothic\"/><w:sz w:val=\"24\"/></w:rPr>" +
+                    "<w:t>\u2612</w:t></w:r></w:sdtContent></w:sdt>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> after.</w:t></w:r></w:p>");
+
+                return builder;
+            },
+
             // Word breaking words at the ends of lines, from w:autoHyphenation. The same paragraph
             // six times over, so that what changes is only what the setting says:
             //

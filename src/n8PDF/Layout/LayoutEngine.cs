@@ -157,6 +157,15 @@ internal sealed class LayoutEngine(
     // section's own numbering are counted against.
     private int _pagesInSection;
 
+    /// <summary>
+    /// How thick the lines of a checkbox are: the square, and the cross drawn through a ticked
+    /// one. Word's own, whatever the size of the box — a seventy-two point box is drawn with the
+    /// same three quarters of a point as an eight point one.
+    /// </summary>
+    private const double CheckBoxLinePoints = 0.72;
+
+    private const double CheckBoxCrossPoints = 0.48;
+
     /// <summary>The number the next line of the body takes, where the section numbers its lines.</summary>
     private int _nextLineNumber = 1;
 
@@ -4665,6 +4674,54 @@ internal sealed class LayoutEngine(
             });
         }
 
+        // The boxes a form is filled in by: four bars round a square, and a cross through it where
+        // it is ticked. Word strokes the square and this fills its four sides, which covers the
+        // same ground; the cross has to be strokes, there being no other way to draw a diagonal.
+        foreach (var (box, x) in line.Boxes)
+        {
+            var left = Grid.Snap(contentLeft + x + (box.Width - box.Side) / 2);
+            // Measured from the baseline the text is written on, not from the line's own: the
+            // box stands with the letters beside it, and Word's is a step lower than the line's
+            // unrounded baseline would put it.
+            var foot = Grid.Snap(baselineY + box.Below);
+            var head = foot - box.Side;
+            var colour = box.Format.GetColor();
+
+            void Bar(double barX, double barY, double width, double height) =>
+                page.Rectangles.Add(new PositionedRectangle
+                {
+                    X = barX,
+                    Y = barY,
+                    Width = width,
+                    Height = height,
+                    Color = colour
+                });
+
+            // The line is drawn about the edge, half of it either side, which is how Word strokes
+            // the square: its own path runs corner to corner and the ink spreads from there.
+            const double Line = CheckBoxLinePoints;
+            var half = Line / 2;
+
+            Bar(left - half, head - half, box.Side + Line, Line);
+            Bar(left - half, foot - half, box.Side + Line, Line);
+            Bar(left - half, head - half, Line, box.Side + Line);
+            Bar(left + box.Side - half, head - half, Line, box.Side + Line);
+
+            if (!box.Ticked) continue;
+
+            page.Strokes.Add(new PositionedStroke
+            {
+                FromX = left, FromY = head, ToX = left + box.Side, ToY = foot,
+                Thickness = CheckBoxCrossPoints, Color = colour
+            });
+
+            page.Strokes.Add(new PositionedStroke
+            {
+                FromX = left + box.Side, FromY = head, ToX = left, ToY = foot,
+                Thickness = CheckBoxCrossPoints, Color = colour
+            });
+        }
+
         foreach (var (image, x) in line.Images)
         {
             // The image rests on the baseline, so its top edge is its own height above it. An
@@ -4972,6 +5029,7 @@ internal sealed class LayoutEngine(
             line.Items.AddRange(piece.Items);
             line.Segments.AddRange(piece.Segments);
             line.Images.AddRange(piece.Images);
+            line.Boxes.AddRange(piece.Boxes);
             line.Separators.AddRange(piece.Separators);
             line.Leaders.AddRange(piece.Leaders);
             line.Bars.AddRange(piece.Bars);
@@ -5057,6 +5115,17 @@ internal sealed class LayoutEngine(
             if (atom is SeparatorAtom)
             {
                 line.Items.Add(new PlacedAtom(atom, x, 0));
+                index++;
+                placedAnything = true;
+                continue;
+            }
+
+            if (atom is CheckBoxAtom checkBox)
+            {
+                if (placedAnything && !beyondMargin && x + checkBox.Width > available + 0.001) break;
+
+                line.Items.Add(new PlacedAtom(atom, x, checkBox.Width));
+                x += checkBox.Width;
                 index++;
                 placedAnything = true;
                 continue;
@@ -5331,6 +5400,18 @@ internal sealed class LayoutEngine(
                 maxTextAscent = Math.Max(maxTextAscent, separator.Ascent);
                 maxTextDescent = Math.Max(maxTextDescent, separator.Descent);
                 maxTextNatural = Math.Max(maxTextNatural, separator.NaturalHeight);
+                continue;
+            }
+
+            if (item.Atom is CheckBoxAtom box)
+            {
+                line.Boxes.Add((box, indentLeft + offset + pen));
+                pen += box.Width;
+                current = null;
+
+                maxTextAscent = Math.Max(maxTextAscent, box.Ascent);
+                maxTextDescent = Math.Max(maxTextDescent, box.Descent);
+                maxTextNatural = Math.Max(maxTextNatural, box.NaturalHeight);
                 continue;
             }
 
@@ -5780,6 +5861,12 @@ internal sealed class LayoutEngine(
                         _pendingMarks.Add(field);
                         break;
 
+                    // A checkbox draws no text at all: the box is the field, and Word draws it
+                    // with lines rather than setting a character from a face.
+                    case FieldInline { CheckBox: { } ticked }:
+                        atoms.Add(CheckBoxOf(ticked, runFormat, selection));
+                        break;
+
                     case FieldInline field:
                     {
                         var text = ResolveField(field, out var occurrence);
@@ -5802,6 +5889,49 @@ internal sealed class LayoutEngine(
         }
 
         return atoms;
+    }
+
+    /// <summary>
+    /// How big a checkbox is and where it sits, all of it measured from Word's own export.
+    /// </summary>
+    /// <remarks>
+    /// checkbox-probe puts ten sizes to Word, from eight point to seventy-two, stated on the field
+    /// and taken from the text round it, and the three numbers come straight off the drawing:
+    ///
+    ///   * The field is 1.15 times the size wide. Exactly that, at every size measured.
+    ///   * The box is drawn in the middle of it, 2.2 points narrower — 1.1 either side.
+    ///   * Its foot sits below the baseline by a little over a fifth of the size, less 1.2 points:
+    ///     nothing at eight point, and a fifth of an inch at seventy-two.
+    ///
+    /// A box left to the text round it takes that text's size; one that states its own takes what
+    /// it states, whatever the text is set in. Neither is the font's business — the same numbers
+    /// come out of a twelve point box in a twelve point run and a twelve point box stated in a
+    /// twenty point one.
+    /// </remarks>
+    private static CheckBoxAtom CheckBoxOf(CheckBox box, ResolvedRunFormat format, FontSelection selection)
+    {
+        var size = box.SizeHalfPoints is { } stated and > 0
+            ? stated / 2.0
+            : format.EffectiveFontSizePoints;
+
+        // A box makes the line as tall as a letter of its own size would: a fourteen point box in
+        // a line of twelve point text gives the line a fourteen point box, which is what Word's
+        // own line spacing does with it.
+        var height = TextMeasurer.GetNaturalLineHeight(selection.Font, size);
+        var above = TextMeasurer.GetAscent(selection.Font, size);
+
+        return new CheckBoxAtom
+        {
+            Ticked = box.Ticked,
+            Width = size * 1.15,
+            Side = Grid.Snap(size * 1.15 - 2.2),
+            Below = Grid.Snap(size * 0.216 - 1.2),
+            Format = format,
+
+            Ascent = above,
+            NaturalHeight = height,
+            Descent = height - above
+        };
     }
 
     /// <summary>
@@ -7251,6 +7381,25 @@ internal sealed class LayoutEngine(
     /// An inline image. It occupies a fixed box on the line and sits on the baseline, so its
     /// height becomes the line's ascent.
     /// </summary>
+    /// <summary>
+    /// The box a form is filled in by, which draws itself rather than standing for text.
+    /// </summary>
+    private sealed class CheckBoxAtom : Atom
+    {
+        public required bool Ticked { get; init; }
+
+        /// <summary>How wide the field is, which is what the pen advances by.</summary>
+        public required double Width { get; init; }
+
+        /// <summary>The side of the box drawn inside that.</summary>
+        public required double Side { get; init; }
+
+        /// <summary>How far below the baseline the box's foot sits.</summary>
+        public required double Below { get; init; }
+
+        public required ResolvedRunFormat Format { get; init; }
+    }
+
     private sealed class ImageAtom : Atom
     {
         /// <summary>
@@ -7323,6 +7472,9 @@ internal sealed class LayoutEngine(
         public List<Segment> Segments { get; } = [];
 
         public List<(ImageAtom Atom, double X)> Images { get; } = [];
+
+        /// <summary>The boxes a form is filled in by, and where each stands on the line.</summary>
+        public List<(CheckBoxAtom Atom, double X)> Boxes { get; } = [];
 
         /// <summary>Footnote separator rules on this line, as atom and x offset.</summary>
         public List<(SeparatorAtom Atom, double X)> Separators { get; } = [];

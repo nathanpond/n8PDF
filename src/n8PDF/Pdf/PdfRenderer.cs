@@ -77,6 +77,18 @@ internal static class PdfRenderer
                     .Restore();
             }
 
+            // And the lines a rule cannot draw: the cross in a ticked checkbox, corner to corner.
+            foreach (var stroke in page.Strokes)
+            {
+                content.Save()
+                    .SetStrokeColor(stroke.Color.Red, stroke.Color.Green, stroke.Color.Blue)
+                    .SetLineWidth(stroke.Thickness)
+                    .MoveTo(stroke.FromX, Flip(page, stroke.FromY))
+                    .LineTo(stroke.ToX, Flip(page, stroke.ToY))
+                    .Stroke()
+                    .Restore();
+            }
+
             foreach (var text in page.Texts)
                 RenderText(builder, content, page, text);
         }

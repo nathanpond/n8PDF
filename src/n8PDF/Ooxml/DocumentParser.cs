@@ -167,7 +167,8 @@ internal static class DocumentParser
                     {
                         Properties = child.Element(W.Main + "rPr") is { } begin
                             ? ParseRunProperties(begin)
-                            : null
+                            : null,
+                        CheckBox = ReadCheckBox(child.Element(W.Main + "fldChar"))
                     });
                     continue;
 
@@ -227,9 +228,32 @@ internal static class DocumentParser
 
         run.Content.Add(new FieldInline(
             finished.Instruction.ToString(),
-            string.Concat(finished.Result.Select(r => r.GetText()))));
+            string.Concat(finished.Result.Select(r => r.GetText())))
+        {
+            CheckBox = finished.CheckBox
+        });
 
         (open.Count > 0 ? open.Peek().Result : paragraph.Runs).Add(run);
+    }
+
+    /// <summary>
+    /// Reads the box a form field draws, from the field data carried on its opening character.
+    /// </summary>
+    /// <remarks>
+    /// Which state it is in is <c>w:checked</c> where the field says, and <c>w:default</c> where
+    /// it does not: a box nobody has touched stands at whatever it was made with. Both are on-off
+    /// values, so a bare element means ticked.
+    /// </remarks>
+    private static CheckBox? ReadCheckBox(XElement? fieldChar)
+    {
+        if (fieldChar?.Element(W.Main + "ffData")?.Element(W.Main + "checkBox") is not { } box)
+            return null;
+
+        var ticked = box.Element(W.Main + "checked")?.OnOff()
+                     ?? box.Element(W.Main + "default")?.OnOff()
+                     ?? false;
+
+        return new CheckBox(ticked, box.Element(W.Main + "size")?.IntVal());
     }
 
     /// <summary>A field being read: its instruction, and the runs of the result after it.</summary>
@@ -240,6 +264,9 @@ internal static class DocumentParser
         public List<Run> Result { get; } = [];
 
         public RunProperties? Properties { get; init; }
+
+        /// <summary>The box this field draws, where it is a checkbox rather than a field of text.</summary>
+        public CheckBox? CheckBox { get; init; }
 
         /// <summary>True once the "separate" has been passed and the result has begun.</summary>
         public bool InResult { get; set; }

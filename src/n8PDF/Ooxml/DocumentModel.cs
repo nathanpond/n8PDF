@@ -43,6 +43,13 @@ internal sealed class SymbolInline(string text, string? font) : InlineElement
 /// </remarks>
 internal sealed class FieldInline(string instruction, string cachedText) : InlineElement
 {
+    /// <summary>
+    /// The box this field draws, where it is a checkbox, from <c>w:ffData/w:checkBox</c>. Null for
+    /// every other field: a checkbox is the one that draws something of its own rather than
+    /// standing for text.
+    /// </summary>
+    public CheckBox? CheckBox { get; init; }
+
     /// <summary>The instruction text, for example " PAGE " or " NUMPAGES ".</summary>
     public string Instruction { get; } = instruction;
 
@@ -695,6 +702,16 @@ internal enum DropCapKind
 ///     left and the text keeps the whole measure.
 /// </remarks>
 internal sealed record FrameProperties(DropCapKind DropCap, int Lines, double HorizontalSpacePoints);
+
+/// <summary>
+/// A box a form is filled in by, from <c>w:checkBox</c> inside a legacy form field.
+/// </summary>
+/// <param name="Ticked">Whether it is ticked, from <c>w:checked</c> or failing that <c>w:default</c>.</param>
+/// <param name="SizeHalfPoints">
+/// How big it is, from <c>w:size</c>, or null where <c>w:sizeAuto</c> leaves it to the text round
+/// it.
+/// </param>
+internal sealed record CheckBox(bool Ticked, int? SizeHalfPoints);
 
 /// <summary>
 /// Whether words are broken at the ends of lines, and on what terms.
