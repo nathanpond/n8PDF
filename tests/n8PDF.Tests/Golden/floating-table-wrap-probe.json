@@ -218,7 +218,7 @@
           "baselineY": 96.48,
           "height": 13.799,
           "runs": [
-            {"x": 72, "width": 310.922, "font": "Times New Roman", "size": 12, "text": "The line above the table, which Word shortens and this does not."}
+            {"x": 224.75, "width": 310.922, "font": "Times New Roman", "size": 12, "text": "The line above the table, which Word shortens and this does not."}
           ]
         },
         {

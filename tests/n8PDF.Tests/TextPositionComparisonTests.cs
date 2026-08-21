@@ -68,14 +68,6 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     {
         ["chart-title-legend-label"] = 1.0,
 
-        // Word shortens a line that a float's clearance reaches back over: the table on the
-        // second page of the probe keeps half an inch of daylight above it, and the line already
-        // written above it is shortened to make room. Here that line has been placed by the time
-        // the table is reached and it stays whole, so it begins at the margin where Word's begins
-        // 152.64pt in. Everything else on both pages of that fixture agrees with Word — the text
-        // running down both sides of the table included, to within a step of the grid.
-        ["floating-table-wrap-probe"] = 153,
-
         // A script hangs off the plain advance of what it is on, which is where Word hangs one at
         // twelve point to the last decimal place — and 1.09 points further along when the letter
         // under it is twenty. The face states a kern for that: MathKernInfo gives every glyph a

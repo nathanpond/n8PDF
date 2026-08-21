@@ -149,18 +149,18 @@ public class FloatingTableTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The one thing Word does with a floating table that this does not: it shortens a line that
-    /// the table's clearance reaches back over.
+    /// A clearance that reaches back over a line already written breaks that line again round the
+    /// float, rather than leaving it where it was.
     /// </summary>
     /// <remarks>
     /// The second page of <c>floating-table-wrap-probe</c> has half an inch of daylight above the
-    /// table, which reaches back over the line already written above it. Word shortens that line;
-    /// here it stays whole, because by the time the table is reached the line has been placed and
-    /// nothing goes back to break it again. Held so the difference is written down rather than
-    /// merely absent — and so the day it is done, this test says what changed.
+    /// table, which reaches back over the line written above it. A float is not known until the
+    /// flow reaches the paragraph it is anchored to, so that line has already been placed by then:
+    /// it is taken off the page and its paragraph laid again with the room the table wants already
+    /// spoken for. Word does the same, and puts the line in the same place.
     /// </remarks>
     [Fact]
-    public void A_clearance_reaching_back_over_a_line_leaves_it_whole()
+    public void A_clearance_reaching_back_breaks_the_line_above_again()
     {
         if (TestFonts.SkipForMissingFonts("floating-table-wrap-probe")) return;
 
@@ -173,7 +173,7 @@ public class FloatingTableTests(ITestOutputHelper output)
         output.WriteLine($"line above a table with half an inch of daylight: word {wordAbove:0.##} ours {oursAbove:0.##}");
 
         Assert.Equal(224.64, wordAbove, 0.1);
-        Assert.Equal(72.0, oursAbove, 0.5);
+        Assert.Equal(wordAbove, oursAbove, 0.2);
     }
 
     /// <summary>How many lines of text a page holds.</summary>

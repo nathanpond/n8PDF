@@ -3014,12 +3014,11 @@ public static class Fixtures
                     .AddAnchoredImageParagraph(right, 108, 90, body, alignX: "right",
                         paragraphProperties: ZeroSpacing, runProperties: Times12)
                     // In the middle of the measure, where the text has room on both sides of it
-                    // and Word runs each line through both. At the top of a page of its own: a
-                    // float whose clearance reaches back over a line already written is a thing
-                    // Word does and this does not, and that is held in floating-table-wrap-probe
-                    // rather than mixed in here.
+                    // and Word runs each line through both. Written among the text rather than at
+                    // the top of a page, so that its clearance reaches back over a line of the
+                    // paragraph before it and that line has to be broken again round it.
                     .AddAnchoredImageParagraph(middle, 144, 72, body, alignX: "center",
-                        paragraphProperties: ZeroSpacingNewPage, runProperties: Times12)
+                        paragraphProperties: ZeroSpacing, runProperties: Times12)
                     .AddAnchoredImageParagraph(banner, 360, 36, body, wrap: "topAndBottom",
                         paragraphProperties: ZeroSpacing, runProperties: Times12);
             },

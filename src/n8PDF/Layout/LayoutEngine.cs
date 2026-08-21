@@ -155,6 +155,18 @@ internal sealed class LayoutEngine(
     private int _nextLineNumber = 1;
 
     /// <summary>
+    /// The paragraph last laid out, and everything needed to lay it again. A float's clearance can
+    /// reach back over lines already written, and Word breaks those lines again round it.
+    /// </summary>
+    /// <remarks>
+    /// Null where the last thing laid out cannot be done twice: a paragraph that broke across a
+    /// page, or one that anchored a picture of its own, whose picture is on the page already and
+    /// would be put there again. Those keep their lines whole, which is what everything did before
+    /// this existed.
+    /// </remarks>
+    private ReflowableParagraph? _reflowable;
+
+    /// <summary>
     /// The ordinal given to a line that belongs to no paragraph of the flow: a number down the
     /// margin, or a dropped capital's own line.
     /// </summary>
@@ -669,6 +681,14 @@ internal sealed class LayoutEngine(
     {
         var format = _styles.ResolveParagraph(paragraph.Properties);
 
+        // Where this paragraph began, kept in case a float coming after it reaches back over its
+        // lines and they have to be broken again.
+        var startedAt = (Page: cursor.Page, cursor.ColumnIndex, cursor.Y, Placed: cursor.ColumnLines.Count,
+            Ordinal: _paragraphOrdinal, Number: _nextLineNumber,
+            cursor.PendingSpaceAfter, cursor.PreviousFormat,
+            Before: (cursor.Page.Lines.Count, cursor.Page.Rules.Count, cursor.Page.Images.Count,
+                cursor.Page.Rectangles.Count, cursor.Floats.Count));
+
         var startedNewPage = false;
         if (format.PageBreakBefore && cursor.CanBreak)
         {
@@ -833,9 +853,117 @@ internal sealed class LayoutEngine(
         // space-before.
         cursor.PendingSpaceAfter = spaceAfter;
         cursor.PreviousFormat = format;
+
+        // Whether this paragraph could be laid again where it stands. It could not if it broke
+        // across a page or a column on the way: its lines are no longer one run at the end of one
+        // column, and what it put on the page it left behind is not this page's to take off.
+        var placed = cursor.ColumnLines.Count - startedAt.Placed;
+
+        _reflowable = placed > 0 &&
+                      ReferenceEquals(cursor.Page, startedAt.Page) &&
+                      cursor.ColumnIndex == startedAt.ColumnIndex &&
+                      cursor.ColumnLines.Count >= placed
+            ? new ReflowableParagraph(
+                paragraph, siblings, index, cursor.Page, cursor.ColumnIndex, placed, startedAt.Y,
+                startedAt.Ordinal, startedAt.Number, startedAt.PendingSpaceAfter,
+                startedAt.PreviousFormat, startedAt.Before)
+            : null;
+    }
+
+    /// <summary>
+    /// Breaks the lines a float's clearance reaches back over again, with the float in place.
+    /// </summary>
+    /// <remarks>
+    /// A float is not known until the flow reaches the paragraph it is anchored to, and by then
+    /// the lines above it have been written. Where its clearance reaches back over them Word
+    /// breaks them again round it — the second page of floating-table-wrap-probe has a table with
+    /// half an inch of daylight above it, and the line already written above the table is set
+    /// beside the table rather than across it. So that line is taken off the page here and the
+    /// paragraph laid again from where it began, with the room the float wants already spoken for.
+    ///
+    /// Only the paragraph immediately before is offered this, and only when it can be laid twice
+    /// — see <see cref="ReflowableParagraph"/>. That is the case Word's own behaviour shows up in
+    /// and the one a document is likely to have; a clearance deep enough to reach back over two
+    /// paragraphs leaves the further one alone.
+    ///
+    /// The float is given the room above the flow only. What it takes below is registered by
+    /// whoever placed it, once it knows how far down it reaches.
+    /// </remarks>
+    private void ReflowLinesReachedBy(Cursor cursor, FloatRegion reach)
+    {
+        if (_reflowable is not { } previous) return;
+
+        // Nothing to do where the clearance stops at the flow's own position, which is the usual
+        // case: a float takes its room from the lines that come after it.
+        if (reach.Top >= cursor.Y - 0.001) return;
+
+        // Nor where it stands clear of the text altogether — a picture out in the margin.
+        if (reach.Right <= cursor.Left + 0.001 || reach.Left >= cursor.Left + cursor.Width - 0.001) return;
+
+        if (!ReferenceEquals(previous.Page, cursor.Page) || previous.Column != cursor.ColumnIndex) return;
+        if (previous.Lines > cursor.ColumnLines.Count) return;
+
+        // Off the page, and the flow back to where the paragraph began. Its lines go first, which
+        // gives the page back the room it set aside for their notes; then everything else the
+        // paragraph put there, which is what it anchored before its first line was written.
+        UnplaceLines(cursor, previous.Lines);
+        cursor.ColumnLines.RemoveRange(cursor.ColumnLines.Count - previous.Lines, previous.Lines);
+        cursor.PagePlaced.RemoveRange(cursor.PagePlaced.Count - previous.Lines, previous.Lines);
+
+        Trim(cursor.Page.Lines, previous.Before.Lines);
+        Trim(cursor.Page.Rules, previous.Before.Rules);
+        Trim(cursor.Page.Images, previous.Before.Images);
+        Trim(cursor.Page.Rectangles, previous.Before.Rectangles);
+        Trim(cursor.Floats, previous.Before.Floats);
+
+        static void Trim<T>(List<T> list, int count)
+        {
+            if (list.Count > count) list.RemoveRange(count, list.Count - count);
+        }
+
+        _paragraphOrdinal = previous.Ordinal;
+        _nextLineNumber = previous.NextLineNumber;
+        cursor.Y = previous.Top;
+        cursor.PendingSpaceAfter = previous.PendingSpaceAfter;
+        cursor.PreviousFormat = previous.PreviousFormat;
+
+        // The room the float wants, so that the lines being written again make way for it. It is
+        // taken back out afterwards: whoever placed the float registers it properly, and a float
+        // counted twice would be no wider but would cost every line a second look.
+        cursor.Floats.Add(reach);
+
+        // Not offered twice: a paragraph laid again is not laid a third time for the same float.
+        _reflowable = null;
+        LayoutParagraph(cursor, previous.Paragraph, previous.Siblings, previous.Index);
+
+        cursor.Floats.Remove(reach);
     }
 
     // ----- widow and orphan control -----
+
+    /// <summary>
+    /// A paragraph that has been laid out and could be laid again from where it began.
+    /// </summary>
+    /// <param name="Lines">How many lines it placed, all of them in one column of one page.</param>
+    /// <param name="Top">Where the cursor stood before it, ahead of any space before it.</param>
+    /// <param name="Page">
+    /// How much of each of the page's lists, and of the floats, belonged to it before the
+    /// paragraph began. A paragraph anchors its pictures before its first line, so undoing the
+    /// lines is not enough to undo the paragraph: these are.
+    /// </param>
+    private sealed record ReflowableParagraph(
+        Paragraph Paragraph,
+        IReadOnlyList<BlockElement> Siblings,
+        int Index,
+        LaidOutPage Page,
+        int Column,
+        int Lines,
+        double Top,
+        int Ordinal,
+        int NextLineNumber,
+        double PendingSpaceAfter,
+        ResolvedParagraphFormat? PreviousFormat,
+        (int Lines, int Rules, int Images, int Rectangles, int Floats) Before);
 
     /// <summary>
     /// A line of the paragraph being laid out, and everything placing it added to the page, so
@@ -937,52 +1065,95 @@ internal sealed class LayoutEngine(
 
         var edges = OuterBorderHalves(table, columns.Count);
 
-        var top = position.VerticalAnchor switch
+        double Top() => position.VerticalAnchor switch
         {
             TableAnchor.Page => position.YPoints,
             TableAnchor.Margin => cursor.ContentTop + position.YPoints,
             _ => cursor.Y + position.YPoints
         };
 
-        // The table is laid out as any other, at the place worked out and against its own width,
-        // and the flow is put back exactly as it was: a float takes none of it.
-        var savedLeft = cursor.Left;
-        var savedWidth = cursor.Width;
-        var savedY = cursor.Y;
-        var savedPaginate = cursor.Paginate;
-        var savedSpaceAfter = cursor.PendingSpaceAfter;
-        var savedFormat = cursor.PreviousFormat;
+        // How much of the page belonged to it before the table went on, so that the table can be
+        // taken off again: everything below only ever appends.
+        var before = (cursor.Page.Lines.Count, cursor.Page.Rules.Count, cursor.Page.Images.Count,
+            cursor.Page.Rectangles.Count, cursor.Floats.Count);
 
-        cursor.Left = boxLeft;
-        cursor.Width = width;
-        cursor.Y = top;
-        cursor.PendingSpaceAfter = 0;
+        // The paragraph before the table, kept across the table's own layout: the paragraphs
+        // inside its cells are laid out too, and the last of those would otherwise be the one
+        // offered for breaking again.
+        var above = _reflowable;
+        var stood = Top();
+        var region = PlaceRows(stood);
+        _reflowable = above;
 
-        // Nothing here may break the page: the flow's own place on it is being borrowed.
-        cursor.Paginate = false;
+        // A table whose daylight reaches back over lines already written has those lines broken
+        // again round it. The table itself comes off the page while that happens — it is anchored
+        // to the text, so it stands wherever the flow ends up — and goes back on afterwards, at
+        // whatever place the flow has reached by then.
+        if (region.Top < cursor.Y - 0.001 && _reflowable is not null)
+        {
+            cursor.Page.Lines.RemoveRange(before.Item1, cursor.Page.Lines.Count - before.Item1);
+            cursor.Page.Rules.RemoveRange(before.Item2, cursor.Page.Rules.Count - before.Item2);
+            cursor.Page.Images.RemoveRange(before.Item3, cursor.Page.Images.Count - before.Item3);
+            cursor.Page.Rectangles.RemoveRange(before.Item4, cursor.Page.Rectangles.Count - before.Item4);
+            cursor.Floats.RemoveRange(before.Item5, cursor.Floats.Count - before.Item5);
 
-        LayoutTableRows(cursor, table, columns, cursor.Left);
+            ReflowLinesReachedBy(cursor, region);
 
-        var bottom = cursor.Y;
+            // Back where it stood, not where the flow has got to: breaking those lines again can
+            // lengthen the paragraph they belong to, and the table does not follow it down. Word's
+            // own export says so — the lines above its table are broken round a table standing
+            // where the flow first reached.
+            _reflowable = null;
+            PlaceRows(stood);
+        }
 
-        cursor.Left = savedLeft;
-        cursor.Width = savedWidth;
-        cursor.Y = savedY;
-        cursor.Paginate = savedPaginate;
-        cursor.PendingSpaceAfter = savedSpaceAfter;
-        cursor.PreviousFormat = savedFormat;
+        return;
 
-        // The daylight is measured from the outside of the line the table is drawn with rather
-        // than from the box the rows sit in — sideways and below, at least. Above it is measured
-        // from the place itself, because that is where Word's own outer edge falls: Word draws the
-        // line inside the table's box where this straddles the edge with it, which is why the
-        // probe's thick border reaches a step and a half higher here than in Word's own export and
-        // why the text inside it stands in the same place all the same.
-        cursor.Floats.Add(new FloatRegion(
-            boxLeft - edges.Left - position.LeftFromTextPoints,
-            top - position.TopFromTextPoints,
-            boxLeft + width + edges.Right + position.RightFromTextPoints,
-            bottom + edges.Bottom + position.BottomFromTextPoints));
+        // Lays the table's rows at the place given and registers the room it takes. The flow is
+        // put back exactly as it was afterwards: a float takes none of it.
+        FloatRegion PlaceRows(double top)
+        {
+            var savedLeft = cursor.Left;
+            var savedWidth = cursor.Width;
+            var savedY = cursor.Y;
+            var savedPaginate = cursor.Paginate;
+            var savedSpaceAfter = cursor.PendingSpaceAfter;
+            var savedFormat = cursor.PreviousFormat;
+
+            cursor.Left = boxLeft;
+            cursor.Width = width;
+            cursor.Y = top;
+            cursor.PendingSpaceAfter = 0;
+
+            // Nothing here may break the page: the flow's own place on it is being borrowed.
+            cursor.Paginate = false;
+
+            LayoutTableRows(cursor, table, columns, cursor.Left);
+
+            var bottom = cursor.Y;
+
+            cursor.Left = savedLeft;
+            cursor.Width = savedWidth;
+            cursor.Y = savedY;
+            cursor.Paginate = savedPaginate;
+            cursor.PendingSpaceAfter = savedSpaceAfter;
+            cursor.PreviousFormat = savedFormat;
+
+            // The daylight is measured from the outside of the line the table is drawn with rather
+            // than from the box the rows sit in — sideways and below, at least. Above it is
+            // measured from the place itself, because that is where Word's own outer edge falls:
+            // Word draws the line inside the table's box where this straddles the edge with it,
+            // which is why the probe's thick border reaches a step and a half higher here than in
+            // Word's own export and why the text inside it stands in the same place all the same.
+            var taken = new FloatRegion(
+                boxLeft - edges.Left - position.LeftFromTextPoints,
+                top - position.TopFromTextPoints,
+                boxLeft + width + edges.Right + position.RightFromTextPoints,
+                bottom + edges.Bottom + position.BottomFromTextPoints);
+
+            cursor.Floats.Add(taken);
+            return taken;
+        }
     }
 
     /// <summary>
@@ -1305,6 +1476,19 @@ internal sealed class LayoutEngine(
             var height = anchored.HeightPoints;
             if (width <= 0 || height <= 0) continue;
 
+            // Where it goes, worked out before anything else happens and kept. Breaking the lines
+            // above it again can lengthen the paragraph they belong to and so move the flow, and
+            // the picture does not follow: Word's own export has the picture standing where the
+            // flow first reached, with the lines above it broken round it where it stands.
+            var region = AnchoredRegion(cursor, anchored, width, height);
+
+            // A clearance reaching back over lines already written breaks those lines again. Only
+            // a picture with text beside it: one that takes the whole measure has nothing to give
+            // them, so they are moved down instead, which is what DisplaceOverlappedLines does and
+            // what Word does with them.
+            if (anchored.Wrap is not (TextWrapMode.None or TextWrapMode.TopAndBottom))
+                ReflowLinesReachedBy(cursor, region);
+
             (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top)? composed =
                 anchored.Chart is { } chart
                     ? ComposeChart(chart, width, height)
@@ -1321,8 +1505,12 @@ internal sealed class LayoutEngine(
 
             if (image is null) continue;
 
-            var x = ResolveHorizontalPosition(cursor, anchored, width);
-            var y = ResolveVerticalPosition(cursor, anchored, height);
+            // The picture's own corner, inside the room it keeps clear.
+            var x = region.Left + Units.EmuToPoints(anchored.DistanceLeftEmu);
+            var y = region.Top + Units.EmuToPoints(anchored.DistanceTopEmu);
+
+            if (anchored.Wrap == TextWrapMode.TopAndBottom)
+                x = ResolveHorizontalPosition(cursor, anchored, width);
 
             cursor.Page.Images.Add(new PositionedImage
             {
@@ -1337,24 +1525,6 @@ internal sealed class LayoutEngine(
 
             if (anchored.Wrap == TextWrapMode.None) continue;
 
-            // The distances are the clearance Word keeps between the picture and the text; they
-            // are part of the area text has to avoid, not part of the picture.
-            var left = x - Units.EmuToPoints(anchored.DistanceLeftEmu);
-            var right = x + width + Units.EmuToPoints(anchored.DistanceRightEmu);
-
-            if (anchored.Wrap == TextWrapMode.TopAndBottom)
-            {
-                // Nothing sits beside it, so the exclusion spans the whole measure.
-                left = cursor.Left;
-                right = cursor.Left + cursor.Width;
-            }
-
-            var region = new FloatRegion(
-                left,
-                y - Units.EmuToPoints(anchored.DistanceTopEmu),
-                right,
-                y + height + Units.EmuToPoints(anchored.DistanceBottomEmu));
-
             cursor.Floats.Add(region);
 
             // A float's clearance can reach back over text already on the page — the top
@@ -1362,6 +1532,39 @@ internal sealed class LayoutEngine(
             // before it. Word moves that text down; the picture stays where its anchor put it.
             if (anchored.Wrap == TextWrapMode.TopAndBottom) DisplaceOverlappedLines(cursor, region);
         }
+    }
+
+    /// <summary>
+    /// The area text keeps clear of an anchored drawing: where it stands, grown by the distances
+    /// it asks the text to stay away by.
+    /// </summary>
+    /// <remarks>
+    /// The distances are the clearance Word keeps between the picture and the text; they are part
+    /// of the area text has to avoid, not part of the picture. Worked out here rather than where
+    /// the picture is placed because it is needed twice — once before, to see whether it reaches
+    /// back over lines already written, and once after.
+    /// </remarks>
+    private static FloatRegion AnchoredRegion(
+        Cursor cursor, AnchoredDrawing anchored, double width, double height)
+    {
+        var x = ResolveHorizontalPosition(cursor, anchored, width);
+        var y = ResolveVerticalPosition(cursor, anchored, height);
+
+        var left = x - Units.EmuToPoints(anchored.DistanceLeftEmu);
+        var right = x + width + Units.EmuToPoints(anchored.DistanceRightEmu);
+
+        if (anchored.Wrap == TextWrapMode.TopAndBottom)
+        {
+            // Nothing sits beside it, so the exclusion spans the whole measure.
+            left = cursor.Left;
+            right = cursor.Left + cursor.Width;
+        }
+
+        return new FloatRegion(
+            left,
+            y - Units.EmuToPoints(anchored.DistanceTopEmu),
+            right,
+            y + height + Units.EmuToPoints(anchored.DistanceBottomEmu));
     }
 
     /// <summary>

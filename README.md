@@ -1006,14 +1006,8 @@ reaches give up its width and the ones past it come back to the full measure. Ev
 seven pages agrees with Word: the box within a tenth of a point sideways, and the text beside it
 within half of one.
 
-**One thing Word does here that this does not yet**, held in `floating-table-wrap-probe` rather
-than left unsaid: **Word shortens a line that a float's clearance reaches back over.** A table with
-half an inch of daylight above it shortens the line already written above it; this leaves that line
-whole, because by the time the table is reached that line has been placed and nothing goes back to
-break it again.
-
-A floating table is also not broken across pages here — Word moves one that will not fit rather
-than splitting it, and a probe for that is work still to do.
+A floating table is not broken across pages here — Word moves one that will not fit rather than
+splitting it, and a probe for that is work still to do.
 
 ### Text down both sides of a float
 
@@ -1038,6 +1032,29 @@ Measured against Word twice over, since it is the wrapping engine rather than th
 it — `floating-table-wrap-probe` for a table standing in the middle of the measure, and
 `images-floating` for a picture doing the same. Every line of both agrees with Word's own export to
 within a step of the grid, in the same places, with the same words on them.
+
+### A clearance that reaches back
+
+A float is not known until the flow reaches the paragraph it is anchored to, and by then the lines
+above it have been written. Where its clearance reaches back over them — a table with half an inch
+of daylight above it, a picture with six points — Word breaks those lines again round the float,
+and so does this: the paragraph they belong to is taken off the page and laid again with the room
+the float wants already spoken for.
+
+Two things about it are Word's, not ours to choose:
+
+- **The float stays where the flow first reached.** Breaking the lines above it can lengthen the
+  paragraph they belong to and so move the flow, but the float does not follow it down. Word's
+  export says so plainly: with the picture of `images-floating` standing in the middle of the
+  measure, the line above it is broken round a picture that has not moved.
+- **A float taking the whole measure is not treated this way.** It has no room to offer the lines
+  it reaches back over, so they are moved down instead, which is what Word does with them and what
+  this already did.
+
+Only the paragraph immediately before the float is offered this, and only where it can be laid
+twice — one that broke across a page cannot, since the page it left behind is not this page's to
+take back. That is the case Word's own behaviour shows up in and the one a document is likely to
+have; a clearance deep enough to reach back over two paragraphs leaves the further one alone.
 
 ### A dropped capital
 
