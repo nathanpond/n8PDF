@@ -145,6 +145,8 @@ public class DiagramTests(ITestOutputHelper output)
     [Fact]
     public void A_word_too_wide_for_its_box_is_broken()
     {
+        if (TestFonts.SkipForMissingFonts("smartart")) return;
+
         var lines = Lines(Word("smartart"));
 
         Assert.Contains(lines, line => line.Text.Trim() == "Thre");
@@ -168,6 +170,8 @@ public class DiagramTests(ITestOutputHelper output)
     [Fact]
     public void The_diagram_is_drawn_where_word_draws_it()
     {
+        if (TestFonts.SkipForMissingFonts("smartart")) return;
+
         var mine = Lines(Ours());
         var word = Lines(Word("smartart"));
 

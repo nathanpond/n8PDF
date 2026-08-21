@@ -43,6 +43,7 @@ jobs:
           N8PDF_REQUIRE_OFFICE_FONTS: '1'
           N8PDF_REQUIRE_QPDF: '1'
           N8PDF_REQUIRE_FONTTOOLS: '1'
+          N8PDF_REQUIRE_FRIBIDI: '1'
         run: >
           dotnet test n8PDF.sln --configuration Release --no-build
           --logger "trx;LogFileName=results.trx"

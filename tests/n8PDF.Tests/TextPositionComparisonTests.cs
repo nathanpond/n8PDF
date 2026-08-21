@@ -373,6 +373,8 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     [MemberData(nameof(RealDocumentNames))]
     public void Real_document_line_positions_match_word(string name)
     {
+        if (name.Length == 0 || TestFonts.SkipForMissingFonts(name)) return;
+
         if (name.Length == 0)
         {
             _output.WriteLine(

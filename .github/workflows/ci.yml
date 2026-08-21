@@ -27,12 +27,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # qpdf validates the cross-reference tables, stream lengths and object graphs this writes by
-      # hand; fontTools reads the subset fonts back and draws their glyphs. Both are optional to
-      # the suite and required here, because a tier that is skipped in CI is a tier nobody runs.
+      # Three second opinions, each of them an implementation with nothing in common with this
+      # one: qpdf validates the cross-reference tables, stream lengths and object graphs this
+      # writes by hand, fontTools reads the subset fonts back and draws their glyphs, and GNU
+      # FriBidi resolves the bidirectional algorithm its own way. All three are optional to the
+      # suite and required here, because a tier that is skipped in CI is a tier nobody runs.
       - name: Install the checking tools
         run: |
-          brew install qpdf
+          brew install qpdf fribidi
           python3 -m pip install --break-system-packages fonttools
 
       # The faces this pins live at fixed paths in macOS. A runner image that ships a different
@@ -61,6 +63,7 @@ jobs:
         env:
           N8PDF_REQUIRE_QPDF: '1'
           N8PDF_REQUIRE_FONTTOOLS: '1'
+          N8PDF_REQUIRE_FRIBIDI: '1'
         run: >
           dotnet test n8PDF.sln --configuration Release --no-build
           --logger "trx;LogFileName=results.trx"

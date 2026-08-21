@@ -105,8 +105,9 @@ public static class TestFonts
         "Set N8PDF_REQUIRE_OFFICE_FONTS=1 to make their absence a failure rather than a skip.";
 
     /// <summary>
-    /// The fixtures that are set, somewhere in them, in a face Word brings with it, and so cannot
-    /// be rendered as Word rendered them on a machine that has not got Word.
+    /// The documents — fixtures and the real ones Word wrote — that are set, somewhere in them, in
+    /// a face Word brings with it, and so cannot be rendered as Word rendered them on a machine
+    /// that has not got Word.
     /// </summary>
     /// <remarks>
     /// Measured rather than declared: a fixture is on this list when converting it with those
@@ -131,13 +132,29 @@ public static class TestFonts
         "footnote-split-probe", "footnotes", "images", "images-formats", "index", "kerning",
         "line-ascent-probe", "line-grid-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
-        "numbering", "page-numbering-restart", "tab-bars", "table-inset-weights-probe",
+        "numbering", "page-numbering-restart", "smartart", "tab-bars", "table-inset-weights-probe",
         "table-vertical-merge", "toc", "watermark", "watermark-fit-probe", "watermark-picture",
         "watermark-washout-probe", "wrapping"
     ];
 
     /// <summary>Whether a fixture is written in a face that comes with Word.</summary>
     public static bool NeedsOfficeFonts(string fixture) => WrittenInOfficeFaces.Contains(fixture);
+
+    /// <summary>
+    /// The documents in Fixtures/Real, which Word wrote and which are compared the same way. They
+    /// are set in whatever Word's own defaults are, so they need Word's faces almost by
+    /// definition — but the answer is measured with the rest rather than assumed.
+    /// </summary>
+    public static IEnumerable<(string Name, byte[] Docx)> RealDocuments()
+    {
+        if (!Directory.Exists(TestPaths.RealFixtures)) yield break;
+
+        foreach (var path in Directory.GetFiles(TestPaths.RealFixtures, "*.docx").OrderBy(p => p))
+        {
+            var name = Path.GetFileNameWithoutExtension(path);
+            if (!name.StartsWith("~$", StringComparison.Ordinal)) yield return (name, File.ReadAllBytes(path));
+        }
+    }
 
     /// <summary>
     /// The same question asked of the documents themselves, by laying each one out twice and
@@ -152,10 +169,11 @@ public static class TestFonts
     /// </remarks>
     public static IEnumerable<string> MeasureWhichNeedOfficeFonts()
     {
-        foreach (var name in Fixtures.All.Keys.Order())
-        {
-            var docx = Fixtures.Build(name);
+        IEnumerable<(string Name, byte[] Docx)> everything =
+            [.. Fixtures.All.Keys.Order().Select(name => (name, Fixtures.Build(name))), .. RealDocuments()];
 
+        foreach (var (name, docx) in everything)
+        {
             static ConversionOptions Options(bool office) => new()
             {
                 Fonts = CreatePinnedLibrary(office), CreationDate = DateTimeOffset.UnixEpoch

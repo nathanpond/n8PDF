@@ -142,7 +142,9 @@ public class BidiTests(ITestOutputHelper output)
             RedirectStandardError = true
         };
 
-        using var process = Process.Start(start);
+        // A missing binary throws rather than returning null, which is how three of these tests
+        // came to fail on a runner that had not got it.
+        using var process = Start(start);
         if (process is null) return null;
 
         process.StandardInput.Write(text + "\n");
@@ -160,6 +162,28 @@ public class BidiTests(ITestOutputHelper output)
         return line is null
             ? null
             : [.. line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(byte.Parse)];
+    }
+
+    /// <summary>
+    /// GNU FriBidi, or nothing where it is not installed. A reference implementation is a second
+    /// opinion rather than a dependency, so its absence is a skip — but a skip that says so, and
+    /// that <c>N8PDF_REQUIRE_FRIBIDI=1</c> turns into a failure. CI installs it and sets that.
+    /// </summary>
+    private static Process? Start(ProcessStartInfo start)
+    {
+        try
+        {
+            return Process.Start(start);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Assert.False(
+                Environment.GetEnvironmentVariable("N8PDF_REQUIRE_FRIBIDI") == "1",
+                "fribidi was not found, so the bidi algorithm was not checked against any other\n" +
+                "implementation. Install it with: brew install fribidi");
+
+            return null;
+        }
     }
 
     /// <summary>The pieces the random lines are built from.</summary>

@@ -84,11 +84,11 @@ So it matters which machine the tests run on, and there are two answers:
 | | `ci.yml`, every push | `full.yml`, by hand or weekly |
 |---|---|---|
 | Runner | `macos-15`, hosted | self-hosted, labelled `word` |
-| Fixtures compared against Word | 64 of 110 | all 110 |
-| Also | `qpdf`, fontTools, `dotnet pack` | `qpdf`, fontTools |
+| Documents compared against Word | 63 of 113 | all 113 |
+| Also | `qpdf`, fontTools, FriBidi, `dotnet pack` | `qpdf`, fontTools, FriBidi |
 
-The 46 fixtures written in Word's faces cannot be rendered as Word rendered them on a machine
-without Word, so on a hosted runner they are left alone. Which 46 is measured rather than declared
+The 50 documents written in Word's faces cannot be rendered as Word rendered them on a machine
+without Word, so on a hosted runner they are left alone. Which 50 is measured rather than declared
 — a fixture is on the list when laying it out with those faces and without them gives different
 answers — and `OfficeFontTests` keeps the list honest at both ends: it regenerates and checks the
 list wherever the faces are present, and where they are absent it prints how much was skipped

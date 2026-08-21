@@ -23,17 +23,18 @@ public class OfficeFontTests(ITestOutputHelper output)
     [Fact]
     public void The_faces_word_brings_are_available_or_explicitly_optional()
     {
-        var needed = Fixtures.All.Keys.Where(TestFonts.NeedsOfficeFonts).ToList();
+        var all = Fixtures.All.Keys.Concat(TestFonts.RealDocuments().Select(d => d.Name)).ToList();
+        var needed = all.Where(TestFonts.NeedsOfficeFonts).ToList();
 
         if (TestFonts.OfficeFontsAvailable)
         {
-            output.WriteLine($"Word's faces found; {needed.Count} of {Fixtures.All.Count} fixtures ask for one.");
+            output.WriteLine($"Word's faces found; {needed.Count} of {all.Count} documents ask for one.");
             return;
         }
 
         var message =
             $"{TestFonts.OfficeFontsUnavailableMessage}\n\n" +
-            $"{needed.Count} of {Fixtures.All.Count} fixtures are affected: {string.Join(", ", needed)}";
+            $"{needed.Count} of {all.Count} documents are affected: {string.Join(", ", needed)}";
 
         Assert.False(TestFonts.OfficeFontsRequired, message);
         output.WriteLine(message);
@@ -51,7 +52,8 @@ public class OfficeFontTests(ITestOutputHelper output)
         if (TestFonts.SkipForMissingFaces()) return;
 
         var measured = TestFonts.MeasureWhichNeedOfficeFonts().ToList();
-        var listed = Fixtures.All.Keys.Where(TestFonts.NeedsOfficeFonts).Order().ToList();
+        var listed = Fixtures.All.Keys.Concat(TestFonts.RealDocuments().Select(d => d.Name))
+            .Where(TestFonts.NeedsOfficeFonts).Order().ToList();
 
         var missing = measured.Except(listed).ToList();
         var extra = listed.Except(measured).ToList();
