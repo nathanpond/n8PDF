@@ -93,6 +93,13 @@ internal sealed record MathBox(
     public MathEdge Tail { get; init; }
 
     /// <summary>
+    /// Whether this stands for something the markup wrote and left empty — a limit an operator
+    /// has been given without anything in it. It draws nothing and takes no width, but a line
+    /// leaves room for it as though something were there.
+    /// </summary>
+    public bool Blank { get; init; }
+
+    /// <summary>
     /// Whether this is a single letter rather than something built out of parts or spelled out of
     /// several. A script sits on a letter by the shifts the table states and on anything else by
     /// that thing's own height less a drop — which is the rule TeX states, and Word's.
@@ -1311,7 +1318,9 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
                 // derived — see SumLimitShare and SumLimitSpread — and are measured from the
                 // operator's own baseline rather than the equation's, which is why what it was
                 // raised by comes off again here.
-                if (sub is not null)
+                var spread = SumLimitSpread * style.Size;
+
+                if (sub is { Blank: false })
                 {
                     // What is in it, which is its ink where it is a single letter and the line its
                     // face asks for where it is more than one — the same telling apart of a letter
@@ -1328,11 +1337,15 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
                 {
                     // The pair straddle a line half the spread over the operator's baseline. One
                     // on its own stands the stated shift over that same line, which is where
-                    // Word puts an x or an n over a sum exactly.
-                    rise = sub is null
-                        ? math.SuperscriptShiftUp * unit + SumLimitSpread * style.Size / 2
-                        : drop + SumLimitSpread * style.Size;
+                    // Word puts an x or an n over a sum exactly — and a limit written empty is
+                    // one that is not there, so the other still stands alone.
+                    rise = sub is null or { Blank: true }
+                        ? math.SuperscriptShiftUp * unit + spread / 2
+                        : drop + spread;
                 }
+
+                // The room kept for a limit that is not there is kept where one would have gone.
+                if (sub is { Blank: true } && sup is not null) drop = rise - spread;
 
                 rise += lift;
                 drop -= lift;
@@ -1373,16 +1386,34 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     // ---------------------------------------------------------------- grids
 
     /// <summary>
-    /// One of an operator's limits, or null where the markup writes the element and leaves it
-    /// empty.
+    /// One of an operator's limits, or null where the markup gives it none at all.
     /// </summary>
+    /// <remarks>
+    /// A limit the markup writes and leaves empty — <c>m:sub</c> with nothing in it, which is what
+    /// a document says when a limit has been deleted — is not a limit: what is over the operator
+    /// is set as though it stood alone. But the line still leaves room for it, and the room is a
+    /// limit's worth: the face's typographic ascender at the size a limit is set at, and nothing
+    /// below. Word's sum with only a lower limit asks its line for 11.0 points where the limit
+    /// alone would ask for 4.4, and the 6.6 between them is that ascender to a twentieth of a
+    /// point, in five probes of math-nary-probe over two operators and three limits.
+    /// </remarks>
     private MathBox? Limit(MathNode? node, Style style)
     {
         if (node is null) return null;
 
         var box = Compose(node, style);
+        if (box.Pieces.Count > 0 || box.Rules.Count > 0) return box;
 
-        return box.Pieces.Count == 0 && box.Rules.Count == 0 ? null : box;
+        var selection = Resolve(Format(new RunProperties(), style));
+        if (selection is null) return null;
+
+        var metrics = selection.Font.Metrics;
+
+        return MathBox.Empty with
+        {
+            Ascent = metrics.TypoAscender * style.Size / metrics.UnitsPerEm,
+            Blank = true
+        };
     }
 
     private MathBox Grid(MathGrid grid, Style style)

@@ -442,7 +442,7 @@ a `MATH` table — where the axis of an equation sits, how far a superscript ris
 fraction's bar is, how much room a radical leaves over what is under it, and a set of taller shapes
 for every bracket that has to grow. Those are read and used, and the rules that combine them are the
 ones the OpenType specification lays down. What was measured is where Word departs from them, and it
-departs in nine places:
+departs in ten places:
 
 - **An equation is set at the size of the text carrying it, not at the size its own runs state.**
   Its letters are drawn at their runs' size and everything else — every distance from the table,
@@ -504,6 +504,11 @@ departs in nine places:
   in it**, the two of them straddle a line **0.08 of the size** apart, and an upper limit with no
   lower one takes the stated shift from that same line. Twenty limits, and every one of them lands
   where Word lands it but for two that round the other way.
+- A limit the markup writes and leaves empty — which is what a document says when a limit has been
+  deleted — **is not a limit, but the line still leaves room for it**: the face's typographic
+  ascender at the size a limit is set at, and nothing below. Word's sum with only a lower limit asks
+  its line for 11.0 points where the limit alone would ask for 4.4, and the 6.6 between them is that
+  ascender to a twentieth of a point across five probes.
 
 A slanted fraction is set at the full size with a taller *fraction slash* — not the solidus, which
 the face keeps no shapes for — its numerator raised 0.3 of the type size and its denominator dropped

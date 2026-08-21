@@ -37,6 +37,21 @@ public class MathLineBoxTests(ITestOutputHelper output)
     ];
 
     /// <summary>
+    /// The n-ary probe's nineteen, which are here for the room a line keeps for a limit that is
+    /// not there: eight of them give an operator one limit and write the other empty, which is
+    /// what Word writes when a limit is deleted.
+    /// </summary>
+    private static readonly string[] Nary =
+    [
+        "sum, limits above", "sum, limits beside", "integral, limits above", "integral, limits beside",
+        "product, limits above", "product, limits beside", "contour, limits above", "contour, limits beside",
+        "sum with a lower limit", "sum with an upper limit",
+        "integral with a lower limit", "integral with an upper limit",
+        "sum under x", "sum under 1", "sum over x", "sum over 1", "sum, x either side",
+        "integral under x", "sum at twenty-four point"
+    ];
+
+    /// <summary>
     /// Every probe of both fixtures, above the line and below it.
     /// </summary>
     /// <remarks>
@@ -46,6 +61,7 @@ public class MathLineBoxTests(ITestOutputHelper output)
     [Theory]
     [InlineData("math-line-box-probe")]
     [InlineData("math-structure-probe")]
+    [InlineData("math-nary-probe")]
     public void An_equation_asks_its_line_for_what_word_asks(string fixture)
     {
         var options = new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() };
@@ -62,7 +78,12 @@ public class MathLineBoxTests(ITestOutputHelper output)
         var railAscent = rail.Ascent;
         var railDescent = rail.Height - rail.Ascent;
 
-        var names = fixture == "math-structure-probe" ? Structure : LineBox;
+        var names = fixture switch
+        {
+            "math-structure-probe" => Structure,
+            "math-nary-probe" => Nary,
+            _ => LineBox
+        };
 
         var wordRoom = Room(word, railAscent, railDescent);
         var ourRoom = Room(ours, railAscent, railDescent);

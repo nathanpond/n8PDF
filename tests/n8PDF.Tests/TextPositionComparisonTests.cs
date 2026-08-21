@@ -100,19 +100,12 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 does not.
                 """),
 
-            ["math-nary-probe"] = (14.5,
+            ["math-nary-probe"] = (2.8,
                 """
-                Where the limits go is exact — every one of the twenty on this page sits where
-                Word sits it, which is what MathNaryTests asserts. What differs is how much room a
-                line leaves for a limit that is not there: eight of the probes give an operator one
-                limit and write the other as an empty element, which is what Word itself writes
-                when a limit is deleted, and Word keeps a limit's worth of room for it. Nothing
-                here does, so those lines are shorter by two to four points each and the page
-                gathers fourteen by the end of it.
-
-                What that room comes to was not worked out. It is not the empty run's own line,
-                which would be a point too much, nor its typographic ascent, which is half a point
-                too little.
+                The rails between the operators, as in the other probes: a two point line of
+                Word's is 2.16 points where the same line here is 2.2998, and there are forty of
+                them. Where every limit goes is asserted in MathNaryTests and what each line comes
+                to in MathLineBoxTests, both against Word's own page.
                 """),
 
             ["math-bracket-probe"] = (1.7,
