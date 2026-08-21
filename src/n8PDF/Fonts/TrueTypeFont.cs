@@ -527,8 +527,14 @@ internal sealed class TrueTypeFont
             var offset = (int)reader.ReadUInt32();
             var length = (int)reader.ReadUInt32();
 
+            // A table cannot reach past the end of the file it is in. The offset was already
+            // checked; the length was not, and it is a thirty-two bit number straight out of the
+            // file — so anything reading a table by its declared length would have been asked for
+            // up to two gigabytes on the word of a malformed font. Trimmed rather than refused,
+            // because a truncated font with a readable head and cmap is still worth drawing with,
+            // and this reader checks what it reads.
             if (offset >= 0 && offset < data.Length)
-                tables[tag] = new TableRecord(tag, checksum, offset, length);
+                tables[tag] = new TableRecord(tag, checksum, offset, Math.Clamp(length, 0, data.Length - offset));
         }
 
         var head = Require(tables, "head");

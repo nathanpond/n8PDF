@@ -222,7 +222,7 @@ public static class Converter
         var bookmarks = BookmarkText.Collect(document);
         environment.TextOfBookmark = name => bookmarks.GetValueOrDefault(name);
 
-        var engine = new LayoutEngine(fonts, resolver, options.Layout) { Fields = environment };
+        var engine = new LayoutEngine(fonts, resolver, options.Layout, options.Limits) { Fields = environment };
         var laidOut = engine.Layout(document);
 
         // A page number cannot be known while the page it is on is still being filled, so a
@@ -237,7 +237,7 @@ public static class Converter
             ? laidOut.Pages[found.PageIndex].PageNumber
             : 0;
 
-        var second = new LayoutEngine(fonts, resolver, options.Layout)
+        var second = new LayoutEngine(fonts, resolver, options.Layout, options.Limits)
         {
             Fields = environment,
             Pagination = pagination

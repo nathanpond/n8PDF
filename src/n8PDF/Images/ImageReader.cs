@@ -16,24 +16,29 @@ internal static class ImageReader
         PngDecoder.IsPng(data) || IsJpeg(data) || GifDecoder.IsGif(data) ||
         BmpDecoder.IsBmp(data) || TiffDecoder.IsTiff(data) || EmfDecoder.IsEmf(data);
 
-    public static ImageData Read(byte[] data)
+    /// <param name="maximumPixels">
+    /// What a picture may decode to, width times height. Carried down to whichever decoder reads
+    /// the header, because that is where the dimensions are known and where the memory is asked
+    /// for. See <see cref="ImageLimits"/>.
+    /// </param>
+    public static ImageData Read(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
     {
-        if (PngDecoder.IsPng(data)) return PngDecoder.Decode(data);
-        if (IsJpeg(data)) return ReadJpeg(data);
-        if (GifDecoder.IsGif(data)) return GifDecoder.Decode(data);
-        if (BmpDecoder.IsBmp(data)) return BmpDecoder.Decode(data);
-        if (TiffDecoder.IsTiff(data)) return TiffDecoder.Decode(data);
-        if (EmfDecoder.IsEmf(data)) return EmfDecoder.Decode(data);
+        if (PngDecoder.IsPng(data)) return PngDecoder.Decode(data, maximumPixels);
+        if (IsJpeg(data)) return ReadJpeg(data, maximumPixels);
+        if (GifDecoder.IsGif(data)) return GifDecoder.Decode(data, maximumPixels);
+        if (BmpDecoder.IsBmp(data)) return BmpDecoder.Decode(data, maximumPixels);
+        if (TiffDecoder.IsTiff(data)) return TiffDecoder.Decode(data, maximumPixels);
+        if (EmfDecoder.IsEmf(data)) return EmfDecoder.Decode(data, maximumPixels);
 
         throw new ImageFormatException("Unsupported image format.");
     }
 
     /// <summary>Reads an image if the format is one we handle, and returns null otherwise.</summary>
-    public static ImageData? TryRead(byte[] data)
+    public static ImageData? TryRead(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
     {
         try
         {
-            return IsSupported(data) ? Read(data) : null;
+            return IsSupported(data) ? Read(data, maximumPixels) : null;
         }
         catch (ImageFormatException)
         {
@@ -54,7 +59,7 @@ internal static class ImageReader
     /// Adobe's tools write says, of a file of four channels, that its ink is written the other way
     /// up. Every other segment is skipped by its declared length.
     /// </remarks>
-    private static ImageData ReadJpeg(byte[] data)
+    private static ImageData ReadJpeg(byte[] data, long maximumPixels)
     {
         var position = 2;
         var adobe = false;
@@ -100,6 +105,10 @@ internal static class ImageReader
 
                 if (width <= 0 || height <= 0)
                     throw new ImageFormatException("JPEG frame header declares an empty image.");
+
+                // Nothing here decodes it — the compressed data goes into the PDF as it stands —
+                // but what a viewer will decode is the same picture, so it takes the same limit.
+                ImageLimits.Check(width, height, maximumPixels, "JPEG");
 
                 return new ImageData(width, height, data, ImageEncoding.Jpeg, colorSpace)
                 {

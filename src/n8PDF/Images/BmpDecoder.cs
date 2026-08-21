@@ -18,7 +18,7 @@ internal static class BmpDecoder
     public static bool IsBmp(byte[] data) =>
         data.Length > 54 && data[0] == 'B' && data[1] == 'M';
 
-    public static ImageData Decode(byte[] data)
+    public static ImageData Decode(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
     {
         if (!IsBmp(data)) throw new ImageFormatException("Not a bitmap.");
 
@@ -40,6 +40,8 @@ internal static class BmpDecoder
         var topDown = rawHeight < 0;
 
         if (width <= 0 || height <= 0) throw new ImageFormatException("Bitmap declares an empty image.");
+
+        ImageLimits.Check(width, height, maximumPixels, "bitmap");
         if (bits is not (1 or 4 or 8 or 16 or 24 or 32))
             throw new ImageFormatException($"Bitmap has {bits} bits a pixel, which is not handled.");
 

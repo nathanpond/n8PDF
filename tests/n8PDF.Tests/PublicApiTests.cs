@@ -64,6 +64,7 @@ public class PublicApiTests(ITestOutputHelper output)
         class n8PDF.Packaging.PackageLimits
             .ctor()
             Int32 MaximumPartCount { get; set; }
+            Int64 MaximumImagePixels { get; set; }
             Int64 MaximumPartBytes { get; set; }
             Int64 MaximumTotalBytes { get; set; }
         class n8PDF.Packaging.PackageTooLargeException

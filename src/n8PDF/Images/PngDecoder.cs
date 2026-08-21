@@ -27,7 +27,7 @@ internal static class PngDecoder
         return true;
     }
 
-    public static ImageData Decode(byte[] data)
+    public static ImageData Decode(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
     {
         if (!IsPng(data)) throw new ImageFormatException("Not a PNG file.");
 
@@ -56,6 +56,7 @@ internal static class PngDecoder
                 case "IHDR":
                     width = ReadInt32(data, body);
                     height = ReadInt32(data, body + 4);
+                    ImageLimits.Check(width, height, maximumPixels, "PNG");
                     bitDepth = data[body + 8];
                     colorType = data[body + 9];
                     interlaced = data[body + 12] != 0;

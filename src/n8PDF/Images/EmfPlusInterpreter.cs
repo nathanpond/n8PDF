@@ -34,7 +34,7 @@ internal static class EmfPlusInterpreter
     /// </summary>
     public static List<DrawingOperation> Read(byte[] records, double unitsToPoints)
     {
-        var state = new Interpreter(unitsToPoints, []);
+        var state = new Interpreter(unitsToPoints, [], ImageLimits.DefaultMaximumPixels);
         state.Feed(records, 0, records.Length);
 
         return state.Operations;
@@ -44,13 +44,14 @@ internal static class EmfPlusInterpreter
     /// Begins reading, a comment at a time, so that the records of both formats can be replayed in
     /// the one order the file puts them in.
     /// </summary>
-    internal static Reader Begin(double unitsToPoints, List<DrawingOperation> operations) =>
-        new(unitsToPoints, operations);
+    internal static Reader Begin(
+        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels) =>
+        new(unitsToPoints, operations, maximumPixels);
 
     /// <summary>Reads the records as they arrive, holding on to what a comment cut in half.</summary>
-    internal sealed class Reader(double unitsToPoints, List<DrawingOperation> operations)
+    internal sealed class Reader(double unitsToPoints, List<DrawingOperation> operations, long maximumPixels)
     {
-        private readonly Interpreter _interpreter = new(unitsToPoints, operations);
+        private readonly Interpreter _interpreter = new(unitsToPoints, operations, maximumPixels);
 
         /// <summary>
         /// Whether the last record read handed the drawing back to the older interface, after
@@ -82,7 +83,8 @@ internal static class EmfPlusInterpreter
         public double Scale => Math.Sqrt(Math.Abs(M11 * M22 - M12 * M21));
     }
 
-    private sealed class Interpreter(double unitsToPoints, List<DrawingOperation> operations)
+    private sealed class Interpreter(
+        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels)
     {
         public List<DrawingOperation> Operations => operations;
 
@@ -413,7 +415,7 @@ internal static class EmfPlusInterpreter
             var start = at + 24;
             if (start >= end) return null;
 
-            return ImageReader.TryRead(data[start..end]);
+            return ImageReader.TryRead(data[start..end], maximumPixels);
         }
 
         // ----- what is drawn -----

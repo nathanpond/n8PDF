@@ -39,6 +39,22 @@ public sealed class PackageLimits
     public long MaximumTotalBytes { get; set; } = 512L * 1024 * 1024;
 
     /// <summary>
+    /// The most pixels a picture in the document may decode to, width times height. An image says
+    /// its own size in its header and is allocated from what it says, so a file of a few hundred
+    /// bytes can ask for gigabytes; the part limits cannot see it coming, because the file really
+    /// is small.
+    /// </summary>
+    /// <remarks>
+    /// Fifty million is 150MB of the three bytes a pixel this keeps them in. A page of A4 scanned
+    /// at 600dpi is 35 million, and a photograph from a very good camera is 50.
+    ///
+    /// A picture past the limit is left out, the way any picture this cannot read is left out; it
+    /// does not stop the conversion. A document holding one hostile image still converts, and what
+    /// is lost is that image.
+    /// </remarks>
+    public long MaximumImagePixels { get; set; } = Images.ImageLimits.DefaultMaximumPixels;
+
+    /// <summary>
     /// The most parts a package may declare. A document with several hundred images is ordinary;
     /// one with tens of thousands of parts is an attack on whatever enumerates them.
     /// </summary>

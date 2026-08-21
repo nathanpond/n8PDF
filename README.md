@@ -167,6 +167,16 @@ describes it wrongly. Two attacks are cheap to write and were both open here:
   at it. Parts are now read through a reader that prohibits definitions outright, which costs
   nothing legitimate: the Open Packaging Conventions forbid a DTD in a part.
 
+- **A picture that declares itself enormous.** An image says its own size in its header, and every
+  decoder here allocates from what it says before reading a byte of the picture: a PNG of 57 bytes
+  can call itself fifty thousand pixels square and ask for seven and a half gigabytes. The part
+  limits cannot see it coming, because the file really is small. `MaximumImagePixels` bounds the
+  area — fifty million, which is a 600dpi A4 scan with room to spare — and it is counted in long
+  arithmetic, since 70,000 squared does not fit in the int the pixels would have been allocated
+  with. A picture past the limit is left out the way any unreadable picture is left out: twenty
+  bytes of nonsense beginning `GIF89a` declare themselves 24,864 by 25,710, and a document holding
+  such a thing should lose the picture rather than the conversion.
+
 The size limits are counted against what comes out of the decompressor rather than what the header
 claims. As it turns out a lying header cannot smuggle anything past — .NET stops the decompressor
 at the declared size, so a part claiming to be small *becomes* small — but that is a property of
@@ -177,6 +187,14 @@ comment rather than a defence.
 The defaults are set for documents rather than for the fixtures here, the largest of which is 105KB
 in one part across 6 parts — a hundredth of the smallest limit, which `PackageLimitTests` asserts,
 so a fixture that ever approaches one says so.
+
+Fonts are not in this list, and the reason is worth stating: **no font ever comes from a document**.
+Word can embed one, and the relationship type for the font table is declared here, but nothing reads
+it — faces come from the system directories or from what the caller registers, both of which the
+caller chose. What was worth fixing was smaller: the table directory of an SFNT checked that a
+table began inside the file and not that it ended there, so a malformed face could declare a table
+of two gigabytes and be believed by anything that read one by its length. Lengths are clamped to
+what is actually there. When embedded fonts are implemented, a byte limit belongs beside the others.
 
 ## Matching Word
 

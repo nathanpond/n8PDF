@@ -28,7 +28,11 @@ public sealed class LayoutOptions
 /// Turns a parsed document into positioned text on pages: measurement, line breaking, vertical
 /// stacking and pagination.
 /// </summary>
-internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, LayoutOptions? options = null)
+internal sealed class LayoutEngine(
+    FontLibrary fonts,
+    StyleResolver styles,
+    LayoutOptions? options = null,
+    Packaging.PackageLimits? limits = null)
 {
     private readonly FontLibrary _fonts = fonts;
 
@@ -4918,7 +4922,7 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         if (_decodedImages.TryGetValue(key, out var cached)) return cached;
 
         var image = _images.TryGetValue(relationshipId, out var bytes)
-            ? Images.ImageReader.TryRead(bytes)
+            ? Images.ImageReader.TryRead(bytes, (limits ?? new Packaging.PackageLimits()).MaximumImagePixels)
             : null;
 
         if (image is not null && wash is not null) image = Washed(image, wash);

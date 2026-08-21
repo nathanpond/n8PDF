@@ -16,7 +16,7 @@ internal static class GifDecoder
     public static bool IsGif(byte[] data) =>
         data.Length > 13 && data[0] == 'G' && data[1] == 'I' && data[2] == 'F';
 
-    public static ImageData Decode(byte[] data)
+    public static ImageData Decode(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
     {
         if (!IsGif(data)) throw new ImageFormatException("Not a GIF.");
 
@@ -25,6 +25,8 @@ internal static class GifDecoder
 
         if (screenWidth <= 0 || screenHeight <= 0)
             throw new ImageFormatException("GIF declares an empty screen.");
+
+        ImageLimits.Check(screenWidth, screenHeight, maximumPixels, "GIF");
 
         var packed = data[10];
         var at = 13;
