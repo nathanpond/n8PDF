@@ -173,6 +173,12 @@ internal sealed record ResolvedParagraphFormat
 
     public bool KeepLines { get; init; }
 
+    /// <summary>
+    /// Whether the margin's numbering passes this paragraph over. Such a paragraph is not counted
+    /// either, so the line after it carries the number it would have had.
+    /// </summary>
+    public bool SuppressLineNumbers { get; init; }
+
     public bool PageBreakBefore { get; init; }
 
     public bool WidowControl { get; init; } = true;

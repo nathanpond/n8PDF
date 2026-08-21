@@ -205,6 +205,9 @@ internal sealed class ParagraphProperties
 
     public bool? KeepLines { get; set; }
 
+    /// <summary>Whether the lines of this paragraph are passed over by the margin's numbering.</summary>
+    public bool? SuppressLineNumbers { get; set; }
+
     public bool? PageBreakBefore { get; set; }
 
     /// <summary>Suppress widow and orphan control. Word enables the control by default.</summary>
@@ -315,6 +318,9 @@ internal enum VerticalPageAlignment
 
 internal sealed class SectionProperties
 {
+
+    /// <summary>Numbering down the margin, or null where the section asks for none.</summary>
+    public LineNumbering? LineNumbers { get; set; }
 
     /// <summary>The border round the page, or null where the section asks for none.</summary>
     public PageBorders? PageBorders { get; set; }

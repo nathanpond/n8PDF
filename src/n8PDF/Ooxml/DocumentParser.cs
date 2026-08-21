@@ -921,6 +921,11 @@ internal static class DocumentParser
                 case "keepLines":
                     properties.KeepLines = element.OnOff();
                     break;
+
+                case "suppressLineNumbers":
+                    properties.SuppressLineNumbers = element.OnOff();
+                    break;
+
                 case "pageBreakBefore":
                     properties.PageBreakBefore = element.OnOff();
                     break;
@@ -985,6 +990,7 @@ internal static class DocumentParser
         section.EndnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Endnote);
 
         section.PageBorders = ReadPageBorders(sectPr.Element(W.Main + "pgBorders"));
+        section.LineNumbers = ReadLineNumbering(sectPr.Element(W.Main + "lnNumType"));
 
         var pgMar = sectPr.Element(W.Main + "pgMar");
         if (pgMar is not null)
@@ -1293,6 +1299,32 @@ internal static class DocumentParser
         target.Right = ReadBorderEdge(container.Element(W.Main + "right") ?? container.Element(W.Main + "end"));
         target.InsideHorizontal = ReadBorderEdge(container.Element(W.Main + "insideH"));
         target.InsideVertical = ReadBorderEdge(container.Element(W.Main + "insideV"));
+    }
+
+    /// <summary>
+    /// Reads <c>w:lnNumType</c>: the numbering down the margin.
+    /// </summary>
+    /// <remarks>
+    /// A section that states no distance gets eighteen points, which is what line-number-probe
+    /// measures: its first section says nothing about one and Word writes the numbers against a
+    /// place eighteen points in from the text.
+    /// </remarks>
+    private static LineNumbering? ReadLineNumbering(XElement? element)
+    {
+        if (element is null) return null;
+
+        return new LineNumbering(
+            Math.Max(1, element.IntAttr("countBy") ?? 1),
+            element.IntAttr("start") ?? 1,
+            element.Attr("restart") switch
+            {
+                "newSection" => LineNumberRestart.NewSection,
+                "continuous" => LineNumberRestart.Continuous,
+                _ => LineNumberRestart.NewPage
+            },
+            element.IntAttr("distance") is { } distance
+                ? Units.TwipsToPoints(distance)
+                : 18);
     }
 
     /// <summary>

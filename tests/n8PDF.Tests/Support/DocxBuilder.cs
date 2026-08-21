@@ -222,7 +222,7 @@ public sealed class DocxBuilder
         string? footnoteRestart = null, string? endnoteRestart = null,
         string? footnotePosition = null, string? endnotePosition = null,
         int? pageNumberStart = null, string? pageNumberFormat = null,
-        string? pageBorders = null)
+        string? pageBorders = null, string? lineNumbers = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
 
@@ -261,10 +261,22 @@ public sealed class DocxBuilder
             <w:sectPr>
               {references}{notes}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
               <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
-              {pageBorders}{pageNumbers}{Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
+              {pageBorders}{lineNumbers}{pageNumbers}{Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
             </w:sectPr>
             """;
     }
+
+    /// <summary>
+    /// A <c>w:lnNumType</c> element: numbering down the margin, which in CT_SectPr comes between
+    /// the page's border and its numbering.
+    /// </summary>
+    public static string LineNumbers(
+        int? countBy = null, int? start = null, string? restart = null, int? distanceTwips = null) =>
+        "<w:lnNumType" +
+        (countBy is null ? string.Empty : $" w:countBy=\"{countBy}\"") +
+        (start is null ? string.Empty : $" w:start=\"{start}\"") +
+        (restart is null ? string.Empty : $" w:restart=\"{restart}\"") +
+        (distanceTwips is null ? string.Empty : $" w:distance=\"{distanceTwips}\"") + "/>";
 
     /// <summary>
     /// A <c>w:pgBorders</c> element: the border round a page, which in CT_SectPr comes after the

@@ -239,6 +239,7 @@ internal sealed class StyleResolver(
         private bool? _contextualSpacing;
         private bool? _keepNext;
         private bool? _keepLines;
+        private bool? _suppressLineNumbers;
         private bool? _pageBreakBefore;
         private bool? _widowControl;
         private int? _outlineLevel;
@@ -276,6 +277,7 @@ internal sealed class StyleResolver(
             if (source.ContextualSpacing is { } contextual) _contextualSpacing = contextual;
             if (source.KeepNext is { } keepNext) _keepNext = keepNext;
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
+            if (source.SuppressLineNumbers is { } suppress) _suppressLineNumbers = suppress;
             if (source.PageBreakBefore is { } pageBreak) _pageBreakBefore = pageBreak;
             if (source.WidowControl is { } widow) _widowControl = widow;
             if (source.OutlineLevel is { } outline) _outlineLevel = outline;
@@ -306,6 +308,7 @@ internal sealed class StyleResolver(
             ContextualSpacing = _contextualSpacing ?? false,
             KeepNext = _keepNext ?? false,
             KeepLines = _keepLines ?? false,
+            SuppressLineNumbers = _suppressLineNumbers ?? false,
             PageBreakBefore = _pageBreakBefore ?? false,
             WidowControl = _widowControl ?? true,
             OutlineLevel = _outlineLevel,

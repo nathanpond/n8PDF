@@ -5114,6 +5114,53 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
             },
 
+            // Numbering down the margin: where the numbers sit, which lines get one, what a
+            // count of more than one leaves out, and where the count begins again. Three sections,
+            // and one export answers all of it:
+            //
+            //   1  every line, beginning again on each page, at whatever distance a section that
+            //      says nothing gets — and an empty paragraph among them, and one that asks to be
+            //      passed over
+            //   2  every fifth line, counting on from the section before, starting at ten
+            //   3  every line again, half an inch out, beginning again with the section
+            ["line-number-probe"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithSection(DocxBuilder.Section(
+                        lineNumbers: DocxBuilder.LineNumbers(countBy: 1, restart: "newSection",
+                            distanceTwips: 720)));
+
+                void Lines(string label, int count, string? properties = null)
+                {
+                    for (var i = 1; i <= count; i++)
+                        builder.AddParagraph($"{label} {i}.", properties ?? ZeroSpacing, Times12);
+                }
+
+                void Break(string numbers) =>
+                    builder.AddParagraphWithSectionBreak(string.Empty,
+                        DocxBuilder.Section(type: "nextPage", lineNumbers: numbers), ZeroSpacing, Times12);
+
+                Lines("Every line", 6);
+
+                // Nothing on it, which is still a line of the document.
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr></w:p>");
+
+                // And one that asks not to be counted.
+                Lines("Passed over", 2, "<w:suppressLineNumbers/>" + ZeroSpacing);
+                Lines("Counting again", 4);
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                Lines("A second page", 5);
+                Break(DocxBuilder.LineNumbers(countBy: 1, restart: "newPage"));
+
+                Lines("Every fifth", 12);
+                Break(DocxBuilder.LineNumbers(countBy: 5, start: 10, restart: "continuous"));
+
+                Lines("Half an inch out", 5);
+
+                return builder;
+            },
+
             // The border round a page: where its line falls, which pages get one, and whether the
             // four edges are asked for one at a time. Four sections, so that one export answers
             // all of it:

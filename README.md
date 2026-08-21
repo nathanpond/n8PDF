@@ -946,6 +946,40 @@ Word draws each side as a bar between the corners and then fills the corners in;
 corner to corner, which covers the same ground. So the comparison is of ink rather than rectangles,
 and every page of the probe agrees with Word's exactly — no point of the margins differs.
 
+### Numbers down the margin
+
+`w:lnNumType` sets a number beside every line, or every fifth, out in the left margin. It is a
+section's property rather than a paragraph's, and `line-number-probe` puts the whole of it to Word
+in three sections and one export:
+
+- **`w:countBy` counts every line and prints some of them.** With `countBy="5"` the count still
+  runs 1, 2, 3 — only the multiples are set, so the tenth line carries a 10 whether or not the
+  ninth carried a 9.
+- **`w:restart`** is `newPage`, `newSection`, or `continuous`, and **`w:start` is ignored where the
+  count is continuous**: the probe's middle section asks to begin at 10 and Word carries on from
+  the 6 the section before it reached.
+- **An empty line is counted**, which is why the probe's "Counting again 1." is the eighth line and
+  not the seventh.
+- **`w:suppressLineNumbers` on a paragraph passes its lines over entirely** — no number, and no
+  turn: the count comes out of the two suppressed lines the same as it went in.
+- **The paragraph a section break is written on is not counted.** That one is read off the count
+  rather than seen: it runs 6, 7 across the break where counting the break's own paragraph would
+  have made it 6, 8. Whether Word lays that paragraph out at all its export cannot say, since it
+  falls at the foot of a page where an invisible line and no line look alike.
+
+The number is set in the document's default face at the default size, both quantised like any other
+text — Calibri 11pt is drawn at 11.04. `w:distance` names how far the *end* of the number stands
+from the text, and 18 points is what Word uses when nothing says: a single figure begins at 48.48
+on a page with an inch margin, and 720 twips moves it exactly 18 points further out.
+
+**The width it is set against is the sum of its figures' widths rounded to the grid**, not its true
+width. Word's own numbers say so: one figure stands at 48.48 and two at 42.96, which is 5.52 apart
+where the figure itself measures 5.597 and 5.52 is what that rounds to. It follows that every
+number lands on the grid, which every one of Word's does.
+
+Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
+a point, beside the same line.
+
 ### A character named by its code
 
 `w:sym` is how Word writes a tick, an arrow, or anything else from the symbol faces: the run names

@@ -1,3 +1,4 @@
+using System.Globalization;
 using n8PDF.Fonts;
 using n8PDF.Ooxml;
 using n8PDF.Styling;
@@ -149,6 +150,9 @@ internal sealed class LayoutEngine(
     // How many pages the section being laid out has produced, which is what a title page and a
     // section's own numbering are counted against.
     private int _pagesInSection;
+
+    /// <summary>The number the next line of the body takes, where the section numbers its lines.</summary>
+    private int _nextLineNumber = 1;
 
     /// <summary>
     /// The number the last page made was printed as, and the number the next section's first page
@@ -575,6 +579,12 @@ internal sealed class LayoutEngine(
     {
         var contentTop = Units.TwipsToPoints(section.MarginTopTwips);
 
+        // A section numbering its lines from its own beginning starts here. One that carries on
+        // from the section before does not, whatever number it says to start at — which is what
+        // Word does with it, and what line-number-probe's middle section shows.
+        if (section.LineNumbers is { Restart: LineNumberRestart.NewSection } perSection)
+            _nextLineNumber = perSection.Start;
+
         cursor.Section = section;
         cursor.SectionLeft = Units.TwipsToPoints(section.MarginLeftTwips + section.GutterTwips);
         cursor.SectionWidth = section.ContentWidthPoints;
@@ -721,6 +731,14 @@ internal sealed class LayoutEngine(
             var band = ResolveBandForLine(cursor, composer.ProvisionalHeight);
             var line = composer.Next(band.Left, band.Width);
 
+            // The paragraph a section break is written on takes no number and does not advance
+            // the count: line-number-probe's middle section carries on from six to seven across a
+            // break whose own paragraph is empty, where counting it would have made that eight.
+            // Whether Word lays the paragraph out at all is another question, and one its export
+            // cannot answer — it falls at the foot of a page, where a line nobody can see and a
+            // line that is not there look alike.
+            if (paragraph.SectionBreak is not null && line.Segments.Count == 0) line.SuppressNumber = true;
+
             // A footnote goes to the foot of the page its reference lands on, so its space has to
             // come out of the page before the line that refers to it is fitted into what is left.
             var footnoteIds = FootnotesOn(line);
@@ -842,9 +860,86 @@ internal sealed class LayoutEngine(
         cursor.PagePlaced.Add((cursor.ColumnIndex, _sectionOrdinal, placed));
 
         RecordFieldPages(cursor.Page, line);
-        EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
+
+        var baseline = EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
+        NumberLine(cursor, line, baseline);
+
         CommitFootnotes(cursor, footnotes, line.Height);
         cursor.Y += line.Height;
+    }
+
+    /// <summary>
+    /// Writes the line's number down the margin, where the section asks for numbering.
+    /// </summary>
+    /// <remarks>
+    /// What line-number-probe shows Word doing, and all of it measured there rather than read off
+    /// the format:
+    ///
+    ///   * Every line of the body is counted, an empty paragraph among them.
+    ///   * A paragraph that asks to be passed over is neither numbered nor counted, so the line
+    ///     after two of them carries the number the first of them would have had.
+    ///   * Only numbers that divide by the count are written: five means 10 and 15 are written and
+    ///     the eight lines between them are not.
+    ///   * The number is written right against a place the stated distance in from the text —
+    ///     eighteen points where the section states none — so that tens reach further left than
+    ///     units do.
+    ///   * It is set in the document's own face rather than the paragraph's: eleven point Calibri
+    ///     beside twelve point Times, on the same baseline.
+    ///   * Where the count begins again is the section's business, and a section that says nothing
+    ///     begins again on every page. A section counting on from the one before ignores whatever
+    ///     number it says to start at, having nowhere to start.
+    /// </remarks>
+    private void NumberLine(Cursor cursor, ComposedLine line, double baseline)
+    {
+        if (cursor.Section.LineNumbers is not { } numbering || line.SuppressNumber) return;
+        if (!cursor.Paginate) return;
+
+        var number = _nextLineNumber;
+        _nextLineNumber++;
+
+        if (number % numbering.CountBy != 0) return;
+
+        // The document's own face, at the size Word draws a size at: eleven point is written and
+        // measured as 11.04, which is eleven rounded to the grid. Everything else here is measured
+        // at the size a run states and written at the same, since a flowed run's advances have to
+        // agree with the size they were measured at; a number written on its own has no such tie,
+        // and Word's own is 11.04 wide for 11.04 of type.
+        var defaults = _styles.ResolveRun(null, null);
+        var size = Grid.Snap(defaults.EffectiveFontSizePoints);
+        var format = defaults with { FontSizePoints = size };
+
+        var selection = _fonts.Resolve(format.FontFamily, format.Bold, format.Italic);
+        var text = number.ToString(CultureInfo.InvariantCulture);
+
+        // Each figure takes a whole number of steps of the grid, and the number is set right
+        // against its place by the sum of those rather than by its true width. Word's own say so:
+        // a single figure stands at 48.48 and two at 42.96, which is 5.52 apart where the figure
+        // itself is 5.597 wide and 5.52 is what that rounds to. It follows that the number always
+        // lands on the grid, which Word's always do.
+        var width = text.Sum(figure =>
+            Grid.Snap(TextMeasurer.Measure(selection.Font, figure.ToString(), size)));
+
+        cursor.Page.Lines.Add(new LaidOutLine
+        {
+            BaselineY = baseline,
+            Height = 0,
+            Ascent = 0,
+            ParagraphIndex = -1,
+            Texts =
+            {
+                new PositionedText
+                {
+                    // Right against the place the distance names, so the numbers line up under
+                    // one another however many figures they have.
+                    X = cursor.SectionLeft - numbering.Distance - width,
+                    BaselineY = baseline,
+                    Text = text,
+                    Format = format,
+                    Font = selection,
+                    Width = width
+                }
+            }
+        });
     }
 
     /// <summary>
@@ -3684,6 +3779,11 @@ internal sealed class LayoutEngine(
             PageNumber = _printedPage
         };
 
+        // A section numbering its lines from the top of every page begins again here; one
+        // numbering from the top of the section began when the section did.
+        if (section.LineNumbers is { Restart: LineNumberRestart.NewPage } perPage)
+            _nextLineNumber = perPage.Start;
+
         document.Pages.Add(page);
         DrawPageBorders(page, section);
 
@@ -3795,7 +3895,7 @@ internal sealed class LayoutEngine(
         return drawn;
     }
 
-    private static void EmitLine(
+    private static double EmitLine(
         LaidOutPage page, ComposedLine line, double contentLeft, double top, int paragraphIndex,
         TabOptions tabs)
     {
@@ -3896,6 +3996,8 @@ internal sealed class LayoutEngine(
         }
 
         page.Lines.Add(laidOut);
+
+        return baselineY;
     }
 
     /// <summary>
@@ -4073,6 +4175,10 @@ internal sealed class LayoutEngine(
 
             // An empty paragraph has no atoms but still takes up a line, sized by its mark.
             if (line.Segments.Count == 0) ApplyEmptyLineMetrics(line, format, _markMetrics);
+
+            // Whether the margin's numbering passes it over belongs to the paragraph, and the line
+            // has to carry it: a line outlives the paragraph that composed it.
+            line.SuppressNumber = format.SuppressLineNumbers;
 
             // Nothing was consumed and nothing remains: the one pass an empty paragraph gets.
             if (consumed == 0 && _index >= atoms.Count) _index = atoms.Count;
@@ -6116,6 +6222,13 @@ internal sealed class LayoutEngine(
 
     private sealed class ComposedLine
     {
+        /// <summary>
+        /// Whether the margin's numbering passes this line over, from the paragraph it belongs to.
+        /// Kept on the line because a line outlives the paragraph that composed it: balancing a
+        /// column places it again from what was recorded.
+        /// </summary>
+        public bool SuppressNumber { get; set; }
+
         public List<PlacedAtom> Items { get; } = [];
 
         public List<Segment> Segments { get; } = [];

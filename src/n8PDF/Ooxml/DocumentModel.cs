@@ -583,6 +583,36 @@ internal sealed class FieldScope
     }
 }
 
+/// <summary>Where the count of lines begins again.</summary>
+internal enum LineNumberRestart
+{
+    /// <summary>At the top of every page, which is what a section that says nothing gets.</summary>
+    NewPage,
+
+    /// <summary>At the top of every section.</summary>
+    NewSection,
+
+    /// <summary>Never: the count carries on from the section before.</summary>
+    Continuous
+}
+
+/// <summary>
+/// Numbering down the margin, from <c>w:lnNumType</c>.
+/// </summary>
+/// <remarks>
+/// Measured against Word in line-number-probe. Every line of the body is counted, an empty
+/// paragraph among them; a paragraph asking to be passed over is neither numbered nor counted, so
+/// the line after two of them carries the number the first of them would have had. Only the
+/// numbers that divide by <see cref="CountBy"/> are written, and they are written right against a
+/// place <see cref="Distance"/> in from the text, in the document's own face rather than the
+/// paragraph's.
+/// </remarks>
+internal sealed record LineNumbering(
+    int CountBy,
+    int Start,
+    LineNumberRestart Restart,
+    double Distance);
+
 /// <summary>Which pages of a section carry the border round the page.</summary>
 internal enum PageBorderDisplay
 {

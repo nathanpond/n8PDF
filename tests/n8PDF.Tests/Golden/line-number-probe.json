@@ -1,0 +1,521 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.646, "font": "Times New Roman", "size": 12, "text": "Every line 1."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 83.04,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.646, "font": "Times New Roman", "size": 12, "text": "Every line 2."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 96.96,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.646, "font": "Times New Roman", "size": 12, "text": "Every line 3."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 110.64,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.646, "font": "Times New Roman", "size": 12, "text": "Every line 4."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 124.56,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "4"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.646, "font": "Times New Roman", "size": 12, "text": "Every line 5."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 138.24,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "5"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 61.646, "font": "Times New Roman", "size": 12, "text": "Every line 6."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 152.16,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "6"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.36,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 165.36,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "7"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 68.988, "font": "Times New Roman", "size": 12, "text": "Passed over 1."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 68.988, "font": "Times New Roman", "size": 12, "text": "Passed over 2."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 85.658, "font": "Times New Roman", "size": 12, "text": "Counting again 1."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 206.88,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "8"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 85.658, "font": "Times New Roman", "size": 12, "text": "Counting again 2."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 220.8,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "9"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 234.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 85.658, "font": "Times New Roman", "size": 12, "text": "Counting again 3."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 234.48,
+          "height": 0,
+          "runs": [
+            {"x": 42.96, "width": 11.04, "font": "Calibri", "size": 11.04, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 248.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 85.658, "font": "Times New Roman", "size": 12, "text": "Counting again 4."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 248.4,
+          "height": 0,
+          "runs": [
+            {"x": 42.96, "width": 11.04, "font": "Calibri", "size": 11.04, "text": "11"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 13,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 82.56,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.641, "font": "Times New Roman", "size": 12, "text": "A second page 1."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 96.48,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.641, "font": "Times New Roman", "size": 12, "text": "A second page 2."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 110.4,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.641, "font": "Times New Roman", "size": 12, "text": "A second page 3."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 124.08,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "4"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.641, "font": "Times New Roman", "size": 12, "text": "A second page 4."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 138,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "5"}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.641, "font": "Times New Roman", "size": 12, "text": "A second page 5."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 151.68,
+          "height": 0,
+          "runs": [
+            {"x": 48.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "6"}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 164.88,
+          "height": 13.428,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 1."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 2."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 3."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 4."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 124.56,
+          "height": 0,
+          "runs": [
+            {"x": 42.96, "width": 11.04, "font": "Calibri", "size": 11.04, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 5."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 6."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 7."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 8."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 9."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 193.44,
+          "height": 0,
+          "runs": [
+            {"x": 42.96, "width": 11.04, "font": "Calibri", "size": 11.04, "text": "15"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 207.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 70.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 10."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 221.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 70.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 11."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 234.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 70.312, "font": "Times New Roman", "size": 12, "text": "Every fifth 12."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 248.16,
+          "height": 13.428,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 89.643, "font": "Times New Roman", "size": 12, "text": "Half an inch out 1."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 83.04,
+          "height": 0,
+          "runs": [
+            {"x": 30.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "1"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 89.643, "font": "Times New Roman", "size": 12, "text": "Half an inch out 2."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 96.96,
+          "height": 0,
+          "runs": [
+            {"x": 30.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "2"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 89.643, "font": "Times New Roman", "size": 12, "text": "Half an inch out 3."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 110.64,
+          "height": 0,
+          "runs": [
+            {"x": 30.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "3"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 89.643, "font": "Times New Roman", "size": 12, "text": "Half an inch out 4."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 124.56,
+          "height": 0,
+          "runs": [
+            {"x": 30.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "4"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 89.643, "font": "Times New Roman", "size": 12, "text": "Half an inch out 5."}
+          ]
+        },
+        {
+          "paragraph": -1,
+          "baselineY": 138.24,
+          "height": 0,
+          "runs": [
+            {"x": 30.48, "width": 5.52, "font": "Calibri", "size": 11.04, "text": "5"}
+          ]
+        }
+      ]
+    }
+  ]
+}

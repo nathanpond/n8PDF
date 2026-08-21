@@ -144,7 +144,7 @@ public static class TestFonts
         "footnote-restart-page", "footnote-restart-section", "footnote-separator-probe",
         "footnote-split-probe", "footnotes", "images", "images-formats", "index",
         "inline-picture-line-probe", "kerning",
-        "line-ascent-probe", "line-grid-probe", "math-bracket-probe", "math-kern-probe",
+        "line-ascent-probe", "line-grid-probe", "line-number-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
         "numbering", "page-border-probe", "page-numbering-restart", "smartart",
         "smartart-lines",
