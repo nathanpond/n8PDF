@@ -48,7 +48,12 @@ public class LibraryInvariantTests
         foreach (var property in new[]
                  {
                      "PackageId", "Version", "Authors", "Description", "Copyright",
-                     "PackageLicenseExpression", "PackageReadmeFile", "PackageTags"
+                     "PackageLicenseExpression", "PackageReadmeFile", "PackageTags",
+
+                     // Where it came from, which is how a consumer gets from a rule in the
+                     // documentation to the measurement behind it. RepositoryCommit is not here:
+                     // the release workflow stamps that with what it built.
+                     "PackageProjectUrl", "RepositoryUrl", "RepositoryType"
                  })
         {
             var value = csproj.Descendants(property).FirstOrDefault()?.Value;
@@ -71,6 +76,31 @@ public class LibraryInvariantTests
     /// <summary>
     /// The licence the package claims is the licence the repository carries.
     /// </summary>
+    /// <summary>
+    /// A release takes its version from the tag it is cut at, so the workflow has to be the thing
+    /// that states it. What the project file carries is what a local build gets.
+    /// </summary>
+    /// <remarks>
+    /// Checked because the failure is quiet: a release workflow that forgot to pass the version
+    /// would publish whatever number happened to be in the project file, under a tag saying
+    /// something else, and nothing would complain until someone installed it.
+    /// </remarks>
+    [Fact]
+    public void A_release_states_the_version_it_builds()
+    {
+        var release = Path.Combine(TestPaths.RepoRoot, ".github", "workflows", "release.yml");
+        Assert.True(File.Exists(release), "there is no release workflow.");
+
+        var text = File.ReadAllText(release);
+
+        Assert.Contains("-p:Version=${{ steps.version.outputs.version }}", text, StringComparison.Ordinal);
+        Assert.Contains("GITHUB_REF_NAME#v", text, StringComparison.Ordinal);
+
+        // And it packs what it tested rather than building again underneath itself.
+        Assert.Contains("dotnet pack src/n8PDF/n8PDF.csproj --configuration Release --no-build",
+            text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_licence_is_the_one_the_package_declares()
     {

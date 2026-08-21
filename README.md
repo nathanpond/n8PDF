@@ -75,6 +75,27 @@ dotnet pack src/n8PDF -c Release   # the package, with its symbols and its docum
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
 git-ignored.
 
+### Cutting a release
+
+```bash
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+That is the whole of it. `release.yml` builds at the version the tag names, runs the same tests
+every push runs, packs the library with its symbols, publishes to NuGet and writes a GitHub release
+with both files attached. The tag is the only place a version is written down: the number in
+`n8PDF.csproj` is what a local build gets, and a release states its own on the command line, so a
+package cannot disagree with the tag it was cut at. `LibraryInvariantTests` checks that it does,
+because a workflow that forgot to would publish the wrong number quietly.
+
+Publishing needs a `NUGET_API_KEY` secret. Without one everything else still happens and the log
+says the push was skipped, so a release can be cut and inspected before anything is sent anywhere.
+`workflow_dispatch` takes a version and is a rehearsal: it builds and packs and publishes nothing.
+
+A release is built on a hosted runner, so it is tested to exactly the standard `ci.yml` sets — the
+50 documents set in Word's own faces are compared by `full.yml`, on a machine that has Word, and a
+release does not wait for them.
+
 ### What runs where
 
 The suite compares against PDFs Word exported, and those are set in the faces Word brings with it —

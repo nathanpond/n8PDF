@@ -1,0 +1,139 @@
+# Cuts a release: builds the package at a version taken from the tag, tests it, publishes it to
+# NuGet, and writes a GitHub release with the files attached.
+#
+#   git tag v1.0.1 && git push origin v1.0.1
+#
+# The tag is the only place a version is written down. src/n8PDF/n8PDF.csproj carries a number for
+# local builds, and a release overrides it from the tag, so a release cannot disagree with the tag
+# it was cut at.
+#
+# Publishing needs a NUGET_API_KEY secret. Without one the workflow still builds, tests, packs and
+# writes the GitHub release, and says plainly in the log that the push was skipped — so a release
+# can be cut and looked at before anything is sent anywhere.
+#
+# What this runs is what ci.yml runs, which is everything a machine without Microsoft Word can:
+# the 50 documents set in Word's own faces are compared by full.yml instead. A release is not held
+# up for them, and OfficeFontTests prints how many were left alone.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, without the leading v (a rehearsal: nothing is published)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Build, test and publish
+    runs-on: macos-15
+    timeout-minutes: 40
+
+    permissions:
+      # For creating the GitHub release.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install the checking tools
+        run: |
+          brew install qpdf fribidi
+          python3 -m pip install --break-system-packages fonttools
+
+      # A tag of v1.2.3 makes a package of 1.2.3. A rehearsal takes the version it was given and
+      # publishes nothing, which is what makes it a rehearsal.
+      - name: Work out the version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            version="${GITHUB_REF_NAME#v}"
+            rehearsal=false
+          else
+            version="${{ inputs.version }}"
+            rehearsal=true
+          fi
+
+          case "$version" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Version '$version' is not a version: expected 1.2.3, or 1.2.3-beta.1." >&2; exit 1 ;;
+          esac
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "rehearsal=$rehearsal" >> "$GITHUB_OUTPUT"
+          echo "Building $version${rehearsal:+ (rehearsal)}"
+
+      - name: Build
+        run: >
+          dotnet build n8PDF.sln --configuration Release -warnaserror
+          -p:Version=${{ steps.version.outputs.version }}
+
+      # The same tests every push gets. A release that cannot pass them is not a release.
+      - name: Test
+        env:
+          N8PDF_REQUIRE_QPDF: '1'
+          N8PDF_REQUIRE_FONTTOOLS: '1'
+          N8PDF_REQUIRE_FRIBIDI: '1'
+        run: >
+          dotnet test n8PDF.sln --configuration Release --no-build
+          -p:Version=${{ steps.version.outputs.version }}
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=results.trx"
+          --results-directory artifacts/test-results
+
+      # RepositoryCommit stands in for source linking, which would need a PackageReference the
+      # library may not have: it is enough to find by hand the source a stack frame came from.
+      - name: Pack
+        run: >
+          dotnet pack src/n8PDF/n8PDF.csproj --configuration Release --no-build
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:ContinuousIntegrationBuild=true
+          -p:RepositoryCommit=${{ github.sha }}
+          --output artifacts/package
+
+      - name: Say what was built
+        run: |
+          ls -la artifacts/package
+          unzip -p artifacts/package/n8PDF.${{ steps.version.outputs.version }}.nupkg n8PDF.nuspec
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ steps.version.outputs.version }}
+          path: artifacts/package/*
+          retention-days: 90
+
+      # Everything past here is for a real tag only: a rehearsal stops with the files built.
+      - name: Publish to NuGet
+        if: steps.version.outputs.rehearsal == 'false'
+        env:
+          key: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$key" ]; then
+            echo "No NUGET_API_KEY secret, so nothing was published."
+            echo "The package is attached to this run and to the release; add the secret and"
+            echo "re-run this job to send it."
+            exit 0
+          fi
+
+          dotnet nuget push "artifacts/package/*.nupkg" \
+            --api-key "$key" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Write the GitHub release
+        if: steps.version.outputs.rehearsal == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${GITHUB_REF_NAME}"
+          --title "${GITHUB_REF_NAME}"
+          --generate-notes
+          artifacts/package/*.nupkg
+          artifacts/package/*.snupkg
