@@ -6,20 +6,21 @@
 # turns out not to have Word after all fails loudly instead of quietly skipping a third of the
 # comparison tier.
 #
-# It needs a self-hosted runner labelled `word`, registered on a Mac with Word installed:
+# There is no such runner at present, and that is a decision rather than an oversight: registering
+# one would mean a public repository's workflows executing on a personal Mac. So the 50 documents
+# set in Word's faces are checked by running the suite on that Mac by hand — `dotnet test` there
+# covers all 113 — and this workflow is kept for whenever a runner does exist:
 #
-#     ./config.sh --url https://github.com/<owner>/<repo> --labels self-hosted,macOS,word
+#     ./config.sh --url https://github.com/nathanpond/n8PDF --labels self-hosted,macOS,word
 #
-# Until such a runner exists this workflow simply queues and can be cancelled; nothing else waits
-# on it. It is deliberately not part of the push path — self-hosted runners execute whatever a
-# branch tells them to, so this is only ever started by hand or on a schedule.
+# It is started by hand only. There is no schedule, because a scheduled run with no runner to take
+# it would queue every week until it timed out, and a workflow that always fails teaches people to
+# ignore the ones that mean it. It is deliberately off the push path too — self-hosted runners
+# execute whatever a branch tells them to.
 name: Full comparison
 
 on:
   workflow_dispatch:
-  schedule:
-    # Monday morning, so a week of pushes is checked against Word at least once.
-    - cron: '0 7 * * 1'
 
 jobs:
   test:
