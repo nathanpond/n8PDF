@@ -760,7 +760,8 @@ internal sealed class LayoutEngine(
         _pendingBookmarks.Clear();
         _pendingMarks.Clear();
         var composer = new ParagraphComposer(
-            BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format));
+            BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format),
+            _breakInsideWords is not null);
         var bookmarks = _pendingBookmarks.ToList();
         var marks = _pendingMarks.ToList();
         var firstLine = true;
@@ -3156,6 +3157,24 @@ internal sealed class LayoutEngine(
         {
             if (cell.MergedBelow) continue;
 
+            // A turned cell's content was laid in a frame of its own, turned a quarter circle: it
+            // is put back the same way, and what its vertical alignment moves is the stack of
+            // lines across the cell rather than down it.
+            if (cell.Source.TextDirection != CellTextDirection.LeftToRight)
+            {
+                var across = cell.Width - cell.MarginLeft - cell.MarginRight;
+                var stack = VerticalOffset(cell, across);
+
+                cell.Content.PlaceTurnedOnto(
+                    cursor.Page, cell.Source.TextDirection,
+                    cell.Left + cell.MarginLeft + stack,
+                    top + cell.MarginTop,
+                    cell.Left + cell.Width - cell.MarginRight - stack,
+                    top + height - cell.MarginBottom);
+
+                continue;
+            }
+
             var offset = VerticalOffset(cell, height - cell.MarginTop - cell.MarginBottom);
 
             cell.Content.PlaceOnto(cursor.Page, cell.Left + cell.MarginLeft, top + cell.MarginTop + offset);
@@ -3323,7 +3342,7 @@ internal sealed class LayoutEngine(
             // started the merge owns it.
             var content = cell.VerticalMerge == "continue"
                 ? DetachedFlow.Empty
-                : MeasureBlocks(cell.Content, Math.Max(1, width - marginLeft - marginRight));
+                : MeasureInside(cell.Content, Math.Max(1, width - marginLeft - marginRight));
 
             Fields.Cells = outer;
 
@@ -3333,6 +3352,30 @@ internal sealed class LayoutEngine(
 
             x += width;
             column += span;
+        }
+
+        // A turned cell's line runs along the row's height, so it can only be composed once the
+        // height is known — and the height is settled by the cells that are not turned, because
+        // Word does not grow a row to hold turned text. cell-direction-probe shows what that costs
+        // where the text is long: a turned cell in a row one line tall wraps every two characters
+        // and runs out of the cell to the right of it, and Word draws it there.
+        for (var i = 0; i < placed.Count; i++)
+        {
+            var cell = placed[i];
+            if (cell.Source.TextDirection == CellTextDirection.LeftToRight) continue;
+            if (cell.MergedBelow || cell.Source.VerticalMerge == "continue") continue;
+
+            var along = ComputeRowHeight(row, placed) - cell.MarginTop - cell.MarginBottom;
+
+            var outer = Fields.Cells;
+            Fields.Cells = new TableCells(table, rowIndex, cell.Column);
+
+            placed[i] = cell with
+            {
+                Content = MeasureInside(cell.Source.Content, Math.Max(1, along))
+            };
+
+            Fields.Cells = outer;
         }
 
         return placed;
@@ -3352,6 +3395,10 @@ internal sealed class LayoutEngine(
         foreach (var cell in placed)
         {
             if (cell.MergedBelow) continue;
+
+            // A turned cell asks for nothing: its lines stack across the row rather than down it,
+            // and Word makes no more room for them than the row already has.
+            if (cell.Source.TextDirection != CellTextDirection.LeftToRight) continue;
 
             natural = Math.Max(natural, cell.Content.Height + cell.MarginTop + cell.MarginBottom);
         }
@@ -4293,9 +4340,16 @@ internal sealed class LayoutEngine(
     }
 
     /// <summary>
-    /// Lays out what a shape holds, which is measured like anything else but breaks a word that
-    /// will not fit rather than letting it overrun the shape.
+    /// Lays out what a shape or a table cell holds, which is measured like anything else but
+    /// breaks a word that will not fit rather than letting it overrun the box.
     /// </summary>
+    /// <remarks>
+    /// A page lets a long word overrun the margin and stay whole; a box does not. Word's own
+    /// drawing of the diagram fixture sets "Three" across two lines as "Thre" and "e", and
+    /// cell-direction-probe has a cell a fifth of an inch wide in which Word breaks "Unturnable"
+    /// into "Unt", "urn", "abl" and "e". So the rule is the box's, not the turning's: a turned
+    /// cell breaks its words for the same reason an upright narrow one does.
+    /// </remarks>
     private DetachedFlow MeasureInside(IReadOnlyList<BlockElement> blocks, double width)
     {
         var outer = _breakInsideWords;
@@ -4709,7 +4763,7 @@ internal sealed class LayoutEngine(
     /// </remarks>
     private sealed class ParagraphComposer(
         List<Atom> atoms, ResolvedParagraphFormat format, TabOptions tabs,
-        (double Ascent, double Height) markMetrics)
+        (double Ascent, double Height) markMetrics, bool breakInsideWords = false)
     {
         private int _index;
         private bool _isFirstLine = true;
@@ -4833,7 +4887,7 @@ internal sealed class LayoutEngine(
             };
 
             var consumed = FillLine(
-                atoms, _index, available, line, _tabs,
+                atoms, _index, available, line, _tabs, breakInsideWords,
                 out var hardBreak, out var pageBreak, out var columnBreak);
             _index += consumed;
             _producedAny = true;
@@ -4883,6 +4937,7 @@ internal sealed class LayoutEngine(
     /// </summary>
     private static int FillLine(
         List<Atom> atoms, int start, double available, ComposedLine line, TabOptions tabs,
+        bool breakInsideWords,
         out bool hardBreak, out bool pageBreak, out bool columnBreak)
     {
         hardBreak = false;
@@ -4973,6 +5028,19 @@ internal sealed class LayoutEngine(
             // folded into its width for the atom that used to precede it comes back off.
             var width = placedAnything ? textAtom.Width : textAtom.Width - textAtom.LeadingKern;
 
+            // A word too wide for a line of its own is broken inside where the box says it must
+            // be — a shape or a table cell — rather than overrunning it. The break is put off
+            // until the word has a line to itself: Word ends the line before it first and breaks
+            // what is left, which is why cell-direction-probe's "and rather" comes out "an", "d",
+            // "rat" and not "an", "d r", "at".
+            if (breakInsideWords && !placedAnything && !textAtom.IsSpace &&
+                width > available + 0.001 && textAtom.Text.Length > 1)
+            {
+                textAtom = SplitToFit(atoms, index, textAtom, available);
+                width = textAtom.Width - textAtom.LeadingKern;
+
+            }
+
             // Spaces at the end of a line hang past the margin rather than forcing a wrap.
             if (!textAtom.IsSpace && placedAnything && !beyondMargin &&
                 x + width > available + 0.001)
@@ -4980,18 +5048,73 @@ internal sealed class LayoutEngine(
                 break;
             }
 
-            line.Items.Add(new PlacedAtom(atom, x, width));
+            // The atom rather than what was read from the list: a word divided to fit is not the
+            // word the list held when this line began.
+            line.Items.Add(new PlacedAtom(textAtom, x, width));
             x += width;
             index++;
             placedAnything = true;
 
-            // A single word longer than the measure has to go somewhere; it overflows rather
-            // than looping forever. Breaking inside a word would need hyphenation rules.
+            // A single word longer than the measure has to go somewhere. Where the box says it may
+            // be divided it has been, above; where it may not — the page's own measure — it
+            // overflows rather than looping for ever.
             if (!textAtom.IsSpace && x > available && line.Items.Count == 1) break;
         }
 
         ClosePendingTab(line, ref pending, x, tabs);
         return index - start;
+    }
+
+    /// <summary>
+    /// Divides a word too wide for the line it is on, leaving as much of it as fits in the list
+    /// and the rest to follow. Returns the part that stays.
+    /// </summary>
+    /// <remarks>
+    /// Measured character by character rather than by taking a share of the width: the letters of
+    /// a word are not all the same width, and Word fits what fits. Its own drawing of the diagram
+    /// fixture sets "Three" as "Thre" and "e", and of cell-direction-probe's fifth-of-an-inch cell
+    /// "Unturnable" as "Unt", "urn", "abl" and "e".
+    ///
+    /// The two parts are measured without kerning: what is drawn on either side of the break has
+    /// nothing to be kerned against there.
+    /// </remarks>
+    private static TextAtom SplitToFit(List<Atom> atoms, int index, TextAtom atom, double available)
+    {
+        var format = atom.Format;
+        var face = atom.Font;
+
+        double Measure(string text) =>
+            TextMeasurer.Measure(
+                face.Font, text, format.EffectiveFontSizePoints,
+                format.CharacterSpacingPoints, applyKerning: false) * format.ScaleFactor;
+
+        var runes = atom.Text.EnumerateRunes().Select(rune => rune.ToString()).ToList();
+        if (runes.Count < 2) return atom;
+
+        var taken = 1;
+        var width = Measure(runes[0]);
+
+        // At least one letter, however narrow the box: a line has to take something or the
+        // paragraph would never end.
+        for (var i = 1; i < runes.Count; i++)
+        {
+            var next = Measure(string.Concat(runes.Take(i + 1)));
+            if (next > available + 0.001) break;
+
+            taken = i + 1;
+            width = next;
+        }
+
+        if (taken >= runes.Count) return atom;
+
+        var head = atom.Divide(string.Concat(runes.Take(taken)), width, leadingKern: 0);
+        var rest = string.Concat(runes.Skip(taken));
+        var tail = atom.Divide(rest, Measure(rest), leadingKern: 0);
+
+        atoms[index] = head;
+        atoms.Insert(index + 1, tail);
+
+        return head;
     }
 
     /// <summary>
@@ -6105,33 +6228,6 @@ internal sealed class LayoutEngine(
             // overruns the margin and stays whole — but a shape holds its text and Word breaks a
             // word that will not fit wherever it has to. Its own drawing of the diagram fixture
             // sets "Three" across two lines as "Thre" and "e".
-            if (_breakInsideWords is { } measure && width > measure && slice.Length > 1 && !isSpace)
-            {
-                foreach (var rune in slice.EnumerateRunes())
-                {
-                    var letter = rune.ToString();
-
-                    atoms.Add(new TextAtom
-                    {
-                        Text = letter,
-                        Level = level,
-                        IsSpace = false,
-                        Format = format,
-                        Font = face,
-                        Ascent = pieceAscent,
-                        NaturalHeight = pieceHeight,
-                        Descent = pieceHeight - pieceAscent,
-                        Link = link,
-                        Kerned = false,
-                        Width = TextMeasurer.Measure(
-                            face.Font, letter, format.EffectiveFontSizePoints,
-                            format.CharacterSpacingPoints, applyKerning: false) * format.ScaleFactor
-                    });
-                }
-
-                continue;
-            }
-
             atoms.Add(new TextAtom
             {
                 Text = slice,
@@ -6593,6 +6689,104 @@ internal sealed class LayoutEngine(
         }
 
         /// <summary>Copies this flow's content onto a real page, offset by the given origin.</summary>
+        /// <summary>
+        /// Lands a flow that was composed for a turned cell, turning it a quarter circle as it
+        /// goes. The frame it was composed in has the line running along x and the lines stacking
+        /// down y; where that frame lands on the page depends on which way the cell runs.
+        /// </summary>
+        /// <remarks>
+        /// Measured against Word in cell-direction-probe:
+        ///
+        ///   * <c>btLr</c> reads from the foot of the cell upwards and stacks its lines from the
+        ///     left, so the frame's x runs up the page and its y runs across it.
+        ///   * <c>tbRl</c> reads from the head downwards and stacks from the right, so the frame's
+        ///     x runs down the page and its y runs back across it.
+        ///
+        /// A rule — an underline, a strike — is drawn along the line, so a turned one is a bar
+        /// standing on its end. Word's own do the same, and a rectangle says it as well as a rule.
+        /// </remarks>
+        public void PlaceTurnedOnto(
+            LaidOutPage target, CellTextDirection direction,
+            double left, double top, double right, double bottom)
+        {
+            var up = direction == CellTextDirection.BottomToTop;
+
+            // Where a point of the composed frame lands: (along the line, across the lines).
+            (double X, double Y) At(double along, double across) =>
+                up ? (left + across, bottom - along) : (right - across, top + along);
+
+            foreach (var line in page.Lines)
+            {
+                // A line of the page holds the baseline its text sits on, and a turned line's
+                // sits across the cell rather than down it: the place this line stacks at.
+                var across = line.Texts.Count > 0 ? line.Texts[0].BaselineY : 0;
+
+                var moved = new LaidOutLine
+                {
+                    BaselineY = Grid.Snap(up ? left + across : right - across),
+                    Height = line.Height,
+                    Ascent = line.Ascent,
+                    ParagraphIndex = line.ParagraphIndex
+                };
+
+                foreach (var text in line.Texts)
+                {
+                    var (x, y) = At(text.X, text.BaselineY);
+
+                    moved.Texts.Add(new PositionedText
+                    {
+                        X = Grid.Snap(x),
+                        BaselineY = Grid.Snap(y),
+                        TurnDegrees = up ? 90 : -90,
+                        Text = text.Text,
+                        Format = text.Format,
+                        Font = text.Font,
+                        Width = text.Width,
+                        WordSpacing = text.WordSpacing,
+                        Glyph = text.Glyph,
+                        Link = text.Link,
+                        Kerned = text.Kerned,
+                        RightToLeft = text.RightToLeft
+                    });
+
+                }
+
+                target.Lines.Add(moved);
+            }
+
+            foreach (var rule in page.Rules)
+            {
+                // The far end of the rule and the far side of its thickness, which between them
+                // give the bar whichever way round it has been turned.
+                var (x1, y1) = At(rule.X, rule.Y);
+                var (x2, y2) = At(rule.X + rule.Width, rule.Y + rule.Thickness);
+
+                target.Rectangles.Add(new PositionedRectangle
+                {
+                    X = Math.Min(x1, x2),
+                    Y = Math.Min(y1, y2),
+                    Width = Math.Abs(x2 - x1),
+                    Height = Math.Abs(y2 - y1),
+                    Color = rule.Color
+                });
+            }
+
+            foreach (var rectangle in page.Rectangles)
+            {
+                var (x1, y1) = At(rectangle.X, rectangle.Y);
+                var (x2, y2) = At(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height);
+
+                target.Rectangles.Add(new PositionedRectangle
+                {
+                    X = Math.Min(x1, x2),
+                    Y = Math.Min(y1, y2),
+                    Width = Math.Abs(x2 - x1),
+                    Height = Math.Abs(y2 - y1),
+                    Color = rectangle.Color
+                });
+            }
+        }
+
         public void PlaceOnto(LaidOutPage target, double dx, double dy)
         {
             // A detached flow was laid out against an origin of its own, and against a grid drawn
@@ -6860,6 +7054,26 @@ internal sealed class LayoutEngine(
         /// is nothing when it opens a line.
         /// </summary>
         public double LeadingKern { get; init; }
+
+        /// <summary>Part of this atom, with a width of its own: what dividing a word gives.</summary>
+        public TextAtom Divide(string text, double width, double leadingKern) => new()
+        {
+            Text = text,
+            FootnoteId = FootnoteId,
+            FieldOccurrence = FieldOccurrence,
+            IsSpace = IsSpace,
+            Format = Format,
+            Font = Font,
+            Link = Link,
+            Level = Level,
+            Kerned = false,
+            Width = width,
+            LeadingKern = leadingKern,
+            Ascent = Ascent,
+            NaturalHeight = NaturalHeight,
+            Descent = Descent,
+            InLineBox = InLineBox
+        };
 
         /// <summary>The same atom, drawn on the line but taking no part in its box.</summary>
         public TextAtom OutsideTheLineBox() => new()

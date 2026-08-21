@@ -69,10 +69,18 @@ internal sealed class PositionedText
     /// and moves it to another. Copying field by field at each of those sites made it easy to add
     /// a property here and silently lose it in transit, so the copy lives with the type instead.
     /// </remarks>
+    /// <summary>
+    /// A quarter circle the text is turned by, anticlockwise, or none at all. Only a table cell
+    /// turns its text, and only by a quarter circle either way: see
+    /// <see cref="Ooxml.CellTextDirection"/>.
+    /// </summary>
+    public double TurnDegrees { get; init; }
+
     public PositionedText Translate(double dx, double dy) => new()
     {
         X = X + dx,
         BaselineY = BaselineY + dy,
+        TurnDegrees = TurnDegrees,
         Text = Text,
         Format = Format,
         Font = Font,

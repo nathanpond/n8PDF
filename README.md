@@ -980,6 +980,35 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### Text turned on its side in a cell
+
+`w:textDirection` turns a cell's text a quarter circle — `btLr` for the narrow heading a table
+usually wants, `tbRl` for the other way. It is not the glyphs that are turned but the whole frame
+the paragraphs are laid in, and `cell-direction-probe` puts eleven of them to Word:
+
+- **The line runs along the cell's height and the lines stack across its width.** `btLr` reads from
+  the foot of the cell upwards and stacks from the left; `tbRl` reads from the head down and stacks
+  from the right.
+- **Word does not make the row any taller to hold it.** A turned cell in a row one line tall breaks
+  its text every two letters and runs out of the cell to the right — Word draws it there, past its
+  own table, rather than growing the row. The height is settled by the cells that are not turned.
+- **`w:vAlign` moves the stack of lines across the cell** rather than down it: top puts the first
+  line against the left edge, bottom against the right.
+- **The paragraph's own alignment works along the turned line**, so a centred one sits in the
+  middle of the cell's height.
+
+Every turned line of the probe stands where Word's stands, to within a step of the grid, reading
+the same way with the same words on it. The comparison against Word that covers the rest of the
+document leaves turned runs alone — a turned baseline cannot be set against an upright one's — so
+`CellDirectionTests` reads them out of both files and sets them side by side.
+
+**A word too wide for a box is broken inside it.** A page lets a long word overrun the margin and
+stay whole, but a box does not: Word breaks it wherever it has to, taking as many letters as fit.
+The probe has a cell a fifth of an inch wide in which Word sets "Unturnable" as "U", "nt", "ur",
+"na", "bl", "e", and this now does the same — in a table cell as in a shape, upright as much as
+turned. The break waits until the word has a line to itself, which is why "and rather" comes out
+"an", "d", "rat" and not "an", "d r", "at".
+
 ### A table that floats
 
 `w:tblpPr` takes a table out of the flow: it stands where it is put and the text runs round it.

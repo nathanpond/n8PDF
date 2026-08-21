@@ -1217,6 +1217,16 @@ internal static class DocumentParser
 
             cell.VerticalAlignment = ReadVerticalAlignment(tcPr.Element(W.Main + "vAlign"));
 
+            // The two upright directions are the ones Word writes and the ones a document uses;
+            // the vertical-script variants say what to do with East Asian text set in columns,
+            // which is another matter and not read here.
+            cell.TextDirection = tcPr.Element(W.Main + "textDirection")?.Val() switch
+            {
+                "btLr" or "tbLrV" => CellTextDirection.BottomToTop,
+                "tbRl" or "tbRlV" => CellTextDirection.TopToBottom,
+                _ => CellTextDirection.LeftToRight
+            };
+
             // A vMerge with no value means "continue", which is the common spelling.
             var vMerge = tcPr.Element(W.Main + "vMerge");
             if (vMerge is not null) cell.VerticalMerge = vMerge.Val() ?? "continue";

@@ -137,7 +137,7 @@ public static class TestFonts
     private static readonly HashSet<string> WrittenInOfficeFaces =
     [
         "chart-area-scatter", "chart-axis-probe", "chart-bar-scale-probe", "chart-bar-stacked",
-        "chart-column", "chart-layout-probe", "chart-line-pie", "chart-scale-probe",
+        "cell-direction-probe", "chart-column", "chart-layout-probe", "chart-line-pie", "chart-scale-probe",
         "chart-title-legend-label", "columns-uneven", "content-controls", "east-asian-line-box-probe",
         "exact-line-probe", "endnote-restart-section", "endnote-section-end", "endnotes", "equations", "font-fallback",
         "footnote-beneath-text", "footnote-carry-probe", "footnote-columns", "footnote-overrun-probe",

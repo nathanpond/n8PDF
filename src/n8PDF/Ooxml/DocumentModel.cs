@@ -636,6 +636,33 @@ internal sealed record TablePosition(
     double YPoints,
     TableAlignSpec YSpec);
 
+/// <summary>
+/// Which way a table cell's text runs, from <c>w:textDirection</c>.
+/// </summary>
+/// <remarks>
+/// Measured against Word in cell-direction-probe. A turned cell is laid out in a frame of its own
+/// turned a quarter circle: the line runs along the cell's height and the lines stack across its
+/// width. Word does not make the row any taller to hold them — a turned cell in a row of one line
+/// wraps its text every two characters and runs out of the cell rather than growing it.
+/// </remarks>
+internal enum CellTextDirection
+{
+    /// <summary>Across the cell, as text usually runs.</summary>
+    LeftToRight,
+
+    /// <summary>
+    /// Up the cell: the line reads from the foot to the head and the lines stack left to right,
+    /// which is <c>btLr</c> and what a narrow heading is usually written in.
+    /// </summary>
+    BottomToTop,
+
+    /// <summary>
+    /// Down the cell: the line reads from the head to the foot and the lines stack right to left,
+    /// which is <c>tbRl</c>.
+    /// </summary>
+    TopToBottom
+}
+
 /// <summary>Where a dropped capital sits.</summary>
 internal enum DropCapKind
 {
@@ -983,6 +1010,9 @@ internal sealed class TableCell
     /// above, and null means the cell is not merged.
     /// </summary>
     public string? VerticalMerge { get; set; }
+
+    /// <summary>Which way the cell's text runs, from <c>w:textDirection</c>.</summary>
+    public CellTextDirection TextDirection { get; set; } = CellTextDirection.LeftToRight;
 
     /// <summary>Per-cell margin overrides, in twips; null falls back to the table's.</summary>
     public int? MarginLeftTwips { get; set; }

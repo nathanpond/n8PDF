@@ -361,10 +361,27 @@ internal static class PdfRenderer
 
         var y = Flip(page, text.BaselineY);
 
-        if (selection.SyntheticItalic)
+        if (text.TurnDegrees != 0)
+        {
+            // Turned about the pen, which is where the first glyph of the run sits. A cell of a
+            // table is the only thing that turns its text, and only by a quarter circle either
+            // way, so the matrix is exact rather than worked out from a sine and a cosine.
+            var up = text.TurnDegrees > 0;
+            var skew = selection.SyntheticItalic ? SyntheticItalicSkew : 0;
+
+            content.SetTextMatrix(
+                0, up ? 1 : -1,
+                up ? -1 : 1, skew,
+                text.X, y);
+        }
+        else if (selection.SyntheticItalic)
+        {
             content.SetTextPositionSkewed(text.X, y, SyntheticItalicSkew);
+        }
         else
+        {
             content.SetTextPosition(text.X, y);
+        }
 
         ShowText(content, font, text, size);
 

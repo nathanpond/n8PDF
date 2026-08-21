@@ -203,6 +203,60 @@ public static class Fixtures
     /// A narrow table of two columns, with the positioning properties it is given. Narrow so that
     /// there is room for text beside it, and bordered so its edges can be found in the ink.
     /// </summary>
+    /// <summary>
+    /// A table of two columns whose second cell is turned, for measuring what Word does with
+    /// <c>w:textDirection</c>. The first column is left alone, so the row's own height can be read
+    /// off it.
+    /// </summary>
+    private static string TurnedTable(
+        string label, string direction, string text, int? heightTwips = null, string? align = null,
+        string? valign = null, bool pageBreak = false)
+    {
+        var opening = pageBreak
+            ? $"<w:p><w:pPr><w:pageBreakBefore/>{ZeroSpacing}</w:pPr></w:p>"
+            : string.Empty;
+
+        var height = heightTwips is { } twips
+            ? $"<w:trPr><w:trHeight w:val=\"{twips}\" w:hRule=\"exact\"/></w:trPr>"
+            : string.Empty;
+
+        // CT_TcPr puts textDirection after vAlign's neighbours and before vAlign itself.
+        var cellProperties =
+            $"<w:tcW w:w=\"{(direction == "lrTb" ? 288 : 1440)}\" w:type=\"dxa\"/>" +
+            $"<w:textDirection w:val=\"{direction}\"/>" +
+            (valign is null ? string.Empty : $"<w:vAlign w:val=\"{valign}\"/>");
+
+        var paragraph = align is null ? ZeroSpacing : ZeroSpacing + $"<w:jc w:val=\"{align}\"/>";
+
+        return $"""
+                {opening}
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblW w:w="{2880 + (direction == "lrTb" ? 288 : 1440)}" w:type="dxa"/>
+                    <w:tblBorders>
+                      <w:top w:val="single" w:sz="4" w:color="auto"/>
+                      <w:left w:val="single" w:sz="4" w:color="auto"/>
+                      <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                      <w:right w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="2880"/><w:gridCol w:w="{(direction == "lrTb" ? 288 : 1440)}"/></w:tblGrid>
+                  <w:tr>
+                    {height}
+                    <w:tc><w:tcPr><w:tcW w:w="2880" w:type="dxa"/></w:tcPr>
+                      <w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>
+                      <w:t xml:space="preserve">{DocxBuilder.Escape(label)}</w:t></w:r></w:p></w:tc>
+                    <w:tc><w:tcPr>{cellProperties}</w:tcPr>
+                      <w:p><w:pPr>{paragraph}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>
+                      <w:t xml:space="preserve">{DocxBuilder.Escape(text)}</w:t></w:r></w:p></w:tc>
+                  </w:tr>
+                </w:tbl>
+                """;
+    }
+
     private static string PositionedTable(string label, int rows, string positioning, int borderSize = 4)
     {
         static string Cell(string text) =>
@@ -5239,6 +5293,55 @@ public static class Fixtures
                 // the border's width or a fixed step.
                 Page("Thick", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
                               "w:tblpX=\"0\" w:tblpY=\"300\"/>", borderSize: 24);
+
+                return builder;
+            },
+
+            // Text turned on its side in a table cell, from w:textDirection. Ten tables, each on
+            // a page of its own so that one's height cannot carry into the next one's place:
+            //
+            //   1  btLr, which is what a narrow heading is usually written in
+            //   2  tbRl, turned the other way
+            //   3  btLr with the row's height fixed, so where the text sits in it can be read
+            //   4  tbRl with the same
+            //   5  btLr with more text than the row is tall, to see where it breaks
+            //   6  the row left to find its own height round a turned cell
+            //   7  btLr against the top of the cell, 8 the middle, 9 the foot
+            //   10 btLr with the paragraph's own alignment set, which is along the turned line
+            ["cell-direction-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Table(string label, string direction, string text, int? height = null,
+                    string? align = null, string? valign = null)
+                {
+                    builder.AddRawParagraph(TurnedTable(
+                        label, direction, text, height, align, valign, pageBreak: !first));
+                    first = false;
+                }
+
+                Table("Up", "btLr", "Turned up");
+                Table("Down", "tbRl", "Turned down");
+                Table("Up, two inches", "btLr", "Turned up", height: 2880);
+                Table("Down, two inches", "tbRl", "Turned down", height: 2880);
+
+                // Longer than an inch and a half of row, so it has to break somewhere.
+                Table("Up, breaking", "btLr",
+                    "Turned up and long enough to want more room than the row has", height: 2160);
+
+                // No height stated: the row takes whatever the turned text asks for.
+                Table("Up, unstated", "btLr", "Turned up and rather long");
+
+                Table("Up, top", "btLr", "Turned up", height: 2880, valign: "top");
+                Table("Up, middle", "btLr", "Turned up", height: 2880, valign: "center");
+                Table("Up, foot", "btLr", "Turned up", height: 2880, valign: "bottom");
+                Table("Up, centred", "btLr", "Turned up", height: 2880, align: "center");
+
+                // And one left upright in a cell far too narrow for the word in it, which says
+                // whether the breaking inside words that a turned cell shows is the turning's
+                // doing or the narrowness'.
+                Table("Upright, narrow", "lrTb", "Unturnable", height: 2880);
 
                 return builder;
             },
