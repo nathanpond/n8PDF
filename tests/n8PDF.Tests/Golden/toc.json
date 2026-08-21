@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 79.295, "font": "Times New Roman", "size": 12, "text": "The first chapter"},
@@ -17,7 +17,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 83, "width": 68.32, "font": "Times New Roman", "size": 12, "text": "A section of it"},
@@ -27,7 +27,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 93.287, "font": "Times New Roman", "size": 12, "text": "The second chapter"},
@@ -37,7 +37,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 83, "width": 76.312, "font": "Times New Roman", "size": 12, "text": "Another section"},
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 451.564, "font": "Times New Roman", "size": 12, "text": "The third chapter, whose title is long enough to say something about how a line of the table of"}
@@ -55,7 +55,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 161.977, "font": "Times New Roman", "size": 12, "text": "contents that will not fit is broken"},
@@ -65,14 +65,14 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 165.267,
+          "baselineY": 165.36,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 1,
-          "baselineY": 179.424,
+          "baselineY": 179.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 86.648, "font": "Times New Roman", "size": 12, "bold": true, "text": "The first chapter"}
@@ -80,7 +80,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 193.223,
+          "baselineY": 193.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.287, "font": "Times New Roman", "size": 12, "text": "Under the first chapter 1."}
@@ -88,7 +88,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 207.021,
+          "baselineY": 206.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.287, "font": "Times New Roman", "size": 12, "text": "Under the first chapter 2."}
@@ -96,7 +96,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 220.82,
+          "baselineY": 220.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.287, "font": "Times New Roman", "size": 12, "text": "Under the first chapter 3."}
@@ -104,7 +104,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 234.619,
+          "baselineY": 234.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.287, "font": "Times New Roman", "size": 12, "text": "Under the first chapter 4."}
@@ -112,7 +112,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 248.418,
+          "baselineY": 248.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.287, "font": "Times New Roman", "size": 12, "text": "Under the first chapter 5."}
@@ -120,7 +120,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 262.217,
+          "baselineY": 262.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.287, "font": "Times New Roman", "size": 12, "text": "Under the first chapter 6."}
@@ -128,7 +128,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 276.016,
+          "baselineY": 276,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 70.318, "font": "Times New Roman", "size": 12, "bold": true, "text": "A section of it"}
@@ -136,7 +136,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 289.814,
+          "baselineY": 289.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 1."}
@@ -144,7 +144,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 303.613,
+          "baselineY": 303.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 2."}
@@ -152,7 +152,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 317.412,
+          "baselineY": 317.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 3."}
@@ -160,7 +160,7 @@
         },
         {
           "paragraph": 12,
-          "baselineY": 331.211,
+          "baselineY": 331.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 4."}
@@ -168,7 +168,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 345.01,
+          "baselineY": 344.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 5."}
@@ -176,7 +176,7 @@
         },
         {
           "paragraph": 14,
-          "baselineY": 358.809,
+          "baselineY": 358.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 6."}
@@ -184,7 +184,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 372.607,
+          "baselineY": 372.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 7."}
@@ -192,7 +192,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 386.406,
+          "baselineY": 386.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 8."}
@@ -200,7 +200,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 400.205,
+          "baselineY": 400.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 96.639, "font": "Times New Roman", "size": 12, "text": "Under the section 9."}
@@ -208,7 +208,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 414.004,
+          "baselineY": 414,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 10."}
@@ -216,7 +216,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 427.803,
+          "baselineY": 427.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 11."}
@@ -224,7 +224,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 441.602,
+          "baselineY": 441.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 12."}
@@ -232,7 +232,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 455.4,
+          "baselineY": 455.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 13."}
@@ -240,7 +240,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 469.199,
+          "baselineY": 469.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 14."}
@@ -248,7 +248,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 482.998,
+          "baselineY": 482.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 15."}
@@ -256,7 +256,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 496.797,
+          "baselineY": 496.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 16."}
@@ -264,7 +264,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 510.596,
+          "baselineY": 510.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 17."}
@@ -272,7 +272,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 524.395,
+          "baselineY": 524.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 18."}
@@ -280,7 +280,7 @@
         },
         {
           "paragraph": 27,
-          "baselineY": 538.193,
+          "baselineY": 538.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 19."}
@@ -288,7 +288,7 @@
         },
         {
           "paragraph": 28,
-          "baselineY": 551.992,
+          "baselineY": 552,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 20."}
@@ -296,7 +296,7 @@
         },
         {
           "paragraph": 29,
-          "baselineY": 565.791,
+          "baselineY": 565.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 21."}
@@ -304,7 +304,7 @@
         },
         {
           "paragraph": 30,
-          "baselineY": 579.59,
+          "baselineY": 579.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 22."}
@@ -312,7 +312,7 @@
         },
         {
           "paragraph": 31,
-          "baselineY": 593.389,
+          "baselineY": 593.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 23."}
@@ -320,7 +320,7 @@
         },
         {
           "paragraph": 32,
-          "baselineY": 607.188,
+          "baselineY": 607.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 24."}
@@ -328,7 +328,7 @@
         },
         {
           "paragraph": 33,
-          "baselineY": 620.986,
+          "baselineY": 620.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 25."}
@@ -336,7 +336,7 @@
         },
         {
           "paragraph": 34,
-          "baselineY": 634.785,
+          "baselineY": 634.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 26."}
@@ -344,7 +344,7 @@
         },
         {
           "paragraph": 35,
-          "baselineY": 648.584,
+          "baselineY": 648.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 27."}
@@ -352,7 +352,7 @@
         },
         {
           "paragraph": 36,
-          "baselineY": 662.383,
+          "baselineY": 662.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 28."}
@@ -360,7 +360,7 @@
         },
         {
           "paragraph": 37,
-          "baselineY": 676.182,
+          "baselineY": 676.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 29."}
@@ -368,7 +368,7 @@
         },
         {
           "paragraph": 38,
-          "baselineY": 689.98,
+          "baselineY": 690,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 102.639, "font": "Times New Roman", "size": 12, "text": "Under the section 30."}
@@ -376,7 +376,7 @@
         },
         {
           "paragraph": 39,
-          "baselineY": 703.779,
+          "baselineY": 703.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 99.996, "font": "Times New Roman", "size": 12, "bold": true, "text": "The second chapter"}
@@ -390,7 +390,7 @@
       "lines": [
         {
           "paragraph": 40,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 1."}
@@ -398,7 +398,7 @@
         },
         {
           "paragraph": 41,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 2."}
@@ -406,7 +406,7 @@
         },
         {
           "paragraph": 42,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 3."}
@@ -414,7 +414,7 @@
         },
         {
           "paragraph": 43,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 4."}
@@ -422,7 +422,7 @@
         },
         {
           "paragraph": 44,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 5."}
@@ -430,7 +430,7 @@
         },
         {
           "paragraph": 45,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 6."}
@@ -438,7 +438,7 @@
         },
         {
           "paragraph": 46,
-          "baselineY": 165.996,
+          "baselineY": 165.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 7."}
@@ -446,7 +446,7 @@
         },
         {
           "paragraph": 47,
-          "baselineY": 179.795,
+          "baselineY": 179.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 8."}
@@ -454,7 +454,7 @@
         },
         {
           "paragraph": 48,
-          "baselineY": 193.594,
+          "baselineY": 193.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 134.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 9."}
@@ -462,7 +462,7 @@
         },
         {
           "paragraph": 49,
-          "baselineY": 207.393,
+          "baselineY": 207.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 10."}
@@ -470,7 +470,7 @@
         },
         {
           "paragraph": 50,
-          "baselineY": 221.191,
+          "baselineY": 221.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 11."}
@@ -478,7 +478,7 @@
         },
         {
           "paragraph": 51,
-          "baselineY": 234.99,
+          "baselineY": 234.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 12."}
@@ -486,7 +486,7 @@
         },
         {
           "paragraph": 52,
-          "baselineY": 248.789,
+          "baselineY": 248.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 13."}
@@ -494,7 +494,7 @@
         },
         {
           "paragraph": 53,
-          "baselineY": 262.588,
+          "baselineY": 262.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 14."}
@@ -502,7 +502,7 @@
         },
         {
           "paragraph": 54,
-          "baselineY": 276.387,
+          "baselineY": 276.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 15."}
@@ -510,7 +510,7 @@
         },
         {
           "paragraph": 55,
-          "baselineY": 290.186,
+          "baselineY": 290.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 16."}
@@ -518,7 +518,7 @@
         },
         {
           "paragraph": 56,
-          "baselineY": 303.984,
+          "baselineY": 303.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 17."}
@@ -526,7 +526,7 @@
         },
         {
           "paragraph": 57,
-          "baselineY": 317.783,
+          "baselineY": 317.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 18."}
@@ -534,7 +534,7 @@
         },
         {
           "paragraph": 58,
-          "baselineY": 331.582,
+          "baselineY": 331.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 19."}
@@ -542,7 +542,7 @@
         },
         {
           "paragraph": 59,
-          "baselineY": 345.381,
+          "baselineY": 345.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 140.279, "font": "Times New Roman", "size": 12, "text": "Under the second chapter 20."}
@@ -550,7 +550,7 @@
         },
         {
           "paragraph": 60,
-          "baselineY": 359.18,
+          "baselineY": 359.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 80.988, "font": "Times New Roman", "size": 12, "bold": true, "text": "Another section"}
@@ -558,7 +558,7 @@
         },
         {
           "paragraph": 61,
-          "baselineY": 372.979,
+          "baselineY": 372.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 1."}
@@ -566,7 +566,7 @@
         },
         {
           "paragraph": 62,
-          "baselineY": 386.777,
+          "baselineY": 386.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 2."}
@@ -574,7 +574,7 @@
         },
         {
           "paragraph": 63,
-          "baselineY": 400.576,
+          "baselineY": 400.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 3."}
@@ -582,7 +582,7 @@
         },
         {
           "paragraph": 64,
-          "baselineY": 414.375,
+          "baselineY": 414.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 4."}
@@ -590,7 +590,7 @@
         },
         {
           "paragraph": 65,
-          "baselineY": 428.174,
+          "baselineY": 428.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 5."}
@@ -598,7 +598,7 @@
         },
         {
           "paragraph": 66,
-          "baselineY": 441.973,
+          "baselineY": 441.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 6."}
@@ -606,7 +606,7 @@
         },
         {
           "paragraph": 67,
-          "baselineY": 455.771,
+          "baselineY": 455.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 7."}
@@ -614,7 +614,7 @@
         },
         {
           "paragraph": 68,
-          "baselineY": 469.57,
+          "baselineY": 469.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 8."}
@@ -622,7 +622,7 @@
         },
         {
           "paragraph": 69,
-          "baselineY": 483.369,
+          "baselineY": 483.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 117.961, "font": "Times New Roman", "size": 12, "text": "Under another section 9."}
@@ -630,7 +630,7 @@
         },
         {
           "paragraph": 70,
-          "baselineY": 497.168,
+          "baselineY": 497.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 10."}
@@ -638,7 +638,7 @@
         },
         {
           "paragraph": 71,
-          "baselineY": 510.967,
+          "baselineY": 510.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 11."}
@@ -646,7 +646,7 @@
         },
         {
           "paragraph": 72,
-          "baselineY": 524.766,
+          "baselineY": 524.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 12."}
@@ -654,7 +654,7 @@
         },
         {
           "paragraph": 73,
-          "baselineY": 538.564,
+          "baselineY": 538.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 13."}
@@ -662,7 +662,7 @@
         },
         {
           "paragraph": 74,
-          "baselineY": 552.363,
+          "baselineY": 552.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 14."}
@@ -670,7 +670,7 @@
         },
         {
           "paragraph": 75,
-          "baselineY": 566.162,
+          "baselineY": 566.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 15."}
@@ -678,7 +678,7 @@
         },
         {
           "paragraph": 76,
-          "baselineY": 579.961,
+          "baselineY": 579.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 16."}
@@ -694,7 +694,7 @@
         },
         {
           "paragraph": 78,
-          "baselineY": 607.559,
+          "baselineY": 607.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 18."}
@@ -702,7 +702,7 @@
         },
         {
           "paragraph": 79,
-          "baselineY": 621.357,
+          "baselineY": 621.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 19."}
@@ -710,7 +710,7 @@
         },
         {
           "paragraph": 80,
-          "baselineY": 635.156,
+          "baselineY": 635.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 20."}
@@ -718,7 +718,7 @@
         },
         {
           "paragraph": 81,
-          "baselineY": 648.955,
+          "baselineY": 648.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 21."}
@@ -726,7 +726,7 @@
         },
         {
           "paragraph": 82,
-          "baselineY": 662.754,
+          "baselineY": 662.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 22."}
@@ -734,7 +734,7 @@
         },
         {
           "paragraph": 83,
-          "baselineY": 676.553,
+          "baselineY": 676.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 23."}
@@ -742,7 +742,7 @@
         },
         {
           "paragraph": 84,
-          "baselineY": 690.352,
+          "baselineY": 690.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 24."}
@@ -750,7 +750,7 @@
         },
         {
           "paragraph": 85,
-          "baselineY": 704.15,
+          "baselineY": 704.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 25."}
@@ -764,7 +764,7 @@
       "lines": [
         {
           "paragraph": 86,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 26."}
@@ -772,7 +772,7 @@
         },
         {
           "paragraph": 87,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 27."}
@@ -780,7 +780,7 @@
         },
         {
           "paragraph": 88,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 28."}
@@ -788,7 +788,7 @@
         },
         {
           "paragraph": 89,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 29."}
@@ -796,7 +796,7 @@
         },
         {
           "paragraph": 90,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 30."}
@@ -804,7 +804,7 @@
         },
         {
           "paragraph": 91,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 31."}
@@ -812,7 +812,7 @@
         },
         {
           "paragraph": 92,
-          "baselineY": 165.996,
+          "baselineY": 165.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 32."}
@@ -820,7 +820,7 @@
         },
         {
           "paragraph": 93,
-          "baselineY": 179.795,
+          "baselineY": 179.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 33."}
@@ -828,7 +828,7 @@
         },
         {
           "paragraph": 94,
-          "baselineY": 193.594,
+          "baselineY": 193.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 34."}
@@ -836,7 +836,7 @@
         },
         {
           "paragraph": 95,
-          "baselineY": 207.393,
+          "baselineY": 207.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 35."}
@@ -844,7 +844,7 @@
         },
         {
           "paragraph": 96,
-          "baselineY": 221.191,
+          "baselineY": 221.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 36."}
@@ -852,7 +852,7 @@
         },
         {
           "paragraph": 97,
-          "baselineY": 234.99,
+          "baselineY": 234.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 37."}
@@ -860,7 +860,7 @@
         },
         {
           "paragraph": 98,
-          "baselineY": 248.789,
+          "baselineY": 248.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 38."}
@@ -868,7 +868,7 @@
         },
         {
           "paragraph": 99,
-          "baselineY": 262.588,
+          "baselineY": 262.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 39."}
@@ -876,7 +876,7 @@
         },
         {
           "paragraph": 100,
-          "baselineY": 276.387,
+          "baselineY": 276.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.961, "font": "Times New Roman", "size": 12, "text": "Under another section 40."}
@@ -884,7 +884,7 @@
         },
         {
           "paragraph": 101,
-          "baselineY": 290.186,
+          "baselineY": 290.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 464.021, "font": "Times New Roman", "size": 12, "bold": true, "text": "The third chapter, whose title is long enough to say something about how a line of the table"}
@@ -892,7 +892,7 @@
         },
         {
           "paragraph": 101,
-          "baselineY": 303.984,
+          "baselineY": 303.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 185.666, "font": "Times New Roman", "size": 12, "bold": true, "text": "of contents that will not fit is broken"}
@@ -900,7 +900,7 @@
         },
         {
           "paragraph": 102,
-          "baselineY": 317.783,
+          "baselineY": 317.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.621, "font": "Times New Roman", "size": 12, "text": "Under the third chapter 1."}
@@ -908,7 +908,7 @@
         },
         {
           "paragraph": 103,
-          "baselineY": 331.582,
+          "baselineY": 331.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.621, "font": "Times New Roman", "size": 12, "text": "Under the third chapter 2."}
@@ -916,7 +916,7 @@
         },
         {
           "paragraph": 104,
-          "baselineY": 345.381,
+          "baselineY": 345.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.621, "font": "Times New Roman", "size": 12, "text": "Under the third chapter 3."}
@@ -924,7 +924,7 @@
         },
         {
           "paragraph": 105,
-          "baselineY": 359.18,
+          "baselineY": 359.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.621, "font": "Times New Roman", "size": 12, "text": "Under the third chapter 4."}

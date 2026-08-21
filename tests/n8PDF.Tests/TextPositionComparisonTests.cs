@@ -31,11 +31,13 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     private const double WidthTolerance = 2.5;
 
     /// <summary>
-    /// Vertical tolerance for a baseline. The worst measured difference across every fixture is
-    /// 0.282pt, which is close to Word's own vertical quantum of 1/300 inch (0.24pt) — so this
-    /// admits roughly one quantum of disagreement and nothing more.
+    /// Vertical tolerance for a baseline. Word writes every baseline on a grid of 1/300 inch —
+    /// 0.24pt — and so does this: twenty-two fixtures now agree with Word's page exactly, and most
+    /// of the rest differ by a single step of that grid where a rounding falls the other way. This
+    /// admits three of them, which is what the two line box probes need — math-structure-probe and
+    /// east-asian-line-box-probe are the worst at 0.72pt — and nothing more.
     /// </summary>
-    private const double BaselineTolerance = 1.0;
+    private const double BaselineTolerance = 0.8;
 
     /// <summary>
     /// Fixtures whose vertical geometry is allowed to diverge from Word, with the tolerance each

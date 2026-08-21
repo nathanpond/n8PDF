@@ -7,14 +7,14 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 1,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 197.637, "font": "Times New Roman", "size": 12, "text": "DRAFT in four hundred by one hundred."}
@@ -28,14 +28,14 @@
       "lines": [
         {
           "paragraph": 2,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 3,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 161.619, "font": "Times New Roman", "size": 12, "text": "The same word in half the height."}
@@ -49,14 +49,14 @@
       "lines": [
         {
           "paragraph": 4,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 5,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 146.309, "font": "Times New Roman", "size": 12, "text": "A longer word in the first box."}
@@ -70,14 +70,14 @@
       "lines": [
         {
           "paragraph": 6,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 7,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 132.316, "font": "Times New Roman", "size": 12, "text": "A short one in the first box."}
@@ -91,14 +91,14 @@
       "lines": [
         {
           "paragraph": 8,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 9,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 170.273, "font": "Times New Roman", "size": 12, "text": "A word that reaches below the line."}
@@ -112,14 +112,14 @@
       "lines": [
         {
           "paragraph": 10,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 11,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 145.939, "font": "Times New Roman", "size": 12, "text": "The first word in another face."}
@@ -133,14 +133,14 @@
       "lines": [
         {
           "paragraph": 12,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 13,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 111.633, "font": "Times New Roman", "size": 12, "text": "And in a narrower box."}

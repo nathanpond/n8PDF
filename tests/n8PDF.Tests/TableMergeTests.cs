@@ -88,6 +88,13 @@ public class TableMergeTests
     /// The merged cell's text runs on past the foot of the row it begins in, and the rows beside
     /// it keep the heights their own single lines ask for.
     /// </summary>
+    /// <summary>
+    /// A distance between two baselines, which may stand a step of Word's grid from the height it
+    /// was worked out from: the line box is stacked exactly and the baseline in it rounded.
+    /// </summary>
+    private static void Pitch(double expected, double actual) =>
+        Assert.InRange(actual, expected - 0.241, expected + 0.241);
+
     [Fact]
     public void Merged_text_runs_on_through_the_rows_below_it()
     {
@@ -98,13 +105,14 @@ public class TableMergeTests
         var third = BaselineOf(page, "Third");
 
         // A line of 12pt Times, three times over: the rows are not stretched by the merged cell.
-        Assert.Equal(14.3, second - first, 1);
-        Assert.Equal(14.3, third - second, 1);
+        // A row's pitch, to within the step of the grid Word writes baselines on.
+        Pitch(14.3, second - first);
+        Pitch(14.3, third - second);
 
         // The merged cell's own lines follow each other at its own line height, which starts from
         // the top of the run rather than from any row.
-        Assert.Equal(first, BaselineOf(page, "Merged one"), 1);
-        Assert.Equal(13.8, BaselineOf(page, "Merged two") - BaselineOf(page, "Merged one"), 1);
+        Pitch(first, BaselineOf(page, "Merged one"));
+        Pitch(13.8, BaselineOf(page, "Merged two") - BaselineOf(page, "Merged one"));
     }
 
     /// <summary>
@@ -157,7 +165,7 @@ public class TableMergeTests
             Continues() + Cell(string.Empty, "Short two")))).Pages[0];
 
         // The first row is a line tall, as its own cell asks: the second takes the overflow.
-        Assert.Equal(14.3, BaselineOf(page, "Short two") - BaselineOf(page, "Short one"), 1);
+        Pitch(14.3, BaselineOf(page, "Short two") - BaselineOf(page, "Short one"));
 
         // And all four merged lines are on the page, the last of them below the second row's own.
         Assert.True(BaselineOf(page, "Tall four") > BaselineOf(page, "Short two"));

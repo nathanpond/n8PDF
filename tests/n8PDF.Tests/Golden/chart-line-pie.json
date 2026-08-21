@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 247.3,
+          "baselineY": 247.44,
           "height": 12.207,
           "runs": [
             {"x": 129.655, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 196.9,
+          "baselineY": 197.04,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 146.5,
+          "baselineY": 146.64,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 96.1,
+          "baselineY": 96.24,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
@@ -84,7 +84,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 247.3,
+          "baselineY": 247.44,
           "height": 12.207,
           "runs": [
             {"x": 129.655, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
@@ -92,7 +92,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 196.9,
+          "baselineY": 197.04,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
@@ -100,7 +100,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 146.5,
+          "baselineY": 146.64,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
@@ -108,7 +108,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 96.1,
+          "baselineY": 96.24,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}

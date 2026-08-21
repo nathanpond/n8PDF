@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.256,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 200.771, "font": "Arial", "size": 12, "text": "Faces with no OpenType tables at all."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 98.753,
+          "baselineY": 98.64,
           "height": 22.511,
           "runs": [
             {"x": 72, "width": 31.138, "font": "Devanagari MT", "size": 14, "text": "नमस्ते"}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 121.264,
+          "baselineY": 121.2,
           "height": 22.511,
           "runs": [
             {"x": 72, "width": 28.718, "font": "Devanagari MT", "size": 14, "text": "हिन्दी"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 143.535,
+          "baselineY": 143.52,
           "height": 21.567,
           "runs": [
             {"x": 72, "width": 29.142, "font": "Gujarati MT", "size": 14, "text": "સંસ્કૃત"}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 164.487,
+          "baselineY": 164.4,
           "height": 18.252,
           "runs": [
             {"x": 72, "width": 30.898, "font": "Gurmukhi MT", "size": 14, "text": "ਪੰਜਾਬੀ"}

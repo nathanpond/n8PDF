@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 87.322, "font": "Times New Roman", "size": 12, "text": "Plain twelve point"}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 70.646, "font": "Times New Roman", "size": 12, "text": "Raised twelve "},
@@ -24,7 +24,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 80.631, "font": "Times New Roman", "size": 12, "text": "Lowered twelve "},
@@ -33,7 +33,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 132.068,
+          "baselineY": 132,
           "height": 22.998,
           "runs": [
             {"x": 72, "width": 71.32, "font": "Times New Roman", "size": 12, "text": "Raised twenty "},
@@ -42,7 +42,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 147.598,
+          "baselineY": 147.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 53.654, "font": "Times New Roman", "size": 12, "text": "Plain again"}
@@ -50,7 +50,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 161.396,
+          "baselineY": 161.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 86.326, "font": "Times New Roman", "size": 12, "text": "Same digits plain "},
@@ -59,7 +59,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 182.664,
+          "baselineY": 182.64,
           "height": 22.998,
           "runs": [
             {"x": 72, "width": 112.207, "font": "Times New Roman", "size": 20, "text": "Twenty point "},
@@ -68,7 +68,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 198.193,
+          "baselineY": 198.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 44.332, "font": "Times New Roman", "size": 12, "text": "Plain last"}
@@ -76,7 +76,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 238.133,
+          "baselineY": 238.08,
           "height": 45.996,
           "runs": [
             {"x": 72, "width": 61.986, "font": "Times New Roman", "size": 12, "text": "Raised forty "},
@@ -85,7 +85,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 257.988,
+          "baselineY": 258,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 67.646, "font": "Times New Roman", "size": 12, "text": "Plain between"}
@@ -93,7 +93,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 297.928,
+          "baselineY": 297.84,
           "height": 45.996,
           "runs": [
             {"x": 72, "width": 71.971, "font": "Times New Roman", "size": 12, "text": "Lowered forty "},
@@ -102,7 +102,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 317.783,
+          "baselineY": 317.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 49.646, "font": "Times New Roman", "size": 12, "text": "Plain after"}

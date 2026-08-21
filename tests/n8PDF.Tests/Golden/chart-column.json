@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 129.932, "font": "Times New Roman", "size": 12, "text": "Paragraph before the chart."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 261.099,
+          "baselineY": 261.12,
           "height": 12.207,
           "runs": [
             {"x": 129.655, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 210.699,
+          "baselineY": 210.72,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 160.299,
+          "baselineY": 160.32,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 109.899,
+          "baselineY": 109.92,
           "height": 12.207,
           "runs": [
             {"x": 124.586, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 274.439,
+          "baselineY": 274.32,
           "height": 12.207,
           "runs": [
             {"x": 163.591, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
@@ -55,7 +55,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 274.439,
+          "baselineY": 274.32,
           "height": 12.207,
           "runs": [
             {"x": 226.637, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
@@ -63,7 +63,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 274.439,
+          "baselineY": 274.32,
           "height": 12.207,
           "runs": [
             {"x": 293.033, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
@@ -71,7 +71,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 274.439,
+          "baselineY": 274.32,
           "height": 12.207,
           "runs": [
             {"x": 353.934, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
@@ -79,14 +79,14 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 301.799,
+          "baselineY": 301.68,
           "height": 216,
           "runs": [
           ]
         },
         {
           "paragraph": 2,
-          "baselineY": 313.002,
+          "baselineY": 312.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 121.266, "font": "Times New Roman", "size": 12, "text": "Paragraph after the chart."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 110.326, "font": "Times New Roman", "size": 12, "text": "First column, first line."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 124.318, "font": "Times New Roman", "size": 12, "text": "First column, second line."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 252, "width": 105.316, "font": "Times New Roman", "size": 12, "text": "Second column opens"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 252, "width": 23.648, "font": "Times New Roman", "size": 12, "text": "here."}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 252, "width": 77.32, "font": "Times New Roman", "size": 12, "text": "Second column,"}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 252, "width": 59.977, "font": "Times New Roman", "size": 12, "text": "another line."}
@@ -55,14 +55,14 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 137.669,
+          "baselineY": 137.76,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 3,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 396, "width": 123.299, "font": "Times New Roman", "size": 12, "text": "Third column opens here."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.854, "font": "Times New Roman", "size": 12, "text": "A paragraph with a bar stop declared on it and no tab character of its own, written long enough to"}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 325.559, "font": "Times New Roman", "size": 12, "text": "run to three lines so that what happens on each of them can be seen."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 122.004,
+          "baselineY": 121.92,
           "height": 27.598,
           "runs": [
             {"x": 72, "width": 111.27, "font": "Times New Roman", "size": 24, "text": "Larger type"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 44.988, "font": "Times New Roman", "size": 12, "text": "Two bars"},
@@ -40,14 +40,14 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 151.468,
+          "baselineY": 151.44,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 4,
-          "baselineY": 165.625,
+          "baselineY": 165.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 198.287, "font": "Times New Roman", "size": 12, "text": "A plain paragraph with no bar of its own."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.326, "font": "Times New Roman", "size": 12, "text": "Opening"},
@@ -18,7 +18,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 35.326, "font": "Times New Roman", "size": 12, "text": "Second"},
@@ -29,7 +29,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 26.66, "font": "Times New Roman", "size": 12, "text": "Third"},
@@ -40,7 +40,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 32.004, "font": "Times New Roman", "size": 12, "text": "Fourth"},
@@ -51,7 +51,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 312.24, "font": "Times New Roman", "size": 12, "text": "A left run wide enough to overrun the centre stop it was aimed at"},

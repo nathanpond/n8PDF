@@ -114,8 +114,10 @@ public class TableInsetTests
     {
         var plain = Text(Table(0, 0)).Top;
 
-        Assert.Equal(plain + 0.5, Text(Table(4, 0)).Top, 2);
-        Assert.Equal(plain + 6.0, Text(Table(48, 0)).Top, 2);
+        // Downwards the measurement is of a line's top edge, read back from a baseline written on
+        // Word's grid, so it carries a step of that grid with it.
+        Assert.InRange(Text(Table(4, 0)).Top, plain + 0.5 - 0.241, plain + 0.5 + 0.241);
+        Assert.InRange(Text(Table(48, 0)).Top, plain + 6.0 - 0.241, plain + 6.0 + 0.241);
 
         // Which is twice what the same border does across.
         Assert.Equal(Margin + 3.0, Text(Table(48, 0)).X, 2);

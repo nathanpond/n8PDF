@@ -104,10 +104,10 @@ Four tiers, cheapest and most diagnostic first.
    indistinguishable from a passing one. Generate them with `tools/make-reference-pdfs.sh`.
 
    Both PDFs are read through one content-stream parser and compared line by line in points.
-   Across the fixtures, line start positions match Word exactly and every baseline agrees to
-   within 0.62pt, and to within 0.35pt in every document that neither raises a run nor sets one
-   in an East Asian face — close to Word's own vertical quantum of 1/300 inch. `Fidelity_report` writes
-   the full per-line table to `artifacts/test-output/fidelity-report.txt`.
+   Across the fixtures, line start positions match Word exactly, twenty-two documents match its
+   baselines exactly as well, and everything else agrees to within 0.72pt — almost always by a
+   single step of the 1/300 inch grid Word writes on, where a rounding falls the other way.
+   `Fidelity_report` writes the full per-line table to `artifacts/test-output/fidelity-report.txt`.
 
 4. **Structural validation** — `qpdf --check` over every converted fixture, verifying the
    cross-reference table, stream lengths and object graph we hand-rolled. A tolerant viewer will
@@ -133,6 +133,8 @@ each with a fixture built so that only one candidate model survives:
 - A line-spacing multiple's **extra leading goes below** the baseline, so the first line of a
   paragraph sits at its natural ascent whatever the multiple.
 - The font's **line gap belongs above the ascent**, not below the descent.
+- Every baseline is written on a **grid of 1/300 inch**, while the line heights that stack the
+  boxes stay exact — see [The grid every baseline stands on](#the-grid-every-baseline-stands-on).
 - An **East Asian face gets three tenths of an em of extra leading**, whatever its own metrics
   say. Word gives MS Mincho, MS Gothic, KaiTi and MingLiU at 12pt a line of exactly 15.6pt,
   although those four faces ask for 1.0, 1.0, 1.14 and 1.20 em between them — and although Core
@@ -169,13 +171,40 @@ The shifts themselves were measured at three sizes rather than fitted to one. A 
 about a twelfth of its size, which is far less than it looks like it should be and was nearly twice
 that here; a raised one rises about a third.
 
-Word also quantises vertical positions to 1/300 inch (0.24pt). That is not implemented for ordinary
-text — our residuals are already smaller than one quantum — but it is the floor on how closely
-anything can match Word vertically. It is implemented in the two places where a quantum is a large
-share of what is being placed and shows: a chart's markers, and everything inside an equation,
-where the difference between rounding and not is the difference between agreeing with Word exactly
-and agreeing to a hundredth. It quantises the type size it writes to the same 1/300 inch, which is why a
-15pt run comes out of one of its PDFs as 15.12.
+### The grid every baseline stands on
+
+Word writes every baseline on a grid of one three-hundredth of an inch — 0.24 points, the same grid
+it rounds a type size to, which is why a 15pt run comes out of one of its PDFs as 15.12. Two probes
+say what is rounded and what is not:
+
+- **The height of a line is exact.** `line-grid-probe` fills nine pages with forty single-spaced
+  lines each and measures the distance from the first baseline to the fortieth. Were the height
+  rounded, every gap on a page would be the same whole number of steps; instead they mix 2.16 with
+  2.4, and the span comes to within a quarter point of thirty-nine exact heights. The height is
+  worked out at the size the run **states**, not the size Word draws at: at two point, which Word
+  draws at 1.92, a page would span 86.1 points if the drawn size decided it and 89.69 if the stated
+  size did, and Word spans 89.52. Eleven point, drawn at 11.04, has the rounding going the other
+  way and agrees.
+- **Inside a line, the descent is rounded and the ascent takes what is left.** `line-ascent-probe`
+  gives each of its seventy-four pages a first paragraph of one letter, so the baseline is the top
+  margin plus that line's ascent and nothing else. Over the seventy-four — four faces, and Times
+  New Roman and Arial at every half point from six to twenty — rounding the descent accounts for
+  seventy-one. Rounding the ascent instead accounts for sixty-two, and no rounding of a height or a
+  descent through any intermediate unit does better. The three misses are a single step each, and
+  each is a descent that lands just above a half step.
+
+Neither rounding accumulates: the next line starts from the exact height. Six of the nine forty-line
+pages come out as Word's line for line, and 292 of the 360 baselines overall. Across the whole
+fixture set, twenty-two documents now agree with Word's page **exactly**, where before none did, and
+the average of each document's worst baseline fell from 0.387pt to 0.352 — what is left is almost
+everywhere a single step of the grid, where a rounding falls the other way.
+
+Anything moved after it is written — a line pushed down by a float, a page centred between its
+margins, the contents of a table cell or a footnote, a raised or lowered run — is moved onto the
+grid too, so nothing this engine writes along a line stands off it. What a line *draws* is not:
+the rule above a carried footnote is where the arithmetic puts it, within a hundredth of a point
+of Word's, and rounding it would take it a twentieth of a point away. `LineGridTests` holds every
+fixture to the grid, and the two probes to Word's own page.
 
 ### How far inside its own edges a shape sets its text
 

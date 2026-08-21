@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.28,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "A"},
@@ -17,7 +17,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 106.094,
+          "baselineY": 106.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "A"},

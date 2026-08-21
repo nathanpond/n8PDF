@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 90.299, "font": "Times New Roman", "size": 12, "text": "Before the control."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 77.643, "font": "Times New Roman", "size": 12, "text": "Inside a control."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 82.969, "font": "Times New Roman", "size": 12, "text": "After the control."}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 125.1,
+          "baselineY": 125.04,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 114.967, "font": "Times New Roman", "size": 12, "text": "A table inside a control."}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 139.398,
+          "baselineY": 139.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 93.633, "font": "Times New Roman", "size": 12, "text": "Between the tables."}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 153.697,
+          "baselineY": 153.6,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 108.967, "font": "Times New Roman", "size": 12, "text": "A control inside a cell."}
@@ -55,7 +55,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 167.996,
+          "baselineY": 168,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 92.309, "font": "Times New Roman", "size": 12, "text": "Two controls deep."}
@@ -63,7 +63,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 181.795,
+          "baselineY": 181.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 136.605, "font": "Times New Roman", "size": 12, "text": "The choice, not the fallback."}
@@ -71,7 +71,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 195.594,
+          "baselineY": 195.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 99.656, "font": "Times New Roman", "size": 12, "text": "Inside custom XML."}
@@ -79,7 +79,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 209.393,
+          "baselineY": 209.52,
           "height": 14.157,
           "runs": [
             {"x": 72, "width": 143.631, "font": "Times New Roman", "size": 12, "text": "A line with a note in a control"},
@@ -89,14 +89,14 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 705.547,
+          "baselineY": 705.6,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 717.837,
+          "baselineY": 717.84,
           "height": 11.499,
           "runs": [
             {"x": 72, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "1"},
@@ -105,7 +105,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 47.203,
+          "baselineY": 47.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 135.299, "font": "Times New Roman", "size": 12, "text": "A running head in a control."}

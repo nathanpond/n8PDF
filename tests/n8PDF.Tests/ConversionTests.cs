@@ -223,8 +223,10 @@ public class ConversionTests
             .AddParagraph("After the break",
                 "<w:pageBreakBefore/><w:spacing w:before=\"240\"/>", TimesTwelve));
 
+        // The top edge is read back from a baseline written on Word's grid, so it may stand a
+        // step of that grid from the margin the arithmetic puts it at.
         var fullTop = full.Pages[1].Lines[0];
-        Assert.Equal(72 + 12, fullTop.BaselineY - fullTop.Ascent, 1);
+        Assert.InRange(fullTop.BaselineY - fullTop.Ascent, 72 + 12 - 0.241, 72 + 12 + 0.241);
 
         // 24pt of space-after above exceeds the 12pt space-before, so nothing is left to show and
         // the paragraph sits flush against the top margin.
@@ -234,7 +236,7 @@ public class ConversionTests
                 "<w:pageBreakBefore/><w:spacing w:before=\"240\"/>", TimesTwelve));
 
         var absorbedTop = absorbed.Pages[1].Lines[0];
-        Assert.Equal(72, absorbedTop.BaselineY - absorbedTop.Ascent, 1);
+        Assert.InRange(absorbedTop.BaselineY - absorbedTop.Ascent, 72 - 0.241, 72 + 0.241);
     }
 
     [Fact]
@@ -250,12 +252,15 @@ public class ConversionTests
         var singleGap = single.Pages[0].Lines[1].BaselineY - single.Pages[0].Lines[0].BaselineY;
         var doubleGap = doubled.Pages[0].Lines[1].BaselineY - doubled.Pages[0].Lines[0].BaselineY;
 
-        // 240 in 240ths is single spacing and 480 is double.
-        Assert.Equal(singleGap * 2, doubleGap, 1);
+        // 240 in 240ths is single spacing and 480 is double. Both gaps are the distance between
+        // two baselines, and a baseline is written on Word's grid of 0.24 points, so either may
+        // stand a step from the height it was worked out from.
+        Assert.InRange(doubleGap, singleGap * 2 - 0.241, singleGap * 2 + 0.241);
 
         // Single spacing for 12pt Times is its natural line height.
         var font = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        Assert.Equal(TextMeasurer.GetNaturalLineHeight(font, 12), singleGap, 2);
+        var natural = TextMeasurer.GetNaturalLineHeight(font, 12);
+        Assert.InRange(singleGap, natural - 0.241, natural + 0.241);
     }
 
     [Fact]

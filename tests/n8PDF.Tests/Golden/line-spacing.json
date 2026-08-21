@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 463.553, "font": "Times New Roman", "size": 12, "text": "Single spaced text. Single spaced text. Single spaced text. Single spaced text. Single spaced text."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 276.932, "font": "Times New Roman", "size": 12, "text": "Single spaced text. Single spaced text. Single spaced text."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 110.801,
+          "baselineY": 110.88,
           "height": 27.598,
           "runs": [
             {"x": 72, "width": 462.85, "font": "Times New Roman", "size": 12, "text": "Double spaced text. Double spaced text. Double spaced text. Double spaced text. Double spaced"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 138.398,
+          "baselineY": 138.48,
           "height": 27.598,
           "runs": [
             {"x": 72, "width": 314.9, "font": "Times New Roman", "size": 12, "text": "text. Double spaced text. Double spaced text. Double spaced text."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.256,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 249.475, "font": "Arial", "size": 12, "text": "Sinhala below, shaped by rules no script owns."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 101.938,
+          "baselineY": 102,
           "height": 20.556,
           "runs": [
             {"x": 72, "width": 33.872, "font": "Sinhala Sangam MN", "size": 14, "text": "සිංහල"}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 122.494,
+          "baselineY": 122.64,
           "height": 20.556,
           "runs": [
             {"x": 72, "width": 41.706, "font": "Sinhala Sangam MN", "size": 14, "text": "ශ්‍රී ලංකා"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 143.05,
+          "baselineY": 143.04,
           "height": 20.556,
           "runs": [
             {"x": 72, "width": 15.244, "font": "Sinhala Sangam MN", "size": 14, "text": "ක්‍ෂ"}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 163.605,
+          "baselineY": 163.68,
           "height": 20.556,
           "runs": [
             {"x": 72, "width": 28.314, "font": "Sinhala Sangam MN", "size": 14, "text": "පොත"}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 184.161,
+          "baselineY": 184.32,
           "height": 20.556,
           "runs": [
             {"x": 72, "width": 25.655, "font": "Sinhala Sangam MN", "size": 14, "text": "කෙටි"}

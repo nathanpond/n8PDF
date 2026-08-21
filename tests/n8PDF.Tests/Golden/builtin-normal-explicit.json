@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 170.971, "font": "Times New Roman", "size": 12, "text": "First paragraph with nothing stated."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 184.289, "font": "Times New Roman", "size": 12, "text": "Second paragraph with nothing stated."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 175.623, "font": "Times New Roman", "size": 12, "text": "Third paragraph with nothing stated."}

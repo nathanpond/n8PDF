@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.28,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 1 of eighty."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 106.094,
+          "baselineY": 106.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 2 of eighty."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 128.986,
+          "baselineY": 129.12,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 3 of eighty."}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 151.877,
+          "baselineY": 151.92,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 4 of eighty."}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 174.768,
+          "baselineY": 174.96,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 5 of eighty."}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 197.659,
+          "baselineY": 197.76,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 6 of eighty."}
@@ -55,7 +55,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 220.551,
+          "baselineY": 220.56,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 7 of eighty."}
@@ -63,7 +63,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 243.442,
+          "baselineY": 243.6,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 8 of eighty."}
@@ -71,7 +71,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 266.333,
+          "baselineY": 266.4,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 146.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 9 of eighty."}
@@ -79,7 +79,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 289.224,
+          "baselineY": 289.2,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 10 of eighty."}
@@ -87,7 +87,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 312.115,
+          "baselineY": 312.24,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 11 of eighty."}
@@ -95,7 +95,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 335.007,
+          "baselineY": 335.04,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 12 of eighty."}
@@ -103,7 +103,7 @@
         },
         {
           "paragraph": 12,
-          "baselineY": 357.898,
+          "baselineY": 358.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 13 of eighty."}
@@ -111,7 +111,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 380.789,
+          "baselineY": 380.88,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 14 of eighty."}
@@ -127,7 +127,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 426.572,
+          "baselineY": 426.72,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 16 of eighty."}
@@ -135,7 +135,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 449.463,
+          "baselineY": 449.52,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 17 of eighty."}
@@ -143,7 +143,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 472.354,
+          "baselineY": 472.56,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 18 of eighty."}
@@ -151,7 +151,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 495.245,
+          "baselineY": 495.36,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 19 of eighty."}
@@ -159,7 +159,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 518.137,
+          "baselineY": 518.16,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 20 of eighty."}
@@ -167,7 +167,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 541.028,
+          "baselineY": 541.2,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 21 of eighty."}
@@ -175,7 +175,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 563.919,
+          "baselineY": 564,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 22 of eighty."}
@@ -183,7 +183,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 586.81,
+          "baselineY": 586.8,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 23 of eighty."}
@@ -191,7 +191,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 609.702,
+          "baselineY": 609.84,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 24 of eighty."}
@@ -199,7 +199,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 632.593,
+          "baselineY": 632.64,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 25 of eighty."}
@@ -207,7 +207,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 655.484,
+          "baselineY": 655.68,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 26 of eighty."}
@@ -215,7 +215,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 678.375,
+          "baselineY": 678.48,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 27 of eighty."}
@@ -223,7 +223,7 @@
         },
         {
           "paragraph": 27,
-          "baselineY": 701.266,
+          "baselineY": 701.28,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 28 of eighty."}
@@ -237,7 +237,7 @@
       "lines": [
         {
           "paragraph": 28,
-          "baselineY": 83.203,
+          "baselineY": 83.28,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 29 of eighty."}
@@ -245,7 +245,7 @@
         },
         {
           "paragraph": 29,
-          "baselineY": 106.094,
+          "baselineY": 106.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 30 of eighty."}
@@ -253,7 +253,7 @@
         },
         {
           "paragraph": 30,
-          "baselineY": 128.986,
+          "baselineY": 129.12,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 31 of eighty."}
@@ -261,7 +261,7 @@
         },
         {
           "paragraph": 31,
-          "baselineY": 151.877,
+          "baselineY": 151.92,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 32 of eighty."}
@@ -269,7 +269,7 @@
         },
         {
           "paragraph": 32,
-          "baselineY": 174.768,
+          "baselineY": 174.96,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 33 of eighty."}
@@ -277,7 +277,7 @@
         },
         {
           "paragraph": 33,
-          "baselineY": 197.659,
+          "baselineY": 197.76,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 34 of eighty."}
@@ -285,7 +285,7 @@
         },
         {
           "paragraph": 34,
-          "baselineY": 220.551,
+          "baselineY": 220.56,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 35 of eighty."}
@@ -293,7 +293,7 @@
         },
         {
           "paragraph": 35,
-          "baselineY": 243.442,
+          "baselineY": 243.6,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 36 of eighty."}
@@ -301,7 +301,7 @@
         },
         {
           "paragraph": 36,
-          "baselineY": 266.333,
+          "baselineY": 266.4,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 37 of eighty."}
@@ -309,7 +309,7 @@
         },
         {
           "paragraph": 37,
-          "baselineY": 289.224,
+          "baselineY": 289.2,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 38 of eighty."}
@@ -317,7 +317,7 @@
         },
         {
           "paragraph": 38,
-          "baselineY": 312.115,
+          "baselineY": 312.24,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 39 of eighty."}
@@ -325,7 +325,7 @@
         },
         {
           "paragraph": 39,
-          "baselineY": 335.007,
+          "baselineY": 335.04,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 40 of eighty."}
@@ -333,7 +333,7 @@
         },
         {
           "paragraph": 40,
-          "baselineY": 357.898,
+          "baselineY": 358.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 41 of eighty."}
@@ -341,7 +341,7 @@
         },
         {
           "paragraph": 41,
-          "baselineY": 380.789,
+          "baselineY": 380.88,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 42 of eighty."}
@@ -357,7 +357,7 @@
         },
         {
           "paragraph": 43,
-          "baselineY": 426.572,
+          "baselineY": 426.72,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 44 of eighty."}
@@ -365,7 +365,7 @@
         },
         {
           "paragraph": 44,
-          "baselineY": 449.463,
+          "baselineY": 449.52,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 45 of eighty."}
@@ -373,7 +373,7 @@
         },
         {
           "paragraph": 45,
-          "baselineY": 472.354,
+          "baselineY": 472.56,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 46 of eighty."}
@@ -381,7 +381,7 @@
         },
         {
           "paragraph": 46,
-          "baselineY": 495.245,
+          "baselineY": 495.36,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 47 of eighty."}
@@ -389,7 +389,7 @@
         },
         {
           "paragraph": 47,
-          "baselineY": 518.137,
+          "baselineY": 518.16,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 48 of eighty."}
@@ -397,7 +397,7 @@
         },
         {
           "paragraph": 48,
-          "baselineY": 541.028,
+          "baselineY": 541.2,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 49 of eighty."}
@@ -405,7 +405,7 @@
         },
         {
           "paragraph": 49,
-          "baselineY": 563.919,
+          "baselineY": 564,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 50 of eighty."}
@@ -413,7 +413,7 @@
         },
         {
           "paragraph": 50,
-          "baselineY": 586.81,
+          "baselineY": 586.8,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 51 of eighty."}
@@ -421,7 +421,7 @@
         },
         {
           "paragraph": 51,
-          "baselineY": 609.702,
+          "baselineY": 609.84,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 52 of eighty."}
@@ -429,7 +429,7 @@
         },
         {
           "paragraph": 52,
-          "baselineY": 632.593,
+          "baselineY": 632.64,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 53 of eighty."}
@@ -437,7 +437,7 @@
         },
         {
           "paragraph": 53,
-          "baselineY": 655.484,
+          "baselineY": 655.68,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 54 of eighty."}
@@ -445,7 +445,7 @@
         },
         {
           "paragraph": 54,
-          "baselineY": 678.375,
+          "baselineY": 678.48,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 55 of eighty."}
@@ -453,7 +453,7 @@
         },
         {
           "paragraph": 55,
-          "baselineY": 701.266,
+          "baselineY": 701.28,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 56 of eighty."}
@@ -467,7 +467,7 @@
       "lines": [
         {
           "paragraph": 56,
-          "baselineY": 83.203,
+          "baselineY": 83.28,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 57 of eighty."}
@@ -475,7 +475,7 @@
         },
         {
           "paragraph": 57,
-          "baselineY": 106.094,
+          "baselineY": 106.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 58 of eighty."}
@@ -483,7 +483,7 @@
         },
         {
           "paragraph": 58,
-          "baselineY": 128.986,
+          "baselineY": 129.12,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 59 of eighty."}
@@ -491,7 +491,7 @@
         },
         {
           "paragraph": 59,
-          "baselineY": 151.877,
+          "baselineY": 151.92,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 60 of eighty."}
@@ -499,7 +499,7 @@
         },
         {
           "paragraph": 60,
-          "baselineY": 174.768,
+          "baselineY": 174.96,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 61 of eighty."}
@@ -507,7 +507,7 @@
         },
         {
           "paragraph": 61,
-          "baselineY": 197.659,
+          "baselineY": 197.76,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 62 of eighty."}
@@ -515,7 +515,7 @@
         },
         {
           "paragraph": 62,
-          "baselineY": 220.551,
+          "baselineY": 220.56,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 63 of eighty."}
@@ -523,7 +523,7 @@
         },
         {
           "paragraph": 63,
-          "baselineY": 243.442,
+          "baselineY": 243.6,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 64 of eighty."}
@@ -531,7 +531,7 @@
         },
         {
           "paragraph": 64,
-          "baselineY": 266.333,
+          "baselineY": 266.4,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 65 of eighty."}
@@ -539,7 +539,7 @@
         },
         {
           "paragraph": 65,
-          "baselineY": 289.224,
+          "baselineY": 289.2,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 66 of eighty."}
@@ -547,7 +547,7 @@
         },
         {
           "paragraph": 66,
-          "baselineY": 312.115,
+          "baselineY": 312.24,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 67 of eighty."}
@@ -555,7 +555,7 @@
         },
         {
           "paragraph": 67,
-          "baselineY": 335.007,
+          "baselineY": 335.04,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 68 of eighty."}
@@ -563,7 +563,7 @@
         },
         {
           "paragraph": 68,
-          "baselineY": 357.898,
+          "baselineY": 358.08,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 69 of eighty."}
@@ -571,7 +571,7 @@
         },
         {
           "paragraph": 69,
-          "baselineY": 380.789,
+          "baselineY": 380.88,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 70 of eighty."}
@@ -587,7 +587,7 @@
         },
         {
           "paragraph": 71,
-          "baselineY": 426.572,
+          "baselineY": 426.72,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 72 of eighty."}
@@ -595,7 +595,7 @@
         },
         {
           "paragraph": 72,
-          "baselineY": 449.463,
+          "baselineY": 449.52,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 73 of eighty."}
@@ -603,7 +603,7 @@
         },
         {
           "paragraph": 73,
-          "baselineY": 472.354,
+          "baselineY": 472.56,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 74 of eighty."}
@@ -611,7 +611,7 @@
         },
         {
           "paragraph": 74,
-          "baselineY": 495.245,
+          "baselineY": 495.36,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 75 of eighty."}
@@ -619,7 +619,7 @@
         },
         {
           "paragraph": 75,
-          "baselineY": 518.137,
+          "baselineY": 518.16,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 76 of eighty."}
@@ -627,7 +627,7 @@
         },
         {
           "paragraph": 76,
-          "baselineY": 541.028,
+          "baselineY": 541.2,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 77 of eighty."}
@@ -635,7 +635,7 @@
         },
         {
           "paragraph": 77,
-          "baselineY": 563.919,
+          "baselineY": 564,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 78 of eighty."}
@@ -643,7 +643,7 @@
         },
         {
           "paragraph": 78,
-          "baselineY": 586.81,
+          "baselineY": 586.8,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 79 of eighty."}
@@ -651,7 +651,7 @@
         },
         {
           "paragraph": 79,
-          "baselineY": 609.702,
+          "baselineY": 609.84,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 152.291, "font": "Times New Roman", "size": 12, "text": "Paragraph number 80 of eighty."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.28,
           "height": 14.157,
           "runs": [
             {"x": 72, "width": 109.295, "font": "Times New Roman", "size": 12, "text": "A sentence with a note"},
@@ -19,7 +19,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.36,
+          "baselineY": 97.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 1 of sixty."}
@@ -27,7 +27,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 111.159,
+          "baselineY": 111.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 2 of sixty."}
@@ -35,7 +35,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.958,
+          "baselineY": 124.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 3 of sixty."}
@@ -43,7 +43,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 138.757,
+          "baselineY": 138.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 4 of sixty."}
@@ -51,7 +51,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 152.556,
+          "baselineY": 152.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 5 of sixty."}
@@ -59,7 +59,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 166.354,
+          "baselineY": 166.32,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 6 of sixty."}
@@ -67,7 +67,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 180.153,
+          "baselineY": 180,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 7 of sixty."}
@@ -75,7 +75,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 193.952,
+          "baselineY": 193.92,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 8 of sixty."}
@@ -83,7 +83,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 207.751,
+          "baselineY": 207.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 167.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 9 of sixty."}
@@ -91,7 +91,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 221.55,
+          "baselineY": 221.52,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 10 of sixty."}
@@ -99,7 +99,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 235.349,
+          "baselineY": 235.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 11 of sixty."}
@@ -107,7 +107,7 @@
         },
         {
           "paragraph": 12,
-          "baselineY": 249.147,
+          "baselineY": 249.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 12 of sixty."}
@@ -115,7 +115,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 262.946,
+          "baselineY": 262.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 13 of sixty."}
@@ -123,7 +123,7 @@
         },
         {
           "paragraph": 14,
-          "baselineY": 276.745,
+          "baselineY": 276.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 14 of sixty."}
@@ -131,7 +131,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 290.544,
+          "baselineY": 290.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 15 of sixty."}
@@ -139,7 +139,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 304.343,
+          "baselineY": 304.32,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 16 of sixty."}
@@ -147,7 +147,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 318.142,
+          "baselineY": 318,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 17 of sixty."}
@@ -155,7 +155,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 331.94,
+          "baselineY": 331.92,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 18 of sixty."}
@@ -163,7 +163,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 345.739,
+          "baselineY": 345.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 19 of sixty."}
@@ -171,7 +171,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 359.538,
+          "baselineY": 359.52,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 20 of sixty."}
@@ -179,7 +179,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 373.337,
+          "baselineY": 373.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 21 of sixty."}
@@ -187,7 +187,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 387.136,
+          "baselineY": 387.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 22 of sixty."}
@@ -195,7 +195,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 400.935,
+          "baselineY": 400.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 23 of sixty."}
@@ -203,7 +203,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 414.733,
+          "baselineY": 414.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 24 of sixty."}
@@ -211,7 +211,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 428.532,
+          "baselineY": 428.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 25 of sixty."}
@@ -219,7 +219,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 442.331,
+          "baselineY": 442.32,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 26 of sixty."}
@@ -227,7 +227,7 @@
         },
         {
           "paragraph": 27,
-          "baselineY": 456.13,
+          "baselineY": 456,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 27 of sixty."}
@@ -235,7 +235,7 @@
         },
         {
           "paragraph": 28,
-          "baselineY": 469.929,
+          "baselineY": 469.92,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 28 of sixty."}
@@ -243,7 +243,7 @@
         },
         {
           "paragraph": 29,
-          "baselineY": 483.728,
+          "baselineY": 483.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 29 of sixty."}
@@ -251,7 +251,7 @@
         },
         {
           "paragraph": 30,
-          "baselineY": 497.526,
+          "baselineY": 497.52,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 30 of sixty."}
@@ -259,7 +259,7 @@
         },
         {
           "paragraph": 31,
-          "baselineY": 511.325,
+          "baselineY": 511.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 31 of sixty."}
@@ -267,7 +267,7 @@
         },
         {
           "paragraph": 32,
-          "baselineY": 525.124,
+          "baselineY": 525.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 32 of sixty."}
@@ -275,7 +275,7 @@
         },
         {
           "paragraph": 33,
-          "baselineY": 538.923,
+          "baselineY": 538.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 33 of sixty."}
@@ -283,7 +283,7 @@
         },
         {
           "paragraph": 34,
-          "baselineY": 552.722,
+          "baselineY": 552.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 34 of sixty."}
@@ -291,7 +291,7 @@
         },
         {
           "paragraph": 35,
-          "baselineY": 566.521,
+          "baselineY": 566.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 35 of sixty."}
@@ -299,7 +299,7 @@
         },
         {
           "paragraph": 36,
-          "baselineY": 580.319,
+          "baselineY": 580.32,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 36 of sixty."}
@@ -307,7 +307,7 @@
         },
         {
           "paragraph": 37,
-          "baselineY": 594.118,
+          "baselineY": 594,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 37 of sixty."}
@@ -315,7 +315,7 @@
         },
         {
           "paragraph": 38,
-          "baselineY": 607.917,
+          "baselineY": 607.92,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 38 of sixty."}
@@ -323,7 +323,7 @@
         },
         {
           "paragraph": 39,
-          "baselineY": 621.716,
+          "baselineY": 621.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 39 of sixty."}
@@ -331,7 +331,7 @@
         },
         {
           "paragraph": 40,
-          "baselineY": 635.515,
+          "baselineY": 635.52,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 40 of sixty."}
@@ -339,7 +339,7 @@
         },
         {
           "paragraph": 41,
-          "baselineY": 649.313,
+          "baselineY": 649.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 41 of sixty."}
@@ -347,7 +347,7 @@
         },
         {
           "paragraph": 42,
-          "baselineY": 663.112,
+          "baselineY": 663.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 42 of sixty."}
@@ -355,7 +355,7 @@
         },
         {
           "paragraph": 43,
-          "baselineY": 676.911,
+          "baselineY": 676.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 43 of sixty."}
@@ -363,14 +363,14 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 694.048,
+          "baselineY": 694.08,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 706.338,
+          "baselineY": 706.32,
           "height": 11.499,
           "runs": [
             {"x": 72, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "1"},
@@ -379,7 +379,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 717.837,
+          "baselineY": 717.84,
           "height": 11.499,
           "runs": [
             {"x": 72, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "2"},
@@ -394,7 +394,7 @@
       "lines": [
         {
           "paragraph": 44,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 44 of sixty."}
@@ -402,7 +402,7 @@
         },
         {
           "paragraph": 45,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 14.157,
           "runs": [
             {"x": 72, "width": 273.252, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 45 of sixty, which carries a note"},
@@ -412,7 +412,7 @@
         },
         {
           "paragraph": 46,
-          "baselineY": 111.159,
+          "baselineY": 111.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 46 of sixty."}
@@ -420,7 +420,7 @@
         },
         {
           "paragraph": 47,
-          "baselineY": 124.958,
+          "baselineY": 124.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 47 of sixty."}
@@ -428,7 +428,7 @@
         },
         {
           "paragraph": 48,
-          "baselineY": 138.757,
+          "baselineY": 138.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 48 of sixty."}
@@ -436,7 +436,7 @@
         },
         {
           "paragraph": 49,
-          "baselineY": 152.556,
+          "baselineY": 152.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 49 of sixty."}
@@ -444,7 +444,7 @@
         },
         {
           "paragraph": 50,
-          "baselineY": 166.354,
+          "baselineY": 166.32,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 50 of sixty."}
@@ -452,7 +452,7 @@
         },
         {
           "paragraph": 51,
-          "baselineY": 180.153,
+          "baselineY": 180,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 51 of sixty."}
@@ -460,7 +460,7 @@
         },
         {
           "paragraph": 52,
-          "baselineY": 193.952,
+          "baselineY": 193.92,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 52 of sixty."}
@@ -468,7 +468,7 @@
         },
         {
           "paragraph": 53,
-          "baselineY": 207.751,
+          "baselineY": 207.6,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 53 of sixty."}
@@ -476,7 +476,7 @@
         },
         {
           "paragraph": 54,
-          "baselineY": 221.55,
+          "baselineY": 221.52,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 54 of sixty."}
@@ -484,7 +484,7 @@
         },
         {
           "paragraph": 55,
-          "baselineY": 235.349,
+          "baselineY": 235.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 55 of sixty."}
@@ -492,7 +492,7 @@
         },
         {
           "paragraph": 56,
-          "baselineY": 249.147,
+          "baselineY": 249.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 56 of sixty."}
@@ -500,7 +500,7 @@
         },
         {
           "paragraph": 57,
-          "baselineY": 262.946,
+          "baselineY": 262.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 57 of sixty."}
@@ -508,7 +508,7 @@
         },
         {
           "paragraph": 58,
-          "baselineY": 276.745,
+          "baselineY": 276.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 58 of sixty."}
@@ -516,7 +516,7 @@
         },
         {
           "paragraph": 59,
-          "baselineY": 290.544,
+          "baselineY": 290.4,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 59 of sixty."}
@@ -524,7 +524,7 @@
         },
         {
           "paragraph": 60,
-          "baselineY": 304.343,
+          "baselineY": 304.32,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 173.965, "font": "Times New Roman", "size": 12, "text": "Body paragraph number 60 of sixty."}
@@ -532,14 +532,14 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 705.547,
+          "baselineY": 705.6,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 717.837,
+          "baselineY": 717.84,
           "height": 11.499,
           "runs": [
             {"x": 72, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "3"},

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 153.938, "font": "Times New Roman", "size": 12, "text": "The first page under the picture."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 46.474,
+          "baselineY": 46.56,
           "height": 13.428,
           "runs": [
           ]
@@ -28,7 +28,7 @@
       "lines": [
         {
           "paragraph": 1,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.621, "font": "Times New Roman", "size": 12, "text": "The second page under it."}
@@ -36,7 +36,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 46.474,
+          "baselineY": 46.56,
           "height": 13.428,
           "runs": [
           ]

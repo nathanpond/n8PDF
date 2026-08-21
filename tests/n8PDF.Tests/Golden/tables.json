@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 129.27, "font": "Times New Roman", "size": 12, "text": "Paragraph before the table."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.502,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 36, "font": "Times New Roman", "size": 12, "bold": true, "text": "Region"}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.502,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 228.5, "width": 27.34, "font": "Times New Roman", "size": 12, "bold": true, "text": "Units"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.502,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 384.5, "width": 43.992, "font": "Times New Roman", "size": 12, "bold": true, "text": "Revenue"}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 111.801,
+          "baselineY": 111.6,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 27.996, "font": "Times New Roman", "size": 12, "text": "North"}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 111.801,
+          "baselineY": 111.6,
           "height": 13.799,
           "runs": [
             {"x": 228.5, "width": 24, "font": "Times New Roman", "size": 12, "text": "1240"}
@@ -55,7 +55,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 111.801,
+          "baselineY": 111.6,
           "height": 13.799,
           "runs": [
             {"x": 384.5, "width": 30, "font": "Times New Roman", "size": 12, "text": "48200"}
@@ -63,7 +63,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 126.1,
+          "baselineY": 126,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 28.008, "font": "Times New Roman", "size": 12, "text": "South"}
@@ -71,7 +71,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 126.1,
+          "baselineY": 126,
           "height": 13.799,
           "runs": [
             {"x": 228.5, "width": 288.609, "font": "Times New Roman", "size": 12, "text": "A spanned cell whose text is long enough that it has to wrap"}
@@ -79,7 +79,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 139.898,
+          "baselineY": 139.92,
           "height": 13.799,
           "runs": [
             {"x": 228.5, "width": 116.971, "font": "Times New Roman", "size": 12, "text": "onto more than one line."}
@@ -87,7 +87,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 154.197,
+          "baselineY": 154.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 120.604, "font": "Times New Roman", "size": 12, "text": "Paragraph after the table."}

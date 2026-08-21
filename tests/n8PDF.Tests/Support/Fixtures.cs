@@ -3763,6 +3763,125 @@ public static class Fixtures
                 return builder;
             },
 
+            // How a line divides itself above and below its baseline. The height of a single
+            // spaced line is the face's ascender, descender and line gap added up, which
+            // line-box-probe settled; where the baseline sits inside that height is a second
+            // question, and this asks it.
+            //
+            // A page whose first paragraph is one letter answers it directly: the top of the text
+            // is the margin, so Word's first baseline is the margin plus the ascent of that line,
+            // and nothing else can be in the way. Four faces at eight sizes, each on its own page,
+            // each with its paragraph mark set to the same face and size so the mark cannot be
+            // what decides the height. The largest sizes pin the answer closest: at forty-eight
+            // point the grid Word rounds to is a four-hundredth of the size.
+            ["line-ascent-probe"] = () =>
+            {
+                // Times New Roman and Arial at every half point from six to twenty, which is
+                // dense enough to show the shape of the rule rather than a handful of points on
+                // it, and Cambria and Calibri at a spread wide enough to say the rule is the same
+                // one. Seventy-four pages.
+                (string Face, int[] Sizes)[] faces =
+                [
+                    ("Times New Roman", [.. Enumerable.Range(12, 29)]),
+                    ("Arial", [.. Enumerable.Range(12, 29)]),
+                    ("Cambria", [12, 16, 20, 22, 24, 32, 48, 96]),
+                    ("Calibri", [12, 16, 20, 22, 24, 32, 48, 96])
+                ];
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                foreach (var (face, halfPoints) in faces)
+                {
+                    foreach (var size in halfPoints)
+                    {
+                        var font = $"<w:rFonts w:ascii=\"{face}\" w:hAnsi=\"{face}\"/>" +
+                                   $"<w:sz w:val=\"{size}\"/>";
+
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacingNewPage)}" +
+                            $"<w:rPr>{font}</w:rPr></w:pPr>" +
+                            $"<w:r><w:rPr>{font}</w:rPr><w:t>H</w:t></w:r></w:p>");
+
+                        first = false;
+                    }
+                }
+
+                return builder;
+            },
+
+            // Where a line lands on the page. Word puts every baseline it writes on a grid of one
+            // three-hundredth of an inch, which is the same grid it rounds a font size to, and the
+            // question this asks is what it rounds: the height of each line, or the place the line
+            // ends up.
+            //
+            // Nine pages, forty single-spaced lines each, nothing on a line but a hyphen. The
+            // first four are Times New Roman at sizes picked so that the stated size and the size
+            // Word draws at come apart: two point is drawn at 1.92, five at 5.04, eleven at 11.04
+            // — the first rounding down and the others up, so the two answers differ in sign as
+            // well as size — and twelve point, which is already on the grid, is the control. Over
+            // thirty-nine gaps the two answers stand three and a half points apart at two point,
+            // which no amount of rounding could confuse.
+            //
+            // The remaining five say what the line height of a face actually is, to within a
+            // hundredth of a point: thirty-nine gaps divide the grid step down that far. Which
+            // face-and-size pairs are here is not arbitrary — they are the ones where the ascent
+            // measured in line-ascent-probe turns on the fourth decimal of the height.
+            ["line-grid-probe"] = () =>
+            {
+                (string Face, int HalfPoints)[] blocks =
+                [
+                    ("Times New Roman", 4), ("Times New Roman", 10), ("Times New Roman", 22),
+                    ("Times New Roman", 24), ("Cambria", 12), ("Cambria", 22),
+                    ("Arial", 24), ("Arial", 12), ("Calibri", 22)
+                ];
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                foreach (var (face, halfPoints) in blocks)
+                {
+                    var font = $"<w:rFonts w:ascii=\"{face}\" w:hAnsi=\"{face}\"/>" +
+                               $"<w:sz w:val=\"{halfPoints}\"/>";
+
+                    for (var line = 0; line < 40; line++)
+                    {
+                        var spacing = line == 0 && !first ? ZeroSpacingNewPage : ZeroSpacing;
+
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{spacing}<w:rPr>{font}</w:rPr></w:pPr>" +
+                            $"<w:r><w:rPr>{font}</w:rPr><w:t>-</w:t></w:r></w:p>");
+                    }
+
+                    first = false;
+                }
+
+                return builder;
+            },
+
+            // How a line divides itself above and below its baseline. The height of a single
+            // spaced line is the face's ascender, descender and line gap added up, which
+            // line-box-probe settled; where the baseline sits inside that height is a second
+            // question, and this asks it.
+            //
+            // A page whose first paragraph is one letter answers it directly: the top of the text
+            // is the margin, so Word's first baseline is the margin plus the ascent of that line,
+            // and nothing else can be in the way. Four faces at eight sizes, each on its own page,
+            // each with its paragraph mark set to the same face and size so the mark cannot be
+            // what decides the height. The largest sizes pin the answer closest: at forty-eight
+            // point the grid Word rounds to is a four-hundredth of the size.
+            // Where a line lands on the page. Word puts every baseline it writes on a grid of one
+            // three-hundredth of an inch, which is the same grid it rounds a font size to, and the
+            // question this asks is what it rounds: the height of each line, or the place the line
+            // ends up.
+            //
+            // Four pages, forty single-spaced lines each, nothing on a line but a hyphen. The sizes
+            // are picked so that the stated size and the size Word draws at come apart: two point
+            // is drawn at 1.92, five at 4.8, eleven at 11.04 — the first two rounding down and the
+            // third up, so the two answers differ in sign as well as size — and twelve point, which
+            // is already on the grid, holds the fourth page as a control. Over thirty-nine gaps the
+            // two answers stand three and a half points apart at two point and nine at five, which
+            // no amount of rounding could confuse.
             // Where the limits of a sum or an integral go when they stand beside it. The equations
             // fixture holds one of each and they disagree: Word places the integral's by the same
             // rules a script follows, from the operator's own ink, and places the sum's at the

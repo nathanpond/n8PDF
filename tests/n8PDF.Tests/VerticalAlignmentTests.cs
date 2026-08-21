@@ -20,6 +20,18 @@ public class VerticalAlignmentTests
 
     private const double Bottom = 720;
 
+    /// <summary>
+    /// How far a line box may stand from where the arithmetic puts it: one step of the grid Word
+    /// writes its baselines on. The box is stacked exactly and its baseline rounded, so a top or
+    /// bottom edge — which is read back from that baseline — carries the rounding with it.
+    /// </summary>
+    private const double Step = 0.24;
+
+    private static void Near(double expected, double actual, string what) =>
+        Assert.True(Math.Abs(expected - actual) <= Step + 0.001,
+            $"{what}: expected {expected:0.###}, got {actual:0.###}, which is more than a step of "
+            + "the grid away");
+
     private static ConversionOptions Options() => new() { Fonts = TestFonts.CreatePinnedLibrary() };
 
     private static LaidOutDocument LayoutOf(DocxBuilder builder)
@@ -57,11 +69,11 @@ public class VerticalAlignmentTests
     [Fact]
     public void Text_sits_at_the_top_unless_the_section_says_otherwise()
     {
-        Assert.Equal(Top, Extent(Page("top")).Top, 2);
+        Near(Top, Extent(Page("top")).Top, "the top of a page aligned to the top");
 
         // The same page without the element at all.
         var plain = LayoutOf(new DocxBuilder().AddParagraph("Line 1.", ZeroSpacing, Times12)).Pages[0];
-        Assert.Equal(Top, Extent(plain).Top, 2);
+        Near(Top, Extent(plain).Top, "the top of a page with no alignment at all");
     }
 
     [Fact]
@@ -69,7 +81,7 @@ public class VerticalAlignmentTests
     {
         var (top, bottom) = Extent(Page("center"));
 
-        Assert.Equal(top - Top, Bottom - bottom, 2);
+        Near(top - Top, Bottom - bottom, "the room above against the room below");
         Assert.True(top > Top + 100, $"the text starts at {top:0.#}, which is hardly centred");
     }
 
@@ -90,12 +102,12 @@ public class VerticalAlignmentTests
         var page = Page("both", lines: 4);
         var lines = page.Lines.OrderBy(l => l.BaselineY).ToList();
 
-        Assert.Equal(Top, Extent(page).Top, 2);
+        Near(Top, Extent(page).Top, "the top of the justified page");
         Assert.Equal(Bottom, Extent(page).Bottom, 1);
 
         var gaps = lines.Zip(lines.Skip(1), (a, b) => b.BaselineY - a.BaselineY).ToList();
 
-        Assert.All(gaps, gap => Assert.Equal(gaps[0], gap, 2));
+        Assert.All(gaps, gap => Near(gaps[0], gap, "one gap against the first"));
     }
 
     /// <summary>
@@ -118,7 +130,7 @@ public class VerticalAlignmentTests
         Assert.Equal(3, lines.Count);
 
         // The two lines of the first paragraph stay a line apart; the gap falls after them.
-        Assert.Equal(lines[0].Height, lines[1].BaselineY - lines[0].BaselineY, 2);
+        Near(lines[0].Height, lines[1].BaselineY - lines[0].BaselineY, "the gap inside the paragraph");
         Assert.True(lines[2].BaselineY - lines[1].BaselineY > 100);
     }
 
@@ -185,7 +197,7 @@ public class VerticalAlignmentTests
 
         var layout = LayoutOf(builder);
 
-        Assert.Equal(Top, Extent(layout.Pages[0]).Top, 2);
+        Near(Top, Extent(layout.Pages[0]).Top, "the top of the first page");
         Assert.Equal(Bottom, Extent(layout.Pages[1]).Bottom, 1);
     }
 
@@ -196,15 +208,15 @@ public class VerticalAlignmentTests
 
         Assert.Equal(4, layout.Pages.Count);
 
-        Assert.Equal(Top, Extent(layout.Pages[0]).Top, 2);
+        Near(Top, Extent(layout.Pages[0]).Top, "the top of the fixture's first page");
 
         var centred = Extent(layout.Pages[1]);
-        Assert.Equal(centred.Top - Top, Bottom - centred.Bottom, 2);
+        Near(centred.Top - Top, Bottom - centred.Bottom, "the centred page's room above and below");
 
         Assert.Equal(Bottom, Extent(layout.Pages[2]).Bottom, 1);
 
         var justified = Extent(layout.Pages[3]);
-        Assert.Equal(Top, justified.Top, 2);
+        Near(Top, justified.Top, "the top of the justified page");
         Assert.Equal(Bottom, justified.Bottom, 1);
     }
 }

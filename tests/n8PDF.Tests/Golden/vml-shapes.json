@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 123.949, "font": "Times New Roman", "size": 12, "text": "Paragraph before the box."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 101.102,
+          "baselineY": 100.8,
           "height": 13.799,
           "runs": [
             {"x": 79.7, "width": 117.645, "font": "Times New Roman", "size": 12, "text": "A box in the line of text."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 114.901,
+          "baselineY": 114.72,
           "height": 13.799,
           "runs": [
             {"x": 79.7, "width": 141.287, "font": "Times New Roman", "size": 12, "text": "And a second paragraph in it."}
@@ -31,14 +31,14 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 157.799,
+          "baselineY": 157.68,
           "height": 72,
           "runs": [
           ]
         },
         {
           "paragraph": 2,
-          "baselineY": 169.002,
+          "baselineY": 168.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 115.283, "font": "Times New Roman", "size": 12, "text": "Paragraph after the box."}
@@ -52,7 +52,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 87.303,
+          "baselineY": 87.12,
           "height": 13.799,
           "runs": [
             {"x": 79.7, "width": 127.312, "font": "Times New Roman", "size": 12, "text": "A box the text goes round."}
@@ -60,7 +60,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 297.926, "font": "Times New Roman", "size": 12, "text": "Text runs alongside the box and closes up under it again. Text"}
@@ -68,7 +68,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 296.602, "font": "Times New Roman", "size": 12, "text": "runs alongside the box and closes up under it again. Text runs"}
@@ -76,7 +76,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 272.936, "font": "Times New Roman", "size": 12, "text": "alongside the box and closes up under it again. Text runs"}
@@ -84,7 +84,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 272.936, "font": "Times New Roman", "size": 12, "text": "alongside the box and closes up under it again. Text runs"}
@@ -92,7 +92,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 272.936, "font": "Times New Roman", "size": 12, "text": "alongside the box and closes up under it again. Text runs"}
@@ -100,7 +100,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 272.936, "font": "Times New Roman", "size": 12, "text": "alongside the box and closes up under it again. Text runs"}
@@ -108,7 +108,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 165.996,
+          "baselineY": 165.84,
           "height": 13.799,
           "runs": [
             {"x": 225, "width": 272.936, "font": "Times New Roman", "size": 12, "text": "alongside the box and closes up under it again. Text runs"}
@@ -116,7 +116,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 179.795,
+          "baselineY": 179.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 458.561, "font": "Times New Roman", "size": 12, "text": "alongside the box and closes up under it again. Text runs alongside the box and closes up under"}
@@ -124,7 +124,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 193.594,
+          "baselineY": 193.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 450.896, "font": "Times New Roman", "size": 12, "text": "it again. Text runs alongside the box and closes up under it again. Text runs alongside the box"}
@@ -132,7 +132,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 207.393,
+          "baselineY": 207.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 412.564, "font": "Times New Roman", "size": 12, "text": "and closes up under it again. Text runs alongside the box and closes up under it again."}
@@ -146,7 +146,7 @@
       "lines": [
         {
           "paragraph": 4,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 172.652, "font": "Times New Roman", "size": 12, "text": "Shapes with nothing in them below."}
@@ -154,14 +154,14 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 139.799,
+          "baselineY": 139.68,
           "height": 54,
           "runs": [
           ]
         },
         {
           "paragraph": 6,
-          "baselineY": 193.799,
+          "baselineY": 193.68,
           "height": 54,
           "runs": [
           ]

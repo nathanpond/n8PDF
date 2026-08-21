@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 12, "font": "Times New Roman", "size": 12, "text": "b0"}
@@ -21,14 +21,14 @@
       "lines": [
         {
           "paragraph": 1,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 96.881,
+          "baselineY": 96.72,
           "height": 13.799,
           "runs": [
             {"x": 72.125, "width": 12, "font": "Times New Roman", "size": 12, "text": "b2"}
@@ -42,14 +42,14 @@
       "lines": [
         {
           "paragraph": 3,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 97.131,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72.25, "width": 12, "font": "Times New Roman", "size": 12, "text": "b4"}
@@ -63,14 +63,14 @@
       "lines": [
         {
           "paragraph": 5,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 97.631,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 12, "font": "Times New Roman", "size": 12, "text": "b8"}
@@ -84,14 +84,14 @@
       "lines": [
         {
           "paragraph": 7,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 98.131,
+          "baselineY": 97.92,
           "height": 13.799,
           "runs": [
             {"x": 72.75, "width": 18, "font": "Times New Roman", "size": 12, "text": "b12"}
@@ -105,14 +105,14 @@
       "lines": [
         {
           "paragraph": 9,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 98.631,
+          "baselineY": 98.4,
           "height": 13.799,
           "runs": [
             {"x": 73, "width": 18, "font": "Times New Roman", "size": 12, "text": "b16"}
@@ -126,14 +126,14 @@
       "lines": [
         {
           "paragraph": 11,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 99.631,
+          "baselineY": 99.36,
           "height": 13.799,
           "runs": [
             {"x": 73.5, "width": 18, "font": "Times New Roman", "size": 12, "text": "b24"}
@@ -147,14 +147,14 @@
       "lines": [
         {
           "paragraph": 13,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 102.631,
+          "baselineY": 102.48,
           "height": 13.799,
           "runs": [
             {"x": 75, "width": 18, "font": "Times New Roman", "size": 12, "text": "b48"}
@@ -168,14 +168,14 @@
       "lines": [
         {
           "paragraph": 15,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 97.631,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 75.6, "width": 21.334, "font": "Times New Roman", "size": 12, "text": "m72"}
@@ -189,14 +189,14 @@
       "lines": [
         {
           "paragraph": 17,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 97.631,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 77.4, "width": 27.334, "font": "Times New Roman", "size": 12, "text": "m108"}
@@ -210,14 +210,14 @@
       "lines": [
         {
           "paragraph": 19,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 97.631,
+          "baselineY": 97.44,
           "height": 13.799,
           "runs": [
             {"x": 86.4, "width": 27.334, "font": "Times New Roman", "size": 12, "text": "m288"}
@@ -231,14 +231,14 @@
       "lines": [
         {
           "paragraph": 21,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 77.4, "width": 24, "font": "Times New Roman", "size": 12, "text": "n108"}
@@ -252,14 +252,14 @@
       "lines": [
         {
           "paragraph": 23,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 96.631,
+          "baselineY": 96.48,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 12, "font": "Times New Roman", "size": 12, "text": "d0"}
@@ -273,14 +273,14 @@
       "lines": [
         {
           "paragraph": 25,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 97.131,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72.5, "width": 12, "font": "Times New Roman", "size": 12, "text": "d4"}
@@ -294,14 +294,14 @@
       "lines": [
         {
           "paragraph": 27,
-          "baselineY": 82.474,
+          "baselineY": 82.56,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 98.631,
+          "baselineY": 98.4,
           "height": 13.799,
           "runs": [
             {"x": 73, "width": 18, "font": "Times New Roman", "size": 12, "text": "d16"}

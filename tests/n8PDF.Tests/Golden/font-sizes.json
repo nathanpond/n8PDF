@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 94.406,
+          "baselineY": 94.32,
           "height": 29.782,
           "runs": [
             {"x": 72, "width": 264.598, "font": "Times New Roman", "size": 24, "text": "Twenty-four point heading."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 120.986,
+          "baselineY": 120.96,
           "height": 14.891,
           "runs": [
             {"x": 72, "width": 114.645, "font": "Times New Roman", "size": 12, "text": "Twelve point body text."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 140.142,
+          "baselineY": 140.16,
           "height": 9.927,
           "runs": [
             {"x": 72, "width": 74.219, "font": "Times New Roman", "size": 8, "text": "Eight point small print."}

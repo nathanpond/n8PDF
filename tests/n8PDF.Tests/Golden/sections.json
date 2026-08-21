@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 98.965, "font": "Times New Roman", "size": 12, "text": "Portrait paragraph 1."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 98.965, "font": "Times New Roman", "size": 12, "text": "Portrait paragraph 2."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 98.965, "font": "Times New Roman", "size": 12, "text": "Portrait paragraph 3."}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 150.621, "font": "Times New Roman", "size": 12, "text": "Last line of the portrait section."}
@@ -45,7 +45,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 47.203,
+          "baselineY": 47.04,
           "height": 13.799,
           "runs": [
             {"x": 36, "width": 114.275, "font": "Times New Roman", "size": 12, "text": "Landscape paragraph 1."}
@@ -53,7 +53,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 61.002,
+          "baselineY": 60.96,
           "height": 13.799,
           "runs": [
             {"x": 36, "width": 114.275, "font": "Times New Roman", "size": 12, "text": "Landscape paragraph 2."}
@@ -61,7 +61,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 74.801,
+          "baselineY": 74.64,
           "height": 13.799,
           "runs": [
             {"x": 36, "width": 114.275, "font": "Times New Roman", "size": 12, "text": "Landscape paragraph 3."}
@@ -69,7 +69,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 88.6,
+          "baselineY": 88.56,
           "height": 13.799,
           "runs": [
             {"x": 36, "width": 162.609, "font": "Times New Roman", "size": 12, "text": "Last line of the landscape section."}
@@ -77,7 +77,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 102.398,
+          "baselineY": 102.24,
           "height": 13.799,
           "runs": [
             {"x": 144, "width": 126.943, "font": "Times New Roman", "size": 12, "text": "Wide-margin paragraph 1."}
@@ -85,7 +85,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 116.197,
+          "baselineY": 116.16,
           "height": 13.799,
           "runs": [
             {"x": 144, "width": 126.943, "font": "Times New Roman", "size": 12, "text": "Wide-margin paragraph 2."}
@@ -93,7 +93,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 129.996,
+          "baselineY": 129.84,
           "height": 13.799,
           "runs": [
             {"x": 144, "width": 126.943, "font": "Times New Roman", "size": 12, "text": "Wide-margin paragraph 3."}
@@ -101,7 +101,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 143.795,
+          "baselineY": 143.76,
           "height": 13.799,
           "runs": [
             {"x": 144, "width": 156.621, "font": "Times New Roman", "size": 12, "text": "Last line of the indented section."}
@@ -121,7 +121,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 87.639, "font": "Times New Roman", "size": 12, "text": "Final paragraph 1."}
@@ -129,7 +129,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 87.639, "font": "Times New Roman", "size": 12, "text": "Final paragraph 2."}
@@ -137,7 +137,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 87.639, "font": "Times New Roman", "size": 12, "text": "Final paragraph 3."}

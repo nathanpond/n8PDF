@@ -583,13 +583,12 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
 
     /// <summary>
     /// What Word rounds a position in an equation to: the three hundredth of an inch it rounds
-    /// every other position to.
+    /// every other position to. See <see cref="Grid"/>.
     /// </summary>
-    public const double Quantum = 0.24;
+    public const double Quantum = n8PDF.Layout.Grid.Step;
 
     /// <summary>The nearest position Word would have set something at.</summary>
-    public static double Quantised(double points) =>
-        Math.Round(points / Quantum, MidpointRounding.AwayFromZero) * Quantum;
+    public static double Quantised(double points) => n8PDF.Layout.Grid.Snap(points);
 
     /// <summary>
     /// What a thing counts as where it stands, which is not always what it is.

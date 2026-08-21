@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 75.668, "font": "Times New Roman", "size": 12, "text": "Steps to follow."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 97.2,
           "height": 14.891,
           "runs": [
             {"x": 90, "width": 8.352, "font": "Calibri", "size": 11, "text": "1."},
@@ -24,7 +24,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 119.893,
+          "baselineY": 120,
           "height": 14.891,
           "runs": [
             {"x": 90, "width": 8.352, "font": "Calibri", "size": 11, "text": "2."},
@@ -33,7 +33,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 142.784,
+          "baselineY": 142.8,
           "height": 14.891,
           "runs": [
             {"x": 126, "width": 8.604, "font": "Calibri", "size": 11, "text": "a)"},
@@ -42,7 +42,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 165.676,
+          "baselineY": 165.84,
           "height": 14.891,
           "runs": [
             {"x": 126, "width": 9.115, "font": "Calibri", "size": 11, "text": "b)"},
@@ -51,7 +51,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 188.567,
+          "baselineY": 188.64,
           "height": 14.891,
           "runs": [
             {"x": 90, "width": 8.352, "font": "Calibri", "size": 11, "text": "3."},
@@ -60,7 +60,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 211.458,
+          "baselineY": 211.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 100.307, "font": "Times New Roman", "size": 12, "text": "Things to remember."}
@@ -68,7 +68,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 225.257,
+          "baselineY": 225.36,
           "height": 14.891,
           "runs": [
             {"x": 90, "width": 5.479, "font": "Calibri", "size": 11, "text": "•"},
@@ -77,7 +77,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 248.148,
+          "baselineY": 248.16,
           "height": 14.891,
           "runs": [
             {"x": 90, "width": 5.479, "font": "Calibri", "size": 11, "text": "•"},
@@ -86,7 +86,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 271.039,
+          "baselineY": 270.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 70.658, "font": "Times New Roman", "size": 12, "text": "End of the list."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 98.953, "font": "Times New Roman", "size": 12, "text": "Zero left cell margin"}
@@ -21,7 +21,7 @@
       "lines": [
         {
           "paragraph": 1,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 114.609, "font": "Times New Roman", "size": 12, "text": "Body text for reference."}
@@ -29,7 +29,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.002,
+          "baselineY": 96.72,
           "height": 13.799,
           "runs": [
             {"x": 82.8, "width": 102.287, "font": "Times New Roman", "size": 12, "text": "Wide left cell margin"}

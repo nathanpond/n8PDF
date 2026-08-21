@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 278.924, "font": "Times New Roman", "size": 12, "text": "Times New Roman, which has the Latin and the Hebrew: "},
@@ -16,7 +16,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.225,
+          "baselineY": 97.2,
           "height": 15.446,
           "runs": [
             {"x": 72, "width": 22.383, "font": "Calibri", "size": 12, "text": "Arial"},
@@ -40,7 +40,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 112.67,
+          "baselineY": 112.56,
           "height": 15.446,
           "runs": [
             {"x": 72, "width": 44.789, "font": "Calibri", "size": 12, "text": "Numbers"},

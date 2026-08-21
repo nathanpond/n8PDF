@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 103.307, "font": "Times New Roman", "size": 12, "text": "Links to other places."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 37.324, "font": "Times New Roman", "size": 12, "text": "Start at "},
@@ -27,7 +27,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 42.65, "font": "Times New Roman", "size": 12, "text": "Write to "},
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 135.803,
+          "baselineY": 135.6,
           "height": 27.598,
           "runs": [
             {"x": 72, "width": 114.633, "font": "Times New Roman", "size": 24, "color": "0563C1", "text": "A large link"}
@@ -53,7 +53,7 @@
       "lines": [
         {
           "paragraph": 4,
-          "baselineY": 94.406,
+          "baselineY": 94.32,
           "height": 27.598,
           "runs": [
             {"x": 72, "width": 94.652, "font": "Times New Roman", "size": 24, "text": "Appendix"}
@@ -61,7 +61,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 172.945, "font": "Times New Roman", "size": 12, "text": "The place the internal link points at."}

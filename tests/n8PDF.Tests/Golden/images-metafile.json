@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 145.271, "font": "Times New Roman", "size": 12, "text": "Paragraph before the drawing."}
@@ -15,14 +15,14 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 205.799,
+          "baselineY": 205.68,
           "height": 120,
           "runs": [
           ]
         },
         {
           "paragraph": 2,
-          "baselineY": 217.002,
+          "baselineY": 216.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 136.605, "font": "Times New Roman", "size": 12, "text": "Paragraph after the drawing."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 462.58, "font": "Times New Roman", "size": 12, "text": "An opening paragraph of its own, written to run to two lines and no further, so that what follows"}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 157.617, "font": "Times New Roman", "size": 12, "text": "starts part-way through the page."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 1 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -47,7 +47,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 2 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -55,7 +55,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 165.996,
+          "baselineY": 165.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -63,7 +63,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 179.795,
+          "baselineY": 179.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -71,7 +71,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 193.594,
+          "baselineY": 193.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 3 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -79,7 +79,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 207.393,
+          "baselineY": 207.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -87,7 +87,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 221.191,
+          "baselineY": 221.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -95,7 +95,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 234.99,
+          "baselineY": 234.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 4 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -103,7 +103,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 248.789,
+          "baselineY": 248.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -111,7 +111,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 262.588,
+          "baselineY": 262.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -119,7 +119,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 276.387,
+          "baselineY": 276.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 5 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -127,7 +127,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 290.186,
+          "baselineY": 290.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -135,7 +135,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 303.984,
+          "baselineY": 303.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -143,7 +143,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 317.783,
+          "baselineY": 317.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 6 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -151,7 +151,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 331.582,
+          "baselineY": 331.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -159,7 +159,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 345.381,
+          "baselineY": 345.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -167,7 +167,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 359.18,
+          "baselineY": 359.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 7 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -175,7 +175,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 372.979,
+          "baselineY": 372.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -183,7 +183,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 386.777,
+          "baselineY": 386.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -191,7 +191,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 400.576,
+          "baselineY": 400.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 8 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -199,7 +199,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 414.375,
+          "baselineY": 414.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -207,7 +207,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 428.174,
+          "baselineY": 428.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -215,7 +215,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 441.973,
+          "baselineY": 441.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 461.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 9 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -223,7 +223,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 455.771,
+          "baselineY": 455.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -231,7 +231,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 469.57,
+          "baselineY": 469.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -239,7 +239,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 483.369,
+          "baselineY": 483.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 10 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -247,7 +247,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 497.168,
+          "baselineY": 497.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -255,7 +255,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 510.967,
+          "baselineY": 510.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -263,7 +263,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 524.766,
+          "baselineY": 524.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 11 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -271,7 +271,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 538.564,
+          "baselineY": 538.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -279,7 +279,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 552.363,
+          "baselineY": 552.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -287,7 +287,7 @@
         },
         {
           "paragraph": 12,
-          "baselineY": 566.162,
+          "baselineY": 566.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 12 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -295,7 +295,7 @@
         },
         {
           "paragraph": 12,
-          "baselineY": 579.961,
+          "baselineY": 579.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -311,7 +311,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 607.559,
+          "baselineY": 607.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 13 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -319,7 +319,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 621.357,
+          "baselineY": 621.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -327,7 +327,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 635.156,
+          "baselineY": 635.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -335,7 +335,7 @@
         },
         {
           "paragraph": 14,
-          "baselineY": 648.955,
+          "baselineY": 648.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 14 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -343,7 +343,7 @@
         },
         {
           "paragraph": 14,
-          "baselineY": 662.754,
+          "baselineY": 662.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -351,7 +351,7 @@
         },
         {
           "paragraph": 14,
-          "baselineY": 676.553,
+          "baselineY": 676.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -365,7 +365,7 @@
       "lines": [
         {
           "paragraph": 15,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 15 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -373,7 +373,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -381,7 +381,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -389,7 +389,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 16 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -397,7 +397,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -405,7 +405,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -413,7 +413,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 165.996,
+          "baselineY": 165.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 17 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -421,7 +421,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 179.795,
+          "baselineY": 179.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -429,7 +429,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 193.594,
+          "baselineY": 193.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -437,7 +437,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 207.393,
+          "baselineY": 207.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 18 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -445,7 +445,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 221.191,
+          "baselineY": 221.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -453,7 +453,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 234.99,
+          "baselineY": 234.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -461,7 +461,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 248.789,
+          "baselineY": 248.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 19 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -469,7 +469,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 262.588,
+          "baselineY": 262.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -477,7 +477,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 276.387,
+          "baselineY": 276.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -485,7 +485,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 290.186,
+          "baselineY": 290.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 20 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -493,7 +493,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 303.984,
+          "baselineY": 303.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -501,7 +501,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 317.783,
+          "baselineY": 317.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -509,7 +509,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 331.582,
+          "baselineY": 331.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 21 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -517,7 +517,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 345.381,
+          "baselineY": 345.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -525,7 +525,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 359.18,
+          "baselineY": 359.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -533,7 +533,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 372.979,
+          "baselineY": 372.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 22 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -541,7 +541,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 386.777,
+          "baselineY": 386.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -549,7 +549,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 400.576,
+          "baselineY": 400.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -557,7 +557,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 414.375,
+          "baselineY": 414.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 23 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -565,7 +565,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 428.174,
+          "baselineY": 428.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -573,7 +573,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 441.973,
+          "baselineY": 441.84,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -581,7 +581,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 455.771,
+          "baselineY": 455.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 24 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -589,7 +589,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 469.57,
+          "baselineY": 469.44,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -597,7 +597,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 483.369,
+          "baselineY": 483.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -605,7 +605,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 497.168,
+          "baselineY": 497.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 25 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -613,7 +613,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 510.967,
+          "baselineY": 510.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -621,7 +621,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 524.766,
+          "baselineY": 524.64,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}
@@ -629,7 +629,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 538.564,
+          "baselineY": 538.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 467.227, "font": "Times New Roman", "size": 12, "text": "Paragraph number 26 of twenty-six, written at some length so that it runs to a third line on a page"}
@@ -637,7 +637,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 552.363,
+          "baselineY": 552.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 439.23, "font": "Times New Roman", "size": 12, "text": "of this width rather than stopping short on the second one, which is what makes a break fall"}
@@ -645,7 +645,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 566.162,
+          "baselineY": 566.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 41.332, "font": "Times New Roman", "size": 12, "text": "inside it."}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 235.969, "font": "Times New Roman", "size": 12, "text": "Pointed Hebrew, and the same without its points:"}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 495, "width": 45, "font": "Times New Roman", "size": 12, "text": "שָׁלוֹם עוֹלָם"}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 495, "width": 45, "font": "Times New Roman", "size": 12, "text": "שלום עולם"}
@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 157.301, "font": "Times New Roman", "size": 12, "text": "Latin with a mark of its own: q́ a̧"}

@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 90.672,
+          "baselineY": 90.72,
           "height": 26.639,
           "runs": [
             {"x": 72, "width": 203.857, "font": "Times New Roman", "size": 20, "bold": true, "text": "Control no space before"}
@@ -21,7 +21,7 @@
       "lines": [
         {
           "paragraph": 1,
-          "baselineY": 102.672,
+          "baselineY": 102.72,
           "height": 26.639,
           "runs": [
             {"x": 72, "width": 177.754, "font": "Times New Roman", "size": 20, "bold": true, "text": "Twelve points before"}
@@ -35,7 +35,7 @@
       "lines": [
         {
           "paragraph": 2,
-          "baselineY": 114.672,
+          "baselineY": 114.72,
           "height": 26.639,
           "runs": [
             {"x": 72, "width": 222.764, "font": "Times New Roman", "size": 20, "bold": true, "text": "Twenty four points before"}
@@ -49,7 +49,7 @@
       "lines": [
         {
           "paragraph": 3,
-          "baselineY": 102.672,
+          "baselineY": 102.72,
           "height": 26.639,
           "runs": [
             {"x": 72, "width": 336.641, "font": "Times New Roman", "size": 20, "bold": true, "text": "Twelve before and a twenty point mark"}

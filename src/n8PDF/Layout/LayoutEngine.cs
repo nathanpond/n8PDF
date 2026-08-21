@@ -1123,6 +1123,10 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
 
         if (first < 0 || delta <= 0) return;
 
+        // Lines already stand on the grid, so moving them by a whole number of steps keeps them
+        // there, which is where Word writes them however far down the page a float pushes them.
+        delta = Grid.Snap(delta);
+
         // Everything from the first overlapping line down moves by the same amount, which keeps
         // the spacing between them intact.
         for (var i = first; i < lines.Count; i++)
@@ -1377,7 +1381,7 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
 
         foreach (var line in lines)
         {
-            var delta = shift(line.BaselineY - line.Ascent);
+            var delta = Grid.Snap(shift(line.BaselineY - line.Ascent));
 
             var moved = new LaidOutLine
             {
@@ -3677,7 +3681,15 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         LaidOutPage page, ComposedLine line, double contentLeft, double top, int paragraphIndex,
         TabOptions tabs)
     {
-        var baselineY = top + line.Ascent;
+        // Word works the height of a line out exactly and then writes its baseline on the grid;
+        // the line below it starts from the exact height all the same, so the rounding never
+        // accumulates. Grid holds what says so.
+        var baselineY = Grid.Baseline(top, line.Ascent, line.Height);
+
+        // What the line draws — a bar tab down its side, a footnote's separator — hangs off the
+        // line box as it was written, not as it was worked out, or it stands a fraction of a step
+        // away from the text it belongs to.
+        top = baselineY - line.Ascent;
 
         var laidOut = new LaidOutLine
         {
@@ -3694,7 +3706,9 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
             var text = new PositionedText
             {
                 X = contentLeft + segment.X,
-                BaselineY = baselineY - segment.Format.BaselineShiftPoints,
+                // A raised or lowered run is written on the grid like any other: Word's own pages
+                // have no baseline off it, superscripts and footnote marks included.
+                BaselineY = Grid.Snap(baselineY - segment.Format.BaselineShiftPoints),
                 Text = segment.Text,
                 Format = segment.Format,
                 Font = segment.Font,
@@ -3799,7 +3813,7 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         line.Texts.Add(new PositionedText
         {
             X = start,
-            BaselineY = baselineY - leader.Format.BaselineShiftPoints,
+            BaselineY = Grid.Snap(baselineY - leader.Format.BaselineShiftPoints),
             Text = new string(character, count),
             Format = leader.Format,
             Font = leader.Font,
@@ -5537,18 +5551,28 @@ internal sealed class LayoutEngine(FontLibrary fonts, StyleResolver styles, Layo
         /// <summary>Copies this flow's content onto a real page, offset by the given origin.</summary>
         public void PlaceOnto(LaidOutPage target, double dx, double dy)
         {
+            // A detached flow was laid out against an origin of its own, and against a grid drawn
+            // from that origin. Landing it where it belongs puts every line back on the page's own
+            // grid, which is the one Word writes on.
+            //
+            // Only the lines: what a flow draws is placed by the arithmetic, not by the grid, and
+            // moving it by anything else takes it off Word's own position. The rule above a
+            // carried footnote says so — footnote-split-probe has it within a hundredth of a point
+            // of Word's when the move is exact, and a twentieth out when it is rounded.
             foreach (var line in page.Lines)
             {
+                var shift = Grid.Snap(line.BaselineY + dy) - line.BaselineY;
+
                 var moved = new LaidOutLine
                 {
-                    BaselineY = line.BaselineY + dy,
+                    BaselineY = line.BaselineY + shift,
                     Height = line.Height,
                     Ascent = line.Ascent,
                     ParagraphIndex = line.ParagraphIndex
                 };
 
                 foreach (var text in line.Texts)
-                    moved.Texts.Add(text.Translate(dx, dy));
+                    moved.Texts.Add(text.Translate(dx, shift));
 
                 target.Lines.Add(moved);
             }

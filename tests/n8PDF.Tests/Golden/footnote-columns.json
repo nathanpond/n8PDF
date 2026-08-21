@@ -7,7 +7,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 1 of ninety."}
@@ -15,7 +15,7 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 2 of ninety."}
@@ -23,7 +23,7 @@
         },
         {
           "paragraph": 2,
-          "baselineY": 110.801,
+          "baselineY": 110.88,
           "height": 14.157,
           "runs": [
             {"x": 72, "width": 116.965, "font": "Times New Roman", "size": 12, "text": "Paragraph 3, with a note"},
@@ -33,7 +33,7 @@
         },
         {
           "paragraph": 3,
-          "baselineY": 124.958,
+          "baselineY": 124.8,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 4 of ninety."}
@@ -41,7 +41,7 @@
         },
         {
           "paragraph": 4,
-          "baselineY": 138.757,
+          "baselineY": 138.72,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 5 of ninety."}
@@ -49,7 +49,7 @@
         },
         {
           "paragraph": 5,
-          "baselineY": 152.556,
+          "baselineY": 152.64,
           "height": 14.157,
           "runs": [
             {"x": 72, "width": 116.965, "font": "Times New Roman", "size": 12, "text": "Paragraph 6, with a note"},
@@ -59,7 +59,7 @@
         },
         {
           "paragraph": 6,
-          "baselineY": 166.713,
+          "baselineY": 166.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 7 of ninety."}
@@ -67,7 +67,7 @@
         },
         {
           "paragraph": 7,
-          "baselineY": 180.512,
+          "baselineY": 180.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 8 of ninety."}
@@ -75,7 +75,7 @@
         },
         {
           "paragraph": 8,
-          "baselineY": 194.311,
+          "baselineY": 194.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 106.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 9 of ninety."}
@@ -83,7 +83,7 @@
         },
         {
           "paragraph": 9,
-          "baselineY": 208.109,
+          "baselineY": 208.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 10 of ninety."}
@@ -91,7 +91,7 @@
         },
         {
           "paragraph": 10,
-          "baselineY": 221.908,
+          "baselineY": 221.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 11 of ninety."}
@@ -99,7 +99,7 @@
         },
         {
           "paragraph": 11,
-          "baselineY": 235.707,
+          "baselineY": 235.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 12 of ninety."}
@@ -107,7 +107,7 @@
         },
         {
           "paragraph": 12,
-          "baselineY": 249.506,
+          "baselineY": 249.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 13 of ninety."}
@@ -115,7 +115,7 @@
         },
         {
           "paragraph": 13,
-          "baselineY": 263.305,
+          "baselineY": 263.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 14 of ninety."}
@@ -123,7 +123,7 @@
         },
         {
           "paragraph": 14,
-          "baselineY": 277.104,
+          "baselineY": 276.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 15 of ninety."}
@@ -131,7 +131,7 @@
         },
         {
           "paragraph": 15,
-          "baselineY": 290.902,
+          "baselineY": 290.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 16 of ninety."}
@@ -139,7 +139,7 @@
         },
         {
           "paragraph": 16,
-          "baselineY": 304.701,
+          "baselineY": 304.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 17 of ninety."}
@@ -147,7 +147,7 @@
         },
         {
           "paragraph": 17,
-          "baselineY": 318.5,
+          "baselineY": 318.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 18 of ninety."}
@@ -155,7 +155,7 @@
         },
         {
           "paragraph": 18,
-          "baselineY": 332.299,
+          "baselineY": 332.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 19 of ninety."}
@@ -163,7 +163,7 @@
         },
         {
           "paragraph": 19,
-          "baselineY": 346.098,
+          "baselineY": 346.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 20 of ninety."}
@@ -171,7 +171,7 @@
         },
         {
           "paragraph": 20,
-          "baselineY": 359.896,
+          "baselineY": 359.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 21 of ninety."}
@@ -179,7 +179,7 @@
         },
         {
           "paragraph": 21,
-          "baselineY": 373.695,
+          "baselineY": 373.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 22 of ninety."}
@@ -187,7 +187,7 @@
         },
         {
           "paragraph": 22,
-          "baselineY": 387.494,
+          "baselineY": 387.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 23 of ninety."}
@@ -195,7 +195,7 @@
         },
         {
           "paragraph": 23,
-          "baselineY": 401.293,
+          "baselineY": 401.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 24 of ninety."}
@@ -203,7 +203,7 @@
         },
         {
           "paragraph": 24,
-          "baselineY": 415.092,
+          "baselineY": 414.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 25 of ninety."}
@@ -211,7 +211,7 @@
         },
         {
           "paragraph": 25,
-          "baselineY": 428.891,
+          "baselineY": 428.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 26 of ninety."}
@@ -219,7 +219,7 @@
         },
         {
           "paragraph": 26,
-          "baselineY": 442.689,
+          "baselineY": 442.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 27 of ninety."}
@@ -227,7 +227,7 @@
         },
         {
           "paragraph": 27,
-          "baselineY": 456.488,
+          "baselineY": 456.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 28 of ninety."}
@@ -235,7 +235,7 @@
         },
         {
           "paragraph": 28,
-          "baselineY": 470.287,
+          "baselineY": 470.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 29 of ninety."}
@@ -243,7 +243,7 @@
         },
         {
           "paragraph": 29,
-          "baselineY": 484.086,
+          "baselineY": 484.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 30 of ninety."}
@@ -251,7 +251,7 @@
         },
         {
           "paragraph": 30,
-          "baselineY": 497.885,
+          "baselineY": 497.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 31 of ninety."}
@@ -259,7 +259,7 @@
         },
         {
           "paragraph": 31,
-          "baselineY": 511.684,
+          "baselineY": 511.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 32 of ninety."}
@@ -267,7 +267,7 @@
         },
         {
           "paragraph": 32,
-          "baselineY": 525.482,
+          "baselineY": 525.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 33 of ninety."}
@@ -275,7 +275,7 @@
         },
         {
           "paragraph": 33,
-          "baselineY": 539.281,
+          "baselineY": 539.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 34 of ninety."}
@@ -283,7 +283,7 @@
         },
         {
           "paragraph": 34,
-          "baselineY": 553.08,
+          "baselineY": 552.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 35 of ninety."}
@@ -291,7 +291,7 @@
         },
         {
           "paragraph": 35,
-          "baselineY": 566.879,
+          "baselineY": 566.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 36 of ninety."}
@@ -299,7 +299,7 @@
         },
         {
           "paragraph": 36,
-          "baselineY": 580.678,
+          "baselineY": 580.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 37 of ninety."}
@@ -307,7 +307,7 @@
         },
         {
           "paragraph": 37,
-          "baselineY": 594.477,
+          "baselineY": 594.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 38 of ninety."}
@@ -315,7 +315,7 @@
         },
         {
           "paragraph": 38,
-          "baselineY": 608.275,
+          "baselineY": 608.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 39 of ninety."}
@@ -323,7 +323,7 @@
         },
         {
           "paragraph": 39,
-          "baselineY": 622.074,
+          "baselineY": 622.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 40 of ninety."}
@@ -331,7 +331,7 @@
         },
         {
           "paragraph": 40,
-          "baselineY": 635.873,
+          "baselineY": 635.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 41 of ninety."}
@@ -339,7 +339,7 @@
         },
         {
           "paragraph": 41,
-          "baselineY": 649.672,
+          "baselineY": 649.68,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 42 of ninety."}
@@ -347,7 +347,7 @@
         },
         {
           "paragraph": 42,
-          "baselineY": 663.471,
+          "baselineY": 663.36,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 43 of ninety."}
@@ -355,7 +355,7 @@
         },
         {
           "paragraph": 43,
-          "baselineY": 677.27,
+          "baselineY": 677.28,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 44 of ninety."}
@@ -363,14 +363,14 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 694.048,
+          "baselineY": 694.08,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 706.338,
+          "baselineY": 706.32,
           "height": 11.499,
           "runs": [
             {"x": 72, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "1"},
@@ -379,7 +379,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 717.837,
+          "baselineY": 717.84,
           "height": 11.499,
           "runs": [
             {"x": 72, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "2"},
@@ -388,7 +388,7 @@
         },
         {
           "paragraph": 44,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 45 of ninety."}
@@ -396,7 +396,7 @@
         },
         {
           "paragraph": 45,
-          "baselineY": 97.002,
+          "baselineY": 96.96,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 46 of ninety."}
@@ -404,7 +404,7 @@
         },
         {
           "paragraph": 46,
-          "baselineY": 110.801,
+          "baselineY": 110.64,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 47 of ninety."}
@@ -412,7 +412,7 @@
         },
         {
           "paragraph": 47,
-          "baselineY": 124.6,
+          "baselineY": 124.56,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 48 of ninety."}
@@ -420,7 +420,7 @@
         },
         {
           "paragraph": 48,
-          "baselineY": 138.398,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 49 of ninety."}
@@ -428,7 +428,7 @@
         },
         {
           "paragraph": 49,
-          "baselineY": 152.197,
+          "baselineY": 152.16,
           "height": 14.157,
           "runs": [
             {"x": 324, "width": 122.965, "font": "Times New Roman", "size": 12, "text": "Paragraph 50, with a note"},
@@ -438,7 +438,7 @@
         },
         {
           "paragraph": 50,
-          "baselineY": 166.354,
+          "baselineY": 166.32,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 51 of ninety."}
@@ -446,7 +446,7 @@
         },
         {
           "paragraph": 51,
-          "baselineY": 180.153,
+          "baselineY": 180,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 52 of ninety."}
@@ -454,7 +454,7 @@
         },
         {
           "paragraph": 52,
-          "baselineY": 193.952,
+          "baselineY": 193.92,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 53 of ninety."}
@@ -462,7 +462,7 @@
         },
         {
           "paragraph": 53,
-          "baselineY": 207.751,
+          "baselineY": 207.6,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 54 of ninety."}
@@ -470,7 +470,7 @@
         },
         {
           "paragraph": 54,
-          "baselineY": 221.55,
+          "baselineY": 221.52,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 55 of ninety."}
@@ -478,7 +478,7 @@
         },
         {
           "paragraph": 55,
-          "baselineY": 235.349,
+          "baselineY": 235.2,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 56 of ninety."}
@@ -486,7 +486,7 @@
         },
         {
           "paragraph": 56,
-          "baselineY": 249.147,
+          "baselineY": 249.12,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 57 of ninety."}
@@ -494,7 +494,7 @@
         },
         {
           "paragraph": 57,
-          "baselineY": 262.946,
+          "baselineY": 262.8,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 58 of ninety."}
@@ -502,7 +502,7 @@
         },
         {
           "paragraph": 58,
-          "baselineY": 276.745,
+          "baselineY": 276.72,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 59 of ninety."}
@@ -510,7 +510,7 @@
         },
         {
           "paragraph": 59,
-          "baselineY": 290.544,
+          "baselineY": 290.4,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 60 of ninety."}
@@ -518,7 +518,7 @@
         },
         {
           "paragraph": 60,
-          "baselineY": 304.343,
+          "baselineY": 304.32,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 61 of ninety."}
@@ -526,7 +526,7 @@
         },
         {
           "paragraph": 61,
-          "baselineY": 318.142,
+          "baselineY": 318,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 62 of ninety."}
@@ -534,7 +534,7 @@
         },
         {
           "paragraph": 62,
-          "baselineY": 331.94,
+          "baselineY": 331.92,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 63 of ninety."}
@@ -542,7 +542,7 @@
         },
         {
           "paragraph": 63,
-          "baselineY": 345.739,
+          "baselineY": 345.6,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 64 of ninety."}
@@ -550,7 +550,7 @@
         },
         {
           "paragraph": 64,
-          "baselineY": 359.538,
+          "baselineY": 359.52,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 65 of ninety."}
@@ -558,7 +558,7 @@
         },
         {
           "paragraph": 65,
-          "baselineY": 373.337,
+          "baselineY": 373.2,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 66 of ninety."}
@@ -566,7 +566,7 @@
         },
         {
           "paragraph": 66,
-          "baselineY": 387.136,
+          "baselineY": 387.12,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 67 of ninety."}
@@ -574,7 +574,7 @@
         },
         {
           "paragraph": 67,
-          "baselineY": 400.935,
+          "baselineY": 400.8,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 68 of ninety."}
@@ -582,7 +582,7 @@
         },
         {
           "paragraph": 68,
-          "baselineY": 414.733,
+          "baselineY": 414.72,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 69 of ninety."}
@@ -590,7 +590,7 @@
         },
         {
           "paragraph": 69,
-          "baselineY": 428.532,
+          "baselineY": 428.4,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 70 of ninety."}
@@ -598,7 +598,7 @@
         },
         {
           "paragraph": 70,
-          "baselineY": 442.331,
+          "baselineY": 442.32,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 71 of ninety."}
@@ -606,7 +606,7 @@
         },
         {
           "paragraph": 71,
-          "baselineY": 456.13,
+          "baselineY": 456,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 72 of ninety."}
@@ -614,7 +614,7 @@
         },
         {
           "paragraph": 72,
-          "baselineY": 469.929,
+          "baselineY": 469.92,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 73 of ninety."}
@@ -622,7 +622,7 @@
         },
         {
           "paragraph": 73,
-          "baselineY": 483.728,
+          "baselineY": 483.6,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 74 of ninety."}
@@ -630,7 +630,7 @@
         },
         {
           "paragraph": 74,
-          "baselineY": 497.526,
+          "baselineY": 497.52,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 75 of ninety."}
@@ -638,7 +638,7 @@
         },
         {
           "paragraph": 75,
-          "baselineY": 511.325,
+          "baselineY": 511.2,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 76 of ninety."}
@@ -646,7 +646,7 @@
         },
         {
           "paragraph": 76,
-          "baselineY": 525.124,
+          "baselineY": 525.12,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 77 of ninety."}
@@ -654,7 +654,7 @@
         },
         {
           "paragraph": 77,
-          "baselineY": 538.923,
+          "baselineY": 538.8,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 78 of ninety."}
@@ -662,7 +662,7 @@
         },
         {
           "paragraph": 78,
-          "baselineY": 552.722,
+          "baselineY": 552.72,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 79 of ninety."}
@@ -670,7 +670,7 @@
         },
         {
           "paragraph": 79,
-          "baselineY": 566.521,
+          "baselineY": 566.4,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 80 of ninety."}
@@ -678,7 +678,7 @@
         },
         {
           "paragraph": 80,
-          "baselineY": 580.319,
+          "baselineY": 580.32,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 81 of ninety."}
@@ -686,7 +686,7 @@
         },
         {
           "paragraph": 81,
-          "baselineY": 594.118,
+          "baselineY": 594,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 82 of ninety."}
@@ -694,7 +694,7 @@
         },
         {
           "paragraph": 82,
-          "baselineY": 607.917,
+          "baselineY": 607.92,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 83 of ninety."}
@@ -702,7 +702,7 @@
         },
         {
           "paragraph": 83,
-          "baselineY": 621.716,
+          "baselineY": 621.6,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 84 of ninety."}
@@ -710,7 +710,7 @@
         },
         {
           "paragraph": 84,
-          "baselineY": 635.515,
+          "baselineY": 635.52,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 85 of ninety."}
@@ -718,7 +718,7 @@
         },
         {
           "paragraph": 85,
-          "baselineY": 649.313,
+          "baselineY": 649.2,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 86 of ninety."}
@@ -726,7 +726,7 @@
         },
         {
           "paragraph": 86,
-          "baselineY": 663.112,
+          "baselineY": 663.12,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 87 of ninety."}
@@ -734,7 +734,7 @@
         },
         {
           "paragraph": 87,
-          "baselineY": 676.911,
+          "baselineY": 676.8,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 88 of ninety."}
@@ -742,7 +742,7 @@
         },
         {
           "paragraph": 88,
-          "baselineY": 690.71,
+          "baselineY": 690.72,
           "height": 13.799,
           "runs": [
             {"x": 324, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 89 of ninety."}
@@ -750,14 +750,14 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 705.547,
+          "baselineY": 705.6,
           "height": 13.428,
           "runs": [
           ]
         },
         {
           "paragraph": 0,
-          "baselineY": 717.837,
+          "baselineY": 717.84,
           "height": 11.499,
           "runs": [
             {"x": 324, "width": 3.25, "font": "Times New Roman", "size": 6.5, "text": "3"},
@@ -772,7 +772,7 @@
       "lines": [
         {
           "paragraph": 89,
-          "baselineY": 83.203,
+          "baselineY": 83.04,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 112.635, "font": "Times New Roman", "size": 12, "text": "Paragraph 90 of ninety."}

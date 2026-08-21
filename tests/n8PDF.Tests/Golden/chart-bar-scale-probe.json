@@ -31,7 +31,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 187,
+          "baselineY": 186.96,
           "height": 12.207,
           "runs": [
             {"x": 225.123, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -39,7 +39,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 124,
+          "baselineY": 124.08,
           "height": 12.207,
           "runs": [
             {"x": 225.123, "width": 10.4, "font": "Calibri", "size": 10, "text": "C2"}
@@ -84,7 +84,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 187,
+          "baselineY": 186.96,
           "height": 12.207,
           "runs": [
             {"x": 201.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -92,7 +92,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 124,
+          "baselineY": 124.08,
           "height": 12.207,
           "runs": [
             {"x": 201.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C2"}
@@ -161,7 +161,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 187,
+          "baselineY": 186.96,
           "height": 12.207,
           "runs": [
             {"x": 228.003, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -169,7 +169,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 124,
+          "baselineY": 124.08,
           "height": 12.207,
           "runs": [
             {"x": 228.003, "width": 10.4, "font": "Calibri", "size": 10, "text": "C2"}
@@ -222,7 +222,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 187,
+          "baselineY": 186.96,
           "height": 12.207,
           "runs": [
             {"x": 180.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -230,7 +230,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 124,
+          "baselineY": 124.08,
           "height": 12.207,
           "runs": [
             {"x": 180.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C2"}
@@ -283,7 +283,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 187,
+          "baselineY": 186.96,
           "height": 12.207,
           "runs": [
             {"x": 196.323, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -291,7 +291,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 124,
+          "baselineY": 124.08,
           "height": 12.207,
           "runs": [
             {"x": 196.323, "width": 10.4, "font": "Calibri", "size": 10, "text": "C2"}
@@ -344,7 +344,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 155.5,
+          "baselineY": 155.52,
           "height": 12.207,
           "runs": [
             {"x": 138.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -397,7 +397,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 155.5,
+          "baselineY": 155.52,
           "height": 12.207,
           "runs": [
             {"x": 138.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -442,7 +442,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 155.5,
+          "baselineY": 155.52,
           "height": 12.207,
           "runs": [
             {"x": 138.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -495,7 +495,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 155.5,
+          "baselineY": 155.52,
           "height": 12.207,
           "runs": [
             {"x": 138.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -548,7 +548,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 155.5,
+          "baselineY": 155.52,
           "height": 12.207,
           "runs": [
             {"x": 138.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -601,7 +601,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 155.5,
+          "baselineY": 155.52,
           "height": 12.207,
           "runs": [
             {"x": 138.723, "width": 10.4, "font": "Calibri", "size": 10, "text": "C1"}
@@ -622,7 +622,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 202.68,
+          "baselineY": 202.8,
           "height": 24.414,
           "runs": [
             {"x": 153.332, "width": 10.137, "font": "Calibri", "size": 20, "text": "0"}
@@ -630,7 +630,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 202.68,
+          "baselineY": 202.8,
           "height": 24.414,
           "runs": [
             {"x": 321.063, "width": 20.273, "font": "Calibri", "size": 20, "text": "50"}
@@ -638,7 +638,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 131,
+          "baselineY": 131.04,
           "height": 24.414,
           "runs": [
             {"x": 119.045, "width": 20.801, "font": "Calibri", "size": 20, "text": "C1"}
@@ -659,7 +659,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 221,
+          "baselineY": 221.04,
           "height": 24.414,
           "runs": [
             {"x": 129.709, "width": 10.137, "font": "Calibri", "size": 20, "text": "0"}
@@ -667,7 +667,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 158,
+          "baselineY": 158.16,
           "height": 24.414,
           "runs": [
             {"x": 129.709, "width": 10.137, "font": "Calibri", "size": 20, "text": "5"}
@@ -675,7 +675,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 95,
+          "baselineY": 95.04,
           "height": 24.414,
           "runs": [
             {"x": 119.573, "width": 20.273, "font": "Calibri", "size": 20, "text": "10"}
@@ -683,7 +683,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 247.68,
+          "baselineY": 247.92,
           "height": 24.414,
           "runs": [
             {"x": 234.4, "width": 20.801, "font": "Calibri", "size": 20, "text": "C1"}
@@ -704,7 +704,7 @@
       "lines": [
         {
           "paragraph": 0,
-          "baselineY": 221,
+          "baselineY": 221.04,
           "height": 24.414,
           "runs": [
             {"x": 129.709, "width": 10.137, "font": "Calibri", "size": 20, "text": "0"}
@@ -712,7 +712,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 179,
+          "baselineY": 179.04,
           "height": 24.414,
           "runs": [
             {"x": 119.573, "width": 20.273, "font": "Calibri", "size": 20, "text": "20"}
@@ -720,7 +720,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 137,
+          "baselineY": 137.04,
           "height": 24.414,
           "runs": [
             {"x": 119.573, "width": 20.273, "font": "Calibri", "size": 20, "text": "40"}
@@ -728,7 +728,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 95,
+          "baselineY": 95.04,
           "height": 24.414,
           "runs": [
             {"x": 119.573, "width": 20.273, "font": "Calibri", "size": 20, "text": "60"}
@@ -736,7 +736,7 @@
         },
         {
           "paragraph": 0,
-          "baselineY": 247.68,
+          "baselineY": 247.92,
           "height": 24.414,
           "runs": [
             {"x": 234.4, "width": 20.801, "font": "Calibri", "size": 20, "text": "C1"}
