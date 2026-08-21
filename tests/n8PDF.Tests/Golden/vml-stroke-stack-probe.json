@@ -1,0 +1,4939 @@
+{
+  "pageCount": 23,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 85.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 99.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 113.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 127.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 141.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 155.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 169.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 183.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 197.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 211.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 225.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 239.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 253.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 267.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 281.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 295.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 309.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 323.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 337.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 351.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 365.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 379.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 393.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 407.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 24,
+          "baselineY": 421.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 435.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 449.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 463.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 477.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 491.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 503.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 65.994, "font": "Times New Roman", "size": 12, "text": "0.25pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 31,
+          "baselineY": 85.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 99.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 113.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 127.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 141.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 155.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 169.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 183.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 197.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 211.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 225.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 239.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 253.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 44,
+          "baselineY": 267.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 281.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 46,
+          "baselineY": 295.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 309.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 323.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 337.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 50,
+          "baselineY": 351.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 51,
+          "baselineY": 365.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 52,
+          "baselineY": 379.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 53,
+          "baselineY": 393.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 54,
+          "baselineY": 407.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 55,
+          "baselineY": 421.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 56,
+          "baselineY": 435.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 57,
+          "baselineY": 449.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 58,
+          "baselineY": 463.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 59,
+          "baselineY": 477.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 60,
+          "baselineY": 491.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 61,
+          "baselineY": 503.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 59.994, "font": "Times New Roman", "size": 12, "text": "0.5pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 62,
+          "baselineY": 85.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 63,
+          "baselineY": 99.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 64,
+          "baselineY": 113.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 65,
+          "baselineY": 127.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 66,
+          "baselineY": 141.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 67,
+          "baselineY": 155.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 68,
+          "baselineY": 169.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 69,
+          "baselineY": 183.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 70,
+          "baselineY": 197.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 71,
+          "baselineY": 211.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 72,
+          "baselineY": 225.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 73,
+          "baselineY": 239.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 74,
+          "baselineY": 253.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 75,
+          "baselineY": 267.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 76,
+          "baselineY": 281.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 77,
+          "baselineY": 295.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 78,
+          "baselineY": 309.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 79,
+          "baselineY": 323.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 80,
+          "baselineY": 337.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 81,
+          "baselineY": 351.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 82,
+          "baselineY": 365.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 83,
+          "baselineY": 379.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 84,
+          "baselineY": 393.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 85,
+          "baselineY": 407.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 86,
+          "baselineY": 421.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 87,
+          "baselineY": 435.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 88,
+          "baselineY": 449.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 89,
+          "baselineY": 463.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 90,
+          "baselineY": 477.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 91,
+          "baselineY": 491.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 92,
+          "baselineY": 503.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 65.994, "font": "Times New Roman", "size": 12, "text": "0.75pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 93,
+          "baselineY": 85.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 94,
+          "baselineY": 99.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 95,
+          "baselineY": 113.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 96,
+          "baselineY": 127.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 97,
+          "baselineY": 141.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 98,
+          "baselineY": 155.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 99,
+          "baselineY": 169.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 100,
+          "baselineY": 183.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 101,
+          "baselineY": 197.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 102,
+          "baselineY": 211.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 103,
+          "baselineY": 225.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 104,
+          "baselineY": 239.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 105,
+          "baselineY": 253.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 106,
+          "baselineY": 267.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 107,
+          "baselineY": 281.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 108,
+          "baselineY": 295.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 109,
+          "baselineY": 309.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 110,
+          "baselineY": 323.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 111,
+          "baselineY": 337.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 112,
+          "baselineY": 351.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 113,
+          "baselineY": 365.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 114,
+          "baselineY": 379.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 115,
+          "baselineY": 393.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 116,
+          "baselineY": 407.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 117,
+          "baselineY": 421.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 118,
+          "baselineY": 435.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 119,
+          "baselineY": 449.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 120,
+          "baselineY": 463.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 121,
+          "baselineY": 477.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 122,
+          "baselineY": 491.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 123,
+          "baselineY": 503.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "1pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 124,
+          "baselineY": 85.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 125,
+          "baselineY": 99.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 126,
+          "baselineY": 113.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 127,
+          "baselineY": 127.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 128,
+          "baselineY": 141.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 129,
+          "baselineY": 155.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 130,
+          "baselineY": 169.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 131,
+          "baselineY": 183.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 132,
+          "baselineY": 197.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 133,
+          "baselineY": 211.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 134,
+          "baselineY": 225.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 135,
+          "baselineY": 239.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 136,
+          "baselineY": 253.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 137,
+          "baselineY": 267.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 138,
+          "baselineY": 281.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 139,
+          "baselineY": 295.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 140,
+          "baselineY": 309.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 141,
+          "baselineY": 323.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 142,
+          "baselineY": 337.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 143,
+          "baselineY": 351.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 144,
+          "baselineY": 365.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 145,
+          "baselineY": 379.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 146,
+          "baselineY": 393.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 147,
+          "baselineY": 407.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 148,
+          "baselineY": 421.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 149,
+          "baselineY": 435.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 150,
+          "baselineY": 449.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 151,
+          "baselineY": 463.44,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 152,
+          "baselineY": 477.6,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 153,
+          "baselineY": 491.52,
+          "height": 14,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 154,
+          "baselineY": 503.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 65.994, "font": "Times New Roman", "size": 12, "text": "1.25pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 155,
+          "baselineY": 85.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 156,
+          "baselineY": 100.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 157,
+          "baselineY": 115.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 158,
+          "baselineY": 130.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 159,
+          "baselineY": 145.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 160,
+          "baselineY": 160.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 161,
+          "baselineY": 175.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 162,
+          "baselineY": 190.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 163,
+          "baselineY": 205.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 164,
+          "baselineY": 220.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 165,
+          "baselineY": 235.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 166,
+          "baselineY": 250.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 167,
+          "baselineY": 265.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 168,
+          "baselineY": 280.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 169,
+          "baselineY": 295.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 170,
+          "baselineY": 310.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 171,
+          "baselineY": 325.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 172,
+          "baselineY": 340.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 173,
+          "baselineY": 355.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 174,
+          "baselineY": 370.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 175,
+          "baselineY": 385.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 176,
+          "baselineY": 400.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 177,
+          "baselineY": 415.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 178,
+          "baselineY": 430.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 179,
+          "baselineY": 445.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 180,
+          "baselineY": 460.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 181,
+          "baselineY": 475.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 182,
+          "baselineY": 490.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 183,
+          "baselineY": 505.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 184,
+          "baselineY": 520.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 185,
+          "baselineY": 533.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 59.994, "font": "Times New Roman", "size": 12, "text": "1.5pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 186,
+          "baselineY": 85.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 187,
+          "baselineY": 100.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 188,
+          "baselineY": 115.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 189,
+          "baselineY": 130.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 190,
+          "baselineY": 145.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 191,
+          "baselineY": 160.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 192,
+          "baselineY": 175.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 193,
+          "baselineY": 190.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 194,
+          "baselineY": 205.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 195,
+          "baselineY": 220.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 196,
+          "baselineY": 235.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 197,
+          "baselineY": 250.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 198,
+          "baselineY": 265.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 199,
+          "baselineY": 280.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 200,
+          "baselineY": 295.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 201,
+          "baselineY": 310.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 202,
+          "baselineY": 325.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 203,
+          "baselineY": 340.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 204,
+          "baselineY": 355.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 205,
+          "baselineY": 370.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 206,
+          "baselineY": 385.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 207,
+          "baselineY": 400.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 208,
+          "baselineY": 415.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 209,
+          "baselineY": 430.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 210,
+          "baselineY": 445.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 211,
+          "baselineY": 460.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 212,
+          "baselineY": 475.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 213,
+          "baselineY": 490.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 214,
+          "baselineY": 505.68,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 215,
+          "baselineY": 520.56,
+          "height": 15,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 216,
+          "baselineY": 533.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "2pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 217,
+          "baselineY": 85.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 218,
+          "baselineY": 101.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 219,
+          "baselineY": 117.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 220,
+          "baselineY": 133.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 221,
+          "baselineY": 149.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 222,
+          "baselineY": 165.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 223,
+          "baselineY": 181.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 224,
+          "baselineY": 197.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 225,
+          "baselineY": 213.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 226,
+          "baselineY": 229.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 227,
+          "baselineY": 245.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 228,
+          "baselineY": 261.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 229,
+          "baselineY": 277.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 230,
+          "baselineY": 293.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 231,
+          "baselineY": 309.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 232,
+          "baselineY": 325.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 233,
+          "baselineY": 341.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 234,
+          "baselineY": 357.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 235,
+          "baselineY": 373.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 236,
+          "baselineY": 389.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 237,
+          "baselineY": 405.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 238,
+          "baselineY": 421.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 239,
+          "baselineY": 437.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 240,
+          "baselineY": 453.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 241,
+          "baselineY": 469.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 242,
+          "baselineY": 485.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 243,
+          "baselineY": 501.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 244,
+          "baselineY": 517.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 245,
+          "baselineY": 533.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 246,
+          "baselineY": 549.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 247,
+          "baselineY": 563.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 59.994, "font": "Times New Roman", "size": 12, "text": "2.5pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 248,
+          "baselineY": 85.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 249,
+          "baselineY": 101.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 250,
+          "baselineY": 117.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 251,
+          "baselineY": 133.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 252,
+          "baselineY": 149.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 253,
+          "baselineY": 165.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 254,
+          "baselineY": 181.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 255,
+          "baselineY": 197.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 256,
+          "baselineY": 213.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 257,
+          "baselineY": 229.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 258,
+          "baselineY": 245.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 259,
+          "baselineY": 261.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 260,
+          "baselineY": 277.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 261,
+          "baselineY": 293.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 262,
+          "baselineY": 309.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 263,
+          "baselineY": 325.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 264,
+          "baselineY": 341.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 265,
+          "baselineY": 357.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 266,
+          "baselineY": 373.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 267,
+          "baselineY": 389.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 268,
+          "baselineY": 405.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 269,
+          "baselineY": 421.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 270,
+          "baselineY": 437.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 271,
+          "baselineY": 453.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 272,
+          "baselineY": 469.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 273,
+          "baselineY": 485.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 274,
+          "baselineY": 501.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 275,
+          "baselineY": 517.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 276,
+          "baselineY": 533.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 277,
+          "baselineY": 549.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 278,
+          "baselineY": 563.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "3pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 279,
+          "baselineY": 85.44,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 280,
+          "baselineY": 102.48,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 281,
+          "baselineY": 119.52,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 282,
+          "baselineY": 136.32,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 283,
+          "baselineY": 153.36,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 284,
+          "baselineY": 170.4,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 285,
+          "baselineY": 187.44,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 286,
+          "baselineY": 204.48,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 287,
+          "baselineY": 221.52,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 288,
+          "baselineY": 238.32,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 289,
+          "baselineY": 255.36,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 290,
+          "baselineY": 272.4,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 291,
+          "baselineY": 289.44,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 292,
+          "baselineY": 306.48,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 293,
+          "baselineY": 323.52,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 294,
+          "baselineY": 340.32,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 295,
+          "baselineY": 357.36,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 296,
+          "baselineY": 374.4,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 297,
+          "baselineY": 391.44,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 298,
+          "baselineY": 408.48,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 299,
+          "baselineY": 425.52,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 300,
+          "baselineY": 442.32,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 301,
+          "baselineY": 459.36,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 302,
+          "baselineY": 476.4,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 303,
+          "baselineY": 493.44,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 304,
+          "baselineY": 510.48,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 305,
+          "baselineY": 527.52,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 306,
+          "baselineY": 544.32,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 307,
+          "baselineY": 561.36,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 308,
+          "baselineY": 578.4,
+          "height": 17,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 309,
+          "baselineY": 593.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "4pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 310,
+          "baselineY": 85.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 311,
+          "baselineY": 103.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 312,
+          "baselineY": 121.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 313,
+          "baselineY": 139.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 314,
+          "baselineY": 157.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 315,
+          "baselineY": 175.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 316,
+          "baselineY": 193.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 317,
+          "baselineY": 211.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 318,
+          "baselineY": 229.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 319,
+          "baselineY": 247.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 320,
+          "baselineY": 265.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 321,
+          "baselineY": 283.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 322,
+          "baselineY": 301.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 323,
+          "baselineY": 319.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 324,
+          "baselineY": 337.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 325,
+          "baselineY": 355.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 326,
+          "baselineY": 373.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 327,
+          "baselineY": 391.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 328,
+          "baselineY": 409.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 329,
+          "baselineY": 427.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 330,
+          "baselineY": 445.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 331,
+          "baselineY": 463.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 332,
+          "baselineY": 481.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 333,
+          "baselineY": 499.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 334,
+          "baselineY": 517.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 335,
+          "baselineY": 535.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 336,
+          "baselineY": 553.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 337,
+          "baselineY": 571.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 338,
+          "baselineY": 589.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 339,
+          "baselineY": 607.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 340,
+          "baselineY": 623.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 59.994, "font": "Times New Roman", "size": 12, "text": "4.5pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 341,
+          "baselineY": 85.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 342,
+          "baselineY": 103.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 343,
+          "baselineY": 121.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 344,
+          "baselineY": 139.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 345,
+          "baselineY": 157.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 346,
+          "baselineY": 175.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 347,
+          "baselineY": 193.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 348,
+          "baselineY": 211.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 349,
+          "baselineY": 229.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 350,
+          "baselineY": 247.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 351,
+          "baselineY": 265.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 352,
+          "baselineY": 283.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 353,
+          "baselineY": 301.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 354,
+          "baselineY": 319.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 355,
+          "baselineY": 337.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 356,
+          "baselineY": 355.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 357,
+          "baselineY": 373.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 358,
+          "baselineY": 391.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 359,
+          "baselineY": 409.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 360,
+          "baselineY": 427.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 361,
+          "baselineY": 445.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 362,
+          "baselineY": 463.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 363,
+          "baselineY": 481.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 364,
+          "baselineY": 499.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 365,
+          "baselineY": 517.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 366,
+          "baselineY": 535.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 367,
+          "baselineY": 553.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 368,
+          "baselineY": 571.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 369,
+          "baselineY": 589.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 370,
+          "baselineY": 607.44,
+          "height": 18,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 371,
+          "baselineY": 623.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "5pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 372,
+          "baselineY": 85.44,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 373,
+          "baselineY": 104.4,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 374,
+          "baselineY": 123.6,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 375,
+          "baselineY": 142.56,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 376,
+          "baselineY": 161.52,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 377,
+          "baselineY": 180.48,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 378,
+          "baselineY": 199.44,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 379,
+          "baselineY": 218.4,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 380,
+          "baselineY": 237.6,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 381,
+          "baselineY": 256.56,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 382,
+          "baselineY": 275.52,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 383,
+          "baselineY": 294.48,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 384,
+          "baselineY": 313.44,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 385,
+          "baselineY": 332.4,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 386,
+          "baselineY": 351.6,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 387,
+          "baselineY": 370.56,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 388,
+          "baselineY": 389.52,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 389,
+          "baselineY": 408.48,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 390,
+          "baselineY": 427.44,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 391,
+          "baselineY": 446.4,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 392,
+          "baselineY": 465.6,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 393,
+          "baselineY": 484.56,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 394,
+          "baselineY": 503.52,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 395,
+          "baselineY": 522.48,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 396,
+          "baselineY": 541.44,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 397,
+          "baselineY": 560.4,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 398,
+          "baselineY": 579.6,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 399,
+          "baselineY": 598.56,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 400,
+          "baselineY": 617.52,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 401,
+          "baselineY": 636.48,
+          "height": 19,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 402,
+          "baselineY": 653.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "6pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 403,
+          "baselineY": 85.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 404,
+          "baselineY": 106.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 405,
+          "baselineY": 127.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 406,
+          "baselineY": 148.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 407,
+          "baselineY": 169.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 408,
+          "baselineY": 190.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 409,
+          "baselineY": 211.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 410,
+          "baselineY": 232.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 411,
+          "baselineY": 253.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 412,
+          "baselineY": 274.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 413,
+          "baselineY": 295.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 414,
+          "baselineY": 316.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 415,
+          "baselineY": 337.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 416,
+          "baselineY": 358.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 417,
+          "baselineY": 379.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 418,
+          "baselineY": 400.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 419,
+          "baselineY": 421.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 420,
+          "baselineY": 442.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 421,
+          "baselineY": 463.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 422,
+          "baselineY": 484.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 423,
+          "baselineY": 505.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 424,
+          "baselineY": 526.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 425,
+          "baselineY": 547.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 426,
+          "baselineY": 568.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 427,
+          "baselineY": 589.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 428,
+          "baselineY": 610.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 429,
+          "baselineY": 631.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 430,
+          "baselineY": 652.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 431,
+          "baselineY": 673.68,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 432,
+          "baselineY": 694.56,
+          "height": 21,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 433,
+          "baselineY": 713.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "8pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 434,
+          "baselineY": 83.04,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 435,
+          "baselineY": 96.48,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 436,
+          "baselineY": 109.92,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 437,
+          "baselineY": 123.36,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 438,
+          "baselineY": 136.8,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 439,
+          "baselineY": 150.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 440,
+          "baselineY": 163.68,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 441,
+          "baselineY": 177.12,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 442,
+          "baselineY": 190.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 443,
+          "baselineY": 203.76,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 444,
+          "baselineY": 217.2,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 445,
+          "baselineY": 230.64,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 446,
+          "baselineY": 244.08,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 447,
+          "baselineY": 257.52,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 448,
+          "baselineY": 270.96,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 449,
+          "baselineY": 284.4,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 450,
+          "baselineY": 297.84,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 451,
+          "baselineY": 311.28,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 452,
+          "baselineY": 324.72,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 453,
+          "baselineY": 338.16,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 454,
+          "baselineY": 351.6,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 455,
+          "baselineY": 365.04,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 456,
+          "baselineY": 378.48,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 457,
+          "baselineY": 391.92,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 458,
+          "baselineY": 405.36,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 459,
+          "baselineY": 418.8,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 460,
+          "baselineY": 432.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 461,
+          "baselineY": 445.68,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 462,
+          "baselineY": 459.12,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 463,
+          "baselineY": 472.32,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 464,
+          "baselineY": 486,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 44.994, "font": "Times New Roman", "size": 12, "text": "3pt at 4.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 465,
+          "baselineY": 83.52,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 466,
+          "baselineY": 96.96,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 467,
+          "baselineY": 110.4,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 468,
+          "baselineY": 123.84,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 469,
+          "baselineY": 137.28,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 470,
+          "baselineY": 150.72,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 471,
+          "baselineY": 164.16,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 472,
+          "baselineY": 177.6,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 473,
+          "baselineY": 191.04,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 474,
+          "baselineY": 204.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 475,
+          "baselineY": 217.68,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 476,
+          "baselineY": 231.12,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 477,
+          "baselineY": 244.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 478,
+          "baselineY": 258,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 479,
+          "baselineY": 271.44,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 480,
+          "baselineY": 284.88,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 481,
+          "baselineY": 298.32,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 482,
+          "baselineY": 311.76,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 483,
+          "baselineY": 325.2,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 484,
+          "baselineY": 338.64,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 485,
+          "baselineY": 352.08,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 486,
+          "baselineY": 365.52,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 487,
+          "baselineY": 378.96,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 488,
+          "baselineY": 392.4,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 489,
+          "baselineY": 405.84,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 490,
+          "baselineY": 419.28,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 491,
+          "baselineY": 432.72,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 492,
+          "baselineY": 446.16,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 493,
+          "baselineY": 459.6,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 494,
+          "baselineY": 472.8,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 495,
+          "baselineY": 486,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 35.994, "font": "Times New Roman", "size": 12, "text": "3pt at 9"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 496,
+          "baselineY": 85.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 497,
+          "baselineY": 101.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 498,
+          "baselineY": 117.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 499,
+          "baselineY": 133.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 500,
+          "baselineY": 149.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 501,
+          "baselineY": 165.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 502,
+          "baselineY": 181.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 503,
+          "baselineY": 197.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 504,
+          "baselineY": 213.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 505,
+          "baselineY": 229.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 506,
+          "baselineY": 245.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 507,
+          "baselineY": 261.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 508,
+          "baselineY": 277.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 509,
+          "baselineY": 293.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 510,
+          "baselineY": 309.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 511,
+          "baselineY": 325.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 512,
+          "baselineY": 341.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 513,
+          "baselineY": 357.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 514,
+          "baselineY": 373.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 515,
+          "baselineY": 389.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 516,
+          "baselineY": 405.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 517,
+          "baselineY": 421.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 518,
+          "baselineY": 437.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 519,
+          "baselineY": 453.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 520,
+          "baselineY": 469.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 521,
+          "baselineY": 485.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 522,
+          "baselineY": 501.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 523,
+          "baselineY": 517.68,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 524,
+          "baselineY": 533.52,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 525,
+          "baselineY": 549.6,
+          "height": 16,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 526,
+          "baselineY": 563.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 50.994, "font": "Times New Roman", "size": 12, "text": "3pt at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 527,
+          "baselineY": 90,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 528,
+          "baselineY": 110.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 529,
+          "baselineY": 130.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 530,
+          "baselineY": 150,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 531,
+          "baselineY": 170.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 532,
+          "baselineY": 190.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 533,
+          "baselineY": 210,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 534,
+          "baselineY": 230.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 535,
+          "baselineY": 250.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 536,
+          "baselineY": 270,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 537,
+          "baselineY": 290.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 538,
+          "baselineY": 310.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 539,
+          "baselineY": 330,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 540,
+          "baselineY": 350.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 541,
+          "baselineY": 370.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 542,
+          "baselineY": 390,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 543,
+          "baselineY": 410.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 544,
+          "baselineY": 430.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 545,
+          "baselineY": 450,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 546,
+          "baselineY": 470.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 547,
+          "baselineY": 490.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 548,
+          "baselineY": 510,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 549,
+          "baselineY": 530.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 550,
+          "baselineY": 550.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 551,
+          "baselineY": 570,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 552,
+          "baselineY": 590.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 553,
+          "baselineY": 610.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 554,
+          "baselineY": 630,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 555,
+          "baselineY": 650.16,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 556,
+          "baselineY": 670.08,
+          "height": 20,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 557,
+          "baselineY": 683.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 41.994, "font": "Times New Roman", "size": 12, "text": "3pt at 18"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 558,
+          "baselineY": 99.12,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 559,
+          "baselineY": 128.16,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 560,
+          "baselineY": 157.2,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 561,
+          "baselineY": 186,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 562,
+          "baselineY": 215.04,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 563,
+          "baselineY": 244.08,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 564,
+          "baselineY": 273.12,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 565,
+          "baselineY": 302.16,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 566,
+          "baselineY": 331.2,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 567,
+          "baselineY": 360,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 568,
+          "baselineY": 389.04,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 569,
+          "baselineY": 418.08,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 570,
+          "baselineY": 447.12,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 571,
+          "baselineY": 476.16,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 572,
+          "baselineY": 505.2,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 573,
+          "baselineY": 534,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 574,
+          "baselineY": 563.04,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 575,
+          "baselineY": 592.08,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 576,
+          "baselineY": 621.12,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 577,
+          "baselineY": 650.16,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 578,
+          "baselineY": 679.2,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 579,
+          "baselineY": 708,
+          "height": 29,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 580,
+          "baselineY": 99.12,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 581,
+          "baselineY": 128.16,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 582,
+          "baselineY": 157.2,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 583,
+          "baselineY": 186,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 584,
+          "baselineY": 215.04,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 585,
+          "baselineY": 244.08,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 586,
+          "baselineY": 273.12,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 587,
+          "baselineY": 302.16,
+          "height": 29,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 588,
+          "baselineY": 315.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 41.994, "font": "Times New Roman", "size": 12, "text": "3pt at 27"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 589,
+          "baselineY": 85.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 590,
+          "baselineY": 99.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 591,
+          "baselineY": 112.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 592,
+          "baselineY": 126,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 593,
+          "baselineY": 139.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 594,
+          "baselineY": 153.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 595,
+          "baselineY": 166.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 596,
+          "baselineY": 180,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 597,
+          "baselineY": 193.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 598,
+          "baselineY": 207.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 599,
+          "baselineY": 220.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 600,
+          "baselineY": 234,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 601,
+          "baselineY": 247.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 602,
+          "baselineY": 261.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 603,
+          "baselineY": 274.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 604,
+          "baselineY": 288,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 605,
+          "baselineY": 301.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 606,
+          "baselineY": 315.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 607,
+          "baselineY": 328.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 608,
+          "baselineY": 342,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 609,
+          "baselineY": 355.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 610,
+          "baselineY": 369.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 611,
+          "baselineY": 382.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 612,
+          "baselineY": 396,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 613,
+          "baselineY": 409.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 614,
+          "baselineY": 423.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 615,
+          "baselineY": 436.56,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 616,
+          "baselineY": 450,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 617,
+          "baselineY": 463.44,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 618,
+          "baselineY": 477.12,
+          "height": 13.5,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 619,
+          "baselineY": 488.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "bare at 13.5"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 620,
+          "baselineY": 85.44,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 621,
+          "baselineY": 98.88,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 622,
+          "baselineY": 112.32,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 623,
+          "baselineY": 125.76,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 624,
+          "baselineY": 139.2,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 625,
+          "baselineY": 152.64,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 626,
+          "baselineY": 166.08,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 627,
+          "baselineY": 179.52,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 628,
+          "baselineY": 192.96,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 629,
+          "baselineY": 206.16,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 630,
+          "baselineY": 219.6,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 631,
+          "baselineY": 233.04,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 632,
+          "baselineY": 246.48,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 633,
+          "baselineY": 259.92,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 634,
+          "baselineY": 273.36,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 635,
+          "baselineY": 286.8,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 636,
+          "baselineY": 300.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 637,
+          "baselineY": 313.68,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 638,
+          "baselineY": 327.12,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 639,
+          "baselineY": 340.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 640,
+          "baselineY": 354,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 641,
+          "baselineY": 367.44,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 642,
+          "baselineY": 380.88,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 643,
+          "baselineY": 394.32,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 644,
+          "baselineY": 407.76,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 645,
+          "baselineY": 421.2,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 646,
+          "baselineY": 434.64,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 647,
+          "baselineY": 448.08,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 648,
+          "baselineY": 461.52,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 649,
+          "baselineY": 474.72,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 650,
+          "baselineY": 486,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "bare at 13.1"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 651,
+          "baselineY": 85.92,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 652,
+          "baselineY": 99.84,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 653,
+          "baselineY": 113.76,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 654,
+          "baselineY": 127.68,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 655,
+          "baselineY": 141.6,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 656,
+          "baselineY": 155.52,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 657,
+          "baselineY": 169.2,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 658,
+          "baselineY": 183.12,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 659,
+          "baselineY": 197.04,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 660,
+          "baselineY": 210.96,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 661,
+          "baselineY": 224.88,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 662,
+          "baselineY": 238.8,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 663,
+          "baselineY": 252.72,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 664,
+          "baselineY": 266.64,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 665,
+          "baselineY": 280.56,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 666,
+          "baselineY": 294.48,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 667,
+          "baselineY": 308.4,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 668,
+          "baselineY": 322.32,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 669,
+          "baselineY": 336,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 670,
+          "baselineY": 349.92,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 671,
+          "baselineY": 363.84,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 672,
+          "baselineY": 377.76,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 673,
+          "baselineY": 391.68,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 674,
+          "baselineY": 405.6,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 675,
+          "baselineY": 419.52,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 676,
+          "baselineY": 433.44,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 677,
+          "baselineY": 447.36,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 678,
+          "baselineY": 461.28,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 679,
+          "baselineY": 475.2,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 680,
+          "baselineY": 488.88,
+          "height": 13.9,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 681,
+          "baselineY": 500.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "bare at 13.9"}
+          ]
+        }
+      ]
+    }
+  ]
+}

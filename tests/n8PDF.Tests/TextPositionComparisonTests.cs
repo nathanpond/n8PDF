@@ -139,22 +139,6 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 just under a point of drift. What each equation asks of its own line is asserted
                 probe by probe in MathLineBoxTests.
                 """),
-
-            ["vml-stroke-probe"] = (5.5,
-                """
-                An old-style shape with an outline thicker than a point makes its line taller in
-                Word than the shape's own height, and the line under it sits lower by:
-
-                    1½pt outline  0.96pt      3pt  1.92pt      6pt  5.04pt
-                      2pt outline  0.96pt    4½pt  4.08pt
-
-                which follows neither the weight nor the offset the same shape is drawn at — 2pt
-                and 3pt are drawn at the same offset and grow the line by different amounts. The
-                offset itself is implemented, and is exact at every weight; this is the part that
-                was measured and not explained, and the probe is here so it can be read again.
-                Nothing in an ordinary document reaches it: Word's own text boxes are outlined at
-                three quarters of a point, and everything at a point or less grows nothing.
-                """)
         };
 
     /// <summary>

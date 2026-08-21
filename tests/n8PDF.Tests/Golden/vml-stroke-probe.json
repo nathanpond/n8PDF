@@ -113,13 +113,13 @@
         {
           "paragraph": 10,
           "baselineY": 126,
-          "height": 54,
+          "height": 55,
           "runs": [
           ]
         },
         {
           "paragraph": 11,
-          "baselineY": 137.04,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 45.316, "font": "Times New Roman", "size": 12, "text": "rect 1.5pt"}
@@ -134,13 +134,13 @@
         {
           "paragraph": 12,
           "baselineY": 126,
-          "height": 54,
+          "height": 55,
           "runs": [
           ]
         },
         {
           "paragraph": 13,
-          "baselineY": 137.04,
+          "baselineY": 138.24,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 2pt"}
@@ -155,13 +155,13 @@
         {
           "paragraph": 14,
           "baselineY": 126,
-          "height": 54,
+          "height": 56,
           "runs": [
           ]
         },
         {
           "paragraph": 15,
-          "baselineY": 137.04,
+          "baselineY": 139.2,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 3pt"}
@@ -176,13 +176,13 @@
         {
           "paragraph": 16,
           "baselineY": 126,
-          "height": 54,
+          "height": 58,
           "runs": [
           ]
         },
         {
           "paragraph": 17,
-          "baselineY": 137.04,
+          "baselineY": 141.12,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 45.316, "font": "Times New Roman", "size": 12, "text": "rect 4.5pt"}
@@ -197,13 +197,13 @@
         {
           "paragraph": 18,
           "baselineY": 126,
-          "height": 54,
+          "height": 59,
           "runs": [
           ]
         },
         {
           "paragraph": 19,
-          "baselineY": 137.04,
+          "baselineY": 142.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 36.316, "font": "Times New Roman", "size": 12, "text": "rect 6pt"}

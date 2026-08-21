@@ -144,7 +144,8 @@ internal static class Vml
             if (Length(element.Attribute("strokeweight")?.Value) is { } weight && weight > 0)
                 shape.LineWidthPoints = weight;
 
-            shape.DrawnOffsetPoints = DrawnOffset(shape.LineWidthPoints);
+            shape.OutlineWholePoints = WholePoints(shape.LineWidthPoints);
+            shape.DrawnOffsetPoints = 2 * Math.Floor(shape.OutlineWholePoints / 2);
         }
 
         if (element.Element(Main + "fill")?.Attribute("opacity")?.Value is { } opacity)
@@ -190,30 +191,35 @@ internal static class Vml
     }
 
     /// <summary>
-    /// How far down and to the right of its own box Word draws an old-style shape.
+    /// The outline's weight in whole points, at least one — the number both of the rules for an
+    /// old-style shape turn on.
     /// </summary>
     /// <remarks>
-    /// It does, and by an amount that steps rather than grows: <c>vml-stroke-probe</c> holds the
-    /// same rectangle ten times over, varying nothing but the weight of its outline, and Word's
-    /// export puts it at
+    /// Word does two things to a shape with an outline, and until <c>vml-stroke-stack-probe</c>
+    /// neither was understood. It draws the shape down and to the right of its own box, and it
+    /// makes the line the shape sits on taller than the shape is. Both follow from the weight
+    /// rounded to a whole number of points, and never less than one:
     ///
-    ///   none, ¼pt, ½pt, ¾pt, 1pt  -> no offset at all
-    ///   1½pt, 2pt, 3pt            -> two points
-    ///   4½pt                      -> four points
-    ///   6pt                       -> six points
+    ///   the shape is drawn        the even number of points at or below it — 2 × ⌊n/2⌋
+    ///   the line is as tall as    ⌈the shape's height⌉ + n − 1
     ///
-    /// which is to say the offset is the smallest even number of points that reaches a point
-    /// short of the outline's weight. Why it steps in twos, and why it starts a whole point in,
-    /// is not explained here: this is the rule the measurements fit, not one derived from
-    /// anything. The text inside moves by half as much again, which is what
-    /// <c>vml-inset-probe</c> shows — its six point page sets its text at the very edge of the
-    /// box, where the inset alone would put it three points inside.
+    /// So a quarter point outline and a one point outline behave alike, an inch and a quarter of
+    /// outline is drawn eight points in, and a shape 13½ points tall with a 4½ point outline sits
+    /// on a line eighteen points tall. Fourteen weights and five heights fit both rules exactly.
     ///
-    /// None of it shows in an ordinary document. Word draws a text box with a ¾pt outline and a
-    /// table rule with a ½pt one, and everything at a point or less is offset by nothing.
+    /// The ceiling is the outline's doing rather than the shape's: the same shape with no outline
+    /// at all sits on a line of exactly its own height, 13.5 for 13.5, and so does a picture. Any
+    /// outline, however fine, rounds it up to the whole point.
+    ///
+    /// An earlier reading of a coarser probe had the offset as the even number of points reaching
+    /// past the weight, which agrees with this on every weight that probe held and disagrees at
+    /// 1¼ and 3¼ — the two this one added.
+    ///
+    /// None of it shows in an ordinary document. Word draws a text box with a ¾pt outline, which
+    /// is offset by nothing and rounds a whole-point shape up to itself.
     /// </remarks>
-    private static double DrawnOffset(double strokeWeightPoints) =>
-        strokeWeightPoints <= 1 ? 0 : 2 * Math.Ceiling((strokeWeightPoints - 1) / 2);
+    private static double WholePoints(double strokeWeightPoints) =>
+        Math.Max(1, Math.Round(strokeWeightPoints, MidpointRounding.AwayFromZero));
 
     /// <summary>
     /// How the text goes round it, from the <c>w10:wrap</c> beside the shape. A shape that

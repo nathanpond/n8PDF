@@ -292,6 +292,37 @@ The outline itself straddles the edge. Word's export fills the whole extent and 
 same rectangle, insetting neither, which is what a PDF does with a stroked path anyway — so the
 frame here is drawn the same way and the two agree to a hundredth of a point.
 
+### What an outline does to the line a shape sits on
+
+An old-style (VML) shape with an outline is drawn a little down and to the right of its own box,
+and the line it sits on is taller than the shape is. Both follow from one number — the outline's
+weight rounded to whole points, and never less than one:
+
+| | |
+|---|---|
+| the shape is drawn | the even number of points at or below it — 2⌊n/2⌋ |
+| the line is as tall as | ⌈the shape's height⌉ + n − 1 |
+
+So a quarter-point outline and a one-point outline behave alike, a shape 13½ points tall with a
+4½pt outline sits on a line of eighteen points, and an 8pt outline is drawn eight points in.
+
+`vml-stroke-stack-probe` is what says so, and it is built to be read finely: a single line can only
+be measured to within a step of Word's grid, 0.24pt, which is wider than the differences here, so
+each page stacks thirty shapes and divides that by thirty. Fourteen weights and five heights fit
+both rules exactly. An earlier reading of a coarser probe had the offset as the even number of
+points *reaching past* the weight, which agrees on every weight that probe held and is wrong at 1¼
+and 3¼ — the two this one added.
+
+The ceiling belongs to the outline rather than to the shape: the same shape with no outline sits on
+a line of exactly its own height, 13.5 for 13.5, and so does an inline picture
+(`inline-picture-line-probe`). Any outline, however fine, rounds it up to the whole point.
+
+Two smaller things fell out of the same measurement. A line holding nothing but a picture is never
+shorter than the paragraph's own mark — Word gives a 4½pt shape under an eleven point mark the
+mark's 13.43pt line and stands the shape at the foot of it — and a picture rests on its line's
+*exact* baseline rather than the rounded one its text is written at, which is why Word's shapes
+land at precisely the margin plus their offset however the rounding of the line falls.
+
 ### Where a chart puts things
 
 A chart is the one thing a document describes only as data: series, axes and formatting, with no

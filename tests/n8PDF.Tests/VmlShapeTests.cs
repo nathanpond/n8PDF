@@ -55,9 +55,9 @@ public class VmlShapeTests(ITestOutputHelper output)
     /// </summary>
     /// <remarks>
     /// This is the measurement itself, written out: ten pages, the same rectangle on each, varying
-    /// nothing but the weight of its outline. The offset steps in twos rather than growing with
-    /// the weight, and it starts a whole point in — so everything an ordinary document draws, at a
-    /// point or less, is not offset at all.
+    /// nothing but the weight of its outline. The offset is the even number of points at or below
+    /// the weight rounded to whole points — so everything an ordinary document draws, at a point
+    /// or less, is not offset at all.
     /// </remarks>
     [Fact]
     public void A_thick_outline_moves_an_old_shape()
@@ -84,6 +84,69 @@ public class VmlShapeTests(ITestOutputHelper output)
         Assert.Equal(72, drawn[10].Left, 2);
         Assert.Equal(180, drawn[11].Left, 2);
         Assert.Equal(72, drawn[11].Top, 2);
+    }
+
+    /// <summary>
+    /// The two things a stroked shape does to the line it sits on, against Word, at every weight
+    /// and height the stack probe holds: thirty shapes to a page, so a per-line difference of a
+    /// hundredth of a point would show as a third of a point by the foot of it.
+    /// </summary>
+    /// <remarks>
+    /// The line is as tall as ⌈the shape⌉ + n − 1, where n is the outline in whole points and
+    /// never less than one, and the shape is drawn 2⌊n/2⌋ down from the top of it. Both come from
+    /// vml-stroke-stack-probe; Vml.WholePoints has the reasoning and the numbers.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 14, 0)]      // a quarter point of outline: the whole point, drawn where it is
+    [InlineData(2, 14, 0)]      // three quarters, which is what Word's own text boxes carry
+    [InlineData(5, 15, 2)]      // 1½pt: a point taller, and two points down
+    [InlineData(8, 16, 2)]      // 3pt
+    [InlineData(11, 18, 4)]     // 4½pt, where rounding the weight up moves both answers
+    [InlineData(13, 21, 8)]     // 8pt
+    public void A_stroked_shape_asks_its_line_for_more_than_its_height(int page, double line, double offset)
+    {
+        if (TestFonts.SkipForMissingFonts("vml-stroke-stack-probe")) return;
+
+        var (ours, _) = BothWays("vml-stroke-stack-probe");
+
+        var tops = PdfPathExtractor.Extract(ours)
+            .Where(r => r.PageIndex == page && r.Width > 50).Select(r => r.Top).Order().ToList();
+
+        Assert.Equal(30, tops.Count);
+
+        // Thirty shapes one under another, so the distance between the first and the last is
+        // twenty-nine lines exactly.
+        Assert.Equal(line, (tops[^1] - tops[0]) / 29, 3);
+
+        // And where the shape sits inside the first of them.
+        Assert.Equal(72 + offset, tops[0], 3);
+    }
+
+    /// <summary>
+    /// A shape shorter than the paragraph's own mark does not shorten the line: Word gives it the
+    /// mark's line box and stands the shape at the foot of it. Two pages of the stack probe put a
+    /// 4½pt and a 9pt shape under an eleven point mark, whose line is 13.43.
+    /// </summary>
+    [Theory]
+    [InlineData(14, 4.5)]
+    [InlineData(15, 9)]
+    public void A_shape_shorter_than_the_mark_takes_the_mark_s_line(int page, double height)
+    {
+        if (TestFonts.SkipForMissingFonts("vml-stroke-stack-probe")) return;
+
+        var (ours, _) = BothWays("vml-stroke-stack-probe");
+
+        var tops = PdfPathExtractor.Extract(ours)
+            .Where(r => r.PageIndex == page && r.Width > 50).Select(r => r.Top).Order().ToList();
+
+        Assert.Equal(30, tops.Count);
+
+        const double MarkLine = 13.4277;
+        Assert.Equal(MarkLine, (tops[^1] - tops[0]) / 29, 2);
+
+        // The shape rests on the baseline at the foot of that line, three points of outline
+        // putting it two further down again.
+        Assert.Equal(72 + MarkLine - (Math.Ceiling(height) + 2) + 2, tops[0], 2);
     }
 
     /// <summary>

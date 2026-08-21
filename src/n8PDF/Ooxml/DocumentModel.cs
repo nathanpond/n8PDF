@@ -412,6 +412,13 @@ internal sealed class ShapeFrame
     /// </remarks>
     public double DrawnOffsetPoints { get; set; }
 
+    /// <summary>
+    /// The outline's weight in whole points, at least one, and zero for a shape that has no
+    /// outline or is not an old-style one. Both of the rules Word applies to such a shape turn on
+    /// this single number: see <see cref="n8PDF.Ooxml.Vml"/>.
+    /// </summary>
+    public double OutlineWholePoints { get; set; }
+
     public bool HasText => Content.Count > 0;
 }
 

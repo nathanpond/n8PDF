@@ -129,11 +129,13 @@ public static class TestFonts
         "endnote-restart-section", "endnote-section-end", "endnotes", "equations", "font-fallback",
         "footnote-beneath-text", "footnote-carry-probe", "footnote-columns", "footnote-overrun-probe",
         "footnote-restart-page", "footnote-restart-section", "footnote-separator-probe",
-        "footnote-split-probe", "footnotes", "images", "images-formats", "index", "kerning",
+        "footnote-split-probe", "footnotes", "images", "images-formats", "index",
+        "inline-picture-line-probe", "kerning",
         "line-ascent-probe", "line-grid-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
         "numbering", "page-numbering-restart", "smartart", "tab-bars", "table-inset-weights-probe",
-        "table-vertical-merge", "toc", "watermark", "watermark-fit-probe", "watermark-picture",
+        "table-vertical-merge", "toc", "vml-stroke-stack-probe", "watermark",
+        "watermark-fit-probe", "watermark-picture",
         "watermark-washout-probe", "wrapping"
     ];
 

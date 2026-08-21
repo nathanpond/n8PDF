@@ -664,6 +664,10 @@ public static class Fixtures
     /// One page of the stroke probe: a rectangle in the line, alone, whose stroke is the only
     /// thing that varies.
     /// </summary>
+    /// <summary>A number as markup wants it: no trailing zeros, and the point as a point.</summary>
+    private static string Number(double value) =>
+        value.ToString("0.####", CultureInfo.InvariantCulture);
+
     private static string StrokeProbePage(
         string? strokeWeight, bool first = false, string element = "rect") =>
         $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
@@ -2746,6 +2750,145 @@ public static class Fixtures
                                      strokeWeight: "1pt", id: 1061) +
                                  "</w:p>")
                 .AddParagraph("Two rectangles on one line.", ZeroSpacing, Times12),
+
+            // How much taller than itself an old-style shape makes its line. vml-stroke-probe
+            // showed that it does — the paragraph under a six point outline sits five points
+            // lower than the shape's own height accounts for — and left the rule unexplained,
+            // because ten weights at one height cannot separate what the growth follows.
+            //
+            // This asks properly. Fourteen weights, close enough together to show where the rule
+            // steps: if it turns on the whole points, 1.25 and 1.75 both go with 2. Then the same
+            // weight at a quarter of the height and at twice it, which says whether the growth is
+            // the shape's business or the outline's, and the same weight on two other geometries.
+            ["vml-stroke-line-probe"] = () =>
+            {
+                double[] weights = [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.25, 4, 4.5, 5, 5.5, 6, 8];
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string weight, double height, string element = "rect")
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacingNewPage)}</w:pPr>" +
+                        DocxBuilder.VmlShape($"width:108pt;height:{Number(height)}pt", element: element,
+                            fillColor: "#c0d8f0", strokeColor: "#000000",
+                            strokeWeight: weight, id: 1070) + "</w:p>" +
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{element} {weight} at {Number(height)}</w:t></w:r></w:p>");
+
+                    first = false;
+                }
+
+                foreach (var weight in weights) Page(Number(weight) + "pt", 54);
+
+                // The same outline on a short shape and a tall one.
+                Page("3pt", 13.5);
+                Page("3pt", 108);
+
+                // And on shapes that are not rectangles.
+                Page("3pt", 54, "oval");
+                Page("3pt", 54, "roundrect");
+
+                return builder;
+            },
+
+            // The same question again, and this time to a hundredth of a point. A single line can
+            // only be read to within a step of Word's grid — 0.24pt — which is wider than the
+            // differences vml-stroke-line-probe turns up. Thirty shapes stacked one under another
+            // divide that by thirty.
+            //
+            // Eleven weights at one height, and five heights at one weight, because the short
+            // shape in the other probe grew by more than the tall one and that has to be pinned
+            // rather than guessed at.
+            ["vml-stroke-stack-probe"] = () =>
+            {
+                const int Stack = 30;
+
+                double[] weights = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 4.5, 5, 6, 8];
+                double[] heights = [4.5, 9, 13.5, 18, 27];
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(double weight, double height)
+                {
+                    for (var i = 0; i < Stack; i++)
+                    {
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{(first && i == 0 ? ZeroSpacing : i == 0 ? ZeroSpacingNewPage : ZeroSpacing)}</w:pPr>" +
+                            DocxBuilder.VmlShape($"width:72pt;height:{Number(height)}pt", element: "rect",
+                                fillColor: "#c0d8f0", strokeColor: "#000000",
+                                strokeWeight: Number(weight) + "pt", id: 1080 + i) + "</w:p>");
+                    }
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{Number(weight)}pt at {Number(height)}</w:t></w:r></w:p>");
+
+                    first = false;
+                }
+
+                foreach (var weight in weights) Page(weight, 13.5);
+                foreach (var height in heights) Page(3, height);
+
+                // A shape with no outline at all, and a picture, at heights that are not whole
+                // points. Whether the line is as tall as the object or as the whole point above it
+                // is not a question about strokes, and the answer decides whether the rule found
+                // here belongs to old-style shapes or to everything inline.
+                void Bare(double height)
+                {
+                    for (var i = 0; i < Stack; i++)
+                    {
+                        builder.AddRawParagraph(
+                            $"<w:p><w:pPr>{(i == 0 ? ZeroSpacingNewPage : ZeroSpacing)}</w:pPr>" +
+                            DocxBuilder.VmlShape($"width:72pt;height:{Number(height)}pt", element: "rect",
+                                fillColor: "#c0d8f0", strokeColor: null, strokeWeight: null, id: 1180 + i) + "</w:p>");
+                    }
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">bare at {Number(height)}</w:t></w:r></w:p>");
+                }
+
+                Bare(13.5);
+                Bare(13.1);
+                Bare(13.9);
+
+                return builder;
+            },
+
+            // Whether an inline picture's line is as tall as the picture or as the whole point
+            // above it. vml-stroke-stack-probe shows a shape with an outline taking the whole
+            // point and a shape without one taking its own height exactly; this asks the same of
+            // a picture, which is the thing an ordinary document is full of.
+            //
+            // Thirty to a page, so the answer is read to a hundredth rather than to a grid step.
+            ["inline-picture-line-probe"] = () =>
+            {
+                const int Stack = 30;
+
+                var builder = new DocxBuilder();
+                var picture = builder.AddImagePart(PngWriter.Solid(8, 8, 40, 80, 160));
+                var first = true;
+
+                foreach (var height in new[] { 13.5, 13.1 })
+                {
+                    for (var i = 0; i < Stack; i++)
+                    {
+                        builder.AddImageParagraph(picture, 72, height,
+                            first && i == 0 ? ZeroSpacing : i == 0 ? ZeroSpacingNewPage : ZeroSpacing);
+                    }
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">picture at {Number(height)}</w:t></w:r></w:p>");
+
+                    first = false;
+                }
+
+                return builder;
+            },
 
             // And the same measurement again: how far inside its edges the older kind of box sets
             // its text, and whether it answers the question the same way the newer kind does.

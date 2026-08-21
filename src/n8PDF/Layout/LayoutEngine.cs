@@ -3690,9 +3690,14 @@ internal sealed class LayoutEngine(
         // accumulates. Grid holds what says so.
         var baselineY = Grid.Baseline(top, line.Ascent, line.Height);
 
-        // What the line draws — a bar tab down its side, a footnote's separator — hangs off the
-        // line box as it was written, not as it was worked out, or it stands a fraction of a step
-        // away from the text it belongs to.
+        // A picture sits on the line's own baseline rather than on the rounded one the text is
+        // written at. Word says so: vml-stroke-probe puts every shape at exactly the margin plus
+        // its offset, never a grid step off it, however the rounding of the line falls.
+        var restingY = top + line.Ascent;
+
+        // What the line draws, on the other hand — a bar tab down its side, a footnote's separator
+        // — hangs off the line box as it was written, or it stands a fraction of a step away from
+        // the text it belongs to.
         top = baselineY - line.Ascent;
 
         var laidOut = new LaidOutLine
@@ -3763,7 +3768,7 @@ internal sealed class LayoutEngine(
                 page.Images.Add(new PositionedImage
                 {
                     X = contentLeft + x,
-                    Y = baselineY - image.Height,
+                    Y = restingY - image.Height,
                     Width = image.Width,
                     Height = image.Height,
                     Image = picture
@@ -3946,7 +3951,7 @@ internal sealed class LayoutEngine(
             _producedAny = true;
 
             var isLastLine = _index >= atoms.Count;
-            FinishLine(line, format, left, available, isLastLine || hardBreak);
+            FinishLine(line, format, left, available, isLastLine || hardBreak, _markMetrics.Height);
 
             if (pageBreak) _forceBreakOnNextLine = true;
             if (columnBreak) _forceColumnBreakOnNextLine = true;
@@ -4085,7 +4090,8 @@ internal sealed class LayoutEngine(
     /// than one per word.
     /// </summary>
     private static void FinishLine(
-        ComposedLine line, ResolvedParagraphFormat format, double indentLeft, double available, bool isLastLine)
+        ComposedLine line, ResolvedParagraphFormat format, double indentLeft, double available,
+        bool isLastLine, double markHeight)
     {
         // Trailing spaces do not participate in alignment: a centred line ending in a space
         // would otherwise sit visibly off-centre.
@@ -4257,6 +4263,27 @@ internal sealed class LayoutEngine(
         // Nothing about a run's own box is lost by that: a single-font line is the same either
         // way, since one run's ascent and descent are its natural height.
         natural = Math.Max(natural, maxTextNatural);
+
+        // A line holding nothing but a picture is no shorter than the paragraph's own mark.
+        // vml-stroke-stack-probe stacks shapes four and a half and nine points tall under an
+        // eleven point mark, and Word gives both the mark's own line of 13.43 rather than the
+        // shape's height — and puts the shape at the foot of it, which is what resting on the
+        // baseline of a line that tall comes to.
+        //
+        // Only such a line. Flooring every line at its mark is what this first tried, and fifteen
+        // fixtures said no: where a line has text of its own, that text sizes it and the mark of a
+        // different size does not lift it.
+        if (maxTextNatural <= 0 && line.Images.Any(entry => entry.Atom.Image is not null) &&
+            markHeight > natural)
+        {
+            // The room the mark adds goes above the picture, not below it: the picture keeps the
+            // descent it asked for and the baseline rises to leave the rest over it, which is what
+            // standing at the foot of the line comes to. Word draws the 4½pt shape of the probe
+            // 8.43 points down its 13.43 point line, and that is 13.43 less the seven the shape
+            // asks for, plus the two its outline is offset by.
+            natural = markHeight;
+            ascent = natural - descent;
+        }
 
         ApplyLineMetrics(line, format, ascent, natural);
     }
@@ -4780,14 +4807,23 @@ internal sealed class LayoutEngine(
                     ? ComposeDiagram(diagram, width, height)
                     : ComposeShape(drawing.Shape!, width, height);
 
+            // An old-style shape with an outline asks its line for more than its own height: the
+            // height rounded up to the whole point, and a point for every whole point of outline
+            // past the first. What grows is the room under the shape — the shape itself stays at
+            // the top of the line, which is where Word draws it — so the extra is a descent and
+            // not an ascent. Vml has the measurements.
+            var outline = drawing.Shape?.OutlineWholePoints ?? 0;
+
+            var under = outline > 0 ? Math.Ceiling(height) + outline - 1 - height : 0;
+
             atoms.Add(new ImageAtom
             {
                 Image = composed.Frame,
                 Width = width,
                 Height = height,
                 Ascent = height,
-                NaturalHeight = height,
-                Descent = 0,
+                NaturalHeight = height + under,
+                Descent = under,
                 Content = composed.Content,
                 ContentLeft = composed.Left,
                 ContentTop = composed.Top
