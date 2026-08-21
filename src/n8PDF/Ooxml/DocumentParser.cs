@@ -439,9 +439,41 @@ internal static class DocumentParser
             {
                 run.Content.Add(new TextInline("­"));
             }
+            else if (child.Name == W.Main + "sym")
+            {
+                ReadSymbol(run, child);
+            }
         }
 
         return run;
+    }
+
+    /// <summary>
+    /// Reads a <c>w:sym</c>: a character named by its code, in a face named beside it.
+    /// </summary>
+    /// <remarks>
+    /// The code is written in the private-use block the symbol faces keep their glyphs in — the
+    /// tick of Wingdings is F0FC — and Word's own export strips the block back off again, writing
+    /// the character as 00FC. The <c>symbols</c> fixture shows it does the same with a code that
+    /// never had the block on it: F0FC and 00FC come out as the same character in the same face,
+    /// so both are read the same way here.
+    ///
+    /// A face is not required. Where the element names none, the run's own is meant.
+    /// </remarks>
+    private static void ReadSymbol(Run run, XElement element)
+    {
+        var code = element.Attribute(W.Main + "char")?.Value;
+
+        if (code is not { Length: > 0 } ||
+            !int.TryParse(code, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value))
+        {
+            return;
+        }
+
+        var character = (char)((value & 0xff00) == 0xf000 ? value & 0xff : value);
+        var font = element.Attribute(W.Main + "font")?.Value;
+
+        run.Content.Add(new SymbolInline(character.ToString(), string.IsNullOrEmpty(font) ? null : font));
     }
 
     /// <summary>

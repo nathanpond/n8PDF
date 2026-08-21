@@ -1,0 +1,90 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 126.293, "font": "Times New Roman", "size": 12, "text": "Plain line for the measure."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 86.648, "font": "Times New Roman", "size": 12, "text": "Wingdings arrow "},
+            {"x": 158.648, "width": 11.754, "font": "Wingdings", "size": 12, "text": "à"},
+            {"x": 170.402, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 76.658, "font": "Times New Roman", "size": 12, "text": "Wingdings tick "},
+            {"x": 148.658, "width": 9.428, "font": "Wingdings", "size": 12, "text": "ü"},
+            {"x": 158.086, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 125.52,
+          "height": 14.701,
+          "runs": [
+            {"x": 72, "width": 52.676, "font": "Times New Roman", "size": 12, "text": "Symbol pi "},
+            {"x": 124.676, "width": 6.586, "font": "Symbol", "size": 12, "text": "p"},
+            {"x": 131.262, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 139.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 81.316, "font": "Times New Roman", "size": 12, "text": "Webdings globe "},
+            {"x": 153.316, "width": 6.445, "font": "Webdings", "size": 12, "text": "W"},
+            {"x": 159.762, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 153.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.664, "font": "Times New Roman", "size": 12, "text": "Wingdings 2 "},
+            {"x": 136.664, "width": 9.188, "font": "Wingdings 2", "size": 12, "text": "P"},
+            {"x": 145.852, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 166.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.645, "font": "Times New Roman", "size": 12, "text": "Unprefixed "},
+            {"x": 129.645, "width": 9.428, "font": "Wingdings", "size": 12, "text": "ü"},
+            {"x": 139.072, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 180.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 49.312, "font": "Times New Roman", "size": 12, "text": "After text "},
+            {"x": 121.312, "width": 30.645, "font": "Times New Roman", "size": 12, "text": "before"},
+            {"x": 151.957, "width": 11.754, "font": "Wingdings", "size": 12, "text": "à"},
+            {"x": 163.711, "width": 24.979, "font": "Times New Roman", "size": 12, "text": " after"}
+          ]
+        }
+      ]
+    }
+  ]
+}

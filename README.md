@@ -904,6 +904,24 @@ for it exists. And a table style sits between the document's defaults and the pa
 in the cascade — a paragraph style used in a cell overrides the table style, and direct formatting
 overrides both.
 
+### A character named by its code
+
+`w:sym` is how Word writes a tick, an arrow, or anything else from the symbol faces: the run names
+a face and a code rather than carrying the character itself. Two things about it are worth stating,
+both measured from the `symbols` fixture against Word's export:
+
+- **The face belongs to the character, not to the run.** A run may carry text in one face and end
+  with a character from another, which is what Word writes when a symbol is typed at the end of a
+  word — so the symbol brings its own face and its own line box, and a Wingdings character in a
+  line of Times makes the line as tall as Wingdings asks for.
+- **The code is written in the private-use block** those faces keep their glyphs in — the tick of
+  Wingdings is `F0FC` — and Word's own export strips the block back off, writing the character as
+  `00FC`. It does the same with a code that never had the block on it, so `F0FC` and `00FC` come
+  out identically, and both are read that way here.
+
+Every symbol of the fixture reaches the page in the face Word set it in, at the width Word gave it
+to a hundredth of a point, with the text either side falling where Word puts it.
+
 ### Which rows repeat at the top of a page
 
 A table that runs past the foot of a page writes its heading rows again at the top of the next, and

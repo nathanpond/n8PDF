@@ -5114,6 +5114,41 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
             },
 
+            // A character named by its code in a font of its own — <w:sym> — which is how Word
+            // writes anything from the symbol fonts: a tick, an arrow, a bullet from Wingdings.
+            // The run says which font and which code, and the code is written in the private-use
+            // block those fonts keep their glyphs in.
+            //
+            // Every line pairs the symbol with plain text, so the export says where the symbol
+            // was put and how wide it came out as well as whether it was drawn at all. The last
+            // two lines ask the two things the format leaves open: a code written without the
+            // private-use prefix, and a symbol in a run that also carries text.
+            ["symbols"] = () =>
+            {
+                static string Line(string label, string font, string code, string? text = null) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{label} </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                    (text is null ? string.Empty : $"<w:t xml:space=\"preserve\">{text}</w:t>") +
+                    $"<w:sym w:font=\"{font}\" w:char=\"{code}\"/></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> after</w:t></w:r></w:p>";
+
+                return new DocxBuilder()
+                    .AddParagraph("Plain line for the measure.", ZeroSpacing, Times12)
+                    .AddRawParagraph(Line("Wingdings arrow", "Wingdings", "F0E0"))
+                    .AddRawParagraph(Line("Wingdings tick", "Wingdings", "F0FC"))
+                    .AddRawParagraph(Line("Symbol pi", "Symbol", "F070"))
+                    .AddRawParagraph(Line("Webdings globe", "Webdings", "F057"))
+                    .AddRawParagraph(Line("Wingdings 2", "Wingdings 2", "F050"))
+
+                    // The same tick, its code written without the F0 the private-use block adds.
+                    .AddRawParagraph(Line("Unprefixed", "Wingdings", "00FC"))
+
+                    // And a symbol at the end of a run that also carries text, which is how Word
+                    // writes one that follows a word in the same formatting.
+                    .AddRawParagraph(Line("After text", "Wingdings", "F0E0", "before"));
+            },
+
             // Which rows Word puts at the top of a table's second page, and the several questions
             // that turns out to be. Each table runs past the foot of a page, and every row says in
             // its own text what it is, so the export says outright which were repeated:

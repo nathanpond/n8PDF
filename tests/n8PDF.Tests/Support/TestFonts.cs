@@ -39,6 +39,20 @@ public static class TestFonts
 
     public static string MingLiu => Path.Combine(OfficeFonts, "mingliu.ttc");
 
+    /// <summary>
+    /// The faces a <c>w:sym</c> names, which keep their glyphs in the private-use block rather
+    /// than at the characters they look like. Wingdings and Webdings are macOS's own; Symbol
+    /// travels with Word.
+    /// </summary>
+    public static readonly string[] SymbolPaths =
+    [
+        "/System/Library/Fonts/Supplemental/Wingdings.ttf",
+        "/System/Library/Fonts/Supplemental/Wingdings 2.ttf",
+        "/System/Library/Fonts/Supplemental/Wingdings 3.ttf",
+        "/System/Library/Fonts/Supplemental/Webdings.ttf",
+        Path.Combine(OfficeFonts, "symbol.ttf")
+    ];
+
     /// <summary>A font collection, for exercising the <c>.ttc</c> path.</summary>
     public const string HelveticaCollectionPath = "/System/Library/Fonts/Helvetica.ttc";
 
@@ -241,6 +255,7 @@ public static class TestFonts
         [
             TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath, ArialPath, ArialHebrewPath,
             .. withOfficeFaces ? office : [],
+            .. SymbolPaths,
             .. ComplexScriptPaths
         ];
 

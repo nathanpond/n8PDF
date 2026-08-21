@@ -15,6 +15,25 @@ internal sealed class TextInline(string text) : InlineElement
 }
 
 /// <summary>
+/// A character named by its code in a face of its own: <c>w:sym</c>.
+/// </summary>
+/// <remarks>
+/// How Word writes anything from the symbol faces — a tick, an arrow, a bullet from Wingdings.
+/// The face belongs to the character rather than to the run, since a run may carry text in one
+/// face and end with a character from another, which is what Word writes for a symbol typed at
+/// the end of a word.
+/// </remarks>
+internal sealed class SymbolInline(string text, string? font) : InlineElement
+{
+    public string Text { get; } = text;
+
+    /// <summary>The face the character is named in, or null where the run's own face is meant.</summary>
+    public string? Font { get; } = font;
+
+    public override string ToString() => Text;
+}
+
+/// <summary>
 /// A field, such as a page number.
 /// </summary>
 /// <remarks>

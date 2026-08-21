@@ -4557,6 +4557,32 @@ internal sealed class LayoutEngine(
                         at += text.Text.Length;
                         break;
 
+                    case SymbolInline symbol:
+                    {
+                        // A symbol brings its own face, and brings it only for itself: the run
+                        // around it keeps the one it had. Its own line box comes with it, so a
+                        // Wingdings character in a line of Times makes the line as tall as
+                        // Wingdings asks for.
+                        var symbolFormat = symbol.Font is null
+                            ? runFormat
+                            : runFormat with { FontFamily = symbol.Font };
+
+                        var symbolFont = symbol.Font is null
+                            ? selection
+                            : _fonts.Resolve(symbol.Font, runFormat.Bold, runFormat.Italic);
+
+                        var symbolBox = symbolFormat.LineBoxFontSizePoints;
+                        var symbolAscent = TextMeasurer.GetAscent(symbolFont.Font, symbolBox);
+                        var symbolNatural = TextMeasurer.GetNaturalLineHeight(symbolFont.Font, symbolBox);
+
+                        AddTextAtoms(atoms, symbol.Text, symbolFormat, symbolFont,
+                            symbolAscent, symbolNatural, symbolNatural - symbolAscent,
+                            link, levels, at);
+
+                        at += symbol.Text.Length;
+                        break;
+                    }
+
                     case BookmarkInline bookmark:
                         // Recorded where the paragraph has reached, which is the line the mark
                         // appears on; a reader following the link lands on that line.
