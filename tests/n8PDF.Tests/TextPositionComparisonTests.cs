@@ -68,6 +68,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     {
         ["chart-title-legend-label"] = 1.0,
 
+        // Where a table folded into the one before it asks to be indented, Word indents it and
+        // then refits the whole merged table — columns and indent together — into the width the
+        // first table declared. This indents the rows and leaves the columns alone, so its rows
+        // stand 5.54pt further in than Word's and its lines are wider by the difference. What
+        // Word does is written up in AdjacentTableTests; the pages where neither table is
+        // indented agree with Word outright.
+        ["adjacent-tables-probe"] = 5.6,
+
         // A script hangs off the plain advance of what it is on, which is where Word hangs one at
         // twelve point to the last decimal place — and 1.09 points further along when the letter
         // under it is twenty. The face states a kern for that: MathKernInfo gives every glyph a
@@ -75,6 +83,19 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         // sits over the letter. It is not read, and this is the one fixture whose scripts sit high
         // enough over their letters for the difference to show.
         ["math-structure-probe"] = 1.2
+    };
+
+    /// <summary>
+    /// Fixtures where a line comes out wider or narrower than Word's, and by how much.
+    /// </summary>
+    /// <remarks>
+    /// One, and for the same reason its lines begin in another place: a merged table Word refits
+    /// to the first table's width has narrower columns than this gives it, so the two cells of a
+    /// row stand closer together and the line they make is shorter.
+    /// </remarks>
+    private static readonly Dictionary<string, double> KnownWidthDivergences = new()
+    {
+        ["adjacent-tables-probe"] = 20.5
     };
 
     private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
@@ -313,10 +334,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
             $"'{name}': a line starts {report.MaxAbsStartXDelta:0.###}pt from where Word puts it " +
             $"(tolerance {startTolerance}pt).\n{report.ToText()}");
 
+        var widthTolerance = KnownWidthDivergences.TryGetValue(name, out var wider)
+            ? wider
+            : WidthTolerance;
+
         if (!TextNotComparable.ContainsKey(name))
-        Assert.True(report.MaxAbsWidthDelta <= WidthTolerance,
+        Assert.True(report.MaxAbsWidthDelta <= widthTolerance,
             $"'{name}': a line's width differs from Word's by {report.MaxAbsWidthDelta:0.###}pt " +
-            $"(tolerance {WidthTolerance}pt).\n{report.ToText()}");
+            $"(tolerance {widthTolerance}pt).\n{report.ToText()}");
 
         var (baselineTolerance, reason) = KnownVerticalDivergences.TryGetValue(name, out var known)
             ? known

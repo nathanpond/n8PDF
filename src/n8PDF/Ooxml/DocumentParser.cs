@@ -28,7 +28,44 @@ internal static class DocumentParser
                 document.Section = ParseSection(element);
         }
 
+        FoldAdjacentTables(document.Body);
         return document;
+    }
+
+    /// <summary>
+    /// Folds tables written one after the other into one, which is how Word reads them.
+    /// </summary>
+    /// <remarks>
+    /// Two <c>w:tbl</c> elements with nothing between them are one table to Word, and a document
+    /// that means two must put a paragraph between them. adjacent-tables-probe shows what that
+    /// costs: two touching tables come out with one line round the pair rather than two, no thick
+    /// edge where they meet, and no space between them either.
+    ///
+    /// What the second table said about itself is not thrown away with it. Its rows keep the
+    /// columns and the indent they were written with — the probe's second table names its columns
+    /// the other way round and Word keeps them that way, and a second table asking to be indented
+    /// is indented while the first is not.
+    /// </remarks>
+    private static void FoldAdjacentTables(List<BlockElement> blocks)
+    {
+        for (var i = blocks.Count - 1; i > 0; i--)
+        {
+            if (blocks[i] is not Table second || blocks[i - 1] is not Table first) continue;
+
+            var grid = second.Grid.SequenceEqual(first.Grid) ? null : second.Grid;
+            var indent = second.Properties.IndentTwips == first.Properties.IndentTwips
+                ? null
+                : second.Properties.IndentTwips;
+
+            foreach (var row in second.Rows)
+            {
+                row.Grid ??= grid;
+                row.IndentTwips ??= indent;
+                first.Rows.Add(row);
+            }
+
+            blocks.RemoveAt(i);
+        }
     }
 
     /// <summary>
@@ -528,6 +565,7 @@ internal static class DocumentParser
                 else if (child.Name == W.Main + "tbl") note.Body.Add(ParseTable(child));
             }
 
+            FoldAdjacentTables(note.Body);
             result[id] = note;
         }
 
@@ -698,6 +736,7 @@ internal static class DocumentParser
             }
         }
 
+        FoldAdjacentTables(shape.Content);
         return shape;
 
         static double Inset(XElement bodyPr, string name, double fallback) =>
@@ -1280,6 +1319,8 @@ internal static class DocumentParser
             else if (child.Name == W.Main + "tbl")
                 cell.Content.Add(ParseTable(child));
         }
+
+        FoldAdjacentTables(cell.Content);
 
         // A cell must contain at least one paragraph; an empty one still occupies a row.
         if (cell.Content.Count == 0) cell.Content.Add(new Paragraph());

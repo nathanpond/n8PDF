@@ -237,6 +237,43 @@ public static class Fixtures
             Times12);
     }
 
+    /// <summary>
+    /// A table of two rows, for measuring what Word does with two of them written one after the
+    /// other with nothing in between.
+    /// </summary>
+    private static string AdjacentTable(
+        string label, int first, int second, string fill, int? indentTwips = null, bool banded = false)
+    {
+        string Cell(string text, int width) =>
+            $"<w:tc><w:tcPr><w:tcW w:w=\"{width}\" w:type=\"dxa\"/>" +
+            $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fill}\"/></w:tcPr>" +
+            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+            $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(text)}</w:t></w:r></w:p></w:tc>";
+
+        var rows = string.Concat(Enumerable.Range(1, 2).Select(i =>
+            $"<w:tr>{Cell($"{label} {i}a", first)}{Cell($"{label} {i}b", second)}</w:tr>"));
+
+        return $"""
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblW w:w="{first + second}" w:type="dxa"/>
+                    {(indentTwips is { } indent ? $"<w:tblInd w:w=\"{indent}\" w:type=\"dxa\"/>" : string.Empty)}
+                    <w:tblBorders>
+                      <w:top w:val="single" w:sz="24" w:color="auto"/>
+                      <w:left w:val="single" w:sz="4" w:color="auto"/>
+                      <w:bottom w:val="single" w:sz="24" w:color="auto"/>
+                      <w:right w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="{first}"/><w:gridCol w:w="{second}"/></w:tblGrid>
+                  {rows}
+                </w:tbl>
+                """;
+    }
+
     private static string ColumnOrderTable(
         string label, bool mirrored, int indentTwips = 0, bool span = false, bool pageBreak = false)
     {
@@ -5370,6 +5407,44 @@ public static class Fixtures
                 // the border's width or a fixed step.
                 Page("Thick", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
                               "w:tblpX=\"0\" w:tblpY=\"300\"/>", borderSize: 24);
+
+                return builder;
+            },
+
+            // Two tables written one after the other with nothing in between, which Word reads as
+            // one table rather than two. Four pages:
+            //
+            //   1  two tables of the same grid, touching
+            //   2  the same two with a paragraph between them, for that to be set against
+            //   3  two tables of different grids, touching: whose columns win
+            //   4  a second table that asks to be indented, touching the first — the one page
+            //      where Word does something this does not follow, and the difference is written
+            //      up in AdjacentTableTests
+            ["adjacent-tables-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Page(string one, string two, bool between = false)
+                {
+                    builder.AddRawParagraph(one);
+                    if (between) builder.AddParagraph("Between them.", ZeroSpacing, Times12);
+                    builder.AddRawParagraph(two);
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                }
+
+                Page(AdjacentTable("First", 2880, 1440, "FFE0E0"),
+                    AdjacentTable("Second", 2880, 1440, "E0E0FF"));
+
+                Page(AdjacentTable("Apart one", 2880, 1440, "FFE0E0"),
+                    AdjacentTable("Apart two", 2880, 1440, "E0E0FF"), between: true);
+
+                // The second names its columns differently: 1440 and 2880 where the first had
+                // 2880 and 1440.
+                Page(AdjacentTable("Wide", 2880, 1440, "FFE0E0"),
+                    AdjacentTable("Narrow", 1440, 2880, "E0E0FF"));
+
+                Page(AdjacentTable("Plain", 2880, 1440, "FFE0E0"),
+                    AdjacentTable("Indented", 2880, 1440, "E0E0FF", indentTwips: 720));
 
                 return builder;
             },

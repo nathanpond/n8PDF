@@ -1020,6 +1020,19 @@ internal sealed class TableRow
 
     /// <summary>The row repeats at the top of each page the table continues onto.</summary>
     public bool? IsHeader { get; set; }
+
+    /// <summary>
+    /// The grid this row's cells are measured against, where it is not the table's own, and how
+    /// far it is indented.
+    /// </summary>
+    /// <remarks>
+    /// Set only on the rows of a table folded into the one before it: Word reads two tables
+    /// written with nothing between them as one, and the rows that came from the second keep the
+    /// columns and the indent they were written with. See adjacent-tables-probe.
+    /// </remarks>
+    public IReadOnlyList<int>? Grid { get; set; }
+
+    public int? IndentTwips { get; set; }
 }
 
 internal sealed class TableCell

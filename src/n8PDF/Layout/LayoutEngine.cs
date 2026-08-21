@@ -3333,6 +3333,24 @@ internal sealed class LayoutEngine(
         var properties = table.Properties;
         var placed = new List<PlacedCell>(row.Cells.Count);
 
+        // A row folded in from the table that used to follow this one keeps the columns and the
+        // indent it was written with, which is what Word does with two tables written one after
+        // the other. Neither is set on a row of a table nobody folded.
+        if (row.Grid is { Count: > 0 } own)
+        {
+            var total = columns.Sum();
+            var mine = own.Select(twips => Units.TwipsToPoints(twips)).Where(width => width > 0).ToList();
+            var wanted = mine.Sum();
+
+            if (mine.Count > 0)
+                columns = wanted > total + 0.01
+                    ? mine.Select(width => width * total / wanted).ToList()
+                    : mine;
+        }
+
+        if (row.IndentTwips is { } indent)
+            tableLeft += Units.TwipsToPoints(indent - (properties.IndentTwips ?? 0));
+
         // A mirrored table is filled from its right-hand end: the first cell of the row is the
         // rightmost, and each that follows stands to the left of the last.
         var mirrored = properties.Mirrored;

@@ -980,6 +980,33 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### Two tables written one after the other
+
+A document that means two tables must put a paragraph between them: two `w:tbl` elements that touch
+are **one table** to Word, and the difference shows. `adjacent-tables-probe` borders each table
+three points at the top and foot and half a point inside, so the join can be read off the ink — and
+two touching tables come out with one line round the pair, none where they meet, and no space
+between them either.
+
+So they are folded into one when the document is read, and what the second table said about itself
+is not thrown away with it:
+
+- **Its rows keep the columns they were written with.** The probe's second table names its columns
+  the other way round — a narrow one first — and Word keeps them that way, a table being free to
+  have rows of different widths.
+- **Its rows keep their own indent**, which is a row's property in Word's model rather than a
+  table's.
+- **What it said about its borders is** thrown away: the line round the merged table is the first
+  table's.
+
+**One thing Word does here that this does not.** Where a folded table asks to be indented, Word
+indents its rows *and then refits the whole merged table* — columns and indent together — into the
+width the first table declared: the probe's fourth page comes out with columns of 123.12 and 61.44
+points where they were written 144 and 72, and rows indented 30 points where they asked for 36.
+This indents the rows by what they ask for and leaves the columns alone, so those rows stand 5.54
+points further in than Word's. It is written up in `AdjacentTableTests`, and it is the only page of
+the probe that differs: the rest agrees with Word outright.
+
 ### The boxes a form is filled in by
 
 A legacy form field holding `w:checkBox` draws no text at all: the box **is** the field, and Word
