@@ -742,8 +742,8 @@ internal sealed class LayoutEngine(
             if (composer.PendingPageBreak && cursor.CanBreak) cursor.BreakPage();
             else if (composer.PendingColumnBreak && cursor.CanAdvance) cursor.AdvanceColumn();
 
-            var band = ResolveBandForLine(cursor, composer.ProvisionalHeight);
-            var line = composer.Next(band.Left, band.Width);
+            var bands = ResolveBandsForLine(cursor, composer.ProvisionalHeight);
+            var line = composer.Next(bands);
 
             // The paragraph a section break is written on takes no number and does not advance
             // the count: line-number-probe's middle section carries on from six to seven across a
@@ -1020,7 +1020,7 @@ internal sealed class LayoutEngine(
 
         // A measure wide enough that the letter is never broken across lines: a frame holds one
         // letter, and the paragraph mark after it is not to take a line of its own.
-        var line = composer.Next(0, cursor.Width * 4);
+        var line = composer.Next([(0, cursor.Width * 4)]);
         if (line.Segments.Count == 0) return;
 
         var text = line.Segments.Max(segment => segment.X + segment.Width);
@@ -1265,27 +1265,33 @@ internal sealed class LayoutEngine(
     }
 
     /// <summary>
-    /// Finds the free horizontal band for the next line, moving down past any float that blocks
+    /// Finds the free horizontal bands for the next line, moving down past any float that blocks
     /// the full measure.
     /// </summary>
-    private static (double Left, double Width) ResolveBandForLine(Cursor cursor, double provisionalHeight)
+    /// <remarks>
+    /// More than one where a float has room on both sides of it. They come back in the order they
+    /// stand across the page, and the line is run through them left to right.
+    /// </remarks>
+    private static List<(double Left, double Width)> ResolveBandsForLine(
+        Cursor cursor, double provisionalHeight)
     {
         var height = Math.Max(1, provisionalHeight);
+        var whole = new List<(double Left, double Width)> { (0, cursor.Width) };
 
         // A wrapTopAndBottom float, or two floats meeting in the middle, can leave no usable
         // width at all. The line then belongs below them.
         for (var guard = 0; guard < 64; guard++)
         {
-            var band = cursor.ResolveBand(cursor.Y, height);
-            if (band.Width > 1) return band;
+            var bands = cursor.ResolveBands(cursor.Y, height);
+            if (bands.Count > 0) return bands;
 
             var clear = cursor.NextClearY(cursor.Y, height);
-            if (clear is null || clear <= cursor.Y) return (0, cursor.Width);
+            if (clear is null || clear <= cursor.Y) return whole;
 
             cursor.Y = clear.Value;
         }
 
-        return (0, cursor.Width);
+        return whole;
     }
 
     /// <summary>
@@ -4356,40 +4362,51 @@ internal sealed class LayoutEngine(
         public double ProvisionalHeight { get; } =
             atoms.Count == 0 ? 0 : atoms.Max(atom => atom.NaturalHeight);
 
-        public ComposedLine Next(double bandLeft, double bandWidth)
+        /// <summary>
+        /// Composes the next line into the free bands it has been given, in the order they stand
+        /// across the page.
+        /// </summary>
+        /// <remarks>
+        /// One band is the ordinary case and the only one for most of a document. Two or more
+        /// happen where something floats with room on both sides of it — a table put in the middle
+        /// of the measure, a picture with text either side — and Word runs the line through all of
+        /// them, left to right, as though the float were a hole in the paper. floating-table-wrap-probe
+        /// measures that against Word.
+        ///
+        /// Each band is filled and finished on its own, so that a justified line is stretched to
+        /// the edge of every band it passes through rather than to the last one only, which is
+        /// what Word does with it. The pieces are then one line: they share a baseline, and the
+        /// height and ascent of the tallest of them.
+        /// </remarks>
+        public ComposedLine Next(IReadOnlyList<(double Left, double Width)> bands)
         {
-            var indentLeft = format.IndentLeftPoints +
-                             (_isFirstLine ? Math.Max(0, format.IndentFirstLinePoints) : 0);
-
-            // A hanging indent pulls the first line left of the others, so it applies to the
-            // first line as a negative offset rather than to the rest as a positive one.
-            if (_isFirstLine && format.IndentFirstLinePoints < 0)
-                indentLeft = format.IndentLeftPoints + format.IndentFirstLinePoints;
-
-            // The line sits in whichever is the tighter of the indents and the free band.
-            var left = Math.Max(indentLeft, bandLeft);
-            var right = Math.Min(bandLeft + bandWidth, bandLeft + bandWidth) - format.IndentRightPoints;
-            var available = Math.Max(1, right - left);
-
-            var line = new ComposedLine
-            {
-                IndentLeft = left
-            };
-
             _forceBreakOnNextLine = false;
             _forceColumnBreakOnNextLine = false;
 
-            var consumed = FillLine(
-                atoms, _index, available, line, _tabs,
-                out var hardBreak, out var pageBreak, out var columnBreak);
-            _index += consumed;
-            _producedAny = true;
+            var line = Fill(bands[0], first: true, out var stopped);
 
-            var isLastLine = _index >= atoms.Count;
-            FinishLine(line, format, left, available, isLastLine || hardBreak, _markMetrics.Height);
+            // The rest of the bands take what is left of the line, if anything is. A break ends
+            // the line where it stands: what follows a line break belongs to the next line
+            // wherever the room is.
+            for (var i = 1; i < bands.Count && !stopped && _index < atoms.Count; i++)
+            {
+                var band = bands[i];
+                var mark = _index;
+                var piece = Fill(band, first: false, out stopped);
 
-            if (pageBreak) _forceBreakOnNextLine = true;
-            if (columnBreak) _forceColumnBreakOnNextLine = true;
+                // A band too narrow for the next word takes nothing rather than overflowing into
+                // whatever stands beside it. The first band is not held to that: a word too long
+                // for the whole measure has to go somewhere, and Word lets it overflow.
+                if (piece.Segments.Count > 0 && LineWidth(piece) > band.Width + 0.001)
+                {
+                    _index = mark;
+                    stopped = false;
+                    continue;
+                }
+
+                Absorb(line, piece);
+            }
+
             _isFirstLine = false;
 
             // An empty paragraph has no atoms but still takes up a line, sized by its mark.
@@ -4399,10 +4416,74 @@ internal sealed class LayoutEngine(
             // has to carry it: a line outlives the paragraph that composed it.
             line.SuppressNumber = format.SuppressLineNumbers;
 
+            return line;
+        }
+
+        /// <summary>Fills one band, and says whether the line ended inside it.</summary>
+        private ComposedLine Fill((double Left, double Width) band, bool first, out bool stopped)
+        {
+            var indentLeft = format.IndentLeftPoints +
+                             (_isFirstLine ? Math.Max(0, format.IndentFirstLinePoints) : 0);
+
+            // A hanging indent pulls the first line left of the others, so it applies to the
+            // first line as a negative offset rather than to the rest as a positive one.
+            if (_isFirstLine && format.IndentFirstLinePoints < 0)
+                indentLeft = format.IndentLeftPoints + format.IndentFirstLinePoints;
+
+            // The line sits in whichever is the tighter of the indents and the free band. Only the
+            // first band of a line is indented: an indent is measured from the margin, and a band
+            // further across the page has already left the margin behind.
+            var left = first ? Math.Max(indentLeft, band.Left) : band.Left;
+            var right = band.Left + band.Width - (first ? format.IndentRightPoints : 0);
+            var available = Math.Max(1, right - left);
+
+            var line = new ComposedLine
+            {
+                IndentLeft = left
+            };
+
+            var consumed = FillLine(
+                atoms, _index, available, line, _tabs,
+                out var hardBreak, out var pageBreak, out var columnBreak);
+            _index += consumed;
+            _producedAny = true;
+
+            // The line is finished here if nothing is left of the paragraph or a break ended it;
+            // otherwise it may carry on into the band beyond this one.
+            stopped = hardBreak || pageBreak || columnBreak;
+
+            var isLastLine = _index >= atoms.Count;
+            FinishLine(line, format, left, available, isLastLine || hardBreak, _markMetrics.Height);
+
+            if (pageBreak) _forceBreakOnNextLine = true;
+            if (columnBreak) _forceColumnBreakOnNextLine = true;
+
             // Nothing was consumed and nothing remains: the one pass an empty paragraph gets.
             if (consumed == 0 && _index >= atoms.Count) _index = atoms.Count;
 
             return line;
+        }
+
+        /// <summary>How far the drawn part of a composed piece reaches from where it began.</summary>
+        private static double LineWidth(ComposedLine line) =>
+            line.Segments.Count == 0
+                ? 0
+                : line.Segments.Max(segment => segment.X + segment.Width) - line.IndentLeft;
+
+        /// <summary>Takes a piece composed in a further band into the line it belongs to.</summary>
+        private static void Absorb(ComposedLine line, ComposedLine piece)
+        {
+            line.Items.AddRange(piece.Items);
+            line.Segments.AddRange(piece.Segments);
+            line.Images.AddRange(piece.Images);
+            line.Separators.AddRange(piece.Separators);
+            line.Leaders.AddRange(piece.Leaders);
+            line.Bars.AddRange(piece.Bars);
+
+            // One line, so one baseline: the tallest piece decides where it falls and how much
+            // room the line takes.
+            line.Ascent = Math.Max(line.Ascent, piece.Ascent);
+            line.Height = Math.Max(line.Height, piece.Height);
         }
     }
 
@@ -5798,6 +5879,46 @@ internal sealed class LayoutEngine(
         /// The widest run of free horizontal space across a vertical band, as an offset from the
         /// content box's left edge and a width. Zero width means the band is fully blocked.
         /// </summary>
+        /// <summary>
+        /// The free horizontal bands across a vertical strip, as offsets from the content box's
+        /// left edge, in the order they stand across the page. Empty where the strip is blocked
+        /// from side to side.
+        /// </summary>
+        /// <remarks>
+        /// A line is run through all of them, which is what Word does with text beside a float
+        /// that has room on either side of it. Bands narrower than a point are dropped: nothing
+        /// can be set in them, and a band of nothing would only cost the line a pass.
+        /// </remarks>
+        public List<(double Left, double Width)> ResolveBands(double top, double height)
+        {
+            var free = new List<(double Left, double Width)>();
+            if (Floats.Count == 0) return [(0, Width)];
+
+            var boxLeft = Left;
+            var boxRight = Left + Width;
+
+            var blocked = Floats
+                .Where(f => f.Top < top + height && f.Bottom > top)
+                .Select(f => (Left: Math.Max(boxLeft, f.Left), Right: Math.Min(boxRight, f.Right)))
+                .Where(interval => interval.Right > interval.Left)
+                .OrderBy(interval => interval.Left)
+                .ToList();
+
+            if (blocked.Count == 0) return [(0, Width)];
+
+            var x = boxLeft;
+
+            foreach (var interval in blocked)
+            {
+                if (interval.Left - x > 1) free.Add((x - Left, interval.Left - x));
+                x = Math.Max(x, interval.Right);
+            }
+
+            if (boxRight - x > 1) free.Add((x - Left, boxRight - x));
+
+            return free;
+        }
+
         public (double Left, double Width) ResolveBand(double top, double height)
         {
             if (Floats.Count == 0) return (0, Width);

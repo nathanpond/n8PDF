@@ -55,6 +55,51 @@ public class FloatingImageTests
             Assert.Equal(72, line.Texts[0].X, 1);
     }
 
+    /// <summary>
+    /// A picture with room on both sides of it has text down both sides: a line runs to the
+    /// picture's left edge, picks up again at its right, and carries on to the margin.
+    /// </summary>
+    /// <remarks>
+    /// The same as a floating table does, and by the same means — a line is composed through every
+    /// free band across the page rather than the widest of them. images-floating holds the case
+    /// against Word's own export, on the page whose picture stands in the middle of the measure;
+    /// what is asserted here is the shape of it.
+    /// </remarks>
+    [Fact]
+    public void Text_runs_down_both_sides_of_a_picture_in_the_middle()
+    {
+        var builder = new DocxBuilder();
+        var id = builder.AddImagePart(PngWriter.Solid(20, 20, 90, 40, 150));
+
+        // 144pt of picture in the middle of a 468pt measure leaves about 150pt either side.
+        builder.AddAnchoredImageParagraph(id, 144, 72, Body(), alignX: "center", runProperties: Times12);
+
+        var page = LayoutOf(builder).Pages[0];
+        var image = Assert.Single(page.Images);
+
+        var beside = page.Lines
+            .Where(line => line.Texts.Count > 0 &&
+                           line.BaselineY > image.Y && line.BaselineY < image.Y + image.Height)
+            .ToList();
+
+        Assert.NotEmpty(beside);
+
+        foreach (var line in beside)
+        {
+            // One line, in two pieces: one before the picture and one after it.
+            Assert.True(line.Texts[0].X < image.X,
+                $"the line at {line.BaselineY:0.#} begins at {line.Texts[0].X:0.#}, past the picture");
+
+            var after = line.Texts.Where(text => text.X >= image.X + image.Width).ToList();
+            Assert.True(after.Count > 0,
+                $"the line at {line.BaselineY:0.#} stops at the picture instead of carrying on past it");
+
+            // And nothing of it stands on the picture itself.
+            Assert.DoesNotContain(line.Texts,
+                text => text.X + text.Width > image.X && text.X < image.X + image.Width);
+        }
+    }
+
     [Fact]
     public void Square_wrap_leaves_the_beside_lines_shorter_than_the_full_measure()
     {

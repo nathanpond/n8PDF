@@ -1006,19 +1006,38 @@ reaches give up its width and the ones past it come back to the full measure. Ev
 seven pages agrees with Word: the box within a tenth of a point sideways, and the text beside it
 within half of one.
 
-**Two things Word does here that this does not yet**, both held in `floating-table-wrap-probe`
-rather than left unsaid:
-
-- **Word flows text down both sides of a table with room either side of it.** This puts the text
-  down the wider side and leaves the narrower empty, so a paragraph beside a centred table takes
-  twice as many lines here as in Word. The same limit applies to a floating picture, and lifting it
-  means composing one line across two bands.
-- **Word shortens a line its clearance reaches back over.** A table with half an inch of daylight
-  above it shortens the line already written above it; this leaves that line whole, because by the
-  time the table is reached that line has been placed.
+**One thing Word does here that this does not yet**, held in `floating-table-wrap-probe` rather
+than left unsaid: **Word shortens a line that a float's clearance reaches back over.** A table with
+half an inch of daylight above it shortens the line already written above it; this leaves that line
+whole, because by the time the table is reached that line has been placed and nothing goes back to
+break it again.
 
 A floating table is also not broken across pages here — Word moves one that will not fit rather
 than splitting it, and a probe for that is work still to do.
+
+### Text down both sides of a float
+
+A float with room on either side of it does not take the text with it: Word runs each line through
+both gaps, left to right, as though the float were a hole in the paper. A line beside a table
+standing in the middle of the measure begins at the margin, stops at the table, picks up again past
+it, and ends at the right margin — one line, in two pieces, on one baseline.
+
+That is what the layout does now. The free bands across a line are resolved in the order they stand
+on the page, and the line is filled through all of them:
+
+- **Each band is filled and finished on its own**, so a justified line is stretched to the edge of
+  every band it passes through rather than to the last one only, which is what Word does with it.
+- **Only the first band of a line is indented.** An indent is measured from the margin, and a band
+  further across the page has left the margin behind.
+- **A band too narrow for the next word takes nothing** rather than overflowing into whatever
+  stands beside it. The first band is not held to that: a word too long for the whole measure has
+  to go somewhere, and Word lets it overflow.
+- A band narrower than a point is dropped before any of that: nothing can be set in it.
+
+Measured against Word twice over, since it is the wrapping engine rather than the table that does
+it — `floating-table-wrap-probe` for a table standing in the middle of the measure, and
+`images-floating` for a picture doing the same. Every line of both agrees with Word's own export to
+within a step of the grid, in the same places, with the same words on them.
 
 ### A dropped capital
 

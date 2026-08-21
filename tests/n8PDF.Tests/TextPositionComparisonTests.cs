@@ -68,6 +68,14 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     {
         ["chart-title-legend-label"] = 1.0,
 
+        // Word shortens a line that a float's clearance reaches back over: the table on the
+        // second page of the probe keeps half an inch of daylight above it, and the line already
+        // written above it is shortened to make room. Here that line has been placed by the time
+        // the table is reached and it stays whole, so it begins at the margin where Word's begins
+        // 152.64pt in. Everything else on both pages of that fixture agrees with Word — the text
+        // running down both sides of the table included, to within a step of the grid.
+        ["floating-table-wrap-probe"] = 153,
+
         // A script hangs off the plain advance of what it is on, which is where Word hangs one at
         // twelve point to the last decimal place — and 1.09 points further along when the letter
         // under it is twenty. The face states a kern for that: MathKernInfo gives every glyph a
@@ -250,26 +258,6 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         ["math-bracket-probe"] = (2, "a built-up bracket is three characters in Word's file and one here")
     };
 
-    /// <summary>
-    /// Fixtures where Word makes room round a float in a way this does not yet, so that its lines
-    /// and ours cannot be set against one another at all.
-    /// </summary>
-    /// <remarks>
-    /// One fixture, and it holds the two things themselves rather than hiding them: Word puts text
-    /// down both sides of a table with room either side of it where this puts it down the wider
-    /// side, and Word shortens a line its clearance reaches back over where this leaves that line
-    /// whole. Both are written up in FloatingTableTests, which holds what Word does as well as
-    /// what this does, so the day either is implemented the test says what changed.
-    ///
-    /// Everything else about a floating table is compared exactly: floating-table-probe puts seven
-    /// of them to Word and agrees with its own export to a tenth of a point.
-    /// </remarks>
-    private static readonly Dictionary<string, string> WrappedDifferently = new()
-    {
-        ["floating-table-wrap-probe"] =
-            "Word flows text down both sides of a float, and shortens a line its clearance reaches back over"
-    };
-
     public static TheoryData<string> FixtureNames
     {
         get
@@ -292,11 +280,6 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         var report = Compare(name, referencePath);
         _output.WriteLine(report.ToText());
 
-        if (WrappedDifferently.TryGetValue(name, out var wrapped))
-        {
-            _output.WriteLine($"not compared: {wrapped}");
-            return;
-        }
 
         if (DrawnAsOutlines.TryGetValue(name, out var outlined))
         {

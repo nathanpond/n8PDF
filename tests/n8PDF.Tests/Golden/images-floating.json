@@ -1,5 +1,5 @@
 {
-  "pageCount": 1,
+  "pageCount": 2,
   "pages": [
     {
       "width": 612,
@@ -143,63 +143,155 @@
         },
         {
           "paragraph": 1,
-          "baselineY": 373.68,
+          "baselineY": 317.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 351.568, "font": "Times New Roman", "size": 12, "text": "floating picture beside it. Text flows around the floating picture beside it."}
           ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 145.963, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating"},
+            {"x": 384, "width": 134.297, "font": "Times New Roman", "size": 12, "text": "picture beside it. Text flows"}
+          ]
         },
         {
           "paragraph": 2,
-          "baselineY": 387.36,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 127.623, "font": "Times New Roman", "size": 12, "text": "around the floating picture"},
+            {"x": 384, "width": 151.963, "font": "Times New Roman", "size": 12, "text": "beside it. Text flows around the"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.955, "font": "Times New Roman", "size": 12, "text": "floating picture beside it. Text"},
+            {"x": 384, "width": 120.973, "font": "Times New Roman", "size": 12, "text": "flows around the floating"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.297, "font": "Times New Roman", "size": 12, "text": "picture beside it. Text flows"},
+            {"x": 384, "width": 127.623, "font": "Times New Roman", "size": 12, "text": "around the floating picture"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 151.963, "font": "Times New Roman", "size": 12, "text": "beside it. Text flows around the"},
+            {"x": 384, "width": 144.955, "font": "Times New Roman", "size": 12, "text": "floating picture beside it. Text"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 120.973, "font": "Times New Roman", "size": 12, "text": "flows around the floating"},
+            {"x": 384, "width": 134.297, "font": "Times New Roman", "size": 12, "text": "picture beside it. Text flows"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "around the floating picture beside it. Text flows around the floating picture beside it. Text flows"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "around the floating picture beside it. Text flows around the floating picture beside it. Text flows"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 193.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "around the floating picture beside it. Text flows around the floating picture beside it. Text flows"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 263.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 173.947, "font": "Times New Roman", "size": 12, "text": "around the floating picture beside it."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 276.96,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}
           ]
         },
         {
-          "paragraph": 2,
-          "baselineY": 401.28,
+          "paragraph": 3,
+          "baselineY": 290.88,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}
           ]
         },
         {
-          "paragraph": 2,
-          "baselineY": 414.96,
+          "paragraph": 3,
+          "baselineY": 304.56,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}
           ]
         },
         {
-          "paragraph": 2,
-          "baselineY": 428.88,
+          "paragraph": 3,
+          "baselineY": 318.48,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}
           ]
         },
         {
-          "paragraph": 2,
-          "baselineY": 442.56,
+          "paragraph": 3,
+          "baselineY": 332.16,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}
           ]
         },
         {
-          "paragraph": 2,
-          "baselineY": 456.48,
+          "paragraph": 3,
+          "baselineY": 346.08,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}
           ]
         },
         {
-          "paragraph": 2,
-          "baselineY": 470.16,
+          "paragraph": 3,
+          "baselineY": 359.76,
           "height": 13.799,
           "runs": [
             {"x": 72, "width": 460.207, "font": "Times New Roman", "size": 12, "text": "Text flows around the floating picture beside it. Text flows around the floating picture beside it."}

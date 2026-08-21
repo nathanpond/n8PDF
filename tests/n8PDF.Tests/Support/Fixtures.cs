@@ -3006,11 +3006,20 @@ public static class Fixtures
                 var body = string.Join(' ',
                     Enumerable.Repeat("Text flows around the floating picture beside it.", 14));
 
+                var middle = builder.AddImagePart(PngWriter.Solid(30, 30, 90, 40, 150));
+
                 return builder
                     .AddAnchoredImageParagraph(left, 108, 90, body,
                         paragraphProperties: ZeroSpacing, runProperties: Times12)
                     .AddAnchoredImageParagraph(right, 108, 90, body, alignX: "right",
                         paragraphProperties: ZeroSpacing, runProperties: Times12)
+                    // In the middle of the measure, where the text has room on both sides of it
+                    // and Word runs each line through both. At the top of a page of its own: a
+                    // float whose clearance reaches back over a line already written is a thing
+                    // Word does and this does not, and that is held in floating-table-wrap-probe
+                    // rather than mixed in here.
+                    .AddAnchoredImageParagraph(middle, 144, 72, body, alignX: "center",
+                        paragraphProperties: ZeroSpacingNewPage, runProperties: Times12)
                     .AddAnchoredImageParagraph(banner, 360, 36, body, wrap: "topAndBottom",
                         paragraphProperties: ZeroSpacing, runProperties: Times12);
             },

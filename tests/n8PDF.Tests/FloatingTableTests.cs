@@ -112,44 +112,76 @@ public class FloatingTableTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The two things Word does with a floating table that this does not: they are held here so
-    /// that the difference is written down rather than merely absent.
+    /// A float with room on both sides of it has text down both sides: the line runs to the
+    /// table's left edge, picks up again at its right, and carries on to the margin.
     /// </summary>
     /// <remarks>
-    /// Word flows text down both sides of a table with room either side of it. This puts the text
-    /// down the wider side and leaves the narrower one empty, so a paragraph beside a centred
-    /// table takes twice as many lines here as in Word.
-    ///
-    /// Word also shortens a line its clearance reaches back over — a table with half an inch of
-    /// daylight above it shortens the line already written above it. This leaves that line whole,
-    /// because by the time the table is reached the line has been placed.
+    /// Measured against Word on the first page of <c>floating-table-wrap-probe</c>, whose table
+    /// stands in the middle of the measure with a hundred and forty points of room either side.
+    /// Every line of that page agrees with Word's own to within a step of the grid, so what is
+    /// asserted here is the thing itself: the lines beside the table are as wide as the whole
+    /// measure rather than half of it, and there are as many of them as Word has.
     /// </remarks>
     [Fact]
-    public void What_word_does_with_a_float_that_this_does_not()
+    public void Text_runs_down_both_sides_of_a_float()
     {
         if (TestFonts.SkipForMissingFonts("floating-table-wrap-probe")) return;
 
         var pdf = Ours("floating-table-wrap-probe");
         var word = File.ReadAllBytes(Path.Combine(TestPaths.ReferencePdfs, "floating-table-wrap-probe.pdf"));
 
-        // The centred table: Word's line beside it begins at the margin and carries on past the
-        // table, so it is one line; ours begins at the margin and stops at the table.
         var wordWidest = Widest(word, 0, Box(word, 0));
         var oursWidest = Widest(pdf, 0, Box(pdf, 0));
 
         output.WriteLine($"widest line beside a centred table: word {wordWidest:0.##} ours {oursWidest:0.##}");
-        Assert.True(wordWidest > oursWidest + 100,
-            $"Word's line beside a centred table runs both sides of it ({wordWidest:0.##}pt) " +
-            $"where this stops at the table ({oursWidest:0.##}pt)");
 
-        // The clearance above: Word shortens the line above the table, and this does not.
+        // Within a few points of Word's, and a good two hundred wider than the room on either
+        // side of the table taken alone — which is the thing being asserted. That each line
+        // begins and ends where Word's does, to a tenth of a point, is asserted by the comparison
+        // against Word's own export in TextPositionComparisonTests; this measure runs from the
+        // first piece of a line to the last and so takes in the space where the two meet.
+        Assert.Equal(wordWidest, oursWidest, 4.0);
+        Assert.True(oursWidest > 400, $"a line beside the table is only {oursWidest:0.##}pt wide");
+
+        // And the same number of lines on the page, which is what says the room was used rather
+        // than merely reached.
+        Assert.Equal(Lines(word, 0), Lines(pdf, 0));
+    }
+
+    /// <summary>
+    /// The one thing Word does with a floating table that this does not: it shortens a line that
+    /// the table's clearance reaches back over.
+    /// </summary>
+    /// <remarks>
+    /// The second page of <c>floating-table-wrap-probe</c> has half an inch of daylight above the
+    /// table, which reaches back over the line already written above it. Word shortens that line;
+    /// here it stays whole, because by the time the table is reached the line has been placed and
+    /// nothing goes back to break it again. Held so the difference is written down rather than
+    /// merely absent — and so the day it is done, this test says what changed.
+    /// </remarks>
+    [Fact]
+    public void A_clearance_reaching_back_over_a_line_leaves_it_whole()
+    {
+        if (TestFonts.SkipForMissingFonts("floating-table-wrap-probe")) return;
+
+        var pdf = Ours("floating-table-wrap-probe");
+        var word = File.ReadAllBytes(Path.Combine(TestPaths.ReferencePdfs, "floating-table-wrap-probe.pdf"));
+
         var wordAbove = FirstLineStart(word, 1);
         var oursAbove = FirstLineStart(pdf, 1);
 
         output.WriteLine($"line above a table with half an inch of daylight: word {wordAbove:0.##} ours {oursAbove:0.##}");
-        Assert.True(wordAbove > 200, "Word should shorten the line its clearance reaches back over");
+
+        Assert.Equal(224.64, wordAbove, 0.1);
         Assert.Equal(72.0, oursAbove, 0.5);
     }
+
+    /// <summary>How many lines of text a page holds.</summary>
+    private static int Lines(byte[] pdf, int page) =>
+        PdfTextExtractor.Extract(pdf)
+            .Where(run => run.PageIndex == page)
+            .GroupBy(run => Math.Round(run.BaselineY, 2))
+            .Count();
 
     private static byte[] Ours(string fixture) =>
         Converter.Convert(Fixtures.Build(fixture),
