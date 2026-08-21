@@ -1,0 +1,83 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 200.625, "font": "Times New Roman", "size": 12, "text": "Hyphenation is the business of breaking a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.596, "font": "Times New Roman", "size": 12, "text": "word between two lines when the remainder"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 160.957, "font": "Times New Roman", "size": 12, "text": "would otherwise be unreasonably"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.602, "font": "Times New Roman", "size": 12, "text": "conspicuous, and typographers have argued"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 149.977, "font": "Times New Roman", "size": 12, "text": "about it interminably. Consider"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 199.594, "font": "Times New Roman", "size": 12, "text": "representative examples: communication,"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 158.959, "font": "Times New Roman", "size": 12, "text": "extraordinary, misunderstanding,"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 203.625, "font": "Times New Roman", "size": 12, "text": "particularly, responsibility, understanding,"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 193.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 196.945, "font": "Times New Roman", "size": 12, "text": "international, development, organisation."}
+          ]
+        }
+      ]
+    }
+  ]
+}

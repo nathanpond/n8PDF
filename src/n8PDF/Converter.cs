@@ -170,6 +170,15 @@ public static class Converter
             if (settings?.Element(W.Main + "decimalSymbol")?.Attr("val") is { Length: > 0 } symbol)
                 document.DecimalSymbol = symbol;
 
+            // Whether words are broken at the ends of lines. The zone is how much white a line may
+            // be left with before one is: a quarter of an inch where the document says nothing,
+            // which is Word's own default.
+            document.Hyphenation = new Hyphenation(
+                settings?.Element(W.Main + "autoHyphenation")?.OnOff() ?? false,
+                Units.TwipsToPoints(settings?.Element(W.Main + "hyphenationZone")?.IntVal() ?? 360),
+                Math.Max(0, settings?.Element(W.Main + "consecutiveHyphenLimit")?.IntVal() ?? 0),
+                settings?.Element(W.Main + "doNotHyphenateCaps")?.OnOff() ?? false);
+
             // How notes are numbered is stated on the section if anywhere, and in the settings
             // otherwise; a document that says nothing gets Word's defaults.
             if (DocumentParser.ReadNoteNumberFormat(settings, NoteKind.Footnote) is { } footnoteFormat)

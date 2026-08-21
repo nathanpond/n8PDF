@@ -696,6 +696,21 @@ internal enum DropCapKind
 /// </remarks>
 internal sealed record FrameProperties(DropCapKind DropCap, int Lines, double HorizontalSpacePoints);
 
+/// <summary>
+/// Whether words are broken at the ends of lines, and on what terms.
+/// </summary>
+/// <param name="ZonePoints">
+/// How much white a line may be left with before a word is broken to fill it, from
+/// <c>w:hyphenationZone</c>. Word's own default is a quarter of an inch.
+/// </param>
+/// <param name="ConsecutiveLimit">
+/// How many lines in a row may end in a hyphen, from <c>w:consecutiveHyphenLimit</c>. Zero means
+/// no limit, which is Word's default.
+/// </param>
+/// <param name="LeaveCapitalsAlone">A word in capitals is not broken, from <c>w:doNotHyphenateCaps</c>.</param>
+internal sealed record Hyphenation(
+    bool Automatic, double ZonePoints, int ConsecutiveLimit, bool LeaveCapitalsAlone);
+
 /// <summary>Where the count of lines begins again.</summary>
 internal enum LineNumberRestart
 {
@@ -1110,6 +1125,13 @@ internal sealed class WordDocument
     /// than on the section, because it applies to the whole document.
     /// </summary>
     public bool EvenAndOddHeaders { get; set; }
+
+    /// <summary>
+    /// Whether Word may break a word at the end of a line, from <c>w:autoHyphenation</c>, and the
+    /// terms it is allowed to do it on. Declared in settings.xml: it is the document's habit
+    /// rather than any one paragraph's, though a paragraph may say it is to be left alone.
+    /// </summary>
+    public Hyphenation Hyphenation { get; set; } = new(false, 18, 0, false);
 
     public List<BlockElement> Body { get; } = [];
 

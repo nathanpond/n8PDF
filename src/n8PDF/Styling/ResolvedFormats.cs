@@ -189,6 +189,9 @@ internal sealed record ResolvedParagraphFormat
     /// <summary>The frame round this paragraph, or null where it has none.</summary>
     public FrameProperties? Frame { get; init; }
 
+    /// <summary>Whether this paragraph's words are left whole at the ends of its lines.</summary>
+    public bool SuppressAutoHyphens { get; init; }
+
     public bool PageBreakBefore { get; init; }
 
     public bool WidowControl { get; init; } = true;

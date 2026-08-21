@@ -143,7 +143,7 @@ public static class TestFonts
         "footnote-beneath-text", "footnote-carry-probe", "footnote-columns", "footnote-overrun-probe",
         "footnote-restart-page", "footnote-restart-section", "footnote-separator-probe",
         "floating-table-break-probe", "floating-table-probe", "floating-table-wrap-probe",
-        "footnote-split-probe", "footnotes", "images", "images-formats", "index",
+        "footnote-split-probe", "footnotes", "hyphenation-probe", "images", "images-formats", "index",
         "inline-picture-line-probe", "kerning",
         "line-ascent-probe", "line-grid-probe", "line-number-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",

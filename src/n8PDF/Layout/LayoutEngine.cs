@@ -38,6 +38,12 @@ internal sealed class LayoutEngine(
     private readonly FontLibrary _fonts = fonts;
 
     /// <summary>
+    /// Whether words are broken at the ends of lines, and on what terms. The document's own
+    /// habit, from settings.xml.
+    /// </summary>
+    private Hyphenation _hyphenation = new(false, 18, 0, false);
+
+    /// <summary>
     /// The measure a word must fit, where a word that does not is to be broken between its
     /// letters. Set only while the inside of a shape is being laid out; null everywhere else,
     /// because nothing on a page is broken that way.
@@ -248,6 +254,7 @@ internal sealed class LayoutEngine(
         _footnotes = document.Footnotes;
         _endnotes = document.Endnotes;
         _decimalSymbol = string.IsNullOrEmpty(document.DecimalSymbol) ? "." : document.DecimalSymbol;
+        _hyphenation = document.Hyphenation;
         _footnoteFormat = document.FootnoteNumberFormat;
         _endnotePosition = document.EndnotePosition;
         _endnoteFormat = document.EndnoteNumberFormat;
@@ -761,7 +768,7 @@ internal sealed class LayoutEngine(
         _pendingMarks.Clear();
         var composer = new ParagraphComposer(
             BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format),
-            _breakInsideWords is not null);
+            _breakInsideWords is not null, _hyphenation);
         var bookmarks = _pendingBookmarks.ToList();
         var marks = _pendingMarks.ToList();
         var firstLine = true;
@@ -4793,8 +4800,12 @@ internal sealed class LayoutEngine(
     /// </remarks>
     private sealed class ParagraphComposer(
         List<Atom> atoms, ResolvedParagraphFormat format, TabOptions tabs,
-        (double Ascent, double Height) markMetrics, bool breakInsideWords = false)
+        (double Ascent, double Height) markMetrics, bool breakInsideWords = false,
+        Hyphenation? hyphenation = null)
     {
+        /// <summary>How many lines in a row have ended in a hyphen, for the limit on them.</summary>
+        private int _hyphenated;
+
         private int _index;
         private bool _isFirstLine = true;
         private readonly TabOptions _tabs = tabs;
@@ -4916,9 +4927,20 @@ internal sealed class LayoutEngine(
                 IndentLeft = left
             };
 
+            // A word is broken at the end of a line only where the document asks for it, the
+            // paragraph does not refuse it, and no more lines have ended in a hyphen in a row than
+            // the document allows.
+            var breaking = hyphenation is { Automatic: true } terms &&
+                           !format.SuppressAutoHyphens &&
+                           (terms.ConsecutiveLimit == 0 || _hyphenated < terms.ConsecutiveLimit)
+                ? hyphenation
+                : null;
+
             var consumed = FillLine(
-                atoms, _index, available, line, _tabs, breakInsideWords,
-                out var hardBreak, out var pageBreak, out var columnBreak);
+                atoms, _index, available, line, _tabs, breakInsideWords, breaking,
+                out var hardBreak, out var pageBreak, out var columnBreak, out var hyphenated);
+
+            _hyphenated = hyphenated ? _hyphenated + 1 : 0;
             _index += consumed;
             _producedAny = true;
 
@@ -4967,12 +4989,13 @@ internal sealed class LayoutEngine(
     /// </summary>
     private static int FillLine(
         List<Atom> atoms, int start, double available, ComposedLine line, TabOptions tabs,
-        bool breakInsideWords,
-        out bool hardBreak, out bool pageBreak, out bool columnBreak)
+        bool breakInsideWords, Hyphenation? hyphenation,
+        out bool hardBreak, out bool pageBreak, out bool columnBreak, out bool hyphenated)
     {
         hardBreak = false;
         pageBreak = false;
         columnBreak = false;
+        hyphenated = false;
 
         var x = 0.0;
         var index = start;
@@ -5075,6 +5098,16 @@ internal sealed class LayoutEngine(
             if (!textAtom.IsSpace && placedAnything && !beyondMargin &&
                 x + width > available + 0.001)
             {
+                // Before the line is given up on: where the document asks for it and the white
+                // left over is worth filling, the word is broken and as much of it as fits stays.
+                if (hyphenation is { } terms && available - x > terms.ZonePoints &&
+                    Hyphenate(atoms, index, textAtom, available - x, terms) is { } divided)
+                {
+                    line.Items.Add(new PlacedAtom(divided, x, divided.Width));
+                    index++;
+                    hyphenated = true;
+                }
+
                 break;
             }
 
@@ -5093,6 +5126,67 @@ internal sealed class LayoutEngine(
 
         ClosePendingTab(line, ref pending, x, tabs);
         return index - start;
+    }
+
+    /// <summary>
+    /// Breaks a word at the end of a line, where the language allows it and enough of the word
+    /// fits. Returns the part that stays, hyphen and all, or null where the word is left whole.
+    /// </summary>
+    /// <remarks>
+    /// Where the word may be broken is the hyphenation table's business; which of those places is
+    /// used is this one's, and it is the last that fits — Word's own, measured in
+    /// hyphenation-probe, breaks conspicuous after "conspicu" and organisation after "or", each
+    /// being as much of the word as the line had room for.
+    ///
+    /// The pieces either side of a break are measured without kerning: there is nothing across a
+    /// line's end to be kerned against.
+    /// </remarks>
+    private static TextAtom? Hyphenate(
+        List<Atom> atoms, int index, TextAtom atom, double room, Hyphenation terms)
+    {
+        // Only a word: punctuation on either side of it is left where it is, and the letters
+        // between are what the table knows about.
+        var text = atom.Text;
+        var from = 0;
+        var to = text.Length;
+
+        while (from < to && !char.IsLetter(text[from])) from++;
+        while (to > from && !char.IsLetter(text[to - 1])) to--;
+
+        var word = text[from..to];
+        if (word.Length < 5) return null;
+
+        // A word in capitals is left whole where the document says so.
+        if (terms.LeaveCapitalsAlone && word.All(letter => !char.IsLower(letter))) return null;
+
+        var points = Text.Hyphenator.Points(word);
+        if (points.Count == 0) return null;
+
+        var format = atom.Format;
+        var face = atom.Font;
+
+        double Measure(string piece) =>
+            TextMeasurer.Measure(
+                face.Font, piece, format.EffectiveFontSizePoints,
+                format.CharacterSpacingPoints, applyKerning: false) * format.ScaleFactor;
+
+        // The last place that fits, hyphen included.
+        for (var i = points.Count - 1; i >= 0; i--)
+        {
+            var head = string.Concat(text[..(from + points[i])], "-");
+            var width = Measure(head);
+
+            if (width > room + 0.001) continue;
+
+            var rest = text[(from + points[i])..];
+
+            atoms[index] = atom.Divide(head, width, leadingKern: 0);
+            atoms.Insert(index + 1, atom.Divide(rest, Measure(rest), leadingKern: 0));
+
+            return (TextAtom)atoms[index];
+        }
+
+        return null;
     }
 
     /// <summary>

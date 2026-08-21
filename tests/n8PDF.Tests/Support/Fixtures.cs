@@ -214,6 +214,29 @@ public static class Fixtures
     /// </summary>
     /// <param name="mirrored">Whether the table asks for its columns the other way round.</param>
     /// <param name="span">Whether the middle row's first two cells are joined into one.</param>
+    /// <summary>
+    /// The body the hyphenation probes share: one paragraph of long words in a narrow measure,
+    /// where what changes between the fixtures is only what the document's settings say.
+    /// </summary>
+    private static DocxBuilder HyphenationBody(DocxBuilder builder, bool capitals = false)
+    {
+        const string Body =
+            "Hyphenation is the business of breaking a word between two lines when the " +
+            "remainder would otherwise be unreasonably conspicuous, and typographers " +
+            "have argued about it interminably. Consider representative examples: " +
+            "communication, extraordinary, misunderstanding, particularly, " +
+            "responsibility, understanding, international, development, organisation.";
+
+        const string Capitals =
+            "COMMUNICATION EXTRAORDINARY MISUNDERSTANDING PARTICULARLY RESPONSIBILITY " +
+            "UNDERSTANDING INTERNATIONAL DEVELOPMENT ORGANISATION CONSIDERATION.";
+
+        return builder.AddParagraph(
+            capitals ? Capitals : Body,
+            ZeroSpacing + "<w:ind w:left=\"0\" w:right=\"5040\"/>",
+            Times12);
+    }
+
     private static string ColumnOrderTable(
         string label, bool mirrored, int indentTwips = 0, bool span = false, bool pageBreak = false)
     {
@@ -5350,6 +5373,65 @@ public static class Fixtures
 
                 return builder;
             },
+
+            // Word breaking words at the ends of lines, from w:autoHyphenation. The same paragraph
+            // six times over, so that what changes is only what the setting says:
+            //
+            //   1  hyphenated, with Word's own quarter-inch zone
+            //   2  not hyphenated at all, for the others to be set against
+            //   3  an inch of zone, which leaves fewer words worth breaking
+            //   4  a paragraph that says it is not to be hyphenated
+            //   5  justified rather than ranged left, which changes what the zone measures
+            //   6  capitals left alone, in a paragraph written in them
+            ["hyphenation-probe"] = () =>
+            {
+                // Long enough words, and enough of them, that a narrow measure has to break some.
+                const string Body =
+                    "Hyphenation is the business of breaking a word between two lines when the " +
+                    "remainder would otherwise be unreasonably conspicuous, and typographers " +
+                    "have argued about it interminably. Consider representative examples: " +
+                    "communication, extraordinary, misunderstanding, particularly, " +
+                    "responsibility, understanding, international, development, organisation.";
+
+                const string Capitals =
+                    "COMMUNICATION EXTRAORDINARY MISUNDERSTANDING PARTICULARLY RESPONSIBILITY " +
+                    "UNDERSTANDING INTERNATIONAL DEVELOPMENT ORGANISATION CONSIDERATION.";
+
+                // A narrow measure, so that the ends of lines fall where a word might be broken.
+                const string Narrow = "<w:ind w:left=\"0\" w:right=\"5040\"/>";
+
+                var builder = new DocxBuilder().WithAutoHyphenation();
+
+                // suppressAutoHyphens comes before the indent in CT_PPr and jc after it, so the
+                // two are given separately rather than bolted on at the end.
+                void Page(string label, string body, string before = "", string after = "")
+                {
+                    builder.AddParagraph(label, ZeroSpacing, Times12);
+                    builder.AddParagraph(body, before + ZeroSpacing + Narrow + after, Times12);
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                }
+
+                Page("Hyphenated.", Body);
+                Page("Suppressed.", Body, before: "<w:suppressAutoHyphens/>");
+                Page("Justified.", Body, after: "<w:jc w:val=\"both\"/>");
+                Page("Capitals.", Capitals);
+
+                return builder;
+            },
+
+            // The same text again, with an inch of hyphenation zone rather than Word's own quarter
+            // of one: a word is broken only where the line would otherwise be left with more white
+            // than the zone, so a wide zone leaves most words whole.
+            ["hyphenation-zone-probe"] = () => HyphenationBody(
+                new DocxBuilder().WithAutoHyphenation(zoneTwips: 1440)),
+
+            // And again with no more than two lines in a row allowed to end in a hyphen.
+            ["hyphenation-limit-probe"] = () => HyphenationBody(
+                new DocxBuilder().WithAutoHyphenation(consecutive: 2)),
+
+            // And again with words in capitals left whole.
+            ["hyphenation-caps-probe"] = () => HyphenationBody(
+                new DocxBuilder().WithAutoHyphenation(doNotHyphenateCaps: true), capitals: true),
 
             // Which way the columns of a table run, from w:bidiVisual. Five tables, each on a
             // page of its own:

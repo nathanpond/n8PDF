@@ -243,6 +243,7 @@ internal sealed class StyleResolver(
         private bool? _keepNext;
         private bool? _keepLines;
         private bool? _suppressLineNumbers;
+        private bool? _suppressAutoHyphens;
         private FrameProperties? _frame;
         private bool? _pageBreakBefore;
         private bool? _widowControl;
@@ -282,6 +283,7 @@ internal sealed class StyleResolver(
             if (source.KeepNext is { } keepNext) _keepNext = keepNext;
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
             if (source.SuppressLineNumbers is { } suppress) _suppressLineNumbers = suppress;
+            if (source.SuppressAutoHyphens is { } whole) _suppressAutoHyphens = whole;
             if (source.Frame is { } frame) _frame = frame;
             if (source.PageBreakBefore is { } pageBreak) _pageBreakBefore = pageBreak;
             if (source.WidowControl is { } widow) _widowControl = widow;
@@ -312,6 +314,7 @@ internal sealed class StyleResolver(
             LineRule = _lineRule ?? LineSpacingRule.Auto,
             ContextualSpacing = _contextualSpacing ?? false,
             Frame = _frame,
+            SuppressAutoHyphens = _suppressAutoHyphens ?? false,
             KeepNext = _keepNext ?? false,
             KeepLines = _keepLines ?? false,
             SuppressLineNumbers = _suppressLineNumbers ?? false,

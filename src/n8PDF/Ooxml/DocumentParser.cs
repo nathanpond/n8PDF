@@ -929,6 +929,10 @@ internal static class DocumentParser
                     properties.Frame = ReadFrame(element);
                     break;
 
+                case "suppressAutoHyphens":
+                    properties.SuppressAutoHyphens = element.OnOff();
+                    break;
+
                 case "suppressLineNumbers":
                     properties.SuppressLineNumbers = element.OnOff();
                     break;

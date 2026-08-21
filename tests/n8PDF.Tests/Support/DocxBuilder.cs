@@ -1462,6 +1462,33 @@ public sealed class DocxBuilder
         return this;
     }
 
+    /// <summary>
+    /// Word breaks words at the end of a line where it has to, from <c>w:autoHyphenation</c>.
+    /// </summary>
+    /// <param name="zoneTwips">
+    /// How much white a line may be left with before a word is broken to fill it, from
+    /// <c>w:hyphenationZone</c>. Word's own default is a quarter of an inch.
+    /// </param>
+    /// <param name="consecutive">
+    /// How many lines in a row may end in a hyphen, from <c>w:consecutiveHyphenLimit</c>. Zero is
+    /// no limit at all.
+    /// </param>
+    public DocxBuilder WithAutoHyphenation(
+        int? zoneTwips = null, int? consecutive = null, bool doNotHyphenateCaps = false)
+    {
+        // CT_Settings is a sequence: these four come in this order and after nothing this builder
+        // writes, so they are simply appended.
+        _settings.Add("<w:autoHyphenation w:val=\"true\"/>");
+
+        if (consecutive is { } limit)
+            _settings.Add($"<w:consecutiveHyphenLimit w:val=\"{limit}\"/>");
+
+        if (zoneTwips is { } zone) _settings.Add($"<w:hyphenationZone w:val=\"{zone}\"/>");
+        if (doNotHyphenateCaps) _settings.Add("<w:doNotHyphenateCaps w:val=\"true\"/>");
+
+        return this;
+    }
+
     /// <summary>Odd and even pages take different headers and footers.</summary>
     public DocxBuilder WithEvenAndOddHeaders()
     {

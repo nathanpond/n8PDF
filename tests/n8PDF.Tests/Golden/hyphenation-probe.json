@@ -1,0 +1,351 @@
+{
+  "pageCount": 5,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 60.979, "font": "Times New Roman", "size": 12, "text": "Hyphenated."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 200.625, "font": "Times New Roman", "size": 12, "text": "Hyphenation is the business of breaking a"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.596, "font": "Times New Roman", "size": 12, "text": "word between two lines when the remainder"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.609, "font": "Times New Roman", "size": 12, "text": "would otherwise be unreasonably conspicu-"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 206.273, "font": "Times New Roman", "size": 12, "text": "ous, and typographers have argued about it"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.926, "font": "Times New Roman", "size": 12, "text": "interminably. Consider representative exam-"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.281, "font": "Times New Roman", "size": 12, "text": "ples: communication, extraordinary, misun-"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.621, "font": "Times New Roman", "size": 12, "text": "derstanding, particularly, responsibility, un-"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 193.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.604, "font": "Times New Roman", "size": 12, "text": "derstanding, international, development, or-"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 207.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 52.324, "font": "Times New Roman", "size": 12, "text": "ganisation."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.662, "font": "Times New Roman", "size": 12, "text": "Suppressed."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 200.625, "font": "Times New Roman", "size": 12, "text": "Hyphenation is the business of breaking a"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 212.596, "font": "Times New Roman", "size": 12, "text": "word between two lines when the remainder"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 160.957, "font": "Times New Roman", "size": 12, "text": "would otherwise be unreasonably"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 209.602, "font": "Times New Roman", "size": 12, "text": "conspicuous, and typographers have argued"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 149.977, "font": "Times New Roman", "size": 12, "text": "about it interminably. Consider"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 199.594, "font": "Times New Roman", "size": 12, "text": "representative examples: communication,"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 158.959, "font": "Times New Roman", "size": 12, "text": "extraordinary, misunderstanding,"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 203.625, "font": "Times New Roman", "size": 12, "text": "particularly, responsibility, understanding,"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 196.945, "font": "Times New Roman", "size": 12, "text": "international, development, organisation."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 5,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 43.664, "font": "Times New Roman", "size": 12, "text": "Justified."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "Hyphenation is the business of breaking a"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "word between two lines when the remainder"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "would otherwise be unreasonably conspicu-"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "ous, and typographers have argued about it"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "interminably. Consider representative exam-"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "ples: communication, extraordinary, misun-"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 193.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "derstanding, particularly, responsibility, un-"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 206.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 216, "font": "Times New Roman", "size": 12, "text": "derstanding, international, development, or-"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 220.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 52.324, "font": "Times New Roman", "size": 12, "text": "ganisation."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 42.328, "font": "Times New Roman", "size": 12, "text": "Capitals."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 210.996, "font": "Times New Roman", "size": 12, "text": "COMMUNICATION EXTRAORDINARY"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 206.338, "font": "Times New Roman", "size": 12, "text": "MISUNDERSTANDING PARTICULAR-"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 203.332, "font": "Times New Roman", "size": 12, "text": "LY RESPONSIBILITY UNDERSTAND-"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 151.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 213.299, "font": "Times New Roman", "size": 12, "text": "ING INTERNATIONAL DEVELOPMENT"}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 165.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 193.992, "font": "Times New Roman", "size": 12, "text": "ORGANISATION CONSIDERATION."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 11,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        }
+      ]
+    }
+  ]
+}

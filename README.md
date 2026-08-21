@@ -980,6 +980,39 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### Breaking a word at the end of a line
+
+`w:autoHyphenation` lets Word break a word between two lines. Where a word may be broken is not
+something that can be worked out from its letters — it is a matter of a language's habits, and
+every program that does it carries a table. This one carries Liang's patterns, as TeX has
+distributed them since 1990, turned into source by `tools/make-hyphenation-tables.py` the same way
+the Unicode tables are: the library has no dependencies and the answer must not depend on a file
+being present at run time. The pattern file's own licence asks that its copyright notice be
+preserved, and the generated source carries it.
+
+Word's dictionary is its own, so the question was whether the two agree. They do:
+`hyphenation-probe` gives Word a paragraph of long words in a narrow measure and every line comes
+out where Word puts it — conspicu-ous, exam-ples, misun-derstanding, un-derstanding, or-ganisation.
+
+Two rules are this library's rather than the table's, and both were measured:
+
+- **A word is broken at the last place that fits.** Word breaks conspicuous after "conspicu" and
+  organisation after "or", each being as much of the word as the line had room for.
+- **Two letters must stay behind and two must go on.** The pattern file states two and three, as a
+  typesetter would, but Word breaks PARTICULAR-LY and leaves LY to the next line.
+
+The rest is what the document asks for, and each of the four is a fixture of its own:
+
+- **`w:hyphenationZone`** is how much white a line may be left with before a word is broken to fill
+  it — a quarter of an inch where the document says nothing. An inch of it leaves every word in the
+  probe whole.
+- **`w:consecutiveHyphenLimit`** is how many lines in a row may end in a hyphen. Two of them stops
+  the third.
+- **`w:doNotHyphenateCaps`** leaves a word in capitals whole.
+- **`w:suppressAutoHyphens`** on a paragraph leaves that paragraph's words whole.
+
+All four agree with Word's own export line for line.
+
 ### Columns the other way round
 
 `w:bidiVisual` turns a table about: the first cell of a row stands at the right and the rest follow
