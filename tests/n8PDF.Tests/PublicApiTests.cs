@@ -32,6 +32,7 @@ public class PublicApiTests(ITestOutputHelper output)
             FontLibrary Fonts { get; set; }
             LayoutOptions Layout { get; set; }
             MailMergeRecord MergeRecord { get; set; }
+            PackageLimits Limits { get; set; }
             String FileName { get; set; }
             String Title { get; set; }
         static class n8PDF.Converter
@@ -60,6 +61,13 @@ public class PublicApiTests(ITestOutputHelper output)
             Int32 Number { get; set; }
             Int32 Sequence { get; set; }
             String Value(String name)
+        class n8PDF.Packaging.PackageLimits
+            .ctor()
+            Int32 MaximumPartCount { get; set; }
+            Int64 MaximumPartBytes { get; set; }
+            Int64 MaximumTotalBytes { get; set; }
+        class n8PDF.Packaging.PackageTooLargeException
+            .ctor(String message)
         """;
 
     [Fact]

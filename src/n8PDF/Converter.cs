@@ -26,6 +26,13 @@ public sealed class ConversionOptions
     public LayoutOptions Layout { get; set; } = new();
 
     /// <summary>
+    /// How much the document is allowed to decompress to. A <c>.docx</c> is a ZIP, and a hostile
+    /// one can be a few hundred bytes that become gigabytes; these bound that. Raise them for a
+    /// document that is genuinely enormous.
+    /// </summary>
+    public PackageLimits Limits { get; set; } = new();
+
+    /// <summary>
     /// Fill in properties a document's styles leave unstated from Word's built-in style
     /// definitions, as Word itself does. On by default, because matching Word is the point.
     /// </summary>
@@ -142,7 +149,7 @@ public static class Converter
     {
         options ??= new ConversionOptions();
 
-        using var package = OpcPackage.Open(docx);
+        using var package = OpcPackage.Open(docx, limits: options.Limits);
         var mainPartName = package.GetMainDocumentPartName();
 
         var document = DocumentParser.Parse(package.ReadPartAsXml(mainPartName));

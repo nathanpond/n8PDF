@@ -150,6 +150,34 @@ glyph *positions* come from the content stream, so all conforming viewers agree 
 differs between them is rasterisation, and the one feature of ours genuinely sensitive to that is
 synthetic bold (text render mode 2).
 
+## Reading a file someone else wrote
+
+A `.docx` is a ZIP, which is to say it describes its own size, and a file written to be hostile
+describes it wrongly. Two attacks are cheap to write and were both open here:
+
+- **A part that decompresses without bound.** Zeros compress about a thousand to one, so a hundred
+  kilobytes becomes a hundred megabytes and a hundred megabytes becomes a hundred gigabytes;
+  nothing in the format objects. `PackageLimits` bounds it: 128MB for one part, 512MB across a
+  package, 4096 parts. Set them on `ConversionOptions.Limits` for a document that genuinely needs
+  more, and catch `PackageTooLargeException` to know that is what happened.
+- **A part whose XML declares entities.** Ten entities, each ten of the one below, expand a
+  kilobyte into a gigabyte — the same attack a layer up, and one that no amount of counting
+  compressed bytes will catch. `XDocument.Load` parses a document type definition and expands them
+  without limit, which is what it was doing here until `PackageLimitTests` fired a billion laughs
+  at it. Parts are now read through a reader that prohibits definitions outright, which costs
+  nothing legitimate: the Open Packaging Conventions forbid a DTD in a part.
+
+The size limits are counted against what comes out of the decompressor rather than what the header
+claims. As it turns out a lying header cannot smuggle anything past — .NET stops the decompressor
+at the declared size, so a part claiming to be small *becomes* small — but that is a property of
+this framework rather than of the format, and the counting is what makes it not matter. The tests
+build each attack rather than describing it, because a limit nobody has fired a shot at is a
+comment rather than a defence.
+
+The defaults are set for documents rather than for the fixtures here, the largest of which is 105KB
+in one part across 6 parts — a hundredth of the smallest limit, which `PackageLimitTests` asserts,
+so a fixture that ever approaches one says so.
+
 ## Matching Word
 
 Several layout rules here were derived by measuring Word's own output rather than from the spec,
