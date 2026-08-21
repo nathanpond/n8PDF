@@ -980,6 +980,29 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### Columns the other way round
+
+`w:bidiVisual` turns a table about: the first cell of a row stands at the right and the rest follow
+leftwards. `column-order-probe` puts five tables to Word — three columns of different widths, each
+cell shaded so the order can be read out of the ink as well as the text — and it turns out to be
+the whole table that is turned, not merely the cells:
+
+- **The table is laid from the right margin** rather than the left.
+- **Its indent is measured from the right**: half an inch moves it half an inch leftwards.
+- **The border a cell calls its left is drawn on its right.** The probe's table has a three point
+  left border and half a point everywhere else, and the thick one comes out at the right-hand end
+  of the mirrored table, which is where its first column is.
+- **What that border does to the text inside is not turned about with it.** Word insets the
+  content of a cell by the border it calls its left however that border is drawn, so the rightmost
+  cell's text stands 1.44 points inside its left edge — half of a border drawn on the other side —
+  rather than the half point the border there would ask for. Two of the probe's pages say so, and
+  it is the one place where the mirroring is less than thorough.
+- **Cells joined by `w:gridSpan` are joined at the right-hand end**, the columns they cover being
+  the ones the row began with.
+
+Every column of the probe stands where Word's stands, within a tenth of a point, with the same
+words in it.
+
 ### Text turned on its side in a cell
 
 `w:textDirection` turns a cell's text a quarter circle — `btLr` for the narrow heading a table

@@ -244,6 +244,7 @@ internal static class TableStyles
         if (from.WidthTwips is { } width) to.WidthTwips = width;
         if (from.WidthFraction is { } fraction) to.WidthFraction = fraction;
         if (from.IndentTwips is { } indent) to.IndentTwips = indent;
+        if (from.Mirrored) to.Mirrored = true;
         if (from.FixedLayout is { } layout) to.FixedLayout = layout;
         if (from.Justification is { } justification) to.Justification = justification;
         if (from.CellMarginLeftTwips is { } left) to.CellMarginLeftTwips = left;

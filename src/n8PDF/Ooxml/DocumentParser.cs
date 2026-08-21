@@ -1107,6 +1107,7 @@ internal static class DocumentParser
         if (tblPr.Element(W.Main + "tblLook") is { } look) properties.Look = ReadTableLook(look);
 
         properties.IndentTwips = tblPr.Element(W.Main + "tblInd")?.IntAttr("w");
+        properties.Mirrored = tblPr.Element(W.Main + "bidiVisual")?.OnOff() ?? properties.Mirrored;
         properties.Position = ReadTablePosition(tblPr.Element(W.Main + "tblpPr"));
 
         if (tblPr.Element(W.Main + "tblLayout")?.Attr("type") is { } layout)

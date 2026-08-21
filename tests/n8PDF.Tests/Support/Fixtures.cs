@@ -208,6 +208,60 @@ public static class Fixtures
     /// <c>w:textDirection</c>. The first column is left alone, so the row's own height can be read
     /// off it.
     /// </summary>
+    /// <summary>
+    /// A table of three columns of different widths, each cell saying which it is, for measuring
+    /// what <c>w:bidiVisual</c> does with the order of them.
+    /// </summary>
+    /// <param name="mirrored">Whether the table asks for its columns the other way round.</param>
+    /// <param name="span">Whether the middle row's first two cells are joined into one.</param>
+    private static string ColumnOrderTable(
+        string label, bool mirrored, int indentTwips = 0, bool span = false, bool pageBreak = false)
+    {
+        var opening = pageBreak
+            ? $"<w:p><w:pPr><w:pageBreakBefore/>{ZeroSpacing}</w:pPr></w:p>"
+            : string.Empty;
+
+        // Shading tells the columns apart in the ink as well as in the text.
+        static string Cell(string text, int width, string fill, int grid = 1) =>
+            $"<w:tc><w:tcPr><w:tcW w:w=\"{width}\" w:type=\"dxa\"/>" +
+            (grid > 1 ? $"<w:gridSpan w:val=\"{grid}\"/>" : string.Empty) +
+            $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fill}\"/></w:tcPr>" +
+            $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+            $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(text)}</w:t></w:r></w:p></w:tc>";
+
+        var second = span
+            ? $"<w:tr>{Cell($"{label} joined", 2880, "FFE0E0", 2)}{Cell($"{label} C2", 2160, "E0E0FF")}</w:tr>"
+            : $"<w:tr>{Cell($"{label} B0", 720, "FFE0E0")}{Cell($"{label} B1", 2160, "E0FFE0")}" +
+              $"{Cell($"{label} B2", 2160, "E0E0FF")}</w:tr>";
+
+        return $"""
+                {opening}
+                <w:tbl>
+                  <w:tblPr>
+                    {(mirrored ? "<w:bidiVisual/>" : string.Empty)}
+                    <w:tblW w:w="5040" w:type="dxa"/>
+                    {(indentTwips == 0 ? string.Empty : $"<w:tblInd w:w=\"{indentTwips}\" w:type=\"dxa\"/>")}
+                    <w:tblBorders>
+                      <w:top w:val="single" w:sz="4" w:color="auto"/>
+                      <w:left w:val="single" w:sz="24" w:color="auto"/>
+                      <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                      <w:right w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="720"/><w:gridCol w:w="2160"/><w:gridCol w:w="2160"/></w:tblGrid>
+                  <w:tr>
+                    {Cell($"{label} A0", 720, "FFE0E0")}
+                    {Cell($"{label} A1", 2160, "E0FFE0")}
+                    {Cell($"{label} A2", 2160, "E0E0FF")}
+                  </w:tr>
+                  {second}
+                </w:tbl>
+                """;
+    }
+
     private static string TurnedTable(
         string label, string direction, string text, int? heightTwips = null, string? align = null,
         string? valign = null, bool pageBreak = false)
@@ -5293,6 +5347,30 @@ public static class Fixtures
                 // the border's width or a fixed step.
                 Page("Thick", $"<w:tblpPr {Daylight}w:vertAnchor=\"text\" w:horzAnchor=\"margin\" " +
                               "w:tblpX=\"0\" w:tblpY=\"300\"/>", borderSize: 24);
+
+                return builder;
+            },
+
+            // Which way the columns of a table run, from w:bidiVisual. Five tables, each on a
+            // page of its own:
+            //
+            //   1  the ordinary way round, for the others to be set against
+            //   2  the other way round
+            //   3  the other way round with the table indented, to see which side the indent is
+            //   4  the other way round with two cells joined, to see which end the join is at
+            //   5  the ordinary way round with the same join, for that to be set against
+            ["column-order-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                builder.AddRawParagraph(ColumnOrderTable("Plain", mirrored: false));
+                builder.AddRawParagraph(ColumnOrderTable("Mirrored", mirrored: true, pageBreak: true));
+                builder.AddRawParagraph(ColumnOrderTable(
+                    "Indented", mirrored: true, indentTwips: 720, pageBreak: true));
+                builder.AddRawParagraph(ColumnOrderTable(
+                    "Joined", mirrored: true, span: true, pageBreak: true));
+                builder.AddRawParagraph(ColumnOrderTable(
+                    "Plain joined", mirrored: false, span: true, pageBreak: true));
 
                 return builder;
             },

@@ -2951,15 +2951,30 @@ internal sealed class LayoutEngine(
         // the margin whether the cell declared a 12pt margin, a border, both or neither. Word
         // writes this element on every table it saves, so real documents always take this path.
         var tableLeft = cursor.Left;
-        if (properties.IndentTwips is { } indent)
-            tableLeft += Units.TwipsToPoints(indent) - LeadingCellInset(table, columns.Count);
 
-        tableLeft += properties.Justification switch
+        // A table whose columns run the other way is laid from the right-hand margin, and its
+        // indent is measured from there as well. Word's own: column-order-probe's mirrored table
+        // stands against the right margin, and indenting it by half an inch moves it half an inch
+        // to the left rather than to the right.
+        if (properties.Mirrored)
         {
-            Justification.Center => Math.Max(0, cursor.Width - totalWidth) / 2,
-            Justification.Right => Math.Max(0, cursor.Width - totalWidth),
-            _ => 0
-        };
+            tableLeft += Math.Max(0, cursor.Width - totalWidth);
+
+            if (properties.IndentTwips is { } fromRight)
+                tableLeft -= Units.TwipsToPoints(fromRight) - LeadingCellInset(table, columns.Count);
+        }
+        else
+        {
+            if (properties.IndentTwips is { } indent)
+                tableLeft += Units.TwipsToPoints(indent) - LeadingCellInset(table, columns.Count);
+
+            tableLeft += properties.Justification switch
+            {
+                Justification.Center => Math.Max(0, cursor.Width - totalWidth) / 2,
+                Justification.Right => Math.Max(0, cursor.Width - totalWidth),
+                _ => 0
+            };
+        }
 
         // A table interrupts the paragraph spacing chain: its own edge is the boundary, so a
         // following paragraph has nothing to collapse against.
@@ -3018,7 +3033,7 @@ internal sealed class LayoutEngine(
                 // left has to hold something of the table besides the heading.
                 if (cursor.Y + height > cursor.ContentBottom) break;
 
-                PlaceRow(cursor, cells, cursor.Y, height);
+                PlaceRow(cursor, cells, cursor.Y, height, properties.Mirrored);
                 cursor.Y += height;
                 taken += height;
             }
@@ -3073,7 +3088,7 @@ internal sealed class LayoutEngine(
                     SplitRow(cursor, placed, rowFootnotes.Height, out var fitted, out var remaining,
                         out var fittedHeight))
                 {
-                    PlaceRow(cursor, fitted, cursor.Y, fittedHeight);
+                    PlaceRow(cursor, fitted, cursor.Y, fittedHeight, properties.Mirrored);
                     cursor.Y += fittedHeight;
 
                     // A merged run reaching down through this row has just been given as much of
@@ -3111,7 +3126,7 @@ internal sealed class LayoutEngine(
                 if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(cursor, rowFootnoteIds);
             }
 
-            if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight);
+            if (!placedEverything) PlaceRow(cursor, placed, cursor.Y, rowHeight, properties.Mirrored);
 
             CommitFootnotes(cursor, rowFootnotes, placedEverything ? 0 : rowHeight);
             if (!placedEverything) cursor.Y += rowHeight;
@@ -3135,7 +3150,8 @@ internal sealed class LayoutEngine(
     /// Draws a row: its shading, then its cells' contents, then its borders on top — a border
     /// sits on the cell edge and would otherwise be half-covered by the neighbouring cell's fill.
     /// </summary>
-    private static void PlaceRow(Cursor cursor, List<PlacedCell> placed, double top, double height)
+    private static void PlaceRow(
+        Cursor cursor, List<PlacedCell> placed, double top, double height, bool mirrored = false)
     {
         // A cell merged with the row below has neither fill nor content of its own here: both
         // belong to the run, and are drawn when it closes.
@@ -3180,7 +3196,7 @@ internal sealed class LayoutEngine(
             cell.Content.PlaceOnto(cursor.Page, cell.Left + cell.MarginLeft, top + cell.MarginTop + offset);
         }
 
-        DrawRowBorders(cursor.Page, placed, top, height);
+        DrawRowBorders(cursor.Page, placed, top, height, mirrored);
     }
 
     /// <summary>
@@ -3301,7 +3317,10 @@ internal sealed class LayoutEngine(
         var properties = table.Properties;
         var placed = new List<PlacedCell>(row.Cells.Count);
 
-        var x = tableLeft;
+        // A mirrored table is filled from its right-hand end: the first cell of the row is the
+        // rightmost, and each that follows stands to the left of the last.
+        var mirrored = properties.Mirrored;
+        var x = mirrored ? tableLeft + columns.Sum() : tableLeft;
         var column = 0;
 
         foreach (var cell in row.Cells)
@@ -3312,6 +3331,8 @@ internal sealed class LayoutEngine(
 
             var width = 0.0;
             for (var i = 0; i < span; i++) width += columns[column + i];
+
+            if (mirrored) x -= width;
 
             var borders = ResolveCellBorders(table, cell, rowIndex, column, span, columns.Count);
 
@@ -3350,7 +3371,7 @@ internal sealed class LayoutEngine(
                 marginLeft, marginRight, marginTop, marginBottom, borders,
                 MergedBelow(table, rowIndex, column)));
 
-            x += width;
+            if (!mirrored) x += width;
             column += span;
         }
 
@@ -3423,7 +3444,8 @@ internal sealed class LayoutEngine(
     /// resolution, and drawing the same black line twice is invisible, whereas getting the
     /// ownership wrong leaves gaps.
     /// </remarks>
-    private static void DrawRowBorders(LaidOutPage page, List<PlacedCell> placed, double top, double height)
+    private static void DrawRowBorders(
+        LaidOutPage page, List<PlacedCell> placed, double top, double height, bool mirrored = false)
     {
         foreach (var cell in placed)
         {
@@ -3435,8 +3457,16 @@ internal sealed class LayoutEngine(
             if (!cell.MergedBelow)
                 AddEdge(page, cell.Borders.Bottom, cell.Left, top + height, cell.Width, horizontal: true);
 
-            AddEdge(page, cell.Borders.Left, cell.Left, top, height, horizontal: false);
-            AddEdge(page, cell.Borders.Right, cell.Left + cell.Width, top, height, horizontal: false);
+            // A table whose columns run the other way draws the upright pair the other way round
+            // with them: what a cell calls its left border is drawn on its right. Where the text
+            // inside sits is not turned about with it — Word insets the content of a mirrored
+            // cell by the border it calls its left however that border is drawn, which
+            // column-order-probe shows twice over.
+            var leading = mirrored ? cell.Borders.Right : cell.Borders.Left;
+            var trailing = mirrored ? cell.Borders.Left : cell.Borders.Right;
+
+            AddEdge(page, leading, cell.Left, top, height, horizontal: false);
+            AddEdge(page, trailing, cell.Left + cell.Width, top, height, horizontal: false);
         }
     }
 

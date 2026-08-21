@@ -916,6 +916,17 @@ internal sealed class TableProperties
     /// <summary>Where the table floats, or null where it stands in the flow like any other.</summary>
     public TablePosition? Position { get; set; }
 
+    /// <summary>
+    /// Whether the columns run the other way, from <c>w:bidiVisual</c>: the first cell of a row
+    /// stands at the right and the rest follow leftwards.
+    /// </summary>
+    /// <remarks>
+    /// Measured against Word in column-order-probe. The whole table is turned about, not merely
+    /// the cells: it is laid from the right margin, its indent is measured from the right, and the
+    /// border a cell calls its left is drawn on its right.
+    /// </remarks>
+    public bool Mirrored { get; set; }
+
     public BorderSet Borders { get; } = new();
 
     /// <summary>
