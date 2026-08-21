@@ -5192,6 +5192,50 @@ public static class Fixtures
                 return builder;
             },
 
+            // How far a raised or lowered run moves, to a thousandth of an em. superscript-probe
+            // carries three sizes of one face, which was enough to say the shift is a share of
+            // the size and not enough to say which share: each reading is a difference of two
+            // baselines, and both are rounded to Word's grid, so twelve point can only say the
+            // raise is between 0.32 and 0.36 of it. Ninety-six point says it to a four-hundredth.
+            //
+            // Three faces as well, because the shift turns out to depend on the face. Eleven were
+            // measured while this was written — the eight beyond these three are not pinned by the
+            // suite, so they cannot be compared against Word and are not kept here — and what they
+            // showed is written up in ResolvedRunFormat.BaselineShiftPoints: Calibri and Candara
+            // agree on every vertical metric a face carries and Word raises a superscript 0.3325
+            // of the size in one and 0.4525 in the other.
+            ["superscript-shift-probe"] = () =>
+            {
+                string[] faces = ["Times New Roman", "Arial", "Calibri"];
+                int[] sizes = [8, 12, 24, 48, 96];
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                foreach (var face in faces)
+                {
+                    foreach (var shift in new[] { "superscript", "subscript" })
+                    {
+                        foreach (var size in sizes)
+                        {
+                            var font = $"<w:rFonts w:ascii=\"{face}\" w:hAnsi=\"{face}\"/>" +
+                                       $"<w:sz w:val=\"{size * 2}\"/>";
+
+                            builder.AddRawParagraph(
+                                $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacingNewPage)}" +
+                                $"<w:rPr>{font}</w:rPr></w:pPr>" +
+                                $"<w:r><w:rPr>{font}</w:rPr><w:t xml:space=\"preserve\">H</w:t></w:r>" +
+                                $"<w:r><w:rPr>{font}<w:vertAlign w:val=\"{shift}\"/></w:rPr>" +
+                                $"<w:t>H</w:t></w:r></w:p>");
+
+                            first = false;
+                        }
+                    }
+                }
+
+                return builder;
+            },
+
             // What a raised or lowered run does to the line that holds it, and how far it is
             // raised. Each line is a plain run and a shifted one, so the difference from the
             // control line is the whole of what the shift did; the shifted run's own baseline

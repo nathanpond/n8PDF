@@ -1,5 +1,7 @@
 using n8PDF;
 using n8PDF.Layout;
+using n8PDF.Ooxml;
+using n8PDF.Styling;
 using n8PDF.Tests.Support;
 using Xunit.Abstractions;
 
@@ -65,6 +67,44 @@ public class LineBoxTests(ITestOutputHelper output)
     /// And one given a larger size makes the line as tall as that size would, though it is drawn
     /// far smaller: the box is the size it was given.
     /// </summary>
+    /// <summary>
+    /// How far Word raises and lowers a run, against this engine's fitted share of the type size,
+    /// at the sizes a document uses.
+    /// </summary>
+    /// <remarks>
+    /// The numbers are Word's own, read from superscript-shift-probe, and the gaps are stated
+    /// case by case rather than hidden behind one tolerance — because they are the point. A share
+    /// of the size cannot follow a rule with a face in it: Times New Roman and Arial come within a
+    /// step of the grid at every size here, and Calibri is three steps out at twenty-four point,
+    /// where Word raises 0.33 of the size and this raises 0.358.
+    ///
+    /// ResolvedRunFormat.BaselineShiftPoints has the measurement and what was ruled out by it.
+    /// </remarks>
+    [Theory]
+    [InlineData("Times New Roman", 8, 3.12, 0.24, 0.48, 0.24)]
+    [InlineData("Times New Roman", 12, 4.08, 0.24, 0.96, 0)]
+    [InlineData("Times New Roman", 24, 8.4, 0.24, 1.92, 0)]
+    [InlineData("Arial", 8, 3.12, 0.24, 0.48, 0.24)]
+    [InlineData("Arial", 12, 4.08, 0.24, 0.96, 0)]
+    [InlineData("Arial", 24, 8.4, 0.24, 1.44, 0.48)]
+    [InlineData("Calibri", 8, 2.4, 0.48, 0.48, 0.24)]
+    [InlineData("Calibri", 12, 4.08, 0.24, 0.96, 0)]
+    [InlineData("Calibri", 24, 7.92, 0.72, 2.4, 0.48)]
+    public void A_raised_run_moves_about_as_far_as_word_moves_it(
+        string face, double size, double raised, double raisedGap, double lowered, double loweredGap)
+    {
+        var format = new ResolvedRunFormat { FontFamily = face, FontSizePoints = size };
+
+        // What reaches the page is the shift rounded to Word's grid, so that is what is compared.
+        var up = Grid.Snap((format with { VerticalAlignment = VerticalTextAlignment.Superscript })
+            .BaselineShiftPoints);
+        var down = Grid.Snap(-(format with { VerticalAlignment = VerticalTextAlignment.Subscript })
+            .BaselineShiftPoints);
+
+        Assert.Equal(raisedGap, Math.Abs(up - raised), 2);
+        Assert.Equal(loweredGap, Math.Abs(down - lowered), 2);
+    }
+
     [Fact]
     public void A_shifted_run_of_a_larger_size_makes_the_line_that_size()
     {

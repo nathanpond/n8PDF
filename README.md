@@ -241,9 +241,24 @@ twelve point Times with an eleven point Calibri mark on the end takes the Times 
 Calibri descent, and is deeper than either font alone would make it. And a list's number is drawn
 on its line without being part of its box, which is the one thing on a line that is not.
 
-The shifts themselves were measured at three sizes rather than fitted to one. A lowered run drops
-about a twelfth of its size, which is far less than it looks like it should be and was nearly twice
-that here; a raised one rises about a third.
+The shifts themselves are a share of the type size — a third up, a twelfth down — and that share is
+fitted rather than derived, because **Word's is not a share of anything that can be read out of a
+document or a font**. `superscript-shift-probe` puts the question to Word five sizes wide and three
+faces deep, and eleven faces were measured while it was written:
+
+- It is not a share of the size. For every face the sizes disagree: Times New Roman wants at least
+  0.375 of the size at eight point and at most 0.350 at twelve, and no one number is both.
+- It is not a share of anything the face declares — not its ascent, descent, cap height, x-height,
+  nor the superscript offset in its own `OS/2` table. Calibri and Candara agree on every vertical
+  metric to four decimal places, and Word raises a superscript 0.3325 of the size in one and 0.4525
+  in the other. No linear combination of those metrics comes within twenty times the precision of
+  the measurement.
+
+So one number it stays, fitted to Times New Roman, which is what the fixtures are written in: every
+size from eight point to ninety-six lands within a step of Word's grid, Arial within three, Calibri
+within ten — all of Calibri's beyond forty-eight point, which is not a size anything is
+superscripted at. `LineBoxTests` states the gap case by case rather than hiding it behind one
+tolerance, because the gaps are the finding.
 
 ### The grid every baseline stands on
 

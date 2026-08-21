@@ -79,18 +79,36 @@ internal sealed record ResolvedRunFormat
     /// Baseline shift in points; positive raises the text.
     /// </summary>
     /// <remarks>
-    /// Both were measured from Word's export of <c>superscript-probe</c>, which carries each at
-    /// twelve, twenty and forty point so that neither is a ratio fitted to one number. A lowered
-    /// run drops about a twelfth of its size — 0.96pt at twelve point and 3.12 at forty — which is
-    /// far less than it looks like it should, and was nearly twice that here until it was
-    /// measured. A raised one rises about a third: Word's own is 4.08, 6.96 and 14.40 against the
-    /// 4.20, 6.97 and 13.94 this gives, which is inside its own rounding of 1/300 inch at the two
-    /// sizes a document is actually set in.
+    /// A share of the type size, and a fitted one: <c>superscript-shift-probe</c> puts the
+    /// question to Word across eleven faces and five sizes, and what comes back is a rule this
+    /// cannot reproduce.
+    ///
+    /// It is not a share of the size. For every face the sizes disagree: Times New Roman wants at
+    /// least 0.375 of the size at eight point and at most 0.350 at twelve, and the two cannot both
+    /// be had. Nor is it a share of anything the face declares — not its ascent, its descent, its
+    /// cap height, its x-height, nor the superscript offset in its own <c>OS/2</c> table. Calibri
+    /// and Candara have the same ascent, descent, cap height and x-height to four decimal places,
+    /// and Word raises a superscript 0.3325 of the size in one and 0.4525 in the other. No linear
+    /// combination of those metrics comes within twenty times the precision of the measurement.
+    ///
+    /// So a share of the size it stays, fitted to what was measured rather than guessed:
+    ///
+    ///   Times New Roman, eight point to ninety-six    every one within a step of the grid
+    ///   Arial, the same                               within three steps, and within one below 48pt
+    ///   Calibri, the same                             within ten, and within three below 48pt
+    ///
+    /// which is as close as one number comes to a rule with a face in it: 0.358 is what Times New
+    /// Roman wants across every size measured, Arial wants 0.35, and Calibri 0.333. The number
+    /// here follows Times, which is what superscript-probe is written in and what the comparison
+    /// against Word therefore holds. LineBoxTests states the gap case by case.
+    ///
+    /// The lowered run is fitted the same way, and 0.083 is the share that keeps all three faces
+    /// within two steps at the sizes a document uses.
     /// </remarks>
     public double BaselineShiftPoints => VerticalAlignment switch
     {
-        VerticalTextAlignment.Superscript => FontSizePoints * 0.35,
-        VerticalTextAlignment.Subscript => FontSizePoints * -0.08,
+        VerticalTextAlignment.Superscript => FontSizePoints * 0.358,
+        VerticalTextAlignment.Subscript => FontSizePoints * -0.083,
         _ => 0
     };
 

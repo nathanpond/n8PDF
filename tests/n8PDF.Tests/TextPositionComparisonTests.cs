@@ -89,6 +89,23 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 on the narrowest of the four and within a fifth of a point on the rest.
                 """),
 
+            ["superscript-shift-probe"] = (2.5,
+                """
+                What a raised or lowered run is a share of, which Word will not say. This fixture
+                puts the question five sizes wide and three faces deep, and the shift comes back
+                depending on both — so a single share of the type size, which is what this uses,
+                cannot follow it everywhere.
+
+                Where it does not is at the sizes nothing is ever superscripted at: the two and a
+                half points are Calibri at ninety-six point, where Word raises 0.3325 of the size
+                and Times New Roman gets 0.355. Below forty-eight point every face here is within
+                three steps of the grid, and Times, which superscript-probe is written in, is
+                within one at every size measured.
+
+                ResolvedRunFormat.BaselineShiftPoints has the whole measurement, including the
+                eleven faces that showed the shift is not a share of anything a face declares.
+                """),
+
             ["equations"] = (1.2,
                 """
                 How tall a line holding an equation is, which math-line-box-probe measures and
