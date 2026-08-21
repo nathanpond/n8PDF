@@ -904,6 +904,25 @@ for it exists. And a table style sits between the document's defaults and the pa
 in the cascade — a paragraph style used in a cell overrides the table style, and direct formatting
 overrides both.
 
+### Which rows repeat at the top of a page
+
+A table that runs past the foot of a page writes its heading rows again at the top of the next, and
+which rows those are is four questions rather than one. `table-heading-probe` puts all four to Word
+— four tables, each long enough to break, every row saying in its own text what it is:
+
+| the table | Word's second page begins |
+|---|---|
+| one row marked `w:tblHeader` | that row, then the rest |
+| the first two marked | both of them, then the rest |
+| only the *third* marked | the rest, with no heading at all |
+| every row marked | the rest, with no heading at all |
+
+So a heading is the run of marked rows at the **top** of a table, and nothing else: a row marked
+further down is not one. The last case is the one worth writing down, because the obvious reading
+of the format — repeat whatever is marked — would repeat a table of headings for ever, and Word
+declines to repeat any of them rather than looping. A heading that would fill the page it is
+repeated on is left out for the same reason.
+
 ## Current scope
 
 Implemented: cells merged down the page (`w:vMerge`), which behave as one tall cell — no rule is

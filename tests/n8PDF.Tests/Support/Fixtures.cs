@@ -193,6 +193,41 @@ public static class Fixtures
     /// <summary>
     /// A bordered table of one row and two cells, the first holding as many lines as asked for.
     /// </summary>
+    /// <summary>
+    /// A table of numbered rows, the first few of which may be marked as heading rows. The rows
+    /// say which they are in their own text, so a page of the export says outright which of them
+    /// Word put there.
+    /// </summary>
+    private static string HeadingTable(string label, int rows, params int[] headings)
+    {
+        static string Cell(string text) =>
+            $"<w:tc><w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+            $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(text)}</w:t></w:r></w:p></w:tc>";
+
+        var body = string.Concat(Enumerable.Range(1, rows).Select(i =>
+            $"<w:tr>{(headings.Contains(i) ? "<w:trPr><w:tblHeader/></w:trPr>" : string.Empty)}" +
+            Cell($"{label} row {i}") + Cell(headings.Contains(i) ? "heading" : "body") + "</w:tr>"));
+
+        return $"""
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblW w:w="9360" w:type="dxa"/>
+                    <w:tblBorders>
+                      <w:top w:val="single" w:sz="4" w:color="auto"/>
+                      <w:left w:val="single" w:sz="4" w:color="auto"/>
+                      <w:bottom w:val="single" w:sz="4" w:color="auto"/>
+                      <w:right w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideH w:val="single" w:sz="4" w:color="auto"/>
+                      <w:insideV w:val="single" w:sz="4" w:color="auto"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="6480"/><w:gridCol w:w="2880"/></w:tblGrid>
+                  {body}
+                </w:tbl>
+                """;
+    }
+
     private static string SplittableTable(string label, int lines, bool cantSplit)
     {
         var content = string.Concat(Enumerable.Range(1, lines).Select(i =>
@@ -5077,6 +5112,43 @@ public static class Fixtures
                     .AddParagraph("Paragraph before the drawing.", ZeroSpacing, Times12)
                     .AddImageParagraph(metafile, 200, 120, ZeroSpacing)
                     .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
+            },
+
+            // Which rows Word puts at the top of a table's second page, and the several questions
+            // that turns out to be. Each table runs past the foot of a page, and every row says in
+            // its own text what it is, so the export says outright which were repeated:
+            //
+            //   one heading    the plainest case
+            //   two headings   whether a run of them all repeats
+            //   a late one     a row marked heading that is not at the top of the table
+            //   headings only  a table with nothing but headings, which cannot repeat forever
+            ["table-heading-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Filler(int from, int to)
+                {
+                    for (var i = from; i <= to; i++)
+                        builder.AddParagraph($"Filler {i}.", ZeroSpacing, Times12);
+                }
+
+                Filler(1, 35);
+                builder.AddRawParagraph(HeadingTable("One", 16, 1));
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                Filler(36, 70);
+                builder.AddRawParagraph(HeadingTable("Two", 16, 1, 2));
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                Filler(71, 105);
+                builder.AddRawParagraph(HeadingTable("Late", 16, 3));
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                Filler(106, 140);
+                builder.AddRawParagraph(HeadingTable("Only", 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                    11, 12, 13, 14, 15, 16));
+
+                return builder;
             },
 
             // A table row taller than what is left of the page, which Word breaks across the two

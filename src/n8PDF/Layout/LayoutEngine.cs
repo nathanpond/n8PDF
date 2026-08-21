@@ -2338,6 +2338,41 @@ internal sealed class LayoutEngine(
         // Merged runs open here and close some rows further down, so they outlive any one row.
         var merges = new Dictionary<int, OpenMerge>();
 
+        // The rows Word puts again at the top of every page the table runs onto: the run of them
+        // at the very top of the table, and only that run. table-heading-probe asks the four
+        // questions this answers — one heading repeats, two repeat, a row marked further down the
+        // table does not repeat at all, and a table that is nothing but headings repeats none of
+        // them, since there would be no body to put under them.
+        var headings = 0;
+        while (headings < table.Rows.Count && table.Rows[headings].IsHeader == true) headings++;
+        if (headings == table.Rows.Count) headings = 0;
+
+        // Puts them there, and says how much of the page they took. Their footnotes are not
+        // collected again: a note called for in a heading belongs to the page the heading was
+        // first written on, and Word does not repeat it either.
+        double RepeatHeadings()
+        {
+            var taken = 0.0;
+
+            for (var i = 0; i < headings; i++)
+            {
+                var cells = MeasureRow(table, table.Rows[i], i, columns, tableLeft);
+                if (cells.Count == 0) continue;
+
+                var height = ComputeRowHeight(table.Rows[i], cells);
+
+                // A heading that would fill the page it is repeated on is not repeated: what is
+                // left has to hold something of the table besides the heading.
+                if (cursor.Y + height > cursor.ContentBottom) break;
+
+                PlaceRow(cursor, cells, cursor.Y, height);
+                cursor.Y += height;
+                taken += height;
+            }
+
+            return taken;
+        }
+
         for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
         {
             var row = table.Rows[rowIndex];
@@ -2407,6 +2442,10 @@ internal sealed class LayoutEngine(
                 // there, with as much of its content as that page had room for, and opens again
                 // at the top of this one holding the rest.
                 foreach (var merge in merges.Values) merge.CarryOver(cursor);
+
+                // The heading rows go at the top of the fresh page, above whatever of the table
+                // follows — but not above themselves, where it is a heading that has moved.
+                if (headings > 0 && rowIndex >= headings) RepeatHeadings();
 
                 rowHeight = HeightOf(placed);
                 if (rowFootnotes.Flows.Count > 0) rowFootnotes = PrepareFootnotes(cursor, rowFootnoteIds);
