@@ -87,18 +87,32 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 on the narrowest of the four and within a fifth of a point on the rest.
                 """),
 
-            ["equations"] = (1.1,
+            ["equations"] = (1.2,
                 """
                 How tall a line holding an equation is, which math-line-box-probe measures and
                 which is implemented from that measurement: the ink of what is in the equation
                 with the face's own math leading over it, and never less than a line of the face
-                at the size the equation is set at. Twenty-six equations there come out within
-                nine tenths of a point of Word's, and most within a quarter.
+                at the size the equation is set at. Twenty-five equations there come out within
+                three quarters of a point of Word's, and most within a quarter.
 
-                What is left here is that ninth tenth accumulating: the sum of the equations
-                fixture asks its line for nine tenths of a point more than Word's does, because
-                its limits sit where the integral's rule puts them rather than where Word puts a
-                sum's — see the note on Nary. Down seventeen lines that comes to under two points.
+                What is left here is those quarter points accumulating down seventeen lines, each
+                of them a line whose height Word rounds to the three hundredth of an inch and this
+                does not.
+                """),
+
+            ["math-nary-probe"] = (14.5,
+                """
+                Where the limits go is exact — every one of the twenty on this page sits where
+                Word sits it, which is what MathNaryTests asserts. What differs is how much room a
+                line leaves for a limit that is not there: eight of the probes give an operator one
+                limit and write the other as an empty element, which is what Word itself writes
+                when a limit is deleted, and Word keeps a limit's worth of room for it. Nothing
+                here does, so those lines are shorter by two to four points each and the page
+                gathers fourteen by the end of it.
+
+                What that room comes to was not worked out. It is not the empty run's own line,
+                which would be a point too much, nor its typographic ascent, which is half a point
+                too little.
                 """),
 
             ["math-bracket-probe"] = (1.7,
@@ -122,18 +136,13 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
                 fourteenth of a point to matter.
                 """),
 
-            ["math-line-box-probe"] = (2.4,
+            ["math-line-box-probe"] = (1.0,
                 """
-                One of the twenty-five: a bracket round a fraction whose parts are twice the size
-                the equation is set at. Word reaches two shapes further up the face's series of
-                brackets than this does, so its bracket is 0.86 points wider and taller, and the
-                line holding it is taller with it. How far a bracket has to reach before Word
-                takes the next shape was measured from two brackets at twelve point — nine tenths
-                of what it holds, which is TeX's own factor — and this says that the rule does not
-                carry to a bracket round something twice its own size.
-
-                Every other line of the fixture is within 0.6 of a point, and what each equation
-                asks of its line is asserted probe by probe in MathLineBoxTests.
+                The rails between the equations: a two point line of Word's is 2.16 points where
+                the same line here is 2.2998, since nothing here rounds a line's height to the
+                three hundredth of an inch Word rounds it to. Fifty of them down two pages come to
+                just under a point of drift. What each equation asks of its own line is asserted
+                probe by probe in MathLineBoxTests.
                 """),
 
             ["vml-stroke-probe"] = (5.5,
@@ -202,6 +211,7 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         ["math-line-box-probe"] = "the same: they are equations and nothing else",
         ["math-kern-probe"] = "the same again",
         ["math-bracket-probe"] = "and again",
+        ["math-nary-probe"] = "and again",
         ["math-structure-probe"] = "the same again"
     };
 

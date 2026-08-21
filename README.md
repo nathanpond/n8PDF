@@ -442,7 +442,7 @@ a `MATH` table — where the axis of an equation sits, how far a superscript ris
 fraction's bar is, how much room a radical leaves over what is under it, and a set of taller shapes
 for every bracket that has to grow. Those are read and used, and the rules that combine them are the
 ones the OpenType specification lays down. What was measured is where Word departs from them, and it
-departs in eight places:
+departs in nine places:
 
 - **An equation is set at the size of the text carrying it, not at the size its own runs state.**
   Its letters are drawn at their runs' size and everything else — every distance from the table,
@@ -496,6 +496,14 @@ departs in eight places:
   taken of is a number no constant of the table and no fraction of an em accounts for. It is written
   down as what it was measured to be, from a sum and an integral that agree on it exactly although
   they agree on nothing else.
+- **Which rules an operator's limits follow is the operator's own doing, not the markup's.**
+  `math-nary-probe` writes each of four operators both ways round — limits above, limits beside —
+  and a sum is set identically either way, as is an integral, while the two disagree with each
+  other. An integral's limits are scripts on a box, placed from the operator's own ink; a sum's are
+  placed by rules of their own: the lower one goes down by the stated shift **and 0.115 of what is
+  in it**, the two of them straddle a line **0.08 of the size** apart, and an upper limit with no
+  lower one takes the stated shift from that same line. Twenty limits, and every one of them lands
+  where Word lands it but for two that round the other way.
 
 A slanted fraction is set at the full size with a taller *fraction slash* — not the solidus, which
 the face keeps no shapes for — its numerator raised 0.3 of the type size and its denominator dropped

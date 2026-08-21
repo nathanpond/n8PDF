@@ -40,10 +40,8 @@ public class MathLineBoxTests(ITestOutputHelper output)
     /// Every probe of both fixtures, above the line and below it.
     /// </summary>
     /// <remarks>
-    /// A point is the tolerance because of one probe: a sum with its limits beside it, whose
-    /// limits this engine places where the OpenType rules put an integral's and Word places
-    /// lower — see the note on Nary. Everything else agrees within 0.56 of a point, and most of
-    /// it within a quarter, which is the three hundredth of an inch Word rounds a position to.
+    /// All of them within three quarters of a point, and most within a quarter — which is the
+    /// three hundredth of an inch Word rounds a position to.
     /// </remarks>
     [Theory]
     [InlineData("math-line-box-probe")]

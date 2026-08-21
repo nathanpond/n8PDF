@@ -3763,6 +3763,115 @@ public static class Fixtures
                 return builder;
             },
 
+            // Where the limits of a sum or an integral go when they stand beside it. The equations
+            // fixture holds one of each and they disagree: Word places the integral's by the same
+            // rules a script follows, from the operator's own ink, and places the sum's at the
+            // plain shifts the table states. Both of them say undOvr in the markup and both are
+            // set inline, so the markup cannot be what decides it.
+            //
+            // This asks the question directly. Each operator appears twice over — once saying its
+            // limits go above and below, once saying they go beside — so that what the markup says
+            // and what the operator is can be told apart. Two of each kind: a sum and a product,
+            // which Word writes with their limits above and below; an integral and a contour
+            // integral, which take theirs beside.
+            ["math-nary-probe"] = () =>
+            {
+                const string Mark =
+                    "<w:rPr><w:rFonts w:ascii=\"Times New Roman\" w:hAnsi=\"Times New Roman\"/>" +
+                    "<w:sz w:val=\"4\"/></w:rPr>";
+
+                static string Run(string text) =>
+                    "<m:r><w:rPr><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\"/>" +
+                    $"</w:rPr><m:t>{DocxBuilder.Escape(text)}</m:t></m:r>";
+
+                static string Element(string name, string inner) => $"<m:{name}>{inner}</m:{name}>";
+
+                static string Nary(string character, string location, string sub, string sup) =>
+                    "<m:nary><m:naryPr>" +
+                    $"<m:chr m:val=\"{character}\"/><m:limLoc m:val=\"{location}\"/>" +
+                    "</m:naryPr>" +
+                    (sub.Length > 0 ? Element("sub", Run(sub)) : "<m:sub/>") +
+                    (sup.Length > 0 ? Element("sup", Run(sup)) : "<m:sup/>") +
+                    Element("e", Run("x")) + "</m:nary>";
+
+                var builder = new DocxBuilder().WithStyles(
+                    """
+                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                      <w:docDefaults>
+                        <w:rPrDefault>
+                          <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr>
+                        </w:rPrDefault>
+                      </w:docDefaults>
+                      <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+                      <w:style w:type="paragraph" w:styleId="Big">
+                        <w:name w:val="Big"/>
+                        <w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="48"/></w:rPr>
+                      </w:style>
+                    </w:styles>
+                    """);
+
+                void Rail() => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>-</w:t></w:r></w:p>");
+
+                void Probe(string math) => builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    $"<m:oMath>{math}</m:oMath></w:p>");
+
+                Rail();
+                Rail();
+
+                foreach (var equation in new[]
+                         {
+                             // A sum: what the markup says, both ways.
+                             Nary("\u2211", "undOvr", "i=1", "n"),
+                             Nary("\u2211", "subSup", "i=1", "n"),
+
+                             // An integral, the same two ways.
+                             Nary("\u222b", "undOvr", "0", "1"),
+                             Nary("\u222b", "subSup", "0", "1"),
+
+                             // A product and a contour integral, to say whether the answer follows
+                             // the kind of operator rather than the one character.
+                             Nary("\u220f", "undOvr", "i=1", "n"),
+                             Nary("\u220f", "subSup", "i=1", "n"),
+                             Nary("\u222e", "undOvr", "0", "1"),
+                             Nary("\u222e", "subSup", "0", "1"),
+
+                             // One limit at a time, so that the gap between two of them is out of
+                             // the way.
+                             Nary("\u2211", "subSup", "i=1", ""),
+                             Nary("\u2211", "subSup", "", "n"),
+                             Nary("\u222b", "subSup", "0", ""),
+                             Nary("\u222b", "subSup", "", "1"),
+
+                             // The same sum with limits of different ink, to say whether where
+                             // they sit follows what is in them: an x reaches to the middle of the
+                             // line, a 1 to the top of it, and an i higher still for its dot.
+                             Nary("\u2211", "subSup", "x", ""),
+                             Nary("\u2211", "subSup", "1", ""),
+                             Nary("\u2211", "subSup", "", "x"),
+                             Nary("\u2211", "subSup", "", "1"),
+                             Nary("\u2211", "subSup", "x", "x"),
+                             Nary("\u222b", "subSup", "x", "")
+                         })
+                {
+                    Probe(equation);
+                    Rail();
+                }
+
+                // And a sum at twice the size, to say what the answer is a share of.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr><w:pStyle w:val=\"Big\"/>{ZeroSpacing}{Mark}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(4)}</w:rPr><w:t>.</w:t></w:r>" +
+                    $"<m:oMath>{Nary("\u2211", "subSup", "i=1", "n")}</m:oMath></w:p>");
+                Rail();
+
+                return builder;
+            },
+
             // What size an equation is set at, which the line box probe could not say: both its
             // fixtures declare eleven point and Word set every equation in them at 11.04, which
             // is eleven rounded to the three hundredth of an inch it rounds a size to — and is

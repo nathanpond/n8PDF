@@ -107,7 +107,7 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
         if (name is "hebrew" or "font-fallback" or "marks" or "arabic" or "indic"
             or "southeast-asian" or "universal" or "apple" or "equations"
             or "math-line-box-probe" or "math-structure-probe" or "math-kern-probe"
-            or "math-bracket-probe")
+            or "math-bracket-probe" or "math-nary-probe")
         {
             return;
         }

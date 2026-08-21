@@ -480,6 +480,50 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     /// sum apart is having something on each side of it.
     /// </remarks>
     /// <summary>
+    /// How much further down a sum's lower limit goes than a plain subscript would, as a share of
+    /// what is in it.
+    /// </summary>
+    /// <remarks>
+    /// Measured, and the only part of a sum's limits that is. math-nary-probe puts an x under a
+    /// sum, then a 1, then the row i=1, and then the row again at twice the size: Word drops them
+    /// 2.4, 2.64, 2.88 and 6.0 points below the line where the shift the table states is 2.4 at
+    /// twelve point and 4.9 at twenty-four. What separates the four is what each holds, and
+    /// 0.115 of it is what gives three of them exactly and the fourth within the three hundredth
+    /// of an inch Word rounds to.
+    /// </remarks>
+    private const double SumLimitShare = 0.115;
+
+    /// <summary>
+    /// How much higher a sum's upper limit stands than its lower one goes down, as a share of the
+    /// size the equation is set at.
+    /// </summary>
+    /// <remarks>
+    /// The pair straddle a line a little over the operator's own baseline, and the same amount
+    /// over it whatever they hold: Word's sum with n over i=1 puts them 4.8 and 2.88 either side
+    /// of the line, its sum with x over x 4.32 and 2.4, and the same pair at twenty-four point
+    /// 9.84 and 6.0. Eight hundredths of the size is the distance between the two shifts in all
+    /// three.
+    ///
+    /// An upper limit with no lower one is not part of that pair, and takes the shift the table
+    /// states — which is what Word gives it, to within a rounding.
+    /// </remarks>
+    private const double SumLimitSpread = 0.08;
+
+    /// <summary>
+    /// Whether an operator takes its limits beside it rather than above and below.
+    /// </summary>
+    /// <remarks>
+    /// The integrals do and the rest do not, and it is the operator that decides rather than the
+    /// markup: math-nary-probe writes every one of them both ways round, and a sum whose markup
+    /// says its limits go beside is set exactly where a sum whose markup says they go above is.
+    /// What the markup does decide is whether they are set above and below at all, which only
+    /// happens on a line of its own.
+    /// </remarks>
+    private static bool Sideways(string character) =>
+        character.EnumerateRunes().FirstOrDefault().Value is
+            (>= 0x222B and <= 0x2233) or (>= 0x2A0B and <= 0x2A1C);
+
+    /// <summary>
     /// The room between a sum or an integral and what it is taken of, as a share of the size the
     /// equation is set at.
     /// </summary>
@@ -1127,8 +1171,10 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var body = Compose(nary.Body, style.Inside);
         var smaller = style.Smaller;
 
-        var sub = nary.Sub is null ? null : Compose(nary.Sub, smaller);
-        var sup = nary.Sup is null ? null : Compose(nary.Sup, smaller);
+        // A limit the markup writes but leaves empty is no limit: <m:sub/> with nothing in it is
+        // how a document says an operator has only an upper one.
+        var sub = Limit(nary.Sub, smaller);
+        var sup = Limit(nary.Sup, smaller);
 
         var format = Format(new RunProperties(), style);
         var selection = Resolve(format);
@@ -1141,6 +1187,10 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         var operatorAscent = 0.0;
         var operatorDescent = 0.0;
         var operatorLean = 0.0;
+
+        // How far the operator was raised to sit on the axis, which is what its own limits are
+        // measured from.
+        var lift = 0.0;
 
         if (nary.Operator.Length > 0)
         {
@@ -1157,7 +1207,7 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
             // Word's sum stands half a point above the line for this reason and its integral
             // half a point below it, and the two agree with the axis to within the three
             // hundredth of an inch Word rounds a position to.
-            var lift = math.AxisHeight * unit - (operatorAscent - operatorDescent) / 2;
+            lift = math.AxisHeight * unit - (operatorAscent - operatorDescent) / 2;
 
             pieces.Add(new MathPiece(nary.Operator, 0, -lift, Quantised(size), selection,
                 operatorWidth));
@@ -1212,41 +1262,80 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
         }
         else
         {
-            // Beside it, a limit is a script on the operator, and takes the shifts a script takes
-            // — measured against the operator's own ink, which is what makes an integral's limits
-            // stand further off than a sum's.
+            // Beside it, a limit is a script on the operator — but which rules it follows is the
+            // operator's own doing, and not what the markup asks for. math-nary-probe puts every
+            // one of the four through both spellings: a sum and a product take the same places
+            // whether the markup says the limits go above or beside, and so do an integral and a
+            // contour integral, and the two pairs do not agree with each other.
             //
-            // The upper one hangs off the operator's advance and the lower one off the advance
-            // less its lean, which is how far an integral leans over what comes after it. Word's
-            // integral puts them 2.24 points apart at twelve point, which is the lean the face
-            // states to a hundredth of a point.
+            // An integral's limits are scripts on a box: they take the shifts a script takes,
+            // measured against the operator's own ink, which is what makes them stand further off
+            // than a sum's. The upper one hangs off the operator's advance and the lower one off
+            // the advance less its lean, which is how far an integral leans over what comes after
+            // it: Word's integral puts them 2.24 points apart at twelve point, which is the lean
+            // the face states to a hundredth of a point.
             var rise = 0.0;
             var drop = 0.0;
 
-            if (sup is not null)
+            if (Sideways(nary.Operator))
             {
-                rise = Math.Max(math.SuperscriptShiftUp * unit,
-                    Math.Max(operatorAscent - math.SuperscriptBaselineDropMax * unit,
-                        math.SuperscriptBottomMin * unit + sup.Descent));
-            }
-
-            if (sub is not null)
-            {
-                drop = Math.Max(math.SubscriptShiftDown * unit,
-                    Math.Max(operatorDescent + math.SubscriptBaselineDropMin * unit,
-                        sub.Ascent - math.SubscriptTopMax * unit));
-            }
-
-            if (sub is not null && sup is not null)
-            {
-                var gap = rise - sup.Descent + drop - sub.Ascent;
-                var least = math.SubSuperscriptGapMin * unit;
-
-                if (gap < least)
+                if (sup is not null)
                 {
-                    rise += (least - gap) / 2;
-                    drop += (least - gap) / 2;
+                    rise = Math.Max(math.SuperscriptShiftUp * unit,
+                        Math.Max(operatorAscent - math.SuperscriptBaselineDropMax * unit,
+                            math.SuperscriptBottomMin * unit + sup.Descent));
                 }
+
+                if (sub is not null)
+                {
+                    drop = Math.Max(math.SubscriptShiftDown * unit,
+                        Math.Max(operatorDescent + math.SubscriptBaselineDropMin * unit,
+                            sub.Ascent - math.SubscriptTopMax * unit));
+                }
+
+                if (sub is not null && sup is not null)
+                {
+                    var gap = rise - sup.Descent + drop - sub.Ascent;
+                    var least = math.SubSuperscriptGapMin * unit;
+
+                    if (gap < least)
+                    {
+                        rise += (least - gap) / 2;
+                        drop += (least - gap) / 2;
+                    }
+                }
+            }
+            else
+            {
+                // A sum's are placed by rules of their own, which are measured rather than
+                // derived — see SumLimitShare and SumLimitSpread — and are measured from the
+                // operator's own baseline rather than the equation's, which is why what it was
+                // raised by comes off again here.
+                if (sub is not null)
+                {
+                    // What is in it, which is its ink where it is a single letter and the line its
+                    // face asks for where it is more than one — the same telling apart of a letter
+                    // from a box that decides whether a script takes a drop.
+                    var held = sub.Letter
+                        ? sub.Ascent
+                        : selection.Font.Metrics.Ascender * smaller.Size /
+                          selection.Font.Metrics.UnitsPerEm;
+
+                    drop = math.SubscriptShiftDown * unit + SumLimitShare * held;
+                }
+
+                if (sup is not null)
+                {
+                    // The pair straddle a line half the spread over the operator's baseline. One
+                    // on its own stands the stated shift over that same line, which is where
+                    // Word puts an x or an n over a sum exactly.
+                    rise = sub is null
+                        ? math.SuperscriptShiftUp * unit + SumLimitSpread * style.Size / 2
+                        : drop + SumLimitSpread * style.Size;
+                }
+
+                rise += lift;
+                drop -= lift;
             }
 
             if (sup is not null)
@@ -1282,6 +1371,19 @@ internal sealed class MathComposer(FontLibrary fonts, StyleResolver styles)
     }
 
     // ---------------------------------------------------------------- grids
+
+    /// <summary>
+    /// One of an operator's limits, or null where the markup writes the element and leaves it
+    /// empty.
+    /// </summary>
+    private MathBox? Limit(MathNode? node, Style style)
+    {
+        if (node is null) return null;
+
+        var box = Compose(node, style);
+
+        return box.Pieces.Count == 0 && box.Rules.Count == 0 ? null : box;
+    }
 
     private MathBox Grid(MathGrid grid, Style style)
     {
