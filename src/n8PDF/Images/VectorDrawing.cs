@@ -29,12 +29,18 @@ internal abstract record DrawingOperation;
 /// Which of the two rules decides what is inside a path that crosses itself: even-odd, or the
 /// winding it was drawn with.
 /// </param>
+/// <param name="Clip">
+/// A rectangle to keep the path inside, where it is not to be drawn whole. What a chart draws in
+/// its plot area is kept there — a bubble larger than the plot is cut off at its edge rather than
+/// drawn over the axis labels, which is how Word draws one.
+/// </param>
 internal sealed record PathOperation(
     IReadOnlyList<PathStep> Steps,
     DrawingColor? Fill,
     DrawingColor? Stroke,
     double StrokeWidth,
-    bool EvenOdd) : DrawingOperation;
+    bool EvenOdd,
+    (double X, double Y, double Width, double Height)? Clip = null) : DrawingOperation;
 
 /// <summary>
 /// A piece of text, which is left as text rather than turned into outlines: the reader that ends

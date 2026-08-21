@@ -1521,7 +1521,9 @@ public static class Fixtures
     ];
 
     /// <summary>A line chart, with its plotting placed by hand and its axis told what to do.</summary>
-    private static string LineChart(int series) => $"""
+    private static string LineChart(
+        int series, string marker = "none", int markerSize = 0, string? legend = null,
+        int legendSize = 0) => $"""
         <c:chart>
           <c:autoTitleDeleted val="1"/>
           <c:plotArea>
@@ -1534,10 +1536,10 @@ public static class Fixtures
               <c:grouping val="standard"/>
               <c:varyColors val="0"/>
               {DocxBuilder.ChartLineSeries(0, "Units", ["One", "Two", "Three", "Four"],
-                  [30, 45, 20, 55], "4472C4")}
+                  [30, 45, 20, 55], "4472C4", marker: marker, markerSize: markerSize)}
               {(series > 1
                   ? DocxBuilder.ChartLineSeries(1, "Others", ["One", "Two", "Three", "Four"],
-                      [10, 25, 50, 15], "ED7D31")
+                      [10, 25, 50, 15], "ED7D31", marker: marker, markerSize: markerSize)
                   : string.Empty)}
               <c:marker val="0"/>
               <c:axId val="111111111"/><c:axId val="222222222"/>
@@ -1563,6 +1565,15 @@ public static class Fixtures
               <c:crossBetween val="between"/><c:majorUnit val="20"/>
             </c:valAx>
           </c:plotArea>
+          {(legend is null
+              ? string.Empty
+              : $"""
+                 <c:legend><c:legendPos val="{legend}"/><c:overlay val="0"/>
+                   {(legendSize > 0
+                       ? $"<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz=\"{legendSize * 100}\"/></a:pPr><a:endParaRPr lang=\"en-GB\"/></a:p></c:txPr>"
+                       : string.Empty)}
+                 </c:legend>
+                 """)}
           <c:plotVisOnly val="1"/>
         </c:chart>
         """;
@@ -1591,6 +1602,314 @@ public static class Fixtures
           <c:plotVisOnly val="1"/>
         </c:chart>
         """;
+
+    /// <summary>
+    /// A doughnut chart: a pie with a hole through the middle, and one ring for every series it
+    /// holds rather than one pie.
+    /// </summary>
+    private static string DoughnutChart(
+        int hole = 50, int series = 1, int firstSliceAngle = 0, bool manualLayout = true,
+        string? legend = null, bool labels = false, int labelSize = 0, bool pie = false)
+    {
+        string[] categories = ["One", "Two", "Three", "Four"];
+
+        var ring = labels
+            ? $"""
+              <c:dLbls>
+                {(labelSize > 0
+                    ? $"<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz=\"{labelSize * 100}\"/></a:pPr><a:endParaRPr lang=\"en-GB\"/></a:p></c:txPr>"
+                    : string.Empty)}
+                <c:showLegendKey val="0"/><c:showVal val="0"/><c:showCatName val="0"/>
+                <c:showSerName val="0"/><c:showPercent val="1"/><c:showBubbleSize val="0"/>
+              </c:dLbls>
+              """
+            : string.Empty;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{(manualLayout
+                    ? """
+                      <c:manualLayout>
+                        <c:layoutTarget val="inner"/>
+                        <c:xMode val="edge"/><c:yMode val="edge"/>
+                        <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.8"/>
+                      </c:manualLayout>
+                      """
+                    : string.Empty)}</c:layout>
+                <c:{(pie ? "pieChart" : "doughnutChart")}>
+                  <c:varyColors val="1"/>
+                  {DocxBuilder.ChartPieSeries("Units", categories, [30, 45, 20, 55],
+                      ["4472C4", "ED7D31", "A5A5A5", "FFC000"])}
+                  {(series > 1
+                      ? DocxBuilder.ChartPieSeries("Others", categories, [10, 25, 50, 15],
+                          ["5B9BD5", "70AD47", "264478", "9E480E"], index: 1)
+                      : string.Empty)}
+                  {ring}
+                  <c:firstSliceAng val="{firstSliceAngle}"/>
+                  {(pie ? string.Empty : $"<c:holeSize val=\"{hole}\"/>")}
+                </c:{(pie ? "pieChart" : "doughnutChart")}>
+              </c:plotArea>
+              {(legend is null
+                  ? string.Empty
+                  : $"<c:legend><c:legendPos val=\"{legend}\"/><c:overlay val=\"0\"/></c:legend>")}
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
+    /// <summary>
+    /// A bubble chart: a scatter whose points carry a third number, drawn as how large the bubble
+    /// at each pair is.
+    /// </summary>
+    private static string BubbleChart(
+        int scale = 100, string sizeRepresents = "area", int series = 1,
+        bool manualLayout = true, bool stated = true, double[]? sizes = null,
+        double[]? x = null, double[]? y = null, bool smallPlot = false)
+    {
+        sizes ??= [10, 20, 30, 40];
+        x ??= [1, 2, 4, 7];
+        y ??= [30, 45, 20, 55];
+
+        var layout = manualLayout
+            ? $"""
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.25"/><c:y val="0.1"/>
+                <c:w val="{(smallPlot ? "0.3" : "0.65")}"/><c:h val="{(smallPlot ? "0.3" : "0.7")}"/>
+              </c:manualLayout>
+              """
+            : string.Empty;
+
+        static string Scaling(bool stated, double maximum) => stated
+            ? $"""
+               <c:scaling><c:orientation val="minMax"/>
+                 <c:max val="{maximum.ToString(CultureInfo.InvariantCulture)}"/><c:min val="0"/>
+               </c:scaling>
+               """
+            : "<c:scaling><c:orientation val=\"minMax\"/></c:scaling>";
+
+        static string Unit(bool stated, double unit) => stated
+            ? $"""<c:majorUnit val="{unit.ToString(CultureInfo.InvariantCulture)}"/>"""
+            : string.Empty;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{layout}</c:layout>
+                <c:bubbleChart>
+                  <c:varyColors val="0"/>
+                  {DocxBuilder.ChartBubbleSeries(0, "Units", x, y, sizes, "4472C4")}
+                  {(series > 1
+                      ? DocxBuilder.ChartBubbleSeries(1, "Others", [1, 3, 5, 7], [10, 25, 50, 15],
+                          [40, 30, 20, 10], "ED7D31")
+                      : string.Empty)}
+                  <c:bubbleScale val="{scale}"/>
+                  <c:showNegBubbles val="0"/>
+                  <c:sizeRepresents val="{sizeRepresents}"/>
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:bubbleChart>
+                <c:valAx>
+                  <c:axId val="111111111"/>
+                  {Scaling(stated, 8)}
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="midCat"/>{Unit(stated, 2)}
+                </c:valAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  {Scaling(stated, 60)}
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="midCat"/>{Unit(stated, 20)}
+                </c:valAx>
+              </c:plotArea>
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
+    /// <summary>
+    /// A radar chart: the categories set round a circle rather than along a line, and the values
+    /// measured out from its middle.
+    /// </summary>
+    private static string RadarChart(
+        string style = "standard", int series = 1, bool manualLayout = true, bool stated = true,
+        string[]? categories = null, double[]? values = null, string? legend = null,
+        int labelSize = 0, int markerSize = 0)
+    {
+        categories ??= ["One", "Two", "Three", "Four", "Five"];
+        values ??= [30, 45, 20, 55, 35];
+
+        // What the labels round the web are set in, where the page is asking about the size.
+        var text = labelSize > 0
+            ? $"""<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="{labelSize * 100}"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>"""
+            : string.Empty;
+
+        var layout = manualLayout
+            ? """
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.8"/>
+              </c:manualLayout>
+              """
+            : string.Empty;
+
+        // A filled radar is a shape rather than a line, so its series carries a fill; the other
+        // two carry a line and whatever marker the style asks for.
+        string Series(int index, string name, IReadOnlyList<double> numbers, string colour) =>
+            style == "filled"
+                ? DocxBuilder.ChartSeries(index, name, categories, numbers, colour)
+                : DocxBuilder.ChartLineSeries(index, name, categories, numbers, colour,
+                    marker: style == "marker" ? "circle" : "none", markerSize: markerSize);
+
+        var scale = stated
+            ? """<c:max val="60"/><c:min val="0"/>"""
+            : string.Empty;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{layout}</c:layout>
+                <c:radarChart>
+                  <c:radarStyle val="{style}"/>
+                  <c:varyColors val="0"/>
+                  {Series(0, "Units", values, "4472C4")}
+                  {(series > 1 ? Series(1, "Others", [10, 25, 50, 15, 40], "ED7D31") : string.Empty)}
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:radarChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>{text}
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/>{scale}</c:scaling>
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>{text}
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>{(stated ? "<c:majorUnit val=\"20\"/>" : string.Empty)}
+                </c:valAx>
+              </c:plotArea>
+              {(legend is null
+                  ? string.Empty
+                  : $"<c:legend><c:legendPos val=\"{legend}\"/><c:overlay val=\"0\"/></c:legend>")}
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
+
+    /// <summary>
+    /// A stock chart: three or four series read together as one, drawn as the lines between them
+    /// rather than as lines along them.
+    /// </summary>
+    /// <param name="series">
+    /// Three for high, low and close; four for open, high, low and close, which is the one that
+    /// draws a bar between the opening and the closing as well.
+    /// </param>
+    private static string StockChart(
+        int series = 3, bool manualLayout = true, int gapWidth = 150, bool stated = true,
+        string closeMarker = "", string? legend = null)
+    {
+        string[] categories = ["One", "Two", "Three", "Four"];
+
+        var layout = manualLayout
+            ? """
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.7"/><c:h val="0.7"/>
+              </c:manualLayout>
+              """
+            : string.Empty;
+
+        // The order is the one a stock chart is read in, and it is the order that says which
+        // series is which: open, high, low, close, with the opening left out where there is none.
+        var opening = series > 3
+            ? DocxBuilder.ChartStockSeries(0, "Open", categories, [28, 40, 22, 50])
+            : string.Empty;
+
+        var shift = series > 3 ? 1 : 0;
+
+        var scale = stated
+            ? """<c:max val="60"/><c:min val="0"/>"""
+            : string.Empty;
+
+        return $"""
+            <c:chart>
+              <c:autoTitleDeleted val="1"/>
+              <c:plotArea>
+                <c:layout>{layout}</c:layout>
+                <c:stockChart>
+                  {opening}
+                  {DocxBuilder.ChartStockSeries(shift, "High", categories, [40, 52, 33, 58])}
+                  {DocxBuilder.ChartStockSeries(shift + 1, "Low", categories, [20, 30, 15, 35])}
+                  {DocxBuilder.ChartStockSeries(shift + 2, "Close", categories, [35, 33, 28, 45],
+                      marker: closeMarker.Length > 0 ? closeMarker : series > 3 ? "none" : "dot")}
+                  <c:hiLowLines/>
+                  {(series > 3
+                      ? $"""
+                         <c:upDownBars>
+                           <c:gapWidth val="{gapWidth}"/>
+                           <c:upBars><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>
+                             <a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln>
+                           </c:spPr></c:upBars>
+                           <c:downBars><c:spPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill>
+                             <a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln>
+                           </c:spPr></c:downBars>
+                         </c:upDownBars>
+                         """
+                      : string.Empty)}
+                  <c:axId val="111111111"/><c:axId val="222222222"/>
+                </c:stockChart>
+                <c:catAx>
+                  <c:axId val="111111111"/>
+                  <c:scaling><c:orientation val="minMax"/></c:scaling>
+                  <c:delete val="0"/><c:axPos val="b"/>
+                  <c:majorTickMark val="out"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="222222222"/><c:crosses val="autoZero"/>
+                  <c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/>
+                </c:catAx>
+                <c:valAx>
+                  <c:axId val="222222222"/>
+                  <c:scaling><c:orientation val="minMax"/>{scale}</c:scaling>
+                  <c:delete val="0"/><c:axPos val="l"/>
+                  <c:majorGridlines/>
+                  <c:numFmt formatCode="General" sourceLinked="1"/>
+                  <c:majorTickMark val="none"/><c:minorTickMark val="none"/>
+                  <c:tickLblPos val="nextTo"/>
+                  <c:crossAx val="111111111"/><c:crosses val="autoZero"/>
+                  <c:crossBetween val="between"/>{(stated ? "<c:majorUnit val=\"20\"/>" : string.Empty)}
+                </c:valAx>
+              </c:plotArea>
+              {(legend is null
+                  ? string.Empty
+                  : $"<c:legend><c:legendPos val=\"{legend}\"/><c:overlay val=\"0\"/></c:legend>")}
+              <c:plotVisOnly val="1"/>
+            </c:chart>
+            """;
+    }
 
     /// <summary>
     /// A bar chart of one kind or another: standing up or lying along, clustered or stacked, with
@@ -2959,6 +3278,276 @@ public static class Fixtures
 
                 return builder;
             },
+
+            // The fourth round: what a legend draws beside a series that is a line rather than a
+            // shape, and how far above its numbers an axis left to itself reaches.
+            //
+            //   page 1  a line chart, its legend to the right
+            //   page 2  the same along the foot at twenty point  -> what the key is a share of
+            //   page 3  a web that marks its points               -> whether the key marks them too
+            //   page 4  a stock chart's legend                    -> what a series of marks gets
+            //   page 5  a scatter's legend
+            //   page 6  bars reaching 58 of an axis left to Word  -> how far above them it stops
+            //   page 7  the same filled down to the axis
+            ["chart-legend-key-probe"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(LineChart(series: 2, legend: "r"));
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdKey2", LineChart(series: 2, legend: "b", legendSize: 20)),
+                    ("rIdKey3", RadarChart(style: "marker", series: 2, legend: "b")),
+                    ("rIdKey4", StockChart(legend: "b")),
+                    ("rIdKey5", ScatterChart("lineMarker", series: 2)
+                        .Replace("<c:plotVisOnly val=\"1\"/>",
+                            "<c:legend><c:legendPos val=\"b\"/><c:overlay val=\"0\"/></c:legend>" +
+                            "<c:plotVisOnly val=\"1\"/>")),
+                    ("rIdKey6", BarChart("col", "clustered", 1, manualLayout: false,
+                        maximum: null, values: [30, 58, 20])),
+                    ("rIdKey7", AreaChart("standard", 1, manualLayout: false, maximum: null,
+                        values: [30, 58, 20, 45]))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 1400) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/key{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 1401 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // The second round of asking, for the rules the first round could not separate: how
+            // large a bubble is drawn, where the words round a web go, and what a doughnut left
+            // to Word to place comes out at.
+            //
+            //   page 1   a web of eight, placed by hand      -> the angles the words are set by
+            //   page 2   the same, its words at twenty point -> what the gap is a share of
+            //   page 3   a web of four                       -> north, south, east and west alone
+            //   page 4   a web left to Word, at twenty point -> what the room round it is a share of
+            //   page 5   a web whose markers are seven point -> the box a marker is drawn in
+            //   page 6   a doughnut left to Word, with a legend and no words on it
+            //   page 7   the same with the words and no legend
+            //   page 8   a doughnut placed by hand, its shares written on it
+            //   pages 9 to 12  bubbles at a quarter, three quarters, half again and treble
+            //   page 13  the same on a larger frame          -> what the size is measured against
+            //   page 14  and on a tall one
+            //   page 15  and with the plotting made small    -> which of the two it follows
+            //   page 16  a stock chart closing on a circle   -> whether the tick is the marker
+            //   page 17  one closing on nothing at all
+            //   page 18  a line chart marking its points without saying how large
+            ["chart-kinds-probe"] = () =>
+            {
+                string[] eight = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
+                double[] eightValues = [30, 45, 20, 55, 35, 25, 50, 40];
+
+                var builder = new DocxBuilder().WithChart(
+                    RadarChart(categories: eight, values: eightValues));
+
+                (string Id, string Chart, double Width, double Height)[] rest =
+                [
+                    ("rIdKind2", RadarChart(categories: eight, values: eightValues,
+                        labelSize: 20), 360, 216),
+                    ("rIdKind3", RadarChart(categories: ["One", "Two", "Three", "Four"],
+                        values: [30, 45, 20, 55]), 360, 216),
+                    ("rIdKind4", RadarChart(manualLayout: false, labelSize: 20), 360, 216),
+                    ("rIdKind5", RadarChart(style: "marker", markerSize: 7), 360, 216),
+                    ("rIdKind6", DoughnutChart(manualLayout: false, legend: "r"), 360, 216),
+                    ("rIdKind7", DoughnutChart(manualLayout: false, labels: true), 360, 216),
+                    ("rIdKind8", DoughnutChart(labels: true), 360, 216),
+                    ("rIdKind9", BubbleChart(scale: 25), 360, 216),
+                    ("rIdKind10", BubbleChart(scale: 75), 360, 216),
+                    ("rIdKind11", BubbleChart(scale: 150), 360, 216),
+                    ("rIdKind12", BubbleChart(scale: 300), 360, 216),
+                    ("rIdKind13", BubbleChart(), 480, 288),
+                    ("rIdKind14", BubbleChart(), 216, 360),
+                    ("rIdKind15", BubbleChart(smallPlot: true), 360, 216),
+                    ("rIdKind16", StockChart(closeMarker: "circle"), 360, 216),
+                    ("rIdKind17", StockChart(closeMarker: "none"), 360, 216),
+                    ("rIdKind18", LineChart(series: 1, marker: "circle"), 360, 216)
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 1200) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/kind{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(rest[i].Width, rest[i].Height,
+                                                id: 1201 + i, relationshipId: rest[i].Id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // The third round, for the two rules the second could not separate: how large a
+            // bubble is on a frame that is not the probe's own, and how much room a pie or a
+            // doughnut makes for the words written on it.
+            //
+            //   page 1  bubbles at a quarter, on a larger frame
+            //   page 2  and at treble
+            //   page 3  a square frame
+            //   page 4  a frame half again as tall
+            //   page 5  a doughnut whose shares are written at twenty point
+            //   page 6  and at fourteen
+            //   page 7  a pie whose shares are written at ten  -> whether a pie gives way too
+            ["chart-kinds-probe-two"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(BubbleChart(scale: 25));
+
+                (string Id, string Chart, double Width, double Height)[] rest =
+                [
+                    ("rIdMore2", BubbleChart(scale: 300), 480, 288),
+                    ("rIdMore3", BubbleChart(), 288, 288),
+                    // As wide as the page will take and half again as tall as the probe's own
+                    // frame: what matters is the shorter side, and a frame wider than the page
+                    // would have Word drop the labels that fall off it.
+                    ("rIdMore4", BubbleChart(), 468, 432),
+                    ("rIdMore5", DoughnutChart(manualLayout: false, labels: true, labelSize: 20),
+                        360, 216),
+                    ("rIdMore6", DoughnutChart(manualLayout: false, labels: true, labelSize: 14),
+                        360, 216),
+                    ("rIdMore7", DoughnutChart(manualLayout: false, labels: true, pie: true),
+                        360, 216)
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(480, 288, id: 1300) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/more{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(rest[i].Width, rest[i].Height,
+                                                id: 1301 + i, relationshipId: rest[i].Id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // A pie with a hole through it, and a scatter whose points carry a size.
+            //
+            //   page 1   a doughnut, its hole the half the format means by saying nothing
+            //   page 2   a quarter hole    -> what a hole is measured against
+            //   page 3   three quarters
+            //   page 4   two series        -> how the rings divide what one ring would take
+            //   page 5   begun a quarter turn round
+            //   page 6   left to Word to place, with a legend and a share written on each
+            //   page 7   a bubble chart, its sizes 10 to 40
+            //   page 8   the same at half scale    -> what the scale is a scale of
+            //   page 9   sized by width rather than by area
+            //   page 10  two series, left to Word  -> whether one series is sized against both
+            //   page 11  at twice the scale
+            //   page 12  one bubble alone          -> what the largest bubble comes to
+            ["chart-doughnut-bubble"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(DoughnutChart());
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdRing2", DoughnutChart(hole: 25)),
+                    ("rIdRing3", DoughnutChart(hole: 75)),
+                    ("rIdRing4", DoughnutChart(series: 2)),
+                    ("rIdRing5", DoughnutChart(firstSliceAngle: 90)),
+                    ("rIdRing6", DoughnutChart(manualLayout: false, legend: "r", labels: true)),
+                    ("rIdRing7", BubbleChart()),
+                    ("rIdRing8", BubbleChart(scale: 50)),
+                    ("rIdRing9", BubbleChart(sizeRepresents: "w")),
+                    ("rIdRing10", BubbleChart(series: 2, manualLayout: false, stated: false)),
+                    ("rIdRing11", BubbleChart(scale: 200)),
+                    ("rIdRing12", BubbleChart(sizes: [10, 10, 10, 10], x: [4, 4, 4, 4],
+                        y: [30, 30, 30, 30]))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 1000) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/ring{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 1001 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
+            // The categories set round a circle, and the two kinds of chart that draw the lines
+            // between their series rather than along them.
+            //
+            //   page 1  a radar of five categories, its plotting placed by hand
+            //   page 2  the same with a marker at every point
+            //   page 3  the same filled in
+            //   page 4  two series, left to Word to place, with a legend under it
+            //   page 5  six categories and no scale stated  -> where the web's corners fall
+            //   page 6  a stock chart of high, low and close
+            //   page 7  one of open, high, low and close    -> what an up bar and a down bar are
+            //   page 8  high, low and close left to Word to place
+            //   page 9  open to close at half the gap       -> how wide a bar is
+            ["chart-radar-stock"] = () =>
+            {
+                var builder = new DocxBuilder().WithChart(RadarChart());
+
+                (string Id, string Chart)[] rest =
+                [
+                    ("rIdWeb2", RadarChart(style: "marker")),
+                    ("rIdWeb3", RadarChart(style: "filled")),
+                    ("rIdWeb4", RadarChart(series: 2, manualLayout: false, legend: "b")),
+                    ("rIdWeb5", RadarChart(manualLayout: false, stated: false,
+                        categories: ["One", "Two", "Three", "Four", "Five", "Six"],
+                        values: [30, 45, 20, 55, 35, 25])),
+                    ("rIdWeb6", StockChart()),
+                    ("rIdWeb7", StockChart(series: 4)),
+                    ("rIdWeb8", StockChart(manualLayout: false, stated: false)),
+                    ("rIdWeb9", StockChart(series: 4, gapWidth: 50))
+                ];
+
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                        DocxBuilder.ChartDrawing(360, 216, id: 1100) + "</w:p>");
+
+                for (var i = 0; i < rest.Length; i++)
+                {
+                    builder.WithPart($"word/charts/web{i + 1}.xml",
+                        "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                        ChartPart(rest[i].Chart),
+                        fromDocument: (rest[i].Id,
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"));
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                            DocxBuilder.ChartDrawing(360, 216, id: 1101 + i,
+                                                relationshipId: rest[i].Id) + "</w:p>");
+                }
+
+                return builder;
+            },
+
 
             // Word draws an older shape a little way off from where a newer one of the same size
             // goes, and how far depends on how thick its stroke is. Eight pages, one shape each,

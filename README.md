@@ -425,12 +425,13 @@ which way it runs and what size its labels are set at. One rule accounts for eve
 
 > the step is the **smallest** of one, two or five times a power of ten for which the axis — running
 > from the largest step at or below the least value to the smallest step **strictly** above the
-> greatest — carries no more marks than the axis has room to write
+> greatest and a twentieth — carries no more marks than the axis has room to write
 
 So up a 126pt side at ten point: 7 runs to 8 in ones, 9.5 to 10 in ones, 10 to 12 in twos, 47 to 50
 in fives, 105 to 120 in twenties, 1000 to 1200 in two hundreds, and 0.4 to 0.45 in twentieths. The
 strictness is what puts a chart of exactly 100 at 120 rather than leaving its tallest bar against
-the frame. The foot is nought wherever nothing is negative, whatever the smallest value — a chart of
+the frame, and the twentieth is what puts a chart of 58 at 70 rather than 60 — `chart-legend-key-probe`
+holds one of each, bars and an area, and Word stops both at 70. The foot is nought wherever nothing is negative, whatever the smallest value — a chart of
 30 and 55 still starts at nought — and where something is negative the foot steps below it the same
 way the top steps above: −20 and 60 give an axis from −30 to 70 in tens.
 
@@ -440,7 +441,7 @@ the first is upright and 126pt tall. A label wants along its axis:
 | axis | room per label |
 |---|---|
 | standing up | a tenth over its own type size — anything from 1.05 to 1.145 fits the measurements |
-| lying down | three times it — anything from 2.88 to 3.15 fits |
+| lying down | three times it — anything from 3.02 to 3.15 fits |
 
 and the axis takes as many steps as leaves room for one more label than it has steps, since a mark
 is written at both ends as well as between — and never more than ten, however long the axis is.
@@ -593,12 +594,97 @@ are one to a line, 1.8083 type sizes apart, centred on the middle of the frame.
 end of a bar by four and a half points and its own descender, inside the end by the same four and a
 half and its ascender, and to the right of a point on a line by 8.5pt. What would overrun the top of
 the chart is set against it instead. On a slice of a pie it goes out along the middle of the slice,
-about seven tenths of the way to the rim — Word fits those to the slices by a rule of its own, and
-its four come out between 0.684 and 0.711 of the radius and up to a degree and a half off the middle
-of their slice, which is the one place on these pages where two points of disagreement are left.
+**14.3pt inside the rim** — measured on two pies of different sizes, whose labels sit 14.79, 14.58,
+12.52 and 14.39 inside a rim of 72.96 and 14.17, 14.36, 12.30 and 14.15 inside one of 83.5. Word
+fits those to the slices by a rule of its own, and the odd one out of each four is the narrowest
+slice, which it pushes further out; that slice, and the degree and a half Word turns some labels off
+the middle of their own, is the one place on these pages where two points of disagreement are left.
+
+A pie or a doughnut with anything written on it also **gives way to it**: where Word is placing the
+plotting itself, the disc comes out 0.86083 of the plot it would otherwise fill — 83.5 of the same
+194 point plot that an unlabelled one fills to 97 — and by the same share whether the labels are ten
+point, fourteen or twenty, so it is not the room the words take that decides. A chart that states
+where its plot area goes is drawn exactly there, labels or no labels.
 
 Everything else agrees with Word to within 0.73pt vertically and half a point horizontally, and the
 ink of a page agrees on better than 99.3% of it.
+
+### Four more kinds of chart
+
+A doughnut, a bubble chart, a radar and a stock chart are the four kinds a document is likely to
+hold that are none of the six above. Each is described by the same kind of part — numbers, axes and
+formatting — and each was measured against Word's own export of it: `chart-doughnut-bubble`,
+`chart-radar-stock`, `chart-kinds-probe`, `chart-kinds-probe-two` and `chart-legend-key-probe`,
+fifty pages between them.
+
+**A doughnut** is a pie with a hole through it. The hole is a percentage of the whole disc — a
+quarter, a half and three quarters of an 86.4pt disc give holes of 21.6, 43.2 and 64.8 — and where
+the chart holds more than one series, what the hole leaves is divided evenly between them, the first
+series innermost: two series of a disc of 86.4 with a hole of half give rings of 43.2 to 64.8 and
+64.8 to 86.4. A share written on a ring sits **at the middle of that ring**, whatever size it is set
+in, which is the one label on a chart that needs no fitting at all. Its legend names its slices
+rather than its series, as a pie's does.
+
+**A bubble chart** is a scatter whose points carry a third number, drawn as how large a bubble to
+put there. How large the largest one comes out is the frame's doing and not the plot's — a page
+whose plotting is made small draws the same bubbles as one whose plotting fills the frame, and a
+frame turned on its side draws the same as one standing up:
+
+> diameter = (shorter side of the frame − 10) × scale ÷ (scale + 333⅓)
+
+which gives 47.538 of a 216 point frame at the hundred per cent a chart means by saying nothing,
+97.385 of a 432 point frame, and 131.684 at three hundred per cent of 288 — to the third decimal
+place on all eleven pages, at seven scales and four frames. So however large the scale is asked to
+be, the bubbles run out at the frame less five points a side. The rest are drawn in proportion by
+**area** unless the chart says its numbers are widths, and each is kept inside the plot: Word wraps
+every bubble in the plot area's own rectangle, so one larger than the plot is cut off at its edge
+rather than drawn over what is written round it.
+
+An axis a bubble chart leaves to Word reaches **a step further at each end** than the same numbers
+would give a scatter, which is how the bubbles get somewhere to be: a foot running 1 to 7 comes out
+−2 to 10 by twos where a scatter gets 0 to 8, and a side running 10 to 55 comes out 0 to 70 by tens
+where a scatter gets 0 to 60. The side keeps its nought, since a value axis of nothing but positives
+begins there whatever else is true. The marks those extra steps add are marks like any other and are
+counted against the room the axis has for them.
+
+**A radar** sets the categories round a circle and measures the values out from its middle. Word
+squares the plot area to its shorter side and centres it in what it was given, so a plot 216 by
+172.8 becomes 172.8 square, 21.6 in from each side. The first category is at the top and the rest run
+clockwise; the value axis is ruled as one many-sided figure per mark rather than as lines across the
+plot, and the axis itself and the spokes the categories stand on are not drawn at all. A series is
+the figure through its own points: outlined where the chart draws lines, filled where it says
+`filled`, and marked at its corners where it says `marker`.
+
+The words round a web are set against a circle **a twenty-fifth wider than the rim** — 89.856 outside
+a rim of 86.4, 74.33 outside one of 71.487, 90.35 outside one of 86.872 — with the near edge of each
+label on that circle and its baseline where the circle crosses its own spoke, less 0.8pt and plus
+half the difference between the label's ascent and its descent. It is a share of the web and nothing
+to do with the type: the same web labelled at ten point and at twenty sets both at the same distance
+out. One at the very foot is centred on its spoke and hangs its ascender on the same circle; one at
+the very top clears it by a further 1.63pt below its descender. The numbers go up the middle,
+ranged against it and ending 1.02 type sizes short less a twentieth of a point.
+
+A web left to Word to place keeps `1.5385 × the type size + 5.743` clear on every side of the frame,
+which is what decides how large it comes out: a 216 point frame gives a web 173.744 across at ten
+point and 142.974 at twenty, and both are the line through them.
+
+**A stock chart** is three or four series read together as one day's trading, and what it draws is
+the lines *between* them rather than lines along them. Which series is which is said by nothing but
+their order — high, low and close, or open, high, low and close. The line from the day's lowest to
+its highest stands where a line chart's point would; the bar from what the day opened at to what it
+closed at is as wide as one bar of a bar chart holding a single series, so a category 63 points wide
+gives 25.2 at the gap of 150 a chart means by saying nothing and 42 at a gap of 50. A day that
+closed higher than it opened is drawn white and one that closed lower black, both outlined, where
+the chart says nothing about either. The close of a chart with no opening is shown by whatever the
+series marks its points with, and a series marking them with nothing shows nothing: Word draws no
+tick of its own.
+
+**A legend draws a line** beside a series that is a line rather than a shape — a line chart's, a
+radar's, a scatter's — 19.2pt long with the words beginning 21.225pt past where it starts, both at
+ten point and at twenty, so neither is a share of the type. A series that marks its points draws one
+at the middle of the key as well, and a series that is neither a shape nor a line — a stock chart's,
+whose drawing is all in the lines between the series — gets no key at all, which is what puts its
+three names where Word puts them.
 
 ### Setting an equation
 
@@ -1426,16 +1512,18 @@ alignment including justification, indents including hanging, spacing before/aft
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
 
-Six kinds of chart are drawn: **columns, bars, lines, pies, areas and scatters**, the bars and
-areas clustered, stacked or stacked to the whole. What is there: the plot area, the bars or the
-line or the slices or the filled areas, the markers at a series' points, the gridlines, the two
-axis lines and the marks along them, and the labels along both axes whichever way round they run —
+Ten kinds of chart are drawn: **columns, bars, lines, pies, areas, scatters, doughnuts, bubbles,
+radars and stock charts**, the bars and areas clustered, stacked or stacked to the whole. What is
+there: the plot area, the bars or the line or the slices or the filled areas or the rings or the
+bubbles or the web, the markers at a series' points, the lines a stock chart draws between its
+series, the gridlines, the two axis lines and the marks along them, and the labels along both axes
+whichever way round they run —
 with the numbers read from the cache the part carries rather than from the workbook stored beside
 it, and with the axes scaled and the plot placed the way Word does both where the chart leaves them
 to be worked out; a title over the top and one on each axis, the one up the side turned on its end;
 a legend on any of the four sides; and a number written at every point, in the format the chart asks
-for and where the kind of chart puts it. What is not: bubble, radar, doughnut and stock charts,
-trendlines and error bars, and a legend or a title placed by hand rather than by side.
+for and where the kind of chart puts it. What is not: trendlines and error bars, drop lines,
+three-dimensional charts of any kind, and a legend or a title placed by hand rather than by side.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

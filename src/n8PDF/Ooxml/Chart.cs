@@ -20,8 +20,33 @@ internal enum ChartKind
     Area,
 
     /// <summary>Pairs of numbers rather than a value against a category.</summary>
-    Scatter
+    Scatter,
+
+    /// <summary>A pie with a hole through the middle, and one ring for every series.</summary>
+    Doughnut,
+
+    /// <summary>Pairs of numbers again, with a third saying how large a bubble to draw.</summary>
+    Bubble,
+
+    /// <summary>The categories set round a circle, and the values measured out from its middle.</summary>
+    Radar,
+
+    /// <summary>
+    /// Three or four series read together as one day's trading, drawn as the lines between them
+    /// rather than as lines along them.
+    /// </summary>
+    Stock
 }
+
+/// <summary>
+/// The bar a stock chart draws between the price a day opened at and the price it closed at.
+/// </summary>
+/// <param name="Up">What it is drawn in where the day closed higher than it opened.</param>
+/// <param name="Down">And where it closed lower.</param>
+internal sealed record ChartUpDownBars(
+    int GapWidth,
+    DrawingColorReference? Up, DrawingColorReference? UpLine,
+    DrawingColorReference? Down, DrawingColorReference? DownLine);
 
 /// <summary>
 /// What a series draws at each of its points, where it draws anything.
@@ -106,6 +131,12 @@ internal sealed record ChartSeries(
 
     /// <summary>What it draws at each point, or null where the series says nothing about it.</summary>
     public ChartMarker? Marker { get; init; }
+
+    /// <summary>
+    /// How large a bubble is drawn at each pair, where the series is a set of bubbles. Empty for
+    /// everything else.
+    /// </summary>
+    public IReadOnlyList<double?> BubbleSizes { get; init; } = [];
 }
 
 /// <summary>
@@ -216,7 +247,50 @@ internal sealed class ChartDefinition
     /// True where the chart holds pairs of numbers, so that both of its axes are value axes and
     /// both have to be scaled.
     /// </summary>
-    public bool Paired => Kind == ChartKind.Scatter;
+    public bool Paired => Kind is ChartKind.Scatter or ChartKind.Bubble;
+
+    /// <summary>True where the chart is a disc rather than a plot with axes round it.</summary>
+    public bool Round => Kind is ChartKind.Pie or ChartKind.Doughnut;
+
+    /// <summary>
+    /// How much of a doughnut is hole, as a percentage of the whole of it. Half is what the
+    /// format means by saying nothing, and what Word's own doughnuts are.
+    /// </summary>
+    public int HoleSize { get; set; } = 50;
+
+    /// <summary>
+    /// How large the bubbles of a bubble chart are drawn, as a percentage of what they would
+    /// otherwise be.
+    /// </summary>
+    public int BubbleScale { get; set; } = 100;
+
+    /// <summary>
+    /// Whether a bubble's number is its width rather than its area, which is what the format
+    /// means by saying nothing.
+    /// </summary>
+    public bool SizeIsWidth { get; set; }
+
+    /// <summary>
+    /// How a radar is drawn: "standard" for lines between its points, "marker" for lines with a
+    /// mark at each, "filled" for the shape coloured in.
+    /// </summary>
+    public string RadarStyle { get; set; } = "standard";
+
+    /// <summary>
+    /// Whether a stock chart draws the line from the lowest of a day's series to the highest, and
+    /// what it draws it in.
+    /// </summary>
+    public bool HighLowLines { get; set; }
+
+    public DrawingColorReference? HighLowLine { get; set; }
+
+    public double HighLowLineWidthPoints { get; set; } = LineWidthDefault;
+
+    /// <summary>What it draws between the opening and the closing, where it draws one at all.</summary>
+    public ChartUpDownBars? UpDownBars { get; set; }
+
+    /// <summary>What a chart draws a line with where it says nothing about it.</summary>
+    public const double LineWidthDefault = 0.5;
 
     /// <summary>
     /// How a scatter is drawn: "none", "line", "lineMarker", "marker", "smooth" or "smoothMarker".
@@ -303,7 +377,11 @@ internal static class ChartReader
                    ?? plotArea.Element(Main + "lineChart")
                    ?? plotArea.Element(Main + "pieChart")
                    ?? plotArea.Element(Main + "areaChart")
-                   ?? plotArea.Element(Main + "scatterChart");
+                   ?? plotArea.Element(Main + "scatterChart")
+                   ?? plotArea.Element(Main + "doughnutChart")
+                   ?? plotArea.Element(Main + "bubbleChart")
+                   ?? plotArea.Element(Main + "radarChart")
+                   ?? plotArea.Element(Main + "stockChart");
 
         if (plot is null) return null;
 
@@ -313,6 +391,10 @@ internal static class ChartReader
             "pieChart" => ChartKind.Pie,
             "areaChart" => ChartKind.Area,
             "scatterChart" => ChartKind.Scatter,
+            "doughnutChart" => ChartKind.Doughnut,
+            "bubbleChart" => ChartKind.Bubble,
+            "radarChart" => ChartKind.Radar,
+            "stockChart" => ChartKind.Stock,
             _ => plot.Element(Main + "barDir")?.Attribute("val")?.Value == "bar"
                 ? ChartKind.Bar
                 : ChartKind.Column
@@ -330,6 +412,36 @@ internal static class ChartReader
         };
 
         definition.GapWidth = Integer(plot.Element(Main + "gapWidth")) ?? 150;
+
+        // A doughnut's hole, and how large its bubbles are, both as percentages: of the whole of
+        // the disc for the one, and of what a bubble would be for the other.
+        definition.HoleSize = Integer(plot.Element(Main + "holeSize")) ?? 50;
+        definition.BubbleScale = Integer(plot.Element(Main + "bubbleScale")) ?? 100;
+        definition.SizeIsWidth =
+            plot.Element(Main + "sizeRepresents")?.Attribute("val")?.Value == "w";
+
+        definition.RadarStyle =
+            plot.Element(Main + "radarStyle")?.Attribute("val")?.Value ?? "standard";
+
+        if (plot.Element(Main + "hiLowLines") is { } highLow)
+        {
+            var line = highLow.Element(W.Drawing + "spPr")?.Element(W.Drawing + "ln");
+
+            definition.HighLowLines = true;
+            definition.HighLowLine = DrawingText.ReadFill(line);
+            definition.HighLowLineWidthPoints = Width(line) ?? ChartDefinition.LineWidthDefault;
+        }
+
+        if (plot.Element(Main + "upDownBars") is { } bars)
+        {
+            var up = bars.Element(Main + "upBars")?.Element(W.Drawing + "spPr");
+            var down = bars.Element(Main + "downBars")?.Element(W.Drawing + "spPr");
+
+            definition.UpDownBars = new ChartUpDownBars(
+                Integer(bars.Element(Main + "gapWidth")) ?? 150,
+                DrawingText.ReadFill(up), DrawingText.ReadFill(up?.Element(W.Drawing + "ln")),
+                DrawingText.ReadFill(down), DrawingText.ReadFill(down?.Element(W.Drawing + "ln")));
+        }
         definition.Overlap = Integer(plot.Element(Main + "overlap")) ?? 0;
         definition.FirstSliceAngle = Integer(plot.Element(Main + "firstSliceAng")) ?? 0;
 
@@ -423,9 +535,7 @@ internal static class ChartReader
             PointFills = points,
             Line = DrawingText.ReadFill(line),
             NoLine = line?.Element(W.Drawing + "noFill") is not null,
-            LineWidthPoints = line?.Attribute("w")?.Value is { } width && long.TryParse(width, out var emu)
-                ? Units.EmuToPoints(emu)
-                : 2.25,
+            LineWidthPoints = Width(line) ?? 2.25,
 
             // A line curves through its points unless the series says otherwise. Word writes the
             // element on every line chart it makes; one that leaves it out gets the curve.
@@ -436,6 +546,7 @@ internal static class ChartReader
                     is not ("0" or "false"),
 
             XValues = element.Element(Main + "xVal") is { } x ? Numbers(x) : [],
+            BubbleSizes = element.Element(Main + "bubbleSize") is { } sizes ? Numbers(sizes) : [],
             Marker = ReadMarker(element.Element(Main + "marker")),
             Labels = ReadLabels(element.Element(Main + "dLbls"), inherited)
         };
@@ -567,6 +678,12 @@ internal static class ChartReader
 
         return values;
     }
+
+    /// <summary>How thick a line is, where it says: the format writes it in EMU.</summary>
+    private static double? Width(XElement? line) =>
+        line?.Attribute("w")?.Value is { } width && long.TryParse(width, out var emu)
+            ? Units.EmuToPoints(emu)
+            : null;
 
     private static int? Integer(XElement? element) =>
         int.TryParse(element?.Attribute("val")?.Value, NumberStyles.Integer,

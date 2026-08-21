@@ -223,6 +223,16 @@ internal static class PdfRenderer
                 {
                     content.Save();
 
+                    // What is to be kept inside a rectangle says so, and the rectangle is written
+                    // as a clip before the path itself.
+                    if (path.Clip is { } clip)
+                    {
+                        content.Rectangle(X(clip.X), Y(clip.Y + clip.Height),
+                            clip.Width * scaleX, clip.Height * scaleY);
+
+                        content.Clip();
+                    }
+
                     if (path.Fill is { } fill)
                         content.SetFillColor(fill.Red / 255.0, fill.Green / 255.0, fill.Blue / 255.0);
 

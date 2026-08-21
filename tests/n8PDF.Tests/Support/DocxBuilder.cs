@@ -958,7 +958,7 @@ public sealed class DocxBuilder
     /// <summary>One series of a line chart: a colour and a width rather than a fill.</summary>
     public static string ChartLineSeries(
         int index, string name, IReadOnlyList<string> categories, IReadOnlyList<double> values,
-        string lineHex, double widthPoints = 2.25, string marker = "none")
+        string lineHex, double widthPoints = 2.25, string marker = "none", int markerSize = 0)
     {
         var series = ChartSeries(index, name, categories, values, "FFFFFF");
 
@@ -971,16 +971,18 @@ public sealed class DocxBuilder
                  <a:round/>
                </a:ln>
              </c:spPr>
-             <c:marker><c:symbol val="{marker}"/></c:marker>
+             <c:marker><c:symbol val="{marker}"/>{(markerSize > 0
+                 ? $"<c:size val=\"{markerSize}\"/>"
+                 : string.Empty)}</c:marker>
              """);
     }
 
     /// <summary>A pie's slices, each stating its own colour.</summary>
     public static string ChartPieSeries(
         string name, IReadOnlyList<string> categories, IReadOnlyList<double> values,
-        IReadOnlyList<string> fills)
+        IReadOnlyList<string> fills, int index = 0)
     {
-        var series = ChartSeries(0, name, categories, values, "FFFFFF");
+        var series = ChartSeries(index, name, categories, values, "FFFFFF");
 
         var points = string.Concat(fills.Select((fill, i) => $"""
             <c:dPt>
@@ -1053,6 +1055,75 @@ public sealed class DocxBuilder
               <c:smooth val="{(smooth ? 1 : 0)}"/>
             </c:ser>
             """;
+    }
+
+    /// <summary>
+    /// One series of a bubble chart: pairs of numbers as a scatter holds them, and a third number
+    /// at each pair saying how large the bubble drawn there is.
+    /// </summary>
+    public static string ChartBubbleSeries(
+        int index, string name, IReadOnlyList<double> x, IReadOnlyList<double> y,
+        IReadOnlyList<double> sizes, string colorHex)
+    {
+        static string Points(IEnumerable<double> values) =>
+            string.Concat(values.Select((value, i) =>
+                $"<c:pt idx=\"{i}\"><c:v>{value.ToString(CultureInfo.InvariantCulture)}</c:v></c:pt>"));
+
+        return $"""
+            <c:ser>
+              <c:idx val="{index}"/>
+              <c:order val="{index}"/>
+              <c:tx><c:strRef><c:f>Sheet1!$B${index + 1}</c:f>
+                <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>{Escape(name)}</c:v></c:pt></c:strCache>
+              </c:strRef></c:tx>
+              <c:spPr><a:solidFill><a:srgbClr val="{colorHex}"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr>
+              <c:invertIfNegative val="0"/>
+              <c:xVal><c:numRef><c:f>Sheet1!$A$2:$A${x.Count + 1}</c:f>
+                <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{x.Count}"/>
+                  {Points(x)}
+                </c:numCache>
+              </c:numRef></c:xVal>
+              <c:yVal><c:numRef><c:f>Sheet1!$B$2:$B${y.Count + 1}</c:f>
+                <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{y.Count}"/>
+                  {Points(y)}
+                </c:numCache>
+              </c:numRef></c:yVal>
+              <c:bubbleSize><c:numRef><c:f>Sheet1!$C$2:$C${sizes.Count + 1}</c:f>
+                <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{sizes.Count}"/>
+                  {Points(sizes)}
+                </c:numCache>
+              </c:numRef></c:bubbleSize>
+              <c:bubble3D val="0"/>
+            </c:ser>
+            """;
+    }
+
+    /// <summary>
+    /// One series of a stock chart: a line series drawing no line of its own, since what a stock
+    /// chart draws is the lines between its series rather than along them.
+    /// </summary>
+    public static string ChartStockSeries(
+        int index, string name, IReadOnlyList<string> categories, IReadOnlyList<double> values,
+        string marker = "none", string markerColorHex = "000000")
+    {
+        var series = ChartSeries(index, name, categories, values, "FFFFFF");
+
+        var symbol = marker == "none"
+            ? "<c:marker><c:symbol val=\"none\"/></c:marker>"
+            : $"""
+               <c:marker>
+                 <c:symbol val="{marker}"/>
+                 <c:size val="5"/>
+                 <c:spPr>
+                   <a:noFill/>
+                   <a:ln w="9525"><a:solidFill><a:srgbClr val="{markerColorHex}"/></a:solidFill></a:ln>
+                 </c:spPr>
+               </c:marker>
+               """;
+
+        return series.Replace(
+            "<c:spPr><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr>",
+            $"<c:spPr><a:ln w=\"28575\"><a:noFill/></a:ln></c:spPr>{symbol}");
     }
 
     private const string DiagramNamespace = "http://schemas.openxmlformats.org/drawingml/2006/diagram";

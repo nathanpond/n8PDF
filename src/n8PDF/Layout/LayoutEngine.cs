@@ -3972,6 +3972,15 @@ internal sealed class LayoutEngine(
                 written.Baseline - flow.FirstAscent);
         }
 
+        // A web is labelled round its rim rather than along an axis, and up its middle rather
+        // than up its side.
+        if (chart.Kind == ChartKind.Radar)
+        {
+            WebLabels(page, chart, plan);
+
+            return (frame, new DetachedFlow(page, height), 0, 0);
+        }
+
         // The numbers along the value axis, each set against its own mark: ranged up against the
         // axis where they are written beside it, and centred on the mark where they are under it.
         if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
@@ -4046,6 +4055,88 @@ internal sealed class LayoutEngine(
         }
 
         return (frame, new DetachedFlow(page, height), 0, 0);
+    }
+
+    /// <summary>
+    /// The words round a web: a category at every spoke, and the numbers up the middle.
+    /// </summary>
+    /// <remarks>
+    /// Where each goes is measured from chart-kinds-probe and written up in
+    /// <see cref="ChartComposer"/>, whose constants these are. A category beside the web is set
+    /// against a circle a little outside the rim — ranged left of it on the right of the web and
+    /// right of it on the left — and one at the very top or foot is centred on its spoke instead.
+    /// </remarks>
+    private void WebLabels(LaidOutPage page, ChartDefinition chart, ChartComposer.Plan plan)
+    {
+        var centre = plan.Middle;
+
+        if (chart.ValueAxis is { Deleted: false, TickLabelPosition: not "none" } valueAxis)
+        {
+            var size = valueAxis.LabelSizePoints;
+            var (ascent, descent) = LabelBox(size);
+
+            var right = centre.X - (size * ChartComposer.WebValueGap +
+                                    ChartComposer.WebValueGapFixed);
+
+            foreach (var value in ChartComposer.Marks(plan))
+            {
+                var text = ChartComposer.Format(value, valueAxis.NumberFormat);
+
+                Ranged(page, text, size, right,
+                    centre.Y - plan.OutOf(value) + (ascent - descent) / 2);
+            }
+        }
+
+        if (chart.CategoryAxis is not { Deleted: false, TickLabelPosition: not "none" } axis)
+            return;
+
+        var labelSize = axis.LabelSizePoints;
+        var (up, down) = LabelBox(labelSize);
+
+        var categories = chart.Categories;
+        var reach = plan.Radius * ChartComposer.WebLabelReach;
+
+        for (var i = 0; i < categories.Count; i++)
+        {
+            var angle = ChartComposer.Plan.Spoke(i, categories.Count);
+            var (sin, cos) = (Math.Sin(angle), Math.Cos(angle));
+
+            // At the very top or the very foot the label is centred on its spoke, and clears the
+            // rim by its own ascender or descender and a gap.
+            if (Math.Abs(sin) < 1e-9)
+            {
+                Under(page, categories[i], labelSize, centre.X, cos > 0
+                    ? centre.Y - (reach + ChartComposer.WebLabelTopGap) - down
+                    : centre.Y + reach + up);
+
+                continue;
+            }
+
+            var baseline = centre.Y - reach * cos + (up - down) / 2 - ChartComposer.WebLabelDrop;
+
+            if (sin > 0) Ranged(page, categories[i], labelSize, 0, baseline, centre.X + reach * sin);
+            else Ranged(page, categories[i], labelSize, centre.X - reach * -sin, baseline);
+        }
+    }
+
+    /// <summary>
+    /// One label of a chart set against a place rather than under a point: ranged right where it
+    /// is given the edge it ends at, and left where it is given the one it begins at.
+    /// </summary>
+    private void Ranged(
+        LaidOutPage page, string text, double size, double right, double baseline,
+        double left = double.NaN)
+    {
+        var ranged = double.IsNaN(left);
+
+        var label = ChartLabel(text, ranged ? Justification.Right : Justification.Left, size);
+
+        // Ranged against an edge, the label is set in a box ending there and pushed to its end;
+        // set from one, in a box of its own width beginning there.
+        var flow = MeasureInside([label],
+            Math.Max(1, ranged ? right : MeasureLabel(text, size) + 1));
+
+        flow.PlaceOnto(page, ranged ? 0 : left, baseline - flow.FirstAscent);
     }
 
     /// <summary>

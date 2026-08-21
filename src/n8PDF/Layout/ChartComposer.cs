@@ -104,6 +104,32 @@ internal static class ChartComposer
                 ? Left + (count <= 1 ? Width / 2 : Width * index / (count - 1))
                 : Left + Width * (index + 0.5) / Math.Max(1, count);
 
+        /// <summary>The middle of the plot, which is what a disc and a web are drawn about.</summary>
+        public (double X, double Y) Middle => (Left + Width / 2, Top + Height / 2);
+
+        /// <summary>How far a disc or a web reaches: to the nearer pair of the plot's edges.</summary>
+        public double Radius => Math.Min(Width, Height) / 2;
+
+        /// <summary>How far out from the middle a value falls on a web.</summary>
+        public double OutOf(double value) =>
+            (value - Minimum) / (Maximum - Minimum) * Radius;
+
+        /// <summary>
+        /// Where a category's spoke points, clockwise from the top: the first category is at the
+        /// top and they run round from there.
+        /// </summary>
+        public static double Spoke(int index, int count) =>
+            2 * Math.PI * index / Math.Max(1, count);
+
+        /// <summary>Where a value on a category's spoke falls.</summary>
+        public (double X, double Y) On(double value, int index, int count)
+        {
+            var angle = Spoke(index, count);
+            var distance = OutOf(value);
+
+            return (Middle.X + distance * Math.Sin(angle), Middle.Y - distance * Math.Cos(angle));
+        }
+
         /// <summary>How much room one category has along the axis they run on.</summary>
         public double Slot(int categories) =>
             (Lying ? Height : Width) / Math.Max(1, categories);
@@ -235,10 +261,72 @@ internal static class ChartComposer
     private const double LabelClamp = 1.36;
 
     /// <summary>
-    /// How far out from the middle of a pie a share written on it sits, as part of the radius.
-    /// Fitted to the four slices of the twelfth page, which give 0.684 to 0.712.
+    /// How far short of the rim a share written on a slice of a pie sits.
     /// </summary>
-    private const double PieLabelRadius = 0.69;
+    /// <remarks>
+    /// Measured from two pages, one of chart-title-legend-label and one of chart-kinds-probe-two,
+    /// whose pies come out at different sizes: the middles of the labels land 14.79, 14.58, 12.52
+    /// and 14.39 points inside a rim of 72.96, and 14.17, 14.36, 12.30 and 14.15 inside one of
+    /// 83.5. It is a distance and not a share, and the odd one out of each four is the narrowest
+    /// slice, which Word pushes further out than the rest.
+    ///
+    /// A doughnut is not fitted at all: its labels sit exactly at the middle of the ring they
+    /// belong to, which its pages give to the hundredth of a point.
+    /// </remarks>
+    private const double PieLabelInset = 14.3;
+
+    /// <summary>
+    /// How much of the plot a pie or a doughnut takes once something is written on it.
+    /// </summary>
+    /// <remarks>
+    /// A disc with nothing written on it fills the plot: 97 points of a 194 point plot, on the
+    /// pages of chart-line-pie and chart-kinds-probe that carry neither labels nor anything else.
+    /// One with a share written on every slice gives way to it, to 83.5 of the same 194 — and by
+    /// the same share whether the labels are ten point, fourteen or twenty, so it is not the room
+    /// the words take that decides. The twelfth page of chart-title-legend-label, whose plot is
+    /// smaller again, comes out a fifth of a point wider than this share gives.
+    /// </remarks>
+    private const double LabelledDisc = 0.86083;
+
+    /// <summary>
+    /// How far outside a web the words round it are set, and where their baselines fall.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the webs of chart-kinds-probe and chart-radar-stock, which hold four, five,
+    /// six and eight categories at two type sizes and at three sizes of web. A label beside the
+    /// web has its near edge on a circle a twenty-fifth wider than the rim — 89.856 outside a rim
+    /// of 86.4, 74.33 outside one of 71.487, 90.35 outside one of 86.872 — and its baseline where
+    /// that circle crosses its own spoke, less 0.8pt and plus half the difference between the
+    /// label's ascent and its descent. So it is a share of the web and nothing to do with the
+    /// type: the same web labelled at ten point and at twenty sets both at the same distance out.
+    ///
+    /// One at the very foot is centred on its spoke and hangs its ascender on the same circle;
+    /// one at the very top clears it by a further 1.63pt below its descender, which is the only
+    /// part of this that is a distance rather than a share.
+    /// </remarks>
+    public const double WebLabelReach = 1.04;
+
+    public const double WebLabelTopGap = 1.63;
+
+    public const double WebLabelDrop = 0.8;
+
+    /// <summary>
+    /// How far a number up the middle of a web ends short of the middle itself. Measured at ten
+    /// point and at twenty, where the widest of them ends 10.15pt and 20.35pt short.
+    /// </summary>
+    public const double WebValueGap = 1.02;
+
+    public const double WebValueGapFixed = -0.05;
+
+    /// <summary>
+    /// The room a web keeps on every side of the frame, which is what decides how large it is.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the two pages of chart-kinds-probe that leave a web to Word to place, at ten
+    /// point and at twenty: a 216 point frame comes out 173.744 across the web at the one and
+    /// 142.974 at the other, which is 21.128 and 36.513 a side. Both are the line through them.
+    /// </remarks>
+    public static double WebMargin(double labelSize) => 1.5385 * labelSize + 5.743;
 
     /// <summary>
     /// Where the things round the plotting go: what each takes from the plot, and where each is
@@ -316,15 +404,117 @@ internal static class ChartComposer
     {
         foreach (var entry in Legend(chart, width, height, measure, labelHeight, titleRoom))
         {
-            yield return new PathOperation(
-                Rectangle(entry.SwatchX, entry.SwatchY, entry.Swatch, entry.Swatch),
-                Resolve(entry.Fill, theme), null, LineWidth, EvenOdd: false);
+            var series = !chart.Round && entry.Series < chart.Series.Count
+                ? chart.Series[entry.Series]
+                : null;
+
+            if (entry.Line)
+            {
+                yield return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(entry.SwatchX, entry.SwatchY)]),
+                    new PathStep(PathStepKind.Line,
+                        [(entry.SwatchX + entry.Swatch, entry.SwatchY)])
+                ], null, Resolve(entry.Fill, theme), series?.LineWidthPoints ?? LineWidth,
+                    EvenOdd: false);
+            }
+            else if (Shaped(chart))
+            {
+                // A series that draws neither a shape nor a line — a stock chart's, whose drawing
+                // is all in the lines between the series — has nothing to put in a swatch, and
+                // Word draws none: what it gets is whatever it marks its points with.
+                yield return new PathOperation(
+                    Rectangle(entry.SwatchX, entry.SwatchY, entry.Swatch, entry.Swatch),
+                    Resolve(entry.Fill, theme), null, LineWidth, EvenOdd: false);
+            }
+
+            // And what it draws at its points, at the middle of whatever key it has.
+            if (series is null || Marked(chart, series) is not { } symbol) continue;
+
+            var size = series.Marker?.SizePoints ?? AutomaticMarker;
+            var box = Math.Round(size / Quantum, MidpointRounding.AwayFromZero) * Quantum;
+
+            var middle = (X: entry.SwatchX + entry.Swatch / 2,
+                Y: entry.SwatchY + (entry.Line ? 0 : entry.Swatch / 2));
+
+            yield return Marker(symbol,
+                middle.X - box / 2 + Quantum / 2, middle.Y - box / 2 + Quantum / 2,
+                box - Quantum,
+                Resolve(series.Marker?.Fill ?? series.Line ?? series.Fill, theme),
+                Resolve(series.Marker?.Line ?? series.Line ?? series.Fill, theme),
+                series.Marker?.LineWidthPoints ?? LineWidth);
         }
     }
 
+    /// <summary>Whether a chart's series are shapes, which is what a swatch stands for.</summary>
+    private static bool Shaped(ChartDefinition chart) =>
+        chart.Round ||
+        chart.Kind is ChartKind.Column or ChartKind.Bar or ChartKind.Area or ChartKind.Bubble ||
+        (chart.Kind == ChartKind.Radar && chart.RadarStyle == "filled");
+
+    /// <summary>What a series marks its points with, or null where it marks them with nothing.</summary>
+    private static string? Marked(ChartDefinition chart, ChartSeries series)
+    {
+        var index = chart.Series.IndexOf(series);
+
+        var drawn = (chart.Paired && chart.ScatterStyle is not ("none" or "line" or "smooth")) ||
+                    (chart.Kind == ChartKind.Radar && chart.RadarStyle == "marker");
+
+        var symbol = series.Marker?.Symbol ?? (drawn ? "auto" : "none");
+
+        if (symbol is "none" or "picture" || chart.Kind == ChartKind.Bubble) return null;
+
+        return symbol == "auto"
+            ? drawn ? AutomaticSymbols[Math.Max(0, index) % AutomaticSymbols.Length] : null
+            : symbol;
+    }
+
     /// <summary>One entry of a legend: a key in the series' colour, and the series' name.</summary>
+    /// <param name="Series">
+    /// Which series it stands for, so that a key can draw what the series draws at its points.
+    /// The index of the slice for a disc, which names its slices rather than its series.
+    /// </param>
+    /// <param name="Line">
+    /// True where the key is a line rather than a swatch, which is what a series that draws a
+    /// line gets.
+    /// </param>
     public readonly record struct LegendEntry(
-        string Text, double Width, DrawingColorReference? Fill);
+        string Text, double Width, DrawingColorReference? Fill, int Series = 0, bool Line = false);
+
+    /// <summary>
+    /// What a legend draws beside a series that is a line rather than a shape: a line of its own,
+    /// and the words a fixed distance past where it begins.
+    /// </summary>
+    /// <remarks>
+    /// Measured from chart-legend-key-probe at ten point and at twenty, where the key comes out
+    /// 19.2pt long both times and the words begin 21.225pt past its start both times — so neither
+    /// is a share of the type. How far the key sits above the baseline is: 2.562pt at ten point
+    /// and 5.965 at twenty. A series that marks its points draws one at the middle of the key as
+    /// well, and one that draws no line at all gets the ordinary swatch instead — which is what a
+    /// stock chart's legend is, and what puts its three names where Word puts them.
+    /// </remarks>
+    private const double LegendLineKey = 19.2;
+
+    private const double LegendLineHead = 21.225;
+
+    private const double LegendLineDrop = 0.3403;
+
+    private const double LegendLineDropFixed = -0.841;
+
+    private const double LegendLineEntryGap = 0.3413;
+
+    private const double LegendLineEntryGapFixed = 5.818;
+
+    private const double LegendLineShift = 1.76;
+
+    /// <summary>Whether a series' key is a line, which is what a series drawing one gets.</summary>
+    private static bool LineKey(ChartDefinition chart, ChartSeries series) =>
+        chart.Kind switch
+        {
+            ChartKind.Line or ChartKind.Scatter or ChartKind.Stock => Drawn(chart, series),
+            ChartKind.Radar => chart.RadarStyle != "filled",
+            _ => false
+        };
 
     /// <summary>What a legend holds, in the order the chart lists its series.</summary>
     /// <remarks>
@@ -337,7 +527,7 @@ internal static class ChartComposer
         var size = legend.LabelSizePoints;
         var head = size * LegendSwatchGap + LegendSwatchGapFixed;
 
-        if (chart.Kind == ChartKind.Pie && chart.Series.Count > 0)
+        if (chart.Round && chart.Series.Count > 0)
         {
             var pie = chart.Series[0];
 
@@ -345,22 +535,31 @@ internal static class ChartComposer
             [
                 .. chart.Categories.Select((name, i) => new LegendEntry(
                     name, head + measure(name, size),
-                    pie.PointFills.TryGetValue(i, out var point) ? point : pie.Fill))
+                    pie.PointFills.TryGetValue(i, out var point) ? point : pie.Fill, i))
             ];
         }
 
         return
         [
-            .. chart.Series.Select(series => new LegendEntry(
-                series.Name, head + measure(series.Name, size),
-                series.Fill ?? series.Line))
+            .. chart.Series.Select((series, i) =>
+            {
+                var line = LineKey(chart, series);
+
+                return new LegendEntry(series.Name,
+                    (line ? LegendLineHead : head) + measure(series.Name, size),
+                    series.Fill ?? series.Line, i, line);
+            })
         ];
     }
 
     /// <summary>Where each entry of a legend is drawn: its key, and where its words begin.</summary>
+    /// <param name="Swatch">
+    /// How large the key is: square where it is one, and how long the line is where it is a line,
+    /// which <paramref name="Line"/> says.
+    /// </param>
     public readonly record struct PlacedEntry(
         string Text, double SwatchX, double SwatchY, double Swatch, double TextX, double Baseline,
-        DrawingColorReference? Fill);
+        DrawingColorReference? Fill, int Series = 0, bool Line = false);
 
     public static IReadOnlyList<PlacedEntry> Legend(
         ChartDefinition chart, double width, double height,
@@ -399,9 +598,15 @@ internal static class ChartComposer
             {
                 var centre = top + pitch * i + pitch / 2;
 
-                placed.Add(new PlacedEntry(entries[i].Text,
-                    left, centre - swatch / 2, swatch, left + head,
-                    centre + size * LegendKeyDrop + LegendKeyDropFixed, entries[i].Fill));
+                var line = centre + size * LegendKeyDrop + LegendKeyDropFixed;
+
+                placed.Add(entries[i].Line
+                    ? new PlacedEntry(entries[i].Text, left,
+                        line - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
+                        left + LegendLineHead, line, entries[i].Fill, entries[i].Series, true)
+                    : new PlacedEntry(entries[i].Text,
+                        left, centre - swatch / 2, swatch, left + head, line,
+                        entries[i].Fill, entries[i].Series));
             }
 
             return placed;
@@ -409,10 +614,21 @@ internal static class ChartComposer
 
         // Along the foot or the top: side by side, the block centred a little right of the middle.
         var widestEntry = entries.Max(entry => entry.Width);
-        var gap = Math.Max(size * LegendEntryGap, widestEntry * LegendLongEntry);
+
+        // Entries whose keys are lines are set further apart than the rule for swatches gives:
+        // 9.232pt at ten point and 12.644 at twenty, measured from the two line charts of
+        // chart-legend-key-probe, which is the line through them.
+        var gap = entries[0].Line
+            ? size * LegendLineEntryGap + LegendLineEntryGapFixed
+            : Math.Max(size * LegendEntryGap, widestEntry * LegendLongEntry);
 
         var content = entries.Sum(entry => entry.Width) + gap * (entries.Count - 1);
-        var start = width / 2 - content / 2 + size * LegendShift + LegendShiftFixed;
+
+        // How far right of the middle the block sits. A legend of lines is shifted by a fixed
+        // 1.76pt — 1.83 at ten point and 1.70 at twenty, measured from chart-legend-key-probe —
+        // rather than by the share of the type a legend of swatches is.
+        var start = width / 2 - content / 2 +
+                    (entries[0].Line ? LegendLineShift : size * LegendShift + LegendShiftFixed);
 
         // Along the foot it is set by how far its baseline sits above the foot of the frame, and
         // along the top by how far below the top — under whatever title is up there already.
@@ -424,9 +640,13 @@ internal static class ChartComposer
 
         foreach (var entry in entries)
         {
-            placed.Add(new PlacedEntry(entry.Text,
-                x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2, swatch,
-                x + head, baseline, entry.Fill));
+            placed.Add(entry.Line
+                ? new PlacedEntry(entry.Text, x,
+                    baseline - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
+                    x + LegendLineHead, baseline, entry.Fill, entry.Series, true)
+                : new PlacedEntry(entry.Text,
+                    x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2, swatch,
+                    x + head, baseline, entry.Fill, entry.Series));
 
             x += entry.Width + gap;
         }
@@ -457,36 +677,41 @@ internal static class ChartComposer
     {
         var categories = Math.Max(1, chart.Categories.Count);
 
-        if (chart.Kind == ChartKind.Pie)
+        if (chart.Round)
         {
-            var series = chart.Series.FirstOrDefault();
-            var labels = series?.Labels ?? chart.Labels;
+            var centre = plan.Middle;
+            var (ascent, descent) = labelHeight(LabelSize(chart));
 
-            if (series is null || labels is not { Any: true }) yield break;
-
-            var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
-            var total = values.Sum();
-            if (total <= 0) yield break;
-
-            var centre = (X: plan.Left + plan.Width / 2, Y: plan.Top + plan.Height / 2);
-            var radius = Math.Min(plan.Width, plan.Height) / 2 * PieLabelRadius;
-
-            var (ascent, descent) = labelHeight(labels.SizePoints);
-            var angle = chart.FirstSliceAngle * Math.PI / 180;
-
-            for (var i = 0; i < values.Count; i++)
+            foreach (var (series, outer, inner) in Bands(chart, plan))
             {
-                var sweep = values[i] / total * 2 * Math.PI;
-                var middle = angle + sweep / 2;
+                var labels = series.Labels ?? chart.Labels;
+                if (labels is not { Any: true }) continue;
 
-                angle += sweep;
-                if (values[i] <= 0) continue;
+                var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
+                var total = values.Sum();
+                if (total <= 0) continue;
 
-                yield return new PlacedLabel(
-                    Written(labels, values[i], values[i] / total),
-                    centre.X + radius * Math.Sin(middle),
-                    centre.Y - radius * Math.Cos(middle) + (ascent - descent) / 2,
-                    Centred: true);
+                // A share written on a ring sits at the middle of the ring; one written on a
+                // slice of a pie sits a fixed distance inside the rim rather than at the middle
+                // of it, which a pie of no hole at all would put half way out.
+                var radius = inner > 0 ? (outer + inner) / 2 : outer - PieLabelInset;
+
+                var angle = chart.FirstSliceAngle * Math.PI / 180;
+
+                for (var i = 0; i < values.Count; i++)
+                {
+                    var sweep = values[i] / total * 2 * Math.PI;
+                    var middle = angle + sweep / 2;
+
+                    angle += sweep;
+                    if (values[i] <= 0) continue;
+
+                    yield return new PlacedLabel(
+                        Written(labels, values[i], values[i] / total),
+                        centre.X + radius * Math.Sin(middle),
+                        centre.Y - radius * Math.Cos(middle) + (ascent - descent) / 2,
+                        Centred: true);
+                }
             }
 
             yield break;
@@ -555,6 +780,47 @@ internal static class ChartComposer
         }
     }
 
+    /// <summary>What size a chart writes at its points, where anything says.</summary>
+    private static double LabelSize(ChartDefinition chart) =>
+        (chart.Series.Select(series => series.Labels).FirstOrDefault(labels => labels is not null)
+         ?? chart.Labels)?.SizePoints ?? 10;
+
+    /// <summary>
+    /// The rings a disc is drawn as: one for a pie, and one for every series of a doughnut.
+    /// </summary>
+    /// <remarks>
+    /// A doughnut's hole is a percentage of the whole disc, and what is left over is divided
+    /// evenly between the series it holds — the first innermost. Measured from the fourth page of
+    /// chart-doughnut-bubble, whose two rings run 43.2 to 64.8 and 64.8 to 86.4 of a disc of 86.4
+    /// with a hole of half.
+    /// </remarks>
+    public static IEnumerable<(ChartSeries Series, double Outer, double Inner)> Bands(
+        ChartDefinition chart, Plan plan)
+    {
+        if (!chart.Round) yield break;
+
+        // A disc that has to make room for what is written on it gives way only where Word is
+        // placing the plotting itself: a chart that states where its plot area goes is drawn
+        // exactly there, labels or no labels, which is what the eighth page of chart-kinds-probe
+        // shows against its seventh.
+        var labelled = chart.PlotArea is null &&
+                       chart.Series.Any(series => (series.Labels ?? chart.Labels) is { Any: true });
+
+        var radius = plan.Radius * (labelled ? LabelledDisc : 1);
+
+        if (chart.Kind == ChartKind.Pie)
+        {
+            if (chart.Series.FirstOrDefault() is { } pie) yield return (pie, radius, 0);
+            yield break;
+        }
+
+        var hole = radius * Math.Clamp(chart.HoleSize, 0, 90) / 100.0;
+        var band = (radius - hole) / Math.Max(1, chart.Series.Count);
+
+        for (var i = 0; i < chart.Series.Count; i++)
+            yield return (chart.Series[i], hole + band * (i + 1), hole + band * i);
+    }
+
     /// <summary>What a label says: the number, its share, or both with the category beside it.</summary>
     private static string Written(ChartLabels labels, double value, double share)
     {
@@ -569,10 +835,6 @@ internal static class ChartComposer
     }
 
     /// <summary>
-    /// Works out where the plotting goes and what the value axis runs between.
-    /// </summary>    /// <summary>
-    /// Works out where the plotting goes and what the value axis runs between.
-    /// </summary>    /// <summary>
     /// Works out where the plotting goes and what the value axis runs between.
     /// </summary>
     /// <remarks>
@@ -648,9 +910,22 @@ internal static class ChartComposer
     }
 
     /// <summary>The plot area with the scales its own size gives it.</summary>
+    /// <remarks>
+    /// A web is drawn on a square: Word squares the plot area to the shorter of its sides and
+    /// centres it in what it was given, which is what its export of every radar page shows — the
+    /// probe's 216 by 172.8 plot comes out 172.8 square, 21.6 in from each side.
+    /// </remarks>
     private static Plan Complete(
         ChartDefinition chart, (double Left, double Top, double Width, double Height) box)
     {
+        if (chart.Kind == ChartKind.Radar)
+        {
+            var side = Math.Min(box.Width, box.Height);
+
+            box = (box.Left + (box.Width - side) / 2, box.Top + (box.Height - side) / 2,
+                side, side);
+        }
+
         var lying = chart.Lying;
 
         var (minimum, maximum, unit) = Scale(chart,
@@ -684,13 +959,31 @@ internal static class ChartComposer
     {
         var plan = Complete(chart, box);
 
+        // A web keeps the same room on every side, whatever it holds: the words round it are set
+        // by where its corners fall rather than against an edge, so there is no widest label to
+        // make room for. See WebMargin.
+        if (chart.Kind == ChartKind.Radar)
+        {
+            var margin = WebMargin(chart.CategoryAxis?.LabelSizePoints ?? 10);
+
+            return (margin + room.Left, margin + room.Top,
+                Math.Max(1, width - 2 * margin - room.Left - room.Right),
+                Math.Max(1, height - 2 * margin - room.Top - room.Bottom));
+        }
+
         var left = BareMargin;
         var top = BareMargin;
         var right = BareMargin;
         var bottom = BareMargin;
 
-        // What is written up the side, ranged against the axis it belongs to.
-        if (Ranged(chart, plan) is { Count: > 0 } ranged)
+        // What is written up the side, ranged against the axis it belongs to — where the axis it
+        // belongs to is the edge of the plot. A chart of pairs whose foot reaches below nought
+        // stands its axis inside the plotting instead, and the numbers beside it go with it: Word
+        // leaves them no room of their own, which is what the tenth page of chart-doughnut-bubble
+        // shows, where the plot begins 15.07pt inside the frame and the numbers stand 35 further
+        // in again.
+        if (!(plan.Paired && plan.AcrossMinimum < 0) &&
+            Ranged(chart, plan) is { Count: > 0 } ranged)
         {
             var size = RangedSize(chart);
 
@@ -862,16 +1155,18 @@ internal static class ChartComposer
     /// </summary>
     /// <remarks>
     /// Both measured from chart-scale-probe and chart-bar-scale-probe together, twenty-six charts
-    /// between them. The numbers only bound the two: an upright axis takes anything from 1.05 to
-    /// 1.145 times the type size, a lying one anything from 2.88 to 3.15, and the values here are
-    /// the middle of each. What the measurements do settle is that both grow with the type — the
+    /// between them, and narrowed by the tenth page of chart-doughnut-bubble. The numbers only
+    /// bound the two: an upright axis takes anything from 1.05 to 1.145 times the type size, and
+    /// a lying one from 3.02 to 3.15 — the twenty-six charts left it anywhere from 2.88, and the
+    /// bubble page, whose foot runs in twos where three would give it elevens, is what rules the
+    /// lower part of that out. The values here are the middle of each. What the measurements do settle is that both grow with the type — the
     /// same numbers set in twenty point divide an axis into a third as many steps as in ten — and
     /// that neither has anything to do with how wide the numbers themselves are, since a chart of
     /// millions divides its foot exactly as a chart of tens does.
     /// </remarks>
     private const double UprightLabelRoom = 1.1;
 
-    private const double LyingLabelRoom = 3;
+    private const double LyingLabelRoom = 3.08;
 
     /// <summary>
     /// The most major intervals an axis of a given length will carry: as many as leaves room for
@@ -940,8 +1235,30 @@ internal static class ChartComposer
         }
 
         return Fit(chart.ValueAxis, lowest, highest,
-            Intervals(axisLength, chart.Lying, labelSize), percent);
+            Intervals(axisLength, chart.Lying, labelSize), percent,
+            room: chart.Kind == ChartKind.Bubble, below: lowest < 0);
     }
+
+    /// <summary>
+    /// The room a bubble chart leaves round its numbers, so that the bubbles drawn at them have
+    /// somewhere to be.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the tenth page of chart-doughnut-bubble, the one page here whose bubble chart
+    /// says nothing about either of its scales. Word fits the numbers as it fits any others and
+    /// then reaches one step further at each end: its foot, whose numbers run 1 to 7, comes out
+    /// −2 to 10 by twos rather than the 0 to 8 the same numbers give a scatter, and its side,
+    /// whose numbers run 10 to 55, comes out 0 to 70 by tens rather than 0 to 60. The side keeps
+    /// its nought, since a value axis of nothing but positives begins there whatever else is
+    /// true; the foot has no such rule and reaches below it.
+    ///
+    /// An axis told what to reach is left alone: the pages that state their scales are drawn at
+    /// the scales they state.
+    /// </remarks>
+    private static (double Minimum, double Maximum) Room(
+        ChartAxis? axis, (double Minimum, double Maximum) fitted, double unit, bool below) =>
+        (axis?.Minimum ?? (below ? fitted.Minimum - unit : fitted.Minimum),
+            axis?.Maximum ?? fitted.Maximum + unit);
 
     /// <summary>
     /// And what the foot of a chart of pairs runs between, which is the same question asked of the
@@ -960,12 +1277,14 @@ internal static class ChartComposer
         return Fit(chart.CategoryAxis,
             values.Count > 0 ? Math.Min(0, values.Min()) : 0,
             values.Count > 0 ? Math.Max(0, values.Max()) : 0,
-            Intervals(axisLength, lying: true, labelSize), percent: false);
+            Intervals(axisLength, lying: true, labelSize), percent: false,
+            room: chart.Kind == ChartKind.Bubble, below: true);
     }
 
     /// <summary>The smallest step that leaves an axis no more marks than it has room for.</summary>
     private static (double Minimum, double Maximum, double Unit) Fit(
-        ChartAxis? axis, double lowest, double highest, int most, bool percent)
+        ChartAxis? axis, double lowest, double highest, int most, bool percent,
+        bool room = false, bool below = false)
     {
         var unit = axis?.MajorUnit ?? 0;
         var (minimum, maximum) = (0.0, 0.0);
@@ -973,6 +1292,7 @@ internal static class ChartComposer
         if (unit > 0)
         {
             (minimum, maximum) = Bounds(axis, lowest, highest, unit, percent);
+            if (room) (minimum, maximum) = Room(axis, (minimum, maximum), unit, below);
         }
         else
         {
@@ -980,6 +1300,11 @@ internal static class ChartComposer
             {
                 unit = candidate;
                 (minimum, maximum) = Bounds(axis, lowest, highest, candidate, percent);
+
+                // The marks a bubble chart adds to make room for its bubbles are marks like any
+                // other, and are counted against the room the axis has for them: the foot of
+                // chart-doughnut-bubble's tenth page would take elevens with them and does not.
+                if (room) (minimum, maximum) = Room(axis, (minimum, maximum), candidate, below);
 
                 if ((maximum - minimum) / candidate <= most + 0.000001) break;
             }
@@ -1033,13 +1358,25 @@ internal static class ChartComposer
     private static (double Minimum, double Maximum) Bounds(
         ChartAxis? axis, double lowest, double highest, double unit, bool percent)
     {
-        var maximum = axis?.Maximum ?? (percent ? highest : Above(highest, unit));
+        var maximum = axis?.Maximum ?? (percent ? highest : Above(highest * Headroom, unit));
 
         var minimum = axis?.Minimum
-                      ?? (lowest < 0 ? percent ? lowest : -Above(-lowest, unit) : 0);
+                      ?? (lowest < 0 ? percent ? lowest : -Above(-lowest * Headroom, unit) : 0);
 
         return (minimum, maximum);
     }
+
+    /// <summary>
+    /// How far past its highest value an axis left to itself reaches before it is rounded up to a
+    /// step: a twentieth of it.
+    /// </summary>
+    /// <remarks>
+    /// Measured from chart-legend-key-probe, whose bars and whose area both reach 58 and whose
+    /// axes both stop at 70 rather than the 60 the value alone would ask for — 58 and a twentieth
+    /// is 60.9, and the first ten past that is 70. Every other page here is settled either way:
+    /// a chart reaching 55 stops at 60 whichever rule is used.
+    /// </remarks>
+    private const double Headroom = 1.05;
 
     /// <summary>
     /// Every step an axis might take, from far too small to far too large: one, two and five times
@@ -1102,11 +1439,23 @@ internal static class ChartComposer
             Rectangle(plan.Left, plan.Top, plan.Width, plan.Height),
             new DrawingColor(255, 255, 255), null, LineWidth, EvenOdd: false));
 
-        // A pie has no axes to draw, and nothing behind it but the frame — but it has a legend
+        // A disc has no axes to draw, and nothing behind it but the frame — but it has a legend
         // like any other chart, and one naming its slices rather than its series.
-        if (chart.Kind == ChartKind.Pie)
+        if (chart.Round)
         {
             operations.AddRange(Slices(chart, plan, theme));
+            operations.AddRange(Keys(chart, width, height, Measured, Boxed, titleRoom, theme));
+
+            return new VectorDrawing(width, height, operations);
+        }
+
+        // And a web has no axes either: what would be its gridlines are drawn as the web itself,
+        // and what would be its axes are the spokes the categories stand on, which are not drawn.
+        if (chart.Kind == ChartKind.Radar)
+        {
+            operations.AddRange(Web(chart, plan));
+            operations.AddRange(Webs(chart, plan, theme));
+            operations.AddRange(Markers(chart, plan, theme));
             operations.AddRange(Keys(chart, width, height, Measured, Boxed, titleRoom, theme));
 
             return new VectorDrawing(width, height, operations);
@@ -1227,11 +1576,19 @@ internal static class ChartComposer
 
         // The lines and what stands at their points go over the axes rather than under them,
         // which is the order Word writes them in.
-        if (chart.Kind is ChartKind.Line or ChartKind.Scatter)
+        if (chart.Kind is ChartKind.Line or ChartKind.Scatter or ChartKind.Stock)
         {
             operations.AddRange(Lines(chart, plan, theme));
+
+            // A stock chart's own drawing goes between the lines and the marks: the marks are
+            // what says where a day closed, and they are drawn over everything.
+            if (chart.Kind == ChartKind.Stock) operations.AddRange(Trading(chart, plan, theme));
+
             operations.AddRange(Markers(chart, plan, theme));
         }
+
+        if (chart.Kind == ChartKind.Bubble)
+            operations.AddRange(Bubbles(chart, plan, width, height, theme));
 
         return new VectorDrawing(width, height, operations);
     }
@@ -1385,7 +1742,9 @@ internal static class ChartComposer
         {
             if (series.Values[i] is not { } value) continue;
 
-            points.Add((plan.PointAt(i, categories, spanning), plan.PositionOf(value)));
+            points.Add(chart.Kind == ChartKind.Radar
+                ? plan.On(value, i, categories)
+                : (plan.PointAt(i, categories, spanning), plan.PositionOf(value)));
         }
 
         return points;
@@ -1421,7 +1780,7 @@ internal static class ChartComposer
     /// always does.
     /// </summary>
     private static bool Drawn(ChartDefinition chart, ChartSeries series) =>
-        !series.NoLine &&
+        !series.NoLine && chart.Kind != ChartKind.Bubble &&
         (!chart.Paired || chart.ScatterStyle is not ("none" or "marker"));
 
     /// <summary>
@@ -1522,9 +1881,13 @@ internal static class ChartComposer
     private static IEnumerable<DrawingOperation> Markers(
         ChartDefinition chart, Plan plan, DocumentTheme theme)
     {
-        // Only a chart of pairs marks its points where nothing asks it to. A line chart that says
-        // nothing draws none, which is what Word's own line charts say outright.
-        var drawn = chart.Paired && chart.ScatterStyle is not ("none" or "line" or "smooth");
+        // Only a chart of pairs marks its points where nothing asks it to, and a web whose style
+        // says so. A line chart that says nothing draws none, which is what Word's own line
+        // charts say outright.
+        var drawn = (chart.Paired && chart.ScatterStyle is not ("none" or "line" or "smooth")) ||
+                    (chart.Kind == ChartKind.Radar && chart.RadarStyle == "marker");
+
+        if (chart.Kind == ChartKind.Bubble) yield break;
 
         for (var index = 0; index < chart.Series.Count; index++)
         {
@@ -1721,56 +2084,80 @@ internal static class ChartComposer
     }
 
     /// <summary>
-    /// A pie: one slice for each value, filling the plot area.
+    /// A pie or a doughnut: one slice for each value, filling the plot area.
     /// </summary>
     /// <remarks>
     /// The circle is centred in the plot area and reaches the nearer pair of its edges — Word's
     /// export puts the fixture's pie at the middle of a 216 by 172.8 plot with a radius of 86.4,
     /// which is half the shorter side. The first slice begins at the top and they run clockwise,
-    /// each ending where the next begins.
+    /// each ending where the next begins. A doughnut is the same with the middle left out, and
+    /// with a ring for each of its series rather than a disc for the first of them.
     /// </remarks>
     private static IEnumerable<DrawingOperation> Slices(
         ChartDefinition chart, Plan plan, DocumentTheme theme)
     {
-        var series = chart.Series.FirstOrDefault();
-        if (series is null) yield break;
+        var centre = plan.Middle;
 
-        var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
-        var total = values.Sum();
-        if (total <= 0) yield break;
-
-        var centre = (X: plan.Left + plan.Width / 2, Y: plan.Top + plan.Height / 2);
-        var radius = Math.Min(plan.Width, plan.Height) / 2;
-
-        var angle = chart.FirstSliceAngle * Math.PI / 180;
-
-        for (var i = 0; i < values.Count; i++)
+        foreach (var (series, outer, inner) in Bands(chart, plan))
         {
-            if (values[i] <= 0) continue;
+            var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
+            var total = values.Sum();
+            if (total <= 0) continue;
 
-            var sweep = values[i] / total * 2 * Math.PI;
+            var angle = chart.FirstSliceAngle * Math.PI / 180;
 
-            var fill = series.PointFills.TryGetValue(i, out var point) ? point : series.Fill;
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (values[i] <= 0) continue;
 
-            yield return new PathOperation(
-                Wedge(centre, radius, angle, sweep),
-                Resolve(fill, theme), new DrawingColor(255, 255, 255), 1.5, EvenOdd: false);
+                var sweep = values[i] / total * 2 * Math.PI;
 
-            angle += sweep;
+                var fill = series.PointFills.TryGetValue(i, out var point) ? point : series.Fill;
+
+                yield return new PathOperation(
+                    Wedge(centre, outer, inner, angle, sweep),
+                    Resolve(fill, theme), new DrawingColor(255, 255, 255), 1.5, EvenOdd: false);
+
+                angle += sweep;
+            }
         }
     }
 
     /// <summary>
-    /// One slice, from its centre out to the rim, round, and back. The angles run clockwise from
-    /// the top, which is how a pie is read.
+    /// One slice, from its inner rim out to its outer one, round, and back. The angles run
+    /// clockwise from the top, which is how a pie is read.
     /// </summary>
     private static IReadOnlyList<PathStep> Wedge(
-        (double X, double Y) centre, double radius, double from, double sweep)
+        (double X, double Y) centre, double radius, double hole, double from, double sweep)
     {
-        var steps = new List<PathStep> { new(PathStepKind.Move, [At(from)]) };
+        var steps = new List<PathStep> { new(PathStepKind.Move, [At(radius, from)]) };
 
-        // A cubic cannot be an arc, so a slice is drawn in pieces no larger than a quarter turn.
-        var pieces = Math.Max(1, (int)Math.Ceiling(sweep / (Math.PI / 2)));
+        Round(steps, centre, radius, from, sweep);
+
+        // Back along the inner rim, or in to the middle where there is no hole.
+        if (hole > 0)
+        {
+            steps.Add(new PathStep(PathStepKind.Line, [At(hole, from + sweep)]));
+            Round(steps, centre, hole, from + sweep, -sweep);
+        }
+        else
+        {
+            steps.Add(new PathStep(PathStepKind.Line, [centre]));
+        }
+
+        steps.Add(new PathStep(PathStepKind.Close, []));
+
+        return steps;
+
+        (double X, double Y) At(double r, double a) =>
+            (centre.X + r * Math.Sin(a), centre.Y - r * Math.Cos(a));
+    }
+
+    /// <summary>An arc, in pieces no larger than a quarter turn, since a cubic cannot be one.</summary>
+    private static void Round(
+        List<PathStep> steps, (double X, double Y) centre, double radius, double from, double sweep)
+    {
+        var pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 2)));
         var step = sweep / pieces;
         var control = 4.0 / 3 * Math.Tan(step / 4) * radius;
 
@@ -1792,14 +2179,219 @@ internal static class ChartComposer
             ]));
         }
 
-        steps.Add(new PathStep(PathStepKind.Line, [centre]));
-        steps.Add(new PathStep(PathStepKind.Close, []));
-
-        return steps;
-
         (double X, double Y) At(double a) =>
             (centre.X + radius * Math.Sin(a), centre.Y - radius * Math.Cos(a));
     }
+
+    /// <summary>
+    /// The web a radar is ruled with: one many-sided figure for each mark of the value axis, its
+    /// corners on the categories' own spokes.
+    /// </summary>
+    /// <remarks>
+    /// Measured from the first page of chart-radar-stock, whose five categories give three
+    /// pentagons at a third, two thirds and the whole of the radius. The mark at the middle is
+    /// not drawn, since it is a point.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Web(ChartDefinition chart, Plan plan)
+    {
+        if (chart.ValueAxis is not { Deleted: false, MajorGridlines: true }) yield break;
+
+        var categories = Math.Max(1, chart.Categories.Count);
+
+        foreach (var value in Marks(plan))
+        {
+            if (plan.OutOf(value) <= 0) continue;
+
+            var corners = new List<(double X, double Y)>();
+            for (var i = 0; i < categories; i++) corners.Add(plan.On(value, i, categories));
+
+            yield return new PathOperation(
+                [.. Straight(corners), new PathStep(PathStepKind.Close, [])],
+                null, new DrawingColor(0, 0, 0), LineWidth, EvenOdd: false);
+        }
+    }
+
+    /// <summary>
+    /// What a radar's series draw: the figure through their points, filled where the chart asks
+    /// for it and outlined where it does not.
+    /// </summary>
+    private static IEnumerable<DrawingOperation> Webs(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        var categories = Math.Max(1, chart.Categories.Count);
+        var filled = chart.RadarStyle == "filled";
+
+        foreach (var series in chart.Series)
+        {
+            var corners = new List<(double X, double Y)>();
+
+            for (var i = 0; i < series.Values.Count && i < categories; i++)
+            {
+                if (series.Values[i] is not { } value) continue;
+
+                corners.Add(plan.On(value, i, categories));
+            }
+
+            if (corners.Count < 2) continue;
+
+            IReadOnlyList<PathStep> steps =
+                [.. Straight(corners), new PathStep(PathStepKind.Close, [])];
+
+            yield return filled
+                ? new PathOperation(steps, Resolve(series.Fill, theme), null, LineWidth,
+                    EvenOdd: false)
+                : new PathOperation(steps, null, Resolve(series.Line, theme),
+                    series.LineWidthPoints, EvenOdd: false);
+        }
+    }
+
+    /// <summary>
+    /// How large the largest bubble of a bubble chart is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Measured from eleven pages of chart-kinds-probe and chart-kinds-probe-two, at seven scales
+    /// and four frames. It is the frame that decides it and not the plot: a page whose plotting
+    /// is made small draws the same bubbles as one whose plotting fills the frame, and a frame
+    /// turned on its side draws the same as one standing up. What comes out is
+    ///
+    ///     diameter = (shorter side of the frame − 10) × scale ÷ (scale + 333⅓)
+    ///
+    /// to the third decimal place on every one of them — 47.538 of a 216 point frame at the
+    /// hundred per cent a chart means by saying nothing, 97.385 of a 432 point frame, and 131.684
+    /// at three hundred per cent of 288. The bubbles run out at the frame less five points a
+    /// side however large the scale is asked to be, which is what the shape of it says.
+    /// </remarks>
+    private static double LargestBubble(ChartDefinition chart, double width, double height)
+    {
+        var scale = Math.Max(0, chart.BubbleScale);
+
+        return Math.Max(0, Math.Min(width, height) - 10) * scale / (scale + 1000.0 / 3);
+    }
+
+    /// <summary>
+    /// A bubble at each of a series' pairs, as large as its own third number says.
+    /// </summary>
+    /// <remarks>
+    /// The largest bubble of the whole chart — not of one series — is drawn at the size above,
+    /// and the rest in proportion: by area unless the chart says its numbers are widths, which is
+    /// what the ninth page of chart-doughnut-bubble measures, where the four bubbles come out in
+    /// proportion to 10, 20, 30 and 40 rather than to their square roots.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Bubbles(
+        ChartDefinition chart, Plan plan, double width, double height, DocumentTheme theme)
+    {
+        var largest = chart.Series
+            .SelectMany(series => series.BubbleSizes)
+            .Where(size => size is > 0)
+            .DefaultIfEmpty(0)
+            .Max() ?? 0;
+
+        if (largest <= 0) yield break;
+
+        var whole = LargestBubble(chart, width, height);
+
+        foreach (var series in chart.Series)
+        {
+            for (var i = 0; i < series.Values.Count; i++)
+            {
+                if (series.Values[i] is not { } value) continue;
+                if (i >= series.XValues.Count || series.XValues[i] is not { } x) continue;
+                if (i >= series.BubbleSizes.Count || series.BubbleSizes[i] is not { } size) continue;
+                if (size <= 0) continue;
+
+                var share = size / largest;
+                var diameter = whole * (chart.SizeIsWidth ? share : Math.Sqrt(share));
+
+                var fill = series.PointFills.TryGetValue(i, out var point) ? point : series.Fill;
+
+                // A bubble is kept inside the plotting: Word wraps every one of them in the
+                // plot area's own rectangle, so one larger than the plot is cut off at its edge
+                // rather than drawn over what is written round it.
+                yield return new PathOperation(
+                    Ellipse(plan.AcrossOf(x), plan.PositionOf(value), diameter / 2),
+                    Resolve(fill, theme), null, LineWidth, EvenOdd: false,
+                    Clip: (plan.Left, plan.Top, plan.Width, plan.Height));
+            }
+        }
+    }
+
+    /// <summary>
+    /// What a stock chart draws instead of lines along its series: a line from the lowest of a
+    /// day's numbers to the highest, and a bar from what it opened at to what it closed at.
+    /// </summary>
+    /// <remarks>
+    /// Measured from chart-radar-stock. The lines stand at the middles of the categories, as the
+    /// points of a line chart do; the bars are as wide as one bar of a bar chart holding a single
+    /// series, which is the category's own share divided by one and the gap.
+    ///
+    /// Which series is which is said by nothing but their order: three of them are the high, the
+    /// low and the close, and four are the open, the high, the low and the close.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Trading(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        var categories = Math.Max(1, chart.Categories.Count);
+        var spanning = Spanning(chart);
+
+        if (chart.HighLowLines)
+        {
+            var colour = chart.HighLowLine is null
+                ? new DrawingColor(0, 0, 0)
+                : Resolve(chart.HighLowLine, theme);
+
+            for (var i = 0; i < categories; i++)
+            {
+                var day = Day(chart, i);
+                if (day.Count < 2) continue;
+
+                var x = plan.PointAt(i, categories, spanning);
+
+                yield return new PathOperation(
+                [
+                    new PathStep(PathStepKind.Move, [(x, plan.PositionOf(day.Max()))]),
+                    new PathStep(PathStepKind.Line, [(x, plan.PositionOf(day.Min()))])
+                ], null, colour, chart.HighLowLineWidthPoints, EvenOdd: false);
+            }
+        }
+
+        // The bar between the opening and the closing, which only a chart holding both draws.
+        if (chart.UpDownBars is not { } bars || chart.Series.Count < 4) yield break;
+
+        var barWidth = plan.Slot(categories) / (1 + bars.GapWidth / 100.0);
+
+        for (var i = 0; i < categories; i++)
+        {
+            if (Value(chart.Series[0], i) is not { } opening) continue;
+            if (Value(chart.Series[^1], i) is not { } closing) continue;
+
+            var one = plan.PositionOf(opening);
+            var other = plan.PositionOf(closing);
+
+            var rising = closing >= opening;
+
+            var fill = Resolve(rising ? bars.Up : bars.Down, theme);
+            var line = Resolve(rising ? bars.UpLine : bars.DownLine, theme);
+
+            // A chart that says nothing about them draws the rising bar white and the falling one
+            // black, both outlined, which is how a stock chart has always been read.
+            if ((rising ? bars.Up : bars.Down) is null)
+                fill = rising ? new DrawingColor(255, 255, 255) : new DrawingColor(0, 0, 0);
+
+            if ((rising ? bars.UpLine : bars.DownLine) is null) line = new DrawingColor(0, 0, 0);
+
+            yield return new PathOperation(
+                Rectangle(plan.PointAt(i, categories, spanning) - barWidth / 2,
+                    Math.Min(one, other), barWidth, Math.Abs(other - one)),
+                fill, line, InvertedOutline, EvenOdd: false);
+        }
+    }
+
+    /// <summary>What every series of a stock chart holds for one day.</summary>
+    private static List<double> Day(ChartDefinition chart, int category) =>
+        [.. chart.Series.Select(series => Value(series, category)).OfType<double>()];
+
+    private static double? Value(ChartSeries series, int category) =>
+        category < series.Values.Count ? series.Values[category] : null;
 
     /// <summary>The values the value axis marks, from its bottom to its top.</summary>
     public static IEnumerable<double> Marks(Plan plan) =>

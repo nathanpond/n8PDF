@@ -68,6 +68,9 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     {
         ["chart-title-legend-label"] = 1.0,
 
+        // The same fitting, on the page whose pie is left to Word to place: see below.
+        ["chart-kinds-probe-two"] = 0.7,
+
         // Where a table folded into the one before it asks to be indented, Word indents it and
         // then refits the whole merged table — columns and indent together — into the width the
         // first table declared. This indents the rows and leaves the columns alone, so its rows
@@ -101,13 +104,25 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
         new()
         {
-            ["chart-title-legend-label"] = (2.1,
+            ["chart-title-legend-label"] = (1.8,
                 """
                 A share written on a slice of a pie is placed by a fitting of Word's own: its four
-                slices come out at 0.684, 0.687, 0.690 and 0.711 of the radius, and at up to a
-                degree and a half off the middle of their own slice. Everything here puts one at
-                seven tenths of the radius along the middle of its slice, which is two points out
-                on the narrowest of the four and within a fifth of a point on the rest.
+                labels sit 14.79, 14.58, 12.52 and 14.39 points inside a rim of 72.96, and at up
+                to a degree and a half off the middle of their own slice. Everything here puts one
+                14.3pt inside the rim along the middle of its slice, which is two points out on
+                the narrowest of the four — the one Word pushes furthest out — and within a fifth
+                of a point on the rest. See chart-kinds-probe-two, where the same fitting is
+                measured on a pie of another size.
+                """),
+
+            ["chart-kinds-probe-two"] = (2.2,
+                """
+                The same fitting as chart-title-legend-label's, measured again on a pie of another
+                size: Word's four labels sit 14.17, 14.36, 12.30 and 14.15 points inside a rim of
+                83.5, and the odd one out is the narrowest slice, which Word pushes further out
+                than the rest. Everything here puts one 14.3pt inside the rim along the middle of
+                its slice, which is two points out on that slice and within a fifth of a point on
+                the other three.
                 """),
 
             ["superscript-shift-probe"] = (2.5,
