@@ -137,6 +137,8 @@ public class LineBreakingTests
     [Fact]
     public void The_fixture_lines_break_where_word_breaks_them()
     {
+        if (TestFonts.SkipForMissingFonts("wrapping")) return;
+
         var reference = Path.Combine(TestPaths.ReferencePdfs, "wrapping.pdf");
         Assert.True(File.Exists(reference), $"No Word reference PDF at {reference}");
 

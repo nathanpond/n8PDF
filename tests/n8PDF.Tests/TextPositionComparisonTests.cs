@@ -262,6 +262,8 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     [MemberData(nameof(FixtureNames))]
     public void Line_positions_are_within_tolerance_of_word(string name)
     {
+        if (TestFonts.SkipForMissingFonts(name)) return;
+
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, name + ".pdf");
         if (!File.Exists(referencePath)) return; // reported by Fixture_has_a_reference_pdf
 

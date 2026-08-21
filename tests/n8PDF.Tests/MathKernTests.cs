@@ -31,6 +31,8 @@ public class MathKernTests(ITestOutputHelper output)
     [Fact]
     public void Every_script_sits_where_word_sits_it()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ours = Pieces(PdfTextExtractor.Extract(Converter.Convert(
             Fixtures.Build("math-kern-probe"),
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() })));
@@ -72,6 +74,8 @@ public class MathKernTests(ITestOutputHelper output)
     [InlineData(14, "letters smaller than it")]
     public void A_letter_that_is_not_the_equation_s_own_size_takes_no_kern(int probe, string what)
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var runs = Pieces(PdfTextExtractor.Extract(Converter.Convert(
             Fixtures.Build("math-kern-probe"),
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() })))[probe];
@@ -92,6 +96,8 @@ public class MathKernTests(ITestOutputHelper output)
     [Fact]
     public void The_face_states_a_staircase_for_each_corner()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var font = TestFonts.CreatePinnedLibrary().Resolve("Cambria Math").Font;
 
         var x = font.MathKerns[font.GetGlyphIndex(0x1D465)];

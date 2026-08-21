@@ -24,6 +24,8 @@ public class GoldenLayoutTests
     [MemberData(nameof(FixtureNames))]
     public void Layout_matches_its_golden(string name)
     {
+        if (TestFonts.SkipForMissingFonts(name)) return;
+
         var options = new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() };
 
         using var stream = new MemoryStream(Fixtures.Build(name));

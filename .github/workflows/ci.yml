@@ -1,0 +1,108 @@
+# What runs on every push: everything that can be checked without Microsoft Word.
+#
+# The suite compares this converter's output against PDFs Word exported, and those are set in the
+# faces Word brings with it — Calibri, Cambria, and the Japanese and Chinese faces it carries
+# rather than takes from the system. A hosted runner has macOS's fonts and not Word's, so the 46
+# fixtures written in those faces cannot be rendered as Word rendered them and are skipped here.
+# OfficeFontTests says so out loud in the log rather than letting the gap pass unremarked, and
+# full.yml runs those 46 on a machine that has Word.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # qpdf validates the cross-reference tables, stream lengths and object graphs this writes by
+      # hand; fontTools reads the subset fonts back and draws their glyphs. Both are optional to
+      # the suite and required here, because a tier that is skipped in CI is a tier nobody runs.
+      - name: Install the checking tools
+        run: |
+          brew install qpdf
+          python3 -m pip install --break-system-packages fonttools
+
+      # The faces this pins live at fixed paths in macOS. A runner image that ships a different
+      # version of one of them would move glyphs by fractions of a point and fail the goldens for
+      # a reason that has nothing to do with the change under test, so their fingerprints are on
+      # the record here — the first thing to compare when a golden fails only in CI.
+      - name: Fingerprint the pinned system faces
+        run: |
+          for face in \
+            "/System/Library/Fonts/Supplemental/Times New Roman.ttf" \
+            "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf" \
+            "/System/Library/Fonts/Supplemental/Times New Roman Italic.ttf" \
+            "/System/Library/Fonts/Supplemental/Arial.ttf" \
+            "/System/Library/Fonts/Helvetica.ttc" \
+            "/System/Library/Fonts/ArialHB.ttc"
+          do
+            if [ -f "$face" ]; then md5 -q "$face" | tr -d '\n'; echo "  $face";
+            else echo "MISSING             $face"; fi
+          done
+          sw_vers
+
+      - name: Build
+        run: dotnet build n8PDF.sln --configuration Release -warnaserror
+
+      - name: Test
+        env:
+          N8PDF_REQUIRE_QPDF: '1'
+          N8PDF_REQUIRE_FONTTOOLS: '1'
+        run: >
+          dotnet test n8PDF.sln --configuration Release --no-build
+          --logger "trx;LogFileName=results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory artifacts/test-results
+
+      # The per-line table of where every line of every fixture sits against Word's own, which is
+      # what a failure here is usually about.
+      - name: Keep what the run measured
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            artifacts/test-results/
+            artifacts/test-output/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  pack:
+    name: Pack
+    runs-on: macos-15
+    needs: test
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # ContinuousIntegrationBuild normalises the paths built into the assembly, so the package is
+      # the same whichever machine builds it.
+      - name: Pack
+        run: >
+          dotnet pack src/n8PDF/n8PDF.csproj --configuration Release
+          -p:ContinuousIntegrationBuild=true
+          --output artifacts/package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: artifacts/package/*.nupkg
+          retention-days: 30

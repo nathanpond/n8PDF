@@ -42,6 +42,8 @@ public class MathNaryTests(ITestOutputHelper output)
     [Fact]
     public void Every_limit_sits_where_word_sits_it()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ours = Limits(PdfTextExtractor.Extract(Converter.Convert(
             Fixtures.Build("math-nary-probe"),
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() })));

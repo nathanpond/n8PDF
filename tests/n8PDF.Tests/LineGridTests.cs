@@ -42,6 +42,8 @@ public class LineGridTests(ITestOutputHelper output)
     [Fact]
     public void Forty_lines_to_a_page_land_where_Word_lands_them()
     {
+        if (TestFonts.SkipForMissingFonts("line-grid-probe")) return;
+
         var (exact, total, worst, perPage) = Compare("line-grid-probe");
 
         for (var page = 0; page < perPage.Count; page++)
@@ -62,6 +64,8 @@ public class LineGridTests(ITestOutputHelper output)
     [Fact]
     public void The_first_line_of_a_page_takes_the_ascent_Word_gives_it()
     {
+        if (TestFonts.SkipForMissingFonts("line-ascent-probe")) return;
+
         var (exact, total, worst, _) = Compare("line-ascent-probe");
 
         output.WriteLine($"{exact}/{total} ascents exact, worst {worst:0.###}pt");

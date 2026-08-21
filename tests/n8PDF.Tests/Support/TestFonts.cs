@@ -1,3 +1,4 @@
+using n8PDF.Diagnostics;
 using n8PDF.Fonts;
 
 namespace n8PDF.Tests.Support;
@@ -80,7 +81,123 @@ public static class TestFonts
         "/System/Library/Fonts/Supplemental/Thonburi.ttc"
     ];
 
+    /// <summary>
+    /// The faces that travel with Microsoft Word rather than with macOS, by the names a document
+    /// asks for them by. A machine without Word has none of them, and neither does a hosted CI
+    /// runner.
+    /// </summary>
+    private static readonly string[] OfficeFamilies =
+        ["Calibri", "Cambria", "MS Mincho", "MS Gothic", "KaiTi", "MingLiU"];
+
     public static bool Exists(string path) => File.Exists(path);
+
+    /// <summary>Whether the faces that come with Word are on this machine.</summary>
+    public static bool OfficeFontsAvailable { get; } = File.Exists(Path.Combine(OfficeFonts, "Calibri.ttf"));
+
+    public static bool OfficeFontsRequired =>
+        Environment.GetEnvironmentVariable("N8PDF_REQUIRE_OFFICE_FONTS") == "1";
+
+    public static string OfficeFontsUnavailableMessage =>
+        $"The faces that come with Microsoft Word were not found in {OfficeFonts}, so every\n" +
+        "fixture that asks for one of them — Calibri, Cambria, MS Mincho, MS Gothic, KaiTi,\n" +
+        "MingLiU — is being skipped. Word's own reference PDFs are set in those faces, so\n" +
+        "there is nothing to compare against without them.\n" +
+        "Set N8PDF_REQUIRE_OFFICE_FONTS=1 to make their absence a failure rather than a skip.";
+
+    /// <summary>
+    /// The fixtures that are set, somewhere in them, in a face Word brings with it, and so cannot
+    /// be rendered as Word rendered them on a machine that has not got Word.
+    /// </summary>
+    /// <remarks>
+    /// Measured rather than declared: a fixture is on this list when converting it with those
+    /// faces and without them gives different files. It cannot be worked out from the package,
+    /// which is what a first attempt tried — every fixture here carries a theme naming Calibri
+    /// whether a word of it is set in Calibri or not, and that attempt put all hundred and ten on
+    /// the list. Nor can it be read off the laid-out document, which records the face an equation
+    /// is set in nowhere its runs can be asked for it.
+    ///
+    /// A list can go stale, so it is regenerated and checked by
+    /// <c>OfficeFontTests.The_list_of_fixtures_needing_word_s_faces_is_current</c> wherever the
+    /// faces are present — which is every machine that can meaningfully add a fixture.
+    /// </remarks>
+    private static readonly HashSet<string> WrittenInOfficeFaces =
+    [
+        "chart-area-scatter", "chart-axis-probe", "chart-bar-scale-probe", "chart-bar-stacked",
+        "chart-column", "chart-layout-probe", "chart-line-pie", "chart-scale-probe",
+        "chart-title-legend-label", "columns-uneven", "content-controls", "east-asian-line-box-probe",
+        "endnote-restart-section", "endnote-section-end", "endnotes", "equations", "font-fallback",
+        "footnote-beneath-text", "footnote-carry-probe", "footnote-columns", "footnote-overrun-probe",
+        "footnote-restart-page", "footnote-restart-section", "footnote-separator-probe",
+        "footnote-split-probe", "footnotes", "images", "images-formats", "index", "kerning",
+        "line-ascent-probe", "line-grid-probe", "math-bracket-probe", "math-kern-probe",
+        "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
+        "numbering", "page-numbering-restart", "tab-bars", "table-inset-weights-probe",
+        "table-vertical-merge", "toc", "watermark", "watermark-fit-probe", "watermark-picture",
+        "watermark-washout-probe", "wrapping"
+    ];
+
+    /// <summary>Whether a fixture is written in a face that comes with Word.</summary>
+    public static bool NeedsOfficeFonts(string fixture) => WrittenInOfficeFaces.Contains(fixture);
+
+    /// <summary>
+    /// The same question asked of the documents themselves, by laying each one out twice and
+    /// converting it twice. Slow, and only answerable where the faces are installed, which is why
+    /// the answer is kept as a list.
+    /// </summary>
+    /// <remarks>
+    /// Both the trace and the file are compared, because they do not always disagree together:
+    /// three fixtures — index, watermark-picture and columns-uneven — lay out differently without
+    /// Word's faces and still write the same PDF, the difference being in text the file does not
+    /// carry.
+    /// </remarks>
+    public static IEnumerable<string> MeasureWhichNeedOfficeFonts()
+    {
+        foreach (var name in Fixtures.All.Keys.Order())
+        {
+            var docx = Fixtures.Build(name);
+
+            static ConversionOptions Options(bool office) => new()
+            {
+                Fonts = CreatePinnedLibrary(office), CreationDate = DateTimeOffset.UnixEpoch
+            };
+
+            static string Trace(byte[] docx, bool office)
+            {
+                using var stream = new MemoryStream(docx);
+                return LayoutTrace.Write(Converter.LayoutDocument(stream, Options(office)));
+            }
+
+            if (Trace(docx, true) != Trace(docx, false) ||
+                !Converter.Convert(docx, Options(true)).SequenceEqual(Converter.Convert(docx, Options(false))))
+            {
+                yield return name;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether to leave a test alone for want of a face that comes with Word — for the tests that
+    /// ask the face itself a question rather than laying a fixture out.
+    /// </summary>
+    public static bool SkipForMissingFaces()
+    {
+        if (OfficeFontsAvailable) return false;
+
+        Assert.False(OfficeFontsRequired, OfficeFontsUnavailableMessage);
+        return true;
+    }
+
+    /// <summary>
+    /// Whether to leave a fixture alone for want of the faces it is written in. Absence is a skip
+    /// unless the environment says it should be a failure, which is what CI says.
+    /// </summary>
+    public static bool SkipForMissingFonts(string fixture)
+    {
+        if (OfficeFontsAvailable || !NeedsOfficeFonts(fixture)) return false;
+
+        Assert.False(OfficeFontsRequired, $"'{fixture}' needs a face Word brings.\n{OfficeFontsUnavailableMessage}");
+        return true;
+    }
 
     internal static TrueTypeFont Load(string path)
     {
@@ -92,16 +209,20 @@ public static class TestFonts
     /// A library holding only the pinned faces, with system discovery disabled so that results
     /// are reproducible.
     /// </summary>
-    public static FontLibrary CreatePinnedLibrary()
+    public static FontLibrary CreatePinnedLibrary(bool withOfficeFaces = true)
     {
         var library = new FontLibrary { UseSystemFonts = false };
 
-        foreach (var path in new[]
-                 {
-                     TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath,
-                     ArialPath, CalibriPath, CalibriBoldPath, CambriaMathPath, ArialHebrewPath,
-                     Mincho, Gothic, Kaiti, MingLiu
-                 }.Concat(ComplexScriptPaths))
+        string[] office = [CalibriPath, CalibriBoldPath, CambriaMathPath, Mincho, Gothic, Kaiti, MingLiu];
+
+        IEnumerable<string> paths =
+        [
+            TimesNewRomanPath, TimesNewRomanBoldPath, TimesNewRomanItalicPath, ArialPath, ArialHebrewPath,
+            .. withOfficeFaces ? office : [],
+            .. ComplexScriptPaths
+        ];
+
+        foreach (var path in paths)
         {
             if (File.Exists(path)) library.RegisterFile(path);
         }

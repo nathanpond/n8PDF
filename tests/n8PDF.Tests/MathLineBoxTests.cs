@@ -64,6 +64,8 @@ public class MathLineBoxTests(ITestOutputHelper output)
     [InlineData("math-nary-probe")]
     public void An_equation_asks_its_line_for_what_word_asks(string fixture)
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var options = new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() };
 
         var ours = PdfTextExtractor.Extract(Converter.Convert(Fixtures.Build(fixture), options));
@@ -130,6 +132,8 @@ public class MathLineBoxTests(ITestOutputHelper output)
     [Fact]
     public void An_equation_is_set_at_the_size_of_the_text_carrying_it()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ours = PdfTextExtractor.Extract(Converter.Convert(
             Fixtures.Build("math-structure-probe"),
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }));

@@ -67,6 +67,8 @@ public class ContentCoverageTests(ITestOutputHelper output)
     [MemberData(nameof(FixtureNames))]
     public void Every_fixture_reaches_the_pdf_intact(string name)
     {
+        if (TestFonts.SkipForMissingFonts(name)) return;
+
         var docx = Fixtures.Build(name);
         var options = new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() };
 

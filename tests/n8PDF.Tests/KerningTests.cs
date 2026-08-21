@@ -53,6 +53,12 @@ public class KerningTests
     [Fact]
     public void Calibri_kerns_through_gpos()
     {
+        if (!TestFonts.OfficeFontsAvailable)
+        {
+            Assert.False(TestFonts.OfficeFontsRequired, TestFonts.OfficeFontsUnavailableMessage);
+            return;
+        }
+
         var value = GposKerning(TestFonts.CalibriPath, 'A', 'V');
 
         Assert.NotNull(value);

@@ -49,6 +49,8 @@ public class WatermarkTests(ITestOutputHelper output)
     public void A_word_is_fitted_to_its_shape_the_way_word_fits_it(
         int page, string what, double required)
     {
+        if (TestFonts.SkipForMissingFonts("watermark-fit-probe")) return;
+
         var agreement = Agreement("watermark-fit-probe", page);
         if (agreement is null) return;
 
@@ -66,6 +68,8 @@ public class WatermarkTests(ITestOutputHelper output)
     [InlineData(1)]
     public void A_watermark_lands_where_word_puts_it(int page)
     {
+        if (TestFonts.SkipForMissingFonts("watermark")) return;
+
         var agreement = Agreement("watermark", page);
         if (agreement is null) return;
 

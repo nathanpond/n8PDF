@@ -75,6 +75,32 @@ dotnet pack src/n8PDF -c Release   # the package, with its symbols and its docum
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
 git-ignored.
 
+### What runs where
+
+The suite compares against PDFs Word exported, and those are set in the faces Word brings with it —
+Calibri, Cambria, and the Japanese and Chinese faces it carries rather than takes from the system.
+So it matters which machine the tests run on, and there are two answers:
+
+| | `ci.yml`, every push | `full.yml`, by hand or weekly |
+|---|---|---|
+| Runner | `macos-15`, hosted | self-hosted, labelled `word` |
+| Fixtures compared against Word | 64 of 110 | all 110 |
+| Also | `qpdf`, fontTools, `dotnet pack` | `qpdf`, fontTools |
+
+The 46 fixtures written in Word's faces cannot be rendered as Word rendered them on a machine
+without Word, so on a hosted runner they are left alone. Which 46 is measured rather than declared
+— a fixture is on the list when laying it out with those faces and without them gives different
+answers — and `OfficeFontTests` keeps the list honest at both ends: it regenerates and checks the
+list wherever the faces are present, and where they are absent it prints how much was skipped
+rather than letting the gap pass unremarked. `N8PDF_REQUIRE_OFFICE_FONTS=1` turns their absence
+into a failure, which is what the full run sets, so a runner that has quietly lost Word fails
+instead of passing on two thirds of the comparison.
+
+The faces the hosted runner *does* provide are macOS's own, at fixed paths. A runner image shipping
+a different version of one of them would move glyphs by fractions of a point and fail the goldens
+for a reason unconnected to any change, so `ci.yml` prints their fingerprints and the OS version on
+every run — the first thing to compare when a golden fails only in CI.
+
 ### What a conversion costs
 
 A page of text converts in about 1.4ms on the machine this was measured on. Finding the fonts is

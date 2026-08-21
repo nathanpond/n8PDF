@@ -35,6 +35,8 @@ public class ChartTests(ITestOutputHelper output)
     [Fact]
     public void A_bar_reaches_where_word_draws_it()
     {
+        if (TestFonts.SkipForMissingFonts("chart-column")) return;
+
         var (ours, theirs) = BothWays("chart-column");
 
         // The filled rectangles only: the plot area and the four bars. The gridlines, the axes
@@ -101,6 +103,8 @@ public class ChartTests(ITestOutputHelper output)
     [Fact]
     public void Two_series_stand_where_word_stands_them()
     {
+        if (TestFonts.SkipForMissingFonts("chart-axis-probe")) return;
+
         var (ours, theirs) = BothWays("chart-axis-probe");
 
         // The fifth page holds them: the plot area, and four bars in two colours.
@@ -188,6 +192,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(5, "no labels at all")]
     public void A_chart_that_says_nothing_is_laid_out_the_way_word_lays_it_out(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-layout-probe")) return;
+
         var (ours, theirs) = BothWays("chart-layout-probe");
 
         var mine = PlotArea(ours, page);
@@ -244,6 +250,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(11, "0 10 20 30 40 50 60")]
     public void An_axis_left_to_itself_is_scaled_the_way_word_scales_it(int page, string expected)
     {
+        if (TestFonts.SkipForMissingFonts("chart-scale-probe")) return;
+
         var (ours, theirs) = BothWays("chart-scale-probe");
 
         var mine = AxisLabels(ours, page);
@@ -315,6 +323,8 @@ public class ChartTests(ITestOutputHelper output)
     [Fact]
     public void The_categories_sit_where_the_axes_cross()
     {
+        if (TestFonts.SkipForMissingFonts("chart-scale-probe")) return;
+
         var (ours, theirs) = BothWays("chart-scale-probe");
 
         // The eleventh chart runs from −30 to 70, so its nought is three quarters of the way down.
@@ -349,6 +359,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(3, "a pie, placed by Word")]
     public void A_line_and_a_pie_cover_what_word_covers(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-line-pie")) return;
+
         var (ours, theirs) = BothWays("chart-line-pie");
 
         const double scale = 3;
@@ -406,6 +418,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(3, 252, 180, 97)]
     public void A_pie_fills_the_plot_it_is_given(int page, double x, double y, double radius)
     {
+        if (TestFonts.SkipForMissingFonts("chart-line-pie")) return;
+
         var (ours, _) = BothWays("chart-line-pie");
 
         const double scale = 3;
@@ -664,6 +678,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(7, 7, "one bar hanging the wrong side of nought")]
     public void A_bar_lies_where_word_lays_it(int page, int count, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-bar-stacked")) return;
+
         var (ours, theirs) = BothWays("chart-bar-stacked");
 
         var mine = Fills(ours, page);
@@ -699,6 +715,8 @@ public class ChartTests(ITestOutputHelper output)
     [Fact]
     public void A_chart_lying_down_is_laid_out_the_way_word_lays_it_out()
     {
+        if (TestFonts.SkipForMissingFonts("chart-bar-stacked")) return;
+
         var (ours, theirs) = BothWays("chart-bar-stacked");
 
         var mine = PlotArea(ours, page: 1);
@@ -729,6 +747,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(4, "0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%")]
     public void A_stacked_axis_is_scaled_by_what_the_categories_come_to(int page, string expected)
     {
+        if (TestFonts.SkipForMissingFonts("chart-bar-stacked")) return;
+
         var (ours, theirs) = BothWays("chart-bar-stacked");
 
         var mine = AxisLabels(ours, page);
@@ -767,6 +787,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(13, "0 20 40 60")]
     public void An_axis_that_lies_down_is_scaled_the_way_word_scales_it(int page, string expected)
     {
+        if (TestFonts.SkipForMissingFonts("chart-bar-scale-probe")) return;
+
         var (ours, theirs) = BothWays("chart-bar-scale-probe");
 
         var mine = AxisLabels(ours, page, lying: page < 12);
@@ -787,6 +809,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(7, "and where that axis goes when something is negative")]
     public void A_lying_chart_covers_what_word_covers(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-bar-stacked")) return;
+
         var (ours, theirs) = BothWays("chart-bar-stacked");
 
         const double scale = 3;
@@ -884,6 +908,8 @@ public class ChartTests(ITestOutputHelper output)
     [Fact]
     public void A_bar_below_nought_is_turned_the_other_way_about()
     {
+        if (TestFonts.SkipForMissingFonts("chart-bar-stacked")) return;
+
         var (ours, theirs) = BothWays("chart-bar-stacked");
 
         // The last page holds one: 45 the wrong side of nought, against five that are not.
@@ -955,6 +981,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(18, "an area whose first category is wider than its numbers")]
     public void An_area_and_a_scatter_cover_what_word_covers(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-area-scatter")) return;
+
         var (ours, theirs) = BothWays("chart-area-scatter");
 
         const double scale = 3;
@@ -1006,6 +1034,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(18, "an area whose first category has to be wrapped")]
     public void An_area_and_a_scatter_are_laid_out_the_way_word_lays_them_out(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-area-scatter")) return;
+
         var (ours, theirs) = BothWays("chart-area-scatter");
 
         var mine = PlotArea(ours, page);
@@ -1040,6 +1070,8 @@ public class ChartTests(ITestOutputHelper output)
     public void An_axis_of_pairs_or_of_areas_is_scaled_the_way_word_scales_it(
         int page, bool foot, string expected)
     {
+        if (TestFonts.SkipForMissingFonts("chart-area-scatter")) return;
+
         var (ours, theirs) = BothWays("chart-area-scatter");
 
         var mine = AxisLabels(ours, page, lying: foot);
@@ -1061,6 +1093,8 @@ public class ChartTests(ITestOutputHelper output)
     [Fact]
     public void A_marker_is_the_size_and_shape_word_draws_it()
     {
+        if (TestFonts.SkipForMissingFonts("chart-area-scatter")) return;
+
         var (ours, theirs) = BothWays("chart-area-scatter");
 
         // The ninth page holds a series of squares, one to each of its four pairs.
@@ -1164,6 +1198,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(18, "a legend of twenty point")]
     public void What_goes_round_the_plotting_takes_the_room_word_gives_it(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-title-legend-label")) return;
+
         var (ours, theirs) = BothWays("chart-title-legend-label");
 
         var mine = PlotArea(ours, page);
@@ -1191,6 +1227,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(18, 2, "at twenty point")]
     public void A_legend_keys_its_series_the_way_word_keys_them(int page, int count, string where)
     {
+        if (TestFonts.SkipForMissingFonts("chart-title-legend-label")) return;
+
         var (ours, theirs) = BothWays("chart-title-legend-label");
 
         // The keys are the small squares: everything else a chart fills is far larger.
@@ -1230,6 +1268,8 @@ public class ChartTests(ITestOutputHelper output)
     [InlineData(13, "all three at once")]
     public void A_dressed_chart_covers_what_word_covers(int page, string what)
     {
+        if (TestFonts.SkipForMissingFonts("chart-title-legend-label")) return;
+
         var (ours, theirs) = BothWays("chart-title-legend-label");
 
         const double scale = 3;

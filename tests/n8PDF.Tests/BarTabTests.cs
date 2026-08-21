@@ -142,6 +142,8 @@ public class BarTabTests
     [Fact]
     public void Bars_match_word()
     {
+        if (TestFonts.SkipForMissingFonts("tab-bars")) return;
+
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, "tab-bars.pdf");
         Assert.True(File.Exists(referencePath), $"No Word reference PDF at {referencePath}");
 

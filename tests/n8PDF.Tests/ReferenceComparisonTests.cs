@@ -88,6 +88,8 @@ public class ReferenceComparisonTests(ITestOutputHelper output)
     [MemberData(nameof(FixtureNames))]
     public void Reference_pdf_holds_the_document_it_claims_to(string name)
     {
+        if (TestFonts.SkipForMissingFonts(name)) return;
+
         var path = ReferencePathFor(name);
         if (!File.Exists(path)) return;
 

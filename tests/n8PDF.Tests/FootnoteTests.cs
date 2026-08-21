@@ -690,6 +690,8 @@ public class FootnoteTests(ITestOutputHelper output)
     [Fact]
     public void The_rest_of_a_note_is_ruled_off_right_across_the_measure()
     {
+        if (TestFonts.SkipForMissingFonts("footnote-split-probe")) return;
+
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, "footnote-split-probe.pdf");
         Assert.True(File.Exists(referencePath), $"No Word reference PDF at {referencePath}");
 
@@ -742,6 +744,8 @@ public class FootnoteTests(ITestOutputHelper output)
     [InlineData("footnote-columns")]
     public void Separator_matches_word(string name)
     {
+        if (TestFonts.SkipForMissingFonts(name)) return;
+
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, name + ".pdf");
         Assert.True(File.Exists(referencePath), $"No Word reference PDF at {referencePath}");
 

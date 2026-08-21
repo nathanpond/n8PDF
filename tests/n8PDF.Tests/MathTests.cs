@@ -81,6 +81,8 @@ public class MathTests(ITestOutputHelper output)
     [Fact]
     public void The_math_table_reads_cambrias_own_numbers()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var font = TestFonts.CreatePinnedLibrary().Resolve("Cambria Math").Font;
 
         var math = font.Mathematics;
@@ -102,6 +104,8 @@ public class MathTests(ITestOutputHelper output)
     [Fact]
     public void The_face_offers_taller_brackets_and_says_how_far_they_lean()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var font = TestFonts.CreatePinnedLibrary().Resolve("Cambria Math").Font;
 
         var paren = font.GetGlyphIndex('(');
@@ -140,6 +144,8 @@ public class MathTests(ITestOutputHelper output)
     [InlineData("Matrix: ", 110.99)]
     public void An_equation_begins_where_word_begins_it(string label, double x)
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var runs = PdfTextExtractor.Extract(Ours());
 
         var words = runs.First(run => run.Text.StartsWith(label, StringComparison.Ordinal));
@@ -181,6 +187,8 @@ public class MathTests(ITestOutputHelper output)
     [InlineData("Both: ", "i", 2.64)]
     public void A_script_sits_where_word_sits_it(string label, string script, double offset)
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var runs = PdfTextExtractor.Extract(Ours());
 
         var line = runs.First(run => run.Text.StartsWith(label, StringComparison.Ordinal));
@@ -196,6 +204,8 @@ public class MathTests(ITestOutputHelper output)
     [Fact]
     public void A_bracket_grows_by_the_shapes_the_face_keeps_rather_than_by_being_drawn_larger()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var runs = PdfTextExtractor.Extract(Ours());
 
         var brackets = runs.Where(run => run.Text is "(" or ")").OrderBy(run => run.BaselineY).ToList();
@@ -218,6 +228,8 @@ public class MathTests(ITestOutputHelper output)
     [Fact]
     public void An_equation_on_a_line_of_its_own_is_centred_and_set_at_the_full_size()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ours = PdfTextExtractor.Extract(Ours());
         var theirs = PdfTextExtractor.Extract(Theirs());
 
@@ -236,6 +248,8 @@ public class MathTests(ITestOutputHelper output)
     [Fact]
     public void The_bars_of_a_fraction_are_where_word_draws_them()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ours = PdfPathExtractor.Extract(Ours()).OrderBy(rule => rule.Top).ToList();
         var theirs = PdfPathExtractor.ExtractFile(
             Path.Combine(TestPaths.ReferencePdfs, "equations.pdf")).OrderBy(rule => rule.Top).ToList();
@@ -272,6 +286,8 @@ public class MathTests(ITestOutputHelper output)
     [Fact]
     public void The_equations_cover_what_word_covers()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ourBytes = Ours();
         var wordBytes = Theirs();
 

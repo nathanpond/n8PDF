@@ -85,6 +85,12 @@ public class LineBoxTests(ITestOutputHelper output)
     [Fact]
     public void A_line_of_two_fonts_takes_the_ascent_of_one_and_the_descent_of_the_other()
     {
+        if (!TestFonts.OfficeFontsAvailable)
+        {
+            Assert.False(TestFonts.OfficeFontsRequired, TestFonts.OfficeFontsUnavailableMessage);
+            return;
+        }
+
         const string calibri11 = "<w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\"/><w:sz w:val=\"22\"/>";
 
         var times = HeightOf(Run(Times12, "Text"));

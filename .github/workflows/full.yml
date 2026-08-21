@@ -1,0 +1,61 @@
+# The whole suite, on a machine that has Microsoft Word installed.
+#
+# ci.yml runs everything a hosted runner can. What it cannot run is the comparison against Word's
+# own exports for the 46 fixtures set in faces Word brings with it, because a hosted runner has not
+# got those faces. This runs those too, with N8PDF_REQUIRE_OFFICE_FONTS=1 so that a machine which
+# turns out not to have Word after all fails loudly instead of quietly skipping a third of the
+# comparison tier.
+#
+# It needs a self-hosted runner labelled `word`, registered on a Mac with Word installed:
+#
+#     ./config.sh --url https://github.com/<owner>/<repo> --labels self-hosted,macOS,word
+#
+# Until such a runner exists this workflow simply queues and can be cancelled; nothing else waits
+# on it. It is deliberately not part of the push path — self-hosted runners execute whatever a
+# branch tells them to, so this is only ever started by hand or on a schedule.
+name: Full comparison
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monday morning, so a week of pushes is checked against Word at least once.
+    - cron: '0 7 * * 1'
+
+jobs:
+  test:
+    name: Build and test against Word's own exports
+    runs-on: [self-hosted, macOS, word]
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Word is where the suite expects it
+        run: |
+          test -f "/Applications/Microsoft Word.app/Contents/Resources/DFonts/Calibri.ttf" \
+            || { echo "Word's faces are not installed on this runner."; exit 1; }
+
+      - name: Build
+        run: dotnet build n8PDF.sln --configuration Release -warnaserror
+
+      - name: Test
+        env:
+          N8PDF_REQUIRE_OFFICE_FONTS: '1'
+          N8PDF_REQUIRE_QPDF: '1'
+          N8PDF_REQUIRE_FONTTOOLS: '1'
+        run: >
+          dotnet test n8PDF.sln --configuration Release --no-build
+          --logger "trx;LogFileName=results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory artifacts/test-results
+
+      - name: Keep what the run measured
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-test-results
+          path: |
+            artifacts/test-results/
+            artifacts/test-output/
+          if-no-files-found: ignore
+          retention-days: 30

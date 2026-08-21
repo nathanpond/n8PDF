@@ -23,6 +23,8 @@ public class MathBracketTests(ITestOutputHelper output)
     [Fact]
     public void Every_bracket_is_the_shape_word_picked()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var ours = Brackets(PdfTextExtractor.Extract(Converter.Convert(
             Fixtures.Build("math-bracket-probe"),
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() })));
@@ -63,6 +65,8 @@ public class MathBracketTests(ITestOutputHelper output)
     [Fact]
     public void A_bracket_past_the_series_is_built_out_of_pieces()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var word = PdfTextExtractor.ExtractFile(
             Path.Combine(TestPaths.ReferencePdfs, "math-bracket-probe.pdf"));
 
@@ -127,6 +131,8 @@ public class MathBracketTests(ITestOutputHelper output)
     [Fact]
     public void A_grown_bracket_reaches_the_page_as_the_shape_it_asked_for()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         using var stream = new MemoryStream(Fixtures.Build("math-bracket-probe"));
         var laidOut = Converter.LayoutDocument(stream,
             new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
@@ -155,6 +161,8 @@ public class MathBracketTests(ITestOutputHelper output)
     [Fact]
     public void The_face_says_how_to_build_one()
     {
+        if (TestFonts.SkipForMissingFaces()) return;
+
         var font = TestFonts.CreatePinnedLibrary().Resolve("Cambria Math").Font;
 
         var assembly = font.MathAssemblies[font.GetGlyphIndex('(')];
