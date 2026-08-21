@@ -33,6 +33,17 @@ internal static class Grid
     public static double Snap(double points) =>
         Math.Round(points / Step, MidpointRounding.AwayFromZero) * Step;
 
+    /// <summary>
+    /// The width of something drawn, on the grid: rounded down rather than to the nearest.
+    /// </summary>
+    /// <remarks>
+    /// A three point line is the case that says so, being exactly half a step from either
+    /// answer: Word draws the border round a page at 2.88 where three points is 12½ steps, so the
+    /// half goes down. Every other weight a border takes is a quarter point or coarser, where
+    /// rounding down and rounding to the nearest agree.
+    /// </remarks>
+    public static double Width(double points) => Math.Floor(points / Step + 1e-9) * Step;
+
     /// <summary>Where the baseline of a line goes, given the top of its line box.</summary>
     /// <remarks>
     /// Inside a line box it is the descent that is rounded to the grid — the room below the

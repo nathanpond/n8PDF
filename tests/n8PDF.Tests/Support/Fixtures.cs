@@ -5114,6 +5114,57 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
             },
 
+            // The border round a page: where its line falls, which pages get one, and whether the
+            // four edges are asked for one at a time. Four sections, so that one export answers
+            // all of it:
+            //
+            //   1  measured from the page, 24pt in, a point thick, on both of its pages
+            //   2  measured from the text, right against it
+            //   3  three points thick and asked for on the first page only
+            //   4  a top and a left edge and nothing else
+            ["page-border-probe"] = () =>
+            {
+                // The last section's properties are the document's own; every other section states
+                // its own on the break that ends it, which is why each of these follows the pages
+                // it describes rather than preceding them.
+                var builder = new DocxBuilder()
+                    .WithSection(DocxBuilder.Section(
+                        pageBorders: DocxBuilder.PageBorders(offsetFrom: "page", space: 24, size: 8,
+                            bottom: false, right: false)));
+
+                void Page(string label, int lines = 3)
+                {
+                    for (var i = 1; i <= lines; i++)
+                        builder.AddParagraph($"{label} line {i}.", ZeroSpacing, Times12);
+                }
+
+                void Break(string borders) =>
+                    builder.AddParagraphWithSectionBreak(string.Empty,
+                        DocxBuilder.Section(type: "nextPage", pageBorders: borders), ZeroSpacing, Times12);
+
+                // Measured from the page, on both pages of the section.
+                Page("From the page");
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                Page("Second page of the same section");
+                Break(DocxBuilder.PageBorders(offsetFrom: "page", space: 24, size: 8));
+
+                // Measured from the text, right against it.
+                Page("From the text");
+                Break(DocxBuilder.PageBorders(offsetFrom: "text", space: 0, size: 8));
+
+                // Three points thick, and asked for on the first page of the section only.
+                Page("Thick, first page only");
+                builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                Page("Second page, which asked for none");
+                Break(DocxBuilder.PageBorders(offsetFrom: "page", space: 24, size: 24,
+                    display: "firstPage"));
+
+                // And the last section, which is the document's own: a top and a left edge only.
+                Page("Two edges");
+
+                return builder;
+            },
+
             // A character named by its code in a font of its own — <w:sym> — which is how Word
             // writes anything from the symbol fonts: a tick, an arrow, a bullet from Wingdings.
             // The run says which font and which code, and the code is written in the private-use

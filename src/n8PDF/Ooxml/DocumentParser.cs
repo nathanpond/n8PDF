@@ -984,6 +984,8 @@ internal static class DocumentParser
         section.FootnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Footnote);
         section.EndnoteNumberRestart = ReadNoteNumberRestart(sectPr, NoteKind.Endnote);
 
+        section.PageBorders = ReadPageBorders(sectPr.Element(W.Main + "pgBorders"));
+
         var pgMar = sectPr.Element(W.Main + "pgMar");
         if (pgMar is not null)
         {
@@ -1291,6 +1293,41 @@ internal static class DocumentParser
         target.Right = ReadBorderEdge(container.Element(W.Main + "right") ?? container.Element(W.Main + "end"));
         target.InsideHorizontal = ReadBorderEdge(container.Element(W.Main + "insideH"));
         target.InsideVertical = ReadBorderEdge(container.Element(W.Main + "insideV"));
+    }
+
+    /// <summary>
+    /// Reads <c>w:pgBorders</c>: the border round the page, each edge with its own line and its
+    /// own distance from whatever it is measured from.
+    /// </summary>
+    private static PageBorders? ReadPageBorders(XElement? element)
+    {
+        if (element is null) return null;
+
+        static PageBorderEdge? Edge(XElement? side)
+        {
+            if (ReadBorderEdge(side) is not { IsVisible: true } line) return null;
+
+            // The space is in points, and a border that states none stands where the thing it is
+            // measured from stands.
+            return new PageBorderEdge(line, side?.IntAttr("space") ?? 0);
+        }
+
+        var borders = new PageBorders
+        {
+            Top = Edge(element.Element(W.Main + "top")),
+            Left = Edge(element.Element(W.Main + "left")),
+            Bottom = Edge(element.Element(W.Main + "bottom")),
+            Right = Edge(element.Element(W.Main + "right")),
+            FromText = element.Attr("offsetFrom") == "text",
+            Display = element.Attr("display") switch
+            {
+                "firstPage" => PageBorderDisplay.FirstPage,
+                "notFirstPage" => PageBorderDisplay.NotFirstPage,
+                _ => PageBorderDisplay.AllPages
+            }
+        };
+
+        return borders.IsEmpty ? null : borders;
     }
 
     private static BorderEdge? ReadBorderEdge(XElement? element)

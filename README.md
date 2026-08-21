@@ -925,6 +925,27 @@ for it exists. And a table style sits between the document's defaults and the pa
 in the cascade — a paragraph style used in a cell overrides the table style, and direct formatting
 overrides both.
 
+### The border round a page
+
+`w:pgBorders` draws a line round the page, and where that line falls depends on what it is measured
+from. `page-border-probe` puts four sections to Word and reads the answer off the ink:
+
+- **Offset from the page**, the space is to the **outside** of the line: a border 24 points in has
+  its outer edge at 24 and its ink from 24 to 24.96.
+- **Offset from the text**, the space is to the **inside**: a border against the text with no space
+  at all has its inner edge on the margin and its ink just outside it.
+- **`w:display`** picks the pages — `firstPage` means the section's first page and no other.
+- **A missing side lets its neighbours run on to the paper's edge.** A border with a top and a left
+  and nothing else draws its top line the full width of the page, not the width of the border.
+
+A drawn width rounds **down** to the 1/300 inch grid rather than to the nearest. Three points is the
+case that says so, being exactly half a step from either answer: Word draws it at 2.88 where 3pt is
+12½ steps. Every coarser weight agrees either way.
+
+Word draws each side as a bar between the corners and then fills the corners in; this draws one bar
+corner to corner, which covers the same ground. So the comparison is of ink rather than rectangles,
+and every page of the probe agrees with Word's exactly — no point of the margins differs.
+
 ### A character named by its code
 
 `w:sym` is how Word writes a tick, an arrow, or anything else from the symbol faces: the run names

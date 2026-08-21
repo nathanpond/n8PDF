@@ -315,6 +315,9 @@ internal enum VerticalPageAlignment
 
 internal sealed class SectionProperties
 {
+
+    /// <summary>The border round the page, or null where the section asks for none.</summary>
+    public PageBorders? PageBorders { get; set; }
     /// <summary>Where this section's text sits on the page. Top unless it says otherwise.</summary>
     public VerticalPageAlignment VerticalAlignment { get; set; } = VerticalPageAlignment.Top;
 

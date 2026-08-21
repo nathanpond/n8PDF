@@ -583,6 +583,50 @@ internal sealed class FieldScope
     }
 }
 
+/// <summary>Which pages of a section carry the border round the page.</summary>
+internal enum PageBorderDisplay
+{
+    AllPages,
+    FirstPage,
+    NotFirstPage
+}
+
+/// <summary>
+/// One edge of the border round a page: the line, and how far it stands off.
+/// </summary>
+/// <param name="Space">
+/// In points. Measured from the page's edge to the outside of the line where the border is offset
+/// from the page, and from the text's edge to the inside of it where it is offset from the text —
+/// which is what page-border-probe shows: a border 24 points from the page has its outer edge at
+/// 24, and one against the text with no space at all has its inner edge on the margin.
+/// </param>
+internal sealed record PageBorderEdge(BorderEdge Line, double Space);
+
+/// <summary>
+/// The border round a page, from <c>w:pgBorders</c>.
+/// </summary>
+/// <remarks>
+/// An edge runs the length of the page rather than of the border: where the border has no right
+/// edge, the top one runs on to the paper's edge, which is what Word draws.
+/// </remarks>
+internal sealed class PageBorders
+{
+    public PageBorderEdge? Top { get; set; }
+
+    public PageBorderEdge? Left { get; set; }
+
+    public PageBorderEdge? Bottom { get; set; }
+
+    public PageBorderEdge? Right { get; set; }
+
+    /// <summary>Whether the offsets are measured from the text rather than from the page.</summary>
+    public bool FromText { get; set; }
+
+    public PageBorderDisplay Display { get; set; }
+
+    public bool IsEmpty => Top is null && Left is null && Bottom is null && Right is null;
+}
+
 /// <summary>One edge of a border, as declared by <c>w:top</c>, <c>w:insideV</c> and friends.</summary>
 /// <param name="Style">The <c>w:val</c> line style; "none" and "nil" mean no line.</param>
 /// <param name="SizeEighthPoints">Line width in eighths of a point.</param>

@@ -221,7 +221,8 @@ public sealed class DocxBuilder
         IReadOnlyList<(int Width, int Space)>? columnWidths = null,
         string? footnoteRestart = null, string? endnoteRestart = null,
         string? footnotePosition = null, string? endnotePosition = null,
-        int? pageNumberStart = null, string? pageNumberFormat = null)
+        int? pageNumberStart = null, string? pageNumberFormat = null,
+        string? pageBorders = null)
     {
         var typeXml = type is null ? string.Empty : $"<w:type w:val=\"{type}\"/>";
 
@@ -260,9 +261,29 @@ public sealed class DocxBuilder
             <w:sectPr>
               {references}{notes}{typeXml}<w:pgSz w:w="{widthTwips}" w:h="{heightTwips}"{orientation}/>
               <w:pgMar w:top="{top}" w:right="{right}" w:bottom="{bottom}" w:left="{left}" w:header="720" w:footer="720" w:gutter="0"/>
-              {pageNumbers}{Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
+              {pageBorders}{pageNumbers}{Columns(columns, columnSpaceTwips, columnSeparator, columnWidths)}{(verticalAlignment is null ? string.Empty : $"<w:vAlign w:val=\"{verticalAlignment}\"/>")}{(titlePage ? "<w:titlePg/>" : string.Empty)}
             </w:sectPr>
             """;
+    }
+
+    /// <summary>
+    /// A <c>w:pgBorders</c> element: the border round a page, which in CT_SectPr comes after the
+    /// margins and before the page numbering.
+    /// </summary>
+    public static string PageBorders(
+        string? offsetFrom = null, string? display = null, int size = 8, int space = 24,
+        string color = "auto", string style = "single",
+        bool top = true, bool left = true, bool bottom = true, bool right = true)
+    {
+        string Edge(string name, bool wanted) => wanted
+            ? $"<w:{name} w:val=\"{style}\" w:sz=\"{size}\" w:space=\"{space}\" w:color=\"{color}\"/>"
+            : string.Empty;
+
+        return "<w:pgBorders" +
+               (offsetFrom is null ? string.Empty : $" w:offsetFrom=\"{offsetFrom}\"") +
+               (display is null ? string.Empty : $" w:display=\"{display}\"") + ">" +
+               Edge("top", top) + Edge("left", left) + Edge("bottom", bottom) + Edge("right", right) +
+               "</w:pgBorders>";
     }
 
     /// <summary>

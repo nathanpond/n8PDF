@@ -3685,7 +3685,82 @@ internal sealed class LayoutEngine(
         };
 
         document.Pages.Add(page);
+        DrawPageBorders(page, section);
+
         return page;
+    }
+
+    /// <summary>
+    /// Draws the border round a page.
+    /// </summary>
+    /// <remarks>
+    /// Where the line falls is measured in page-border-probe, and it is not the same question
+    /// either side of <c>w:offsetFrom</c>. Offset from the page, the space is to the <em>outside</em>
+    /// of the line: a border 24 points from the page has its outer edge at 24 and its ink from 24
+    /// to 24.96. Offset from the text, the space is to the <em>inside</em> of it: a border against
+    /// the text with no space at all has its inner edge on the margin and its ink just outside.
+    ///
+    /// An edge runs the length of the paper rather than of the border. Word draws each side as a
+    /// bar between the corners and then fills the corners in; the same ink comes of drawing one
+    /// bar from the outside of one neighbour to the outside of the other, and where a neighbour is
+    /// missing the bar runs on to the edge of the paper — which the probe's last section shows,
+    /// its top border running the full width where it asked for no right one.
+    /// </remarks>
+    private static void DrawPageBorders(LaidOutPage page, SectionProperties section)
+    {
+        if (section.PageBorders is not { } borders) return;
+
+        var wanted = borders.Display switch
+        {
+            PageBorderDisplay.FirstPage => page.IndexInSection == 0,
+            PageBorderDisplay.NotFirstPage => page.IndexInSection > 0,
+            _ => true
+        };
+
+        if (!wanted) return;
+
+        // How thick each side's line is drawn, on the grid Word draws it on.
+        double Thickness(PageBorderEdge? edge) => edge is null ? 0 : Grid.Width(edge.Line.WidthPoints);
+
+        // The outer edge of a side: from the paper where the border is offset from the page, and
+        // from the text less the line's own thickness where it is offset from the text.
+        double Outer(PageBorderEdge? edge, double margin) => edge is null
+            ? 0
+            : borders.FromText
+                ? margin - edge.Space - Grid.Snap(edge.Line.WidthPoints)
+                : edge.Space;
+
+        var left = Outer(borders.Left, Units.TwipsToPoints(section.MarginLeftTwips));
+        var top = Outer(borders.Top, Units.TwipsToPoints(section.MarginTopTwips));
+        var right = page.WidthPoints - Outer(borders.Right, Units.TwipsToPoints(section.MarginRightTwips));
+        var bottom = page.HeightPoints - Outer(borders.Bottom, Units.TwipsToPoints(section.MarginBottomTwips));
+
+        // Where a side is missing, the sides meeting it run on to the paper's edge.
+        var acrossFrom = borders.Left is null ? 0 : left;
+        var acrossTo = borders.Right is null ? page.WidthPoints : right;
+        var downFrom = borders.Top is null ? 0 : top;
+        var downTo = borders.Bottom is null ? page.HeightPoints : bottom;
+
+        void Bar(PageBorderEdge? edge, double x, double y, double width, double height)
+        {
+            if (edge is null) return;
+
+            page.Rectangles.Add(new PositionedRectangle
+            {
+                X = x,
+                Y = y,
+                Width = width,
+                Height = height,
+                Color = edge.Line.GetColor()
+            });
+        }
+
+        Bar(borders.Top, acrossFrom, top, acrossTo - acrossFrom, Thickness(borders.Top));
+        Bar(borders.Bottom, acrossFrom, bottom - Thickness(borders.Bottom),
+            acrossTo - acrossFrom, Thickness(borders.Bottom));
+        Bar(borders.Left, left, downFrom, Thickness(borders.Left), downTo - downFrom);
+        Bar(borders.Right, right - Thickness(borders.Right), downFrom,
+            Thickness(borders.Right), downTo - downFrom);
     }
 
     /// <summary>Places a composed line's segments at their final page coordinates.</summary>
