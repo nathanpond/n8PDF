@@ -41,6 +41,46 @@ internal sealed class SymbolInline(string text, string? font) : InlineElement
 /// which it stores so that readers that cannot evaluate the instruction still show something. The
 /// cached result is used for anything not evaluated here.
 /// </remarks>
+/// <summary>How a phonetic guide is set over the word it belongs to, from <c>w:rubyAlign</c>.</summary>
+internal enum RubyAlignment
+{
+    /// <summary>In the middle of the word, which is what Word writes unless told otherwise.</summary>
+    Center,
+
+    Left,
+
+    Right,
+
+    /// <summary>Spread so that the guide's ends meet the word's, with the space between letters.</summary>
+    DistributeLetter,
+
+    /// <summary>Spread the same, but with space outside the end letters as well as between them.</summary>
+    DistributeSpace
+}
+
+/// <summary>
+/// A phonetic guide and the word it stands over, from <c>w:ruby</c>.
+/// </summary>
+/// <remarks>
+/// Measured against Word in ruby-probe. The guide is set at the size <c>w:hps</c> names, raised
+/// off the baseline by <c>w:hpsRaise</c>, and the pair takes as much room in the line as the wider
+/// of the two — a guide too long for its word widens the run, and the word is centred under it.
+/// </remarks>
+internal sealed class RubyInline : InlineElement
+{
+    public List<Run> Guide { get; } = [];
+
+    public List<Run> Base { get; } = [];
+
+    public RubyAlignment Alignment { get; set; } = RubyAlignment.Center;
+
+    /// <summary>The size the guide is set at, in half-points, or null to take the run's own.</summary>
+    public int? GuideHalfPoints { get; set; }
+
+    /// <summary>How far the guide is raised off the baseline, in half-points.</summary>
+    public int? RaiseHalfPoints { get; set; }
+}
+
 internal sealed class FieldInline(string instruction, string cachedText) : InlineElement
 {
     /// <summary>

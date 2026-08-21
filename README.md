@@ -980,6 +980,29 @@ number lands on the grid, which every one of Word's does.
 Every number of the probe agrees with Word's — the same figure, in the same place to a hundredth of
 a point, beside the same line.
 
+### A phonetic guide over a word
+
+`w:ruby` sets a reading over the word it belongs to — ふりがな over 振仮名 — and a run holding one
+was dropped whole: the guide went, and so did the word under it. `ruby-probe` puts every alignment
+the markup has to Word, over the same word, and each of them comes out where Word puts it:
+
+- **The wider of the guide and the word decides the room the pair takes**, and the narrower is set
+  in the middle of it. A guide of eight letters over one takes forty-eight points, with the word
+  centred underneath; a guide narrower than its word takes the word's own room.
+- **`center`, `left` and `right`** put the slack between the two ends, at one end, or at the other.
+- **`distributeLetter`** spreads the guide's letters so its ends meet the word's — four letters
+  over three take three gaps of four points each.
+- **`distributeSpace`** spreads them the same way but leaves space outside as well: half a gap at
+  each end, which is what Word's 33 points inside a 36 point word comes to.
+- **The guide sits on a baseline of its own**, raised by `w:hpsRaise` and set at the size `w:hps`
+  names, and **the line grows to hold it**: the probe's lines stand 20.4 points apart where the
+  twelve point Mincho alone would take 15.6.
+
+The line box is the word's rather than the run's that wraps it — a guided word set in Mincho gives
+the line a Mincho box however the run round it is written, which is what Word's own line spacing
+says. And the pair is written into the page where it stands in the line rather than after
+everything else on it, so that what a reader copies out reads as the document does.
+
 ### Two tables written one after the other
 
 A document that means two tables must put a paragraph between them: two `w:tbl` elements that touch

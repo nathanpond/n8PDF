@@ -148,7 +148,7 @@ public static class TestFonts
         "line-ascent-probe", "line-grid-probe", "line-number-probe", "math-bracket-probe", "math-kern-probe",
         "math-line-box-probe", "math-nary-probe", "math-structure-probe", "notes-mixed",
         "numbering", "page-border-probe", "page-numbering-restart", "smartart",
-        "smartart-lines",
+        "ruby-probe", "smartart-lines",
         "superscript-shift-probe", "symbols", "tab-bars", "table-inset-weights-probe",
         "table-heading-probe", "table-vertical-merge", "toc", "vml-stroke-stack-probe",
         "watermark",

@@ -4641,9 +4641,26 @@ internal sealed class LayoutEngine(
             ParagraphIndex = paragraphIndex
         };
 
+        // A guided word is written where it stands in the line rather than after everything else
+        // on it: what a reader copies out of the page should read as the document does, guide and
+        // all, and a PDF is read in the order it was written.
+        var guided = new List<(double X, List<PositionedText> Texts)>();
+
+        foreach (var (ruby, x) in line.Rubies) guided.Add((contentLeft + x, RubyTexts(ruby, contentLeft + x, baselineY)));
+
+        var nextGuided = 0;
+
+        void GuidedBefore(double x)
+        {
+            while (nextGuided < guided.Count && guided[nextGuided].X <= x + 0.001)
+                laidOut.Texts.AddRange(guided[nextGuided++].Texts);
+        }
+
         foreach (var segment in line.Segments)
         {
             if (segment.Text.Length == 0) continue;
+
+            GuidedBefore(contentLeft + segment.X);
 
             var text = new PositionedText
             {
@@ -4691,6 +4708,8 @@ internal sealed class LayoutEngine(
                 Color = (0, 0, 0)
             });
         }
+
+        GuidedBefore(double.MaxValue);
 
         // The boxes a form is filled in by: four bars round a square, and a cross through it where
         // it is ticked. Word strokes the square and this fills its four sides, which covers the
@@ -4766,6 +4785,109 @@ internal sealed class LayoutEngine(
 
         return baselineY;
     }
+
+    /// <summary>
+    /// Sets a phonetic guide over the word it belongs to, and gives back the pair as text.
+    /// </summary>
+    /// <remarks>
+    /// All of it measured from ruby-probe, which puts every alignment the markup has to Word:
+    ///
+    ///   * The wider of the guide and the word decides the room the pair takes, and the narrower
+    ///     is set in the middle of it. A guide of eight letters over one takes forty-eight points,
+    ///     with the word centred underneath.
+    ///   * left and right set the guide against one end of the word; center between them.
+    ///   * distributeLetter spreads the guide's letters so that the ends meet the word's ends —
+    ///     four letters over three take three gaps of four points each.
+    ///   * distributeSpace spreads them the same way but leaves space outside as well: half a gap
+    ///     at each end, which is what Word's own 33 points inside a 36 point word comes to.
+    ///   * The guide sits on a baseline of its own, raised off the word's by w:hpsRaise.
+    /// </remarks>
+    private static List<PositionedText> RubyTexts(RubyAtom ruby, double left, double baselineY)
+    {
+        var texts = new List<PositionedText>();
+
+        // The wider of the two decides the room; the narrower is set in the middle of it.
+        var wordAt = left + (ruby.Width - ruby.WordWidth) / 2;
+        var guideBaseline = Grid.Snap(baselineY - ruby.Raise);
+
+        var guideAt = ruby.Alignment switch
+        {
+            RubyAlignment.Left => wordAt,
+            RubyAlignment.Right => wordAt + ruby.WordWidth - ruby.GuideWidth,
+            _ => left + (ruby.Width - ruby.GuideWidth) / 2
+        };
+
+        // Spread, where the guide is asked to reach the ends of the word it stands over.
+        var spare = ruby.Alignment is RubyAlignment.DistributeLetter or RubyAlignment.DistributeSpace
+            ? Math.Max(0, ruby.WordWidth - ruby.GuideWidth)
+            : 0;
+
+        var between = 0.0;
+
+        if (spare > 0 && ruby.GuideLetters > 1)
+        {
+            if (ruby.Alignment == RubyAlignment.DistributeLetter)
+            {
+                between = spare / (ruby.GuideLetters - 1);
+                guideAt = wordAt;
+            }
+            else
+            {
+                between = spare / ruby.GuideLetters;
+                guideAt = wordAt + between / 2;
+            }
+        }
+
+        var guidePen = guideAt;
+
+        // The guide first, as the document writes it: w:rt comes before w:rubyBase.
+        foreach (var piece in ruby.Guide)
+        {
+            if (between <= 0)
+            {
+                texts.Add(Piece(piece, guidePen, guideBaseline));
+                guidePen += piece.Width;
+                continue;
+            }
+
+            // Spread: each letter set on its own, since what stands between them is not the space
+            // the face gives them.
+            foreach (var letter in piece.Text.EnumerateRunes())
+            {
+                var text = letter.ToString();
+                var width = TextMeasurer.Measure(
+                    piece.Font.Font, text, piece.Format.EffectiveFontSizePoints,
+                    piece.Format.CharacterSpacingPoints) * piece.Format.ScaleFactor;
+
+                texts.Add(Piece(piece with { Text = text, Width = width }, guidePen, guideBaseline));
+                guidePen += width + between;
+            }
+        }
+
+        var pen = wordAt;
+
+        foreach (var piece in ruby.Word)
+        {
+            // Not on the grid: Word's own guided words stand where the arithmetic puts them, a
+            // hundredth of a point off it, and the word and its guide have to agree with each
+            // other more than with the grid.
+            texts.Add(Piece(piece, pen, baselineY));
+            pen += piece.Width;
+        }
+
+        return texts;
+    }
+
+    /// <summary>One piece of a guided word, ready to go on the page.</summary>
+    private static PositionedText Piece(RubyPiece piece, double x, double baseline) => new()
+    {
+        X = x,
+        BaselineY = baseline,
+        Text = piece.Text,
+        Format = piece.Format,
+        Font = piece.Font,
+        Width = piece.Width
+    };
 
     /// <summary>
     /// Fills a tab's gap with its leader.
@@ -5048,6 +5170,7 @@ internal sealed class LayoutEngine(
             line.Segments.AddRange(piece.Segments);
             line.Images.AddRange(piece.Images);
             line.Boxes.AddRange(piece.Boxes);
+            line.Rubies.AddRange(piece.Rubies);
             line.Separators.AddRange(piece.Separators);
             line.Leaders.AddRange(piece.Leaders);
             line.Bars.AddRange(piece.Bars);
@@ -5133,6 +5256,17 @@ internal sealed class LayoutEngine(
             if (atom is SeparatorAtom)
             {
                 line.Items.Add(new PlacedAtom(atom, x, 0));
+                index++;
+                placedAnything = true;
+                continue;
+            }
+
+            if (atom is RubyAtom ruby)
+            {
+                if (placedAnything && !beyondMargin && x + ruby.Width > available + 0.001) break;
+
+                line.Items.Add(new PlacedAtom(atom, x, ruby.Width));
+                x += ruby.Width;
                 index++;
                 placedAnything = true;
                 continue;
@@ -5418,6 +5552,18 @@ internal sealed class LayoutEngine(
                 maxTextAscent = Math.Max(maxTextAscent, separator.Ascent);
                 maxTextDescent = Math.Max(maxTextDescent, separator.Descent);
                 maxTextNatural = Math.Max(maxTextNatural, separator.NaturalHeight);
+                continue;
+            }
+
+            if (item.Atom is RubyAtom ruby)
+            {
+                line.Rubies.Add((ruby, indentLeft + offset + pen));
+                pen += ruby.Width;
+                current = null;
+
+                maxTextAscent = Math.Max(maxTextAscent, ruby.Ascent);
+                maxTextDescent = Math.Max(maxTextDescent, ruby.Descent);
+                maxTextNatural = Math.Max(maxTextNatural, ruby.NaturalHeight);
                 continue;
             }
 
@@ -5787,6 +5933,11 @@ internal sealed class LayoutEngine(
                         at += text.Text.Length;
                         break;
 
+                    case RubyInline ruby:
+                        atoms.Add(RubyOf(
+                            ruby, paragraph.Properties, runFormat, ascent, naturalHeight, descent));
+                        break;
+
                     case SymbolInline symbol:
                     {
                         // A symbol brings its own face, and brings it only for itself: the run
@@ -5907,6 +6058,98 @@ internal sealed class LayoutEngine(
         }
 
         return atoms;
+    }
+
+    /// <summary>
+    /// Measures a phonetic guide and the word it stands over, as one thing on the line.
+    /// </summary>
+    /// <remarks>
+    /// What ruby-probe shows Word doing, all of it read off one export:
+    ///
+    ///   * The guide is set at the size w:hps names — six point over twelve — and raised off the
+    ///     word's baseline by w:hpsRaise, which is eleven points and comes out on the grid at
+    ///     11.04.
+    ///   * The pair takes as much room in the line as the wider of the two. A guide of eight
+    ///     letters over one takes forty-eight points and the word is centred under it; a guide
+    ///     narrower than its word takes the word's own room.
+    ///   * The line grows to hold the guide, which is what the raise and the guide's own ascent
+    ///     ask for above the baseline.
+    /// </remarks>
+    private RubyAtom RubyOf(
+        RubyInline ruby, ParagraphProperties? paragraph, ResolvedRunFormat format,
+        double ascent, double naturalHeight, double descent)
+    {
+        IReadOnlyList<RubyPiece> Pieces(List<Run> runs, double? size)
+        {
+            var pieces = new List<RubyPiece>();
+
+            foreach (var run in runs)
+            {
+                var resolved = _styles.ResolveRun(paragraph, run.Properties);
+                if (size is { } points) resolved = resolved with { FontSizePoints = points };
+
+                var text = string.Concat(run.Content.OfType<TextInline>().Select(piece => piece.Text));
+                if (text.Length == 0) continue;
+
+                var face = _fonts.Resolve(resolved.FontFamily, resolved.Bold, resolved.Italic);
+
+                pieces.Add(new RubyPiece(text, resolved, face,
+                    TextMeasurer.Measure(face.Font, text, resolved.EffectiveFontSizePoints,
+                        resolved.CharacterSpacingPoints) * resolved.ScaleFactor));
+            }
+
+            return pieces;
+        }
+
+        var word = Pieces(ruby.Base, null);
+        var guide = Pieces(ruby.Guide, ruby.GuideHalfPoints is { } half and > 0 ? half / 2.0 : null);
+
+        var wordWidth = word.Sum(piece => piece.Width);
+        var guideWidth = guide.Sum(piece => piece.Width);
+
+        var raise = ruby.RaiseHalfPoints is { } raised
+            ? raised / 2.0
+            : format.EffectiveFontSizePoints;
+
+        // The line box is the word's, not the run's that wraps it: a guided word set in twelve
+        // point Mincho gives the line a twelve point Mincho box however the run round it is
+        // written. Word's own line spacing says so — the probe's lines are 20.4 points apart,
+        // which is the guide lifted eleven over a Mincho descent rather than a Calibri one.
+        var above = ascent;
+        var below = descent;
+
+        foreach (var piece in word)
+        {
+            var size = piece.Format.EffectiveFontSizePoints;
+            var wordAscent = TextMeasurer.GetAscent(piece.Font.Font, size);
+
+            above = Math.Max(above, wordAscent);
+            below = Math.Max(below, TextMeasurer.GetNaturalLineHeight(piece.Font.Font, size) - wordAscent);
+        }
+
+        // And it has to hold the guide as well: its own box, lifted.
+        if (guide.Count > 0)
+        {
+            var tallest = guide.Max(piece =>
+                TextMeasurer.GetAscent(piece.Font.Font, piece.Format.EffectiveFontSizePoints));
+
+            above = Math.Max(above, raise + tallest);
+        }
+
+        return new RubyAtom
+        {
+            Word = word,
+            Guide = guide,
+            Alignment = ruby.Alignment,
+            Raise = raise,
+            Width = Math.Max(wordWidth, guideWidth),
+            WordWidth = wordWidth,
+            GuideWidth = guideWidth,
+            GuideLetters = guide.Sum(piece => piece.Text.Length),
+            Ascent = above,
+            NaturalHeight = above + below,
+            Descent = below
+        };
     }
 
     /// <summary>
@@ -7400,6 +7643,36 @@ internal sealed class LayoutEngine(
     /// height becomes the line's ascent.
     /// </summary>
     /// <summary>
+    /// A phonetic guide and the word it stands over, set as one thing on the line.
+    /// </summary>
+    private sealed class RubyAtom : Atom
+    {
+        /// <summary>The word, and the guide over it, each as the pieces it is written in.</summary>
+        public required IReadOnlyList<RubyPiece> Word { get; init; }
+
+        public required IReadOnlyList<RubyPiece> Guide { get; init; }
+
+        public required RubyAlignment Alignment { get; init; }
+
+        /// <summary>How far the guide is raised off the word's baseline.</summary>
+        public required double Raise { get; init; }
+
+        /// <summary>How much room the pair takes on the line, which is the wider of the two.</summary>
+        public required double Width { get; init; }
+
+        public required double WordWidth { get; init; }
+
+        public required double GuideWidth { get; init; }
+
+        /// <summary>How many characters the guide is written in, for spreading it.</summary>
+        public required int GuideLetters { get; init; }
+    }
+
+    /// <summary>One run of a phonetic guide or of the word beneath it.</summary>
+    private sealed record RubyPiece(
+        string Text, ResolvedRunFormat Format, FontSelection Font, double Width);
+
+    /// <summary>
     /// The box a form is filled in by, which draws itself rather than standing for text.
     /// </summary>
     private sealed class CheckBoxAtom : Atom
@@ -7493,6 +7766,9 @@ internal sealed class LayoutEngine(
 
         /// <summary>The boxes a form is filled in by, and where each stands on the line.</summary>
         public List<(CheckBoxAtom Atom, double X)> Boxes { get; } = [];
+
+        /// <summary>The guided words, and where each stands on the line.</summary>
+        public List<(RubyAtom Atom, double X)> Rubies { get; } = [];
 
         /// <summary>Footnote separator rules on this line, as atom and x offset.</summary>
         public List<(SeparatorAtom Atom, double X)> Separators { get; } = [];

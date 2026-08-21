@@ -32,6 +32,33 @@ internal static class DocumentParser
         return document;
     }
 
+    /// <summary>Reads <c>w:ruby</c>: a phonetic guide and the word it stands over.</summary>
+    private static RubyInline ParseRuby(XElement element)
+    {
+        var ruby = new RubyInline();
+        var properties = element.Element(W.Main + "rubyPr");
+
+        ruby.Alignment = properties?.Element(W.Main + "rubyAlign")?.Val() switch
+        {
+            "left" => RubyAlignment.Left,
+            "right" => RubyAlignment.Right,
+            "distributeLetter" => RubyAlignment.DistributeLetter,
+            "distributeSpace" => RubyAlignment.DistributeSpace,
+            _ => RubyAlignment.Center
+        };
+
+        ruby.GuideHalfPoints = properties?.Element(W.Main + "hps")?.IntVal();
+        ruby.RaiseHalfPoints = properties?.Element(W.Main + "hpsRaise")?.IntVal();
+
+        foreach (var run in element.Element(W.Main + "rt")?.Elements(W.Main + "r") ?? [])
+            ruby.Guide.Add(ParseRun(run));
+
+        foreach (var run in element.Element(W.Main + "rubyBase")?.Elements(W.Main + "r") ?? [])
+            ruby.Base.Add(ParseRun(run));
+
+        return ruby;
+    }
+
     /// <summary>
     /// Folds tables written one after the other into one, which is how Word reads them.
     /// </summary>
@@ -452,6 +479,10 @@ internal static class DocumentParser
                     _ => BreakKind.Line
                 };
                 run.Content.Add(new BreakInline(kind));
+            }
+            else if (child.Name == W.Main + "ruby")
+            {
+                run.Content.Add(ParseRuby(child));
             }
             else if (child.Name == W.Main + "drawing")
             {

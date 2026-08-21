@@ -1,0 +1,116 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 89.04,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 38.32, "font": "Times New Roman", "size": 12, "text": "Centre: "},
+            {"x": 116.32, "width": 24, "font": "MS Mincho", "size": 6, "text": "ふりがな"},
+            {"x": 110.32, "width": 36, "font": "MS Mincho", "size": 12, "text": "振仮名"},
+            {"x": 146.32, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 109.68,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 26.32, "font": "Times New Roman", "size": 12, "text": "Left: "},
+            {"x": 98.32, "width": 24, "font": "MS Mincho", "size": 6, "text": "ふりがな"},
+            {"x": 98.32, "width": 36, "font": "MS Mincho", "size": 12, "text": "振仮名"},
+            {"x": 134.32, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 130.08,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 33.006, "font": "Times New Roman", "size": 12, "text": "Right: "},
+            {"x": 117.006, "width": 24, "font": "MS Mincho", "size": 6, "text": "ふりがな"},
+            {"x": 105.006, "width": 36, "font": "MS Mincho", "size": 12, "text": "振仮名"},
+            {"x": 141.006, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 150.72,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 39.65, "font": "Times New Roman", "size": 12, "text": "Letters: "},
+            {"x": 111.65, "width": 6, "font": "MS Mincho", "size": 6, "text": "ふ"},
+            {"x": 121.65, "width": 6, "font": "MS Mincho", "size": 6, "text": "り"},
+            {"x": 131.65, "width": 6, "font": "MS Mincho", "size": 6, "text": "が"},
+            {"x": 141.65, "width": 6, "font": "MS Mincho", "size": 6, "text": "な"},
+            {"x": 111.65, "width": 36, "font": "MS Mincho", "size": 12, "text": "振仮名"},
+            {"x": 147.65, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 171.12,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 39.656, "font": "Times New Roman", "size": 12, "text": "Spaces: "},
+            {"x": 113.156, "width": 6, "font": "MS Mincho", "size": 6, "text": "ふ"},
+            {"x": 122.156, "width": 6, "font": "MS Mincho", "size": 6, "text": "り"},
+            {"x": 131.156, "width": 6, "font": "MS Mincho", "size": 6, "text": "が"},
+            {"x": 140.156, "width": 6, "font": "MS Mincho", "size": 6, "text": "な"},
+            {"x": 111.656, "width": 36, "font": "MS Mincho", "size": 12, "text": "振仮名"},
+            {"x": 147.656, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 191.52,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 61.98, "font": "Times New Roman", "size": 12, "text": "Wide guide: "},
+            {"x": 133.98, "width": 48, "font": "MS Mincho", "size": 6, "text": "あいうえおかきく"},
+            {"x": 151.98, "width": 12, "font": "MS Mincho", "size": 12, "text": "字"},
+            {"x": 181.98, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 212.16,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 72.645, "font": "Times New Roman", "size": 12, "text": "Narrow guide: "},
+            {"x": 156.645, "width": 12, "font": "MS Mincho", "size": 6, "text": "あい"},
+            {"x": 144.645, "width": 36, "font": "MS Mincho", "size": 12, "text": "振仮名"},
+            {"x": 180.645, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 232.56,
+          "height": 20.492,
+          "runs": [
+            {"x": 72, "width": 68.32, "font": "Times New Roman", "size": 12, "text": "Two of them: "},
+            {"x": 140.32, "width": 12, "font": "MS Mincho", "size": 6, "text": "ふり"},
+            {"x": 140.32, "width": 12, "font": "MS Mincho", "size": 12, "text": "振"},
+            {"x": 152.32, "width": 23.326, "font": "Times New Roman", "size": 12, "text": " and "},
+            {"x": 175.646, "width": 12, "font": "MS Mincho", "size": 6, "text": "がな"},
+            {"x": 175.646, "width": 12, "font": "MS Mincho", "size": 12, "text": "名"},
+            {"x": 187.646, "width": 27.979, "font": "Times New Roman", "size": 12, "text": " after."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 247.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 164.613, "font": "Times New Roman", "size": 12, "text": "An ordinary line beneath them all."}
+          ]
+        }
+      ]
+    }
+  ]
+}

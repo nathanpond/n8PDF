@@ -5411,6 +5411,73 @@ public static class Fixtures
                 return builder;
             },
 
+            // Phonetic guides set over East Asian text, from w:ruby. One page, a line for each
+            // thing the markup can say:
+            //
+            //   1  a guide over a word, centred, which is what Word writes by default
+            //   2  the same aligned to the left of the word, 3 to the right
+            //   4  spread between the letters, 5 spread between and outside them
+            //   6  a guide wider than the word it stands over
+            //   7  a guide narrower than it
+            //   8  two guided words in a line of ordinary text, to see what the line does
+            ["ruby-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                const string Mincho =
+                    "<w:rFonts w:ascii=\"MS Mincho\" w:hAnsi=\"MS Mincho\" w:eastAsia=\"MS Mincho\"/>" +
+                    "<w:sz w:val=\"24\"/>";
+
+                const string Small =
+                    "<w:rFonts w:ascii=\"MS Mincho\" w:hAnsi=\"MS Mincho\" w:eastAsia=\"MS Mincho\"/>" +
+                    "<w:sz w:val=\"12\"/>";
+
+                // CT_RubyPr is a sequence: how it is aligned, then the three sizes, then the
+                // language it is written in.
+                static string Ruby(string guide, string word, string align) =>
+                    "<w:r><w:ruby>" +
+                    $"<w:rubyPr><w:rubyAlign w:val=\"{align}\"/><w:hps w:val=\"12\"/>" +
+                    "<w:hpsRaise w:val=\"22\"/><w:hpsBaseText w:val=\"24\"/>" +
+                    "<w:lid w:val=\"ja-JP\"/></w:rubyPr>" +
+                    $"<w:rt><w:r><w:rPr>{Small}</w:rPr><w:t>{guide}</w:t></w:r></w:rt>" +
+                    $"<w:rubyBase><w:r><w:rPr>{Mincho}</w:rPr><w:t>{word}</w:t></w:r></w:rubyBase>" +
+                    "</w:ruby></w:r>";
+
+                void Line(string label, string guide, string word, string align)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(label)} </w:t></w:r>" +
+                        Ruby(guide, word, align) +
+                        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t xml:space=\"preserve\"> after.</w:t></w:r></w:p>");
+                }
+
+                // 振仮名 read ふりがな: three characters under four, which is the ordinary case.
+                Line("Centre:", "\u3075\u308A\u304C\u306A", "\u632F\u4EEE\u540D", "center");
+                Line("Left:", "\u3075\u308A\u304C\u306A", "\u632F\u4EEE\u540D", "left");
+                Line("Right:", "\u3075\u308A\u304C\u306A", "\u632F\u4EEE\u540D", "right");
+                Line("Letters:", "\u3075\u308A\u304C\u306A", "\u632F\u4EEE\u540D", "distributeLetter");
+                Line("Spaces:", "\u3075\u308A\u304C\u306A", "\u632F\u4EEE\u540D", "distributeSpace");
+
+                // A guide of eight characters over one, and one of two over three.
+                Line("Wide guide:", "\u3042\u3044\u3046\u3048\u304A\u304B\u304D\u304F", "\u5B57", "center");
+                Line("Narrow guide:", "\u3042\u3044", "\u632F\u4EEE\u540D", "center");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Two of them: </w:t></w:r>" +
+                    Ruby("\u3075\u308A", "\u632F", "center") +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> and </w:t></w:r>" +
+                    Ruby("\u304C\u306A", "\u540D", "center") +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> after.</w:t></w:r></w:p>");
+
+                builder.AddParagraph("An ordinary line beneath them all.", ZeroSpacing, Times12);
+
+                return builder;
+            },
+
             // Two tables written one after the other with nothing in between, which Word reads as
             // one table rather than two. Four pages:
             //
