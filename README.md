@@ -75,6 +75,16 @@ dotnet pack src/n8PDF -c Release   # the package, with its symbols and its docum
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
 git-ignored.
 
+**A warning is an error.** `Directory.Build.props` sets `TreatWarningsAsErrors` for every project,
+so the build that introduces one is the build that fails, rather than the next push to CI. NuGet's
+audit warnings are the one exception and stay warnings: they report what is known about a package
+today rather than anything about this code, and would fail a build of an old commit for an advisory
+published after it was written. To get past one while working, and only while working:
+
+```bash
+dotnet build -p:TreatWarningsAsErrors=false
+```
+
 ### Cutting a release
 
 ```bash
@@ -93,7 +103,7 @@ says the push was skipped, so a release can be cut and inspected before anything
 `workflow_dispatch` takes a version and is a rehearsal: it builds and packs and publishes nothing.
 
 A release is built on a hosted runner, so it is tested to exactly the standard `ci.yml` sets — the
-50 documents set in Word's own faces are compared by `full.yml`, on a machine that has Word, and a
+74 documents set in Word's own faces are compared by `full.yml`, on a machine that has Word, and a
 release does not wait for them.
 
 ### What runs where
@@ -105,13 +115,13 @@ So it matters which machine the tests run on, and there are two answers:
 | | `ci.yml`, every push | `full.yml`, by hand |
 |---|---|---|
 | Runner | `macos-15`, hosted | self-hosted, labelled `word` |
-| Documents compared against Word | 63 of 113 | all 113 |
+| Documents compared against Word | 69 of 143 | all 143 |
 | Also | `qpdf`, fontTools, FriBidi, `dotnet pack` | `qpdf`, fontTools, FriBidi |
 
-The 50 documents written in Word's faces cannot be rendered as Word rendered them on a machine
+The 74 documents written in Word's faces cannot be rendered as Word rendered them on a machine
 without Word, so on a hosted runner they are left alone. There is no self-hosted runner registered
-— that would mean a public repository's workflows running on a personal machine — so those 50 are
-checked by running the suite on a machine that has Word, where `dotnet test` covers all 113. Which 50 is measured rather than declared
+— that would mean a public repository's workflows running on a personal machine — so those 74 are
+checked by running the suite on a machine that has Word, where `dotnet test` covers all 143. Which 74 is measured rather than declared
 — a fixture is on the list when laying it out with those faces and without them gives different
 answers — and `OfficeFontTests` keeps the list honest at both ends: it regenerates and checks the
 list wherever the faces are present, and where they are absent it prints how much was skipped

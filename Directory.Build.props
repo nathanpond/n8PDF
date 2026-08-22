@@ -1,0 +1,38 @@
+<Project>
+
+    <!--
+      What every project in the repository gets, so that the build is the same wherever it is
+      run: from the command line, from Rider, or on the CI runner.
+    -->
+
+    <PropertyGroup>
+
+        <!--
+          A warning is an error. The build is warning-clean and stays that way: a rule measured
+          against Word is worth nothing if the code that carries it is drifting quietly, and the
+          compiler's warnings are the cheapest reading of that drift there is.
+
+          This was on the CI command line alone (`dotnet build -warnaserror`), which meant a
+          warning could live in the tree for as long as it took someone to push. Here it is caught
+          by the build that introduces it. The workflows still pass the flag, which now says the
+          same thing twice on purpose: a project that somehow escaped this file would still be
+          held to it there.
+
+          To build past one while working, and only while working:
+
+              dotnet build -p:TreatWarningsAsErrors=false
+        -->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+        <!--
+          Except NuGet's own audit, which reports what is known about a package today rather than
+          anything about this code. An advisory against the test runner is worth seeing and is not
+          worth a build that cannot be made to pass — the shipping library has no packages at all
+          to be advised about, and a build of an old commit would fail for something published
+          after it was written.
+        -->
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+
+    </PropertyGroup>
+
+</Project>

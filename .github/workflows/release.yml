@@ -12,7 +12,7 @@
 # can be cut and looked at before anything is sent anywhere.
 #
 # What this runs is what ci.yml runs, which is everything a machine without Microsoft Word can:
-# the 50 documents set in Word's own faces are compared by full.yml instead. A release is not held
+# the 74 documents set in Word's own faces are compared by full.yml instead. A release is not held
 # up for them, and OfficeFontTests prints how many were left alone.
 name: Release
 

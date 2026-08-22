@@ -7,9 +7,9 @@
 # comparison tier.
 #
 # There is no such runner at present, and that is a decision rather than an oversight: registering
-# one would mean a public repository's workflows executing on a personal Mac. So the 50 documents
+# one would mean a public repository's workflows executing on a personal Mac. So the 74 documents
 # set in Word's faces are checked by running the suite on that Mac by hand — `dotnet test` there
-# covers all 113 — and this workflow is kept for whenever a runner does exist:
+# covers all 143 — and this workflow is kept for whenever a runner does exist:
 #
 #     ./config.sh --url https://github.com/nathanpond/n8PDF --labels self-hosted,macOS,word
 #

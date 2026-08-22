@@ -74,9 +74,6 @@ public class LibraryInvariantTests
     }
 
     /// <summary>
-    /// The licence the package claims is the licence the repository carries.
-    /// </summary>
-    /// <summary>
     /// A release takes its version from the tag it is cut at, so the workflow has to be the thing
     /// that states it. What the project file carries is what a local build gets.
     /// </summary>
@@ -101,6 +98,46 @@ public class LibraryInvariantTests
             text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A warning is an error, wherever the build is run from.
+    /// </summary>
+    /// <remarks>
+    /// The setting lived on the CI command line alone, which meant a warning could sit in the
+    /// tree until someone pushed. Directory.Build.props holds it now, so the build that
+    /// introduces one is the build that fails; the workflows still pass <c>-warnaserror</c> as
+    /// well, which says the same thing twice on purpose. NuGet's own audit warnings are the one
+    /// exception, and are left as warnings: they say what is known about a package today rather
+    /// than anything about this code, and would fail a build of an old commit for something
+    /// published after it was written.
+    /// </remarks>
+    [Fact]
+    public void A_warning_is_an_error()
+    {
+        var path = Path.Combine(TestPaths.RepoRoot, "Directory.Build.props");
+        Assert.True(File.Exists(path), "there is no Directory.Build.props.");
+
+        var props = XDocument.Load(path);
+
+        Assert.Equal("true",
+            props.Descendants("TreatWarningsAsErrors").FirstOrDefault()?.Value);
+
+        var excused = props.Descendants("WarningsNotAsErrors").FirstOrDefault()?.Value ?? string.Empty;
+
+        foreach (var audit in new[] { "NU1901", "NU1902", "NU1903", "NU1904" })
+            Assert.Contains(audit, excused, StringComparison.Ordinal);
+
+        foreach (var workflow in new[] { "ci.yml", "release.yml" })
+        {
+            var text = File.ReadAllText(
+                Path.Combine(TestPaths.RepoRoot, ".github", "workflows", workflow));
+
+            Assert.Contains("-warnaserror", text, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// The licence the package claims is the licence the repository carries.
+    /// </summary>
     [Fact]
     public void The_licence_is_the_one_the_package_declares()
     {
