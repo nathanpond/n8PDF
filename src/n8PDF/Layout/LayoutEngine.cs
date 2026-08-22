@@ -648,6 +648,14 @@ internal sealed class LayoutEngine(
         edge is null ? 0 : Grid.Width(edge.Line.WidthPoints);
 
     /// <summary>
+    /// What a box round a run takes on each side of it: the space it asks to stand clear by, and
+    /// its own weight beyond that. run-border-probe measures both — a space of four points widens
+    /// the run by eight and heightens its line by the same on each side.
+    /// </summary>
+    private static double RunBorderRoom(ParagraphBorderEdge? edge) =>
+        edge is null ? 0 : BorderWeight(edge) + edge.SpacePoints;
+
+    /// <summary>
     /// Opens a box for a paragraph, or carries on the one the paragraph before it opened, and
     /// takes the room the top of it needs out of the flow.
     /// </summary>
@@ -5447,6 +5455,59 @@ internal sealed class LayoutEngine(
             AddDecorations(page, text);
         }
 
+        // The box round a bordered run, which is the run's own extent by the line's box with a
+        // step of the grid over it, and the line drawn outward from that. Runs bordered alike and
+        // standing next to each other share one box, as run-border-probe shows: "two" and "three"
+        // written as two runs come out of Word inside a single box, where the same two with a
+        // space between them come out in two.
+        for (var i = 0; i < line.Segments.Count; i++)
+        {
+            if (line.Segments[i].Format.Border is not { } edge) continue;
+
+            var from = line.Segments[i];
+            var to = from;
+            var ascent = from.Ascent;
+            var descent = from.Descent;
+
+            while (i + 1 < line.Segments.Count &&
+                   line.Segments[i + 1].Format.Border is { } next &&
+                   next.Equals(edge) &&
+                   Math.Abs(line.Segments[i + 1].X - (to.X + to.Width)) < 0.01)
+            {
+                to = line.Segments[++i];
+                ascent = Math.Max(ascent, to.Ascent);
+                descent = Math.Max(descent, to.Descent);
+            }
+
+            var weight = BorderWeight(edge);
+            if (weight <= 0) continue;
+
+            // A run's space is taken as it stands, where a paragraph's is rounded down to the
+            // grid: four points widens the run by eight, not by twice 3.84.
+            var clear = edge.SpacePoints;
+            var innerLeft = Grid.Snap(contentLeft + from.X - clear);
+            var innerRight = Grid.Snap(contentLeft + to.X + to.Width + clear);
+
+            // The run's own box — its ascent rounded to the grid and its descent rounded down to
+            // it, the way a line box is measured — with a step over it and the line outside that.
+            var innerTop = baselineY - Grid.Snap(ascent) - clear - Grid.Step;
+            var innerBottom = baselineY + Grid.Width(descent) + clear;
+
+            if (innerRight <= innerLeft || innerBottom <= innerTop) continue;
+
+            void Side(double x, double y, double width, double height) =>
+                page.Rectangles.Add(new PositionedRectangle
+                {
+                    X = x, Y = y, Width = width, Height = height, Color = edge.Line.GetColor()
+                });
+
+            Side(innerLeft - weight, innerTop - weight,
+                innerRight - innerLeft + 2 * weight, weight);
+            Side(innerLeft - weight, innerBottom, innerRight - innerLeft + 2 * weight, weight);
+            Side(innerLeft - weight, innerTop, weight, innerBottom - innerTop);
+            Side(innerRight, innerTop, weight, innerBottom - innerTop);
+        }
+
         foreach (var bar in line.Bars)
         {
             page.Rectangles.Add(new PositionedRectangle
@@ -5973,6 +6034,10 @@ internal sealed class LayoutEngine(
         var placedAnything = false;
         PendingTab? pending = null;
 
+        // The box a run asks for takes room along the line, so the line has to be filled with that
+        // room in hand: what is open when a word is measured has to be closed after it.
+        ParagraphBorderEdge? openBorder = null;
+
         // Set once a tab has taken the pen past the measure. Word honours a stop that lies beyond
         // the right margin and lets the rest of the line run into it — and off the page, if that
         // is where the stops lead — rather than wrapping, so once that has happened nothing on
@@ -6074,6 +6139,16 @@ internal sealed class LayoutEngine(
             // folded into its width for the atom that used to precede it comes back off.
             var width = placedAnything ? textAtom.Width : textAtom.Width - textAtom.LeadingKern;
 
+            // A box opening or closing here takes its room before the word is weighed against
+            // what is left, and the box still open at the end of the line takes its own.
+            if (!Equals(textAtom.Format.Border, openBorder))
+            {
+                x += RunBorderRoom(openBorder) + RunBorderRoom(textAtom.Format.Border);
+                openBorder = textAtom.Format.Border;
+            }
+
+            var closing = RunBorderRoom(openBorder);
+
             // A word too wide for a line of its own is broken inside rather than overrunning:
             // there is no tolerance in it at all, and break-tolerance-probe measures that a twip
             // at a time — ten capital Ms stay whole in 106.7 points of measure and come apart in
@@ -6093,7 +6168,7 @@ internal sealed class LayoutEngine(
 
             // Spaces at the end of a line hang past the margin rather than forcing a wrap.
             if (!textAtom.IsSpace && placedAnything && !beyondMargin &&
-                x + width > available + 0.001)
+                x + width + closing > available + 0.001)
             {
                 // Before the line is given up on: where the document asks for it and the white
                 // left over is worth filling, the word is broken and as much of it as fits stays.
@@ -6298,6 +6373,9 @@ internal sealed class LayoutEngine(
         Segment? current = null;
         var pen = 0.0;
 
+        // The box a run asks for, while the pen is inside it.
+        ParagraphBorderEdge? openBorder = null;
+
         // Trailing spaces are dropped rather than emitted. They draw nothing, and keeping them
         // would make the line measure wider than its visible content — which in a justified
         // paragraph pushes the visible text past the right margin.
@@ -6369,6 +6447,18 @@ internal sealed class LayoutEngine(
             var textAtom = (TextAtom)item.Atom;
             var extra = textAtom.IsSpace ? wordSpacing : 0;
 
+            // A box round a run takes room along the line as well as above and below it: the pen
+            // moves on by the weight where one opens and again where it closes, which is what
+            // puts Word's bordered run a line's weight further along than an unbordered one.
+            if (!Equals(textAtom.Format.Border, openBorder))
+            {
+                if (openBorder is { } closing) pen += RunBorderRoom(closing);
+                if (textAtom.Format.Border is { } opening) pen += RunBorderRoom(opening);
+
+                openBorder = textAtom.Format.Border;
+                current = null;
+            }
+
             // The width the line settled on, which is the atom's own less any leading kern the
             // line's first atom gave up.
             var width = item.Width;
@@ -6390,6 +6480,8 @@ internal sealed class LayoutEngine(
 
                 current.Width += width + extra;
                 current.SpaceCount += textAtom.IsSpace ? 1 : 0;
+                current.Ascent = Math.Max(current.Ascent, textAtom.Ascent);
+                current.Descent = Math.Max(current.Descent, textAtom.Descent);
             }
             else
             {
@@ -6401,6 +6493,8 @@ internal sealed class LayoutEngine(
                     Format = textAtom.Format,
                     Font = textAtom.Font,
                     Width = width + extra,
+                    Ascent = textAtom.Ascent,
+                    Descent = textAtom.Descent,
                     WordSpacing = wordSpacing,
                     SpaceCount = textAtom.IsSpace ? 1 : 0,
                     Link = textAtom.Link,
@@ -6414,9 +6508,15 @@ internal sealed class LayoutEngine(
 
             if (!textAtom.InLineBox) continue;
 
-            maxTextAscent = Math.Max(maxTextAscent, textAtom.Ascent);
-            maxTextDescent = Math.Max(maxTextDescent, textAtom.Descent);
-            maxTextNatural = Math.Max(maxTextNatural, textAtom.NaturalHeight);
+            // A run with a box round it makes the line taller by what the box takes: its own
+            // weight below the text, and the weight and a step of the grid above it, which is
+            // what run-border-probe measures at every size from eight point to forty-eight.
+            var edging = RunBorderRoom(textAtom.Format.Border);
+            var overhead = edging > 0 ? edging + Grid.Step : 0;
+
+            maxTextAscent = Math.Max(maxTextAscent, textAtom.Ascent + overhead);
+            maxTextDescent = Math.Max(maxTextDescent, textAtom.Descent + edging);
+            maxTextNatural = Math.Max(maxTextNatural, textAtom.NaturalHeight + overhead + edging);
         }
 
         // A bar stop is not somewhere text lands: it asks for a rule down every line of the
@@ -6426,6 +6526,8 @@ internal sealed class LayoutEngine(
             if (stop.Alignment == TabAlignment.Bar)
                 line.Bars.Add(Units.TwipsToPoints(stop.PositionTwips));
         }
+
+        if (openBorder is { } last) pen += RunBorderRoom(last);
 
         var ascent = Math.Max(maxTextAscent, maxImageAscent);
 
@@ -8579,6 +8681,16 @@ internal sealed class LayoutEngine(
         public required FontSelection Font { get; init; }
 
         public double Width { get; set; }
+
+        /// <summary>
+        /// The run's own box, which is what a border round it is drawn to — not the line's, as a
+        /// highlight is. run-border-probe's twelve point run beside a thirty-six point one is
+        /// boxed to its own thirteen and a half points where its highlight would take all
+        /// forty-one of the line.
+        /// </summary>
+        public double Ascent { get; set; }
+
+        public double Descent { get; set; }
 
         public double WordSpacing { get; init; }
 

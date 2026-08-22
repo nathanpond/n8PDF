@@ -373,6 +373,24 @@ The pages after it carry a step of drift in the text, which is the paragraph-to-
 this engine has everywhere rather than anything this rule does, so what `ParagraphBorderTests` holds
 them to is the geometry that does not depend on where the text landed.
 
+### The box round a run
+
+`w:bdr` is neither the paragraph's box in miniature nor a highlight with a line round it, and
+`run-border-probe` says how it differs:
+
+- it is drawn to the **run's own** box — its ascent and descent, with a step of the grid over it —
+  where a highlight takes the whole line's. A twelve point run beside a thirty-six point one is
+  boxed to its own 13.92 points and highlighted to the line's 41.52;
+- it takes room **along** the line as well: its weight on each side and the declared space beyond
+  that, so four points of space widens the run by eight and heightens its line by eight. A run's
+  space is taken as it stands, where a paragraph's is rounded down to the grid;
+- runs bordered alike and touching share one box; a plain space between them leaves two;
+- a run too long for its line is boxed on each line it takes, closed on both sides, and the line is
+  filled with the closing side's room in hand — without that the line takes one word too many.
+
+What is left between us and Word is the step of drift the flow carries from paragraph to paragraph,
+which moves a box with its baseline rather than changing its shape.
+
 ### What a highlight and a background cover
 
 Both are filled rectangles behind text, and both are measured rather than assumed — `highlight-probe`
@@ -1676,7 +1694,7 @@ spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wrap
 (left, centre, right, decimal and bar stops, with leaders), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, highlighting, caps, super/subscript, character spacing
 and scaling, the background behind a paragraph or a run (`w:shd`, patterns included), the box round
-a paragraph (`w:pBdr`, shared between paragraphs bordered alike),
+a paragraph (`w:pBdr`, shared between paragraphs bordered alike) and round a run (`w:bdr`),
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.

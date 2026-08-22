@@ -1861,6 +1861,10 @@ public sealed class DocxBuilder
         string? color = null,
         string? highlight = null,
         string? underline = null,
+        string? borderStyle = null,
+        int borderEighths = 8,
+        int borderSpace = 0,
+        string borderColor = "000000",
         string? shadingFill = null,
         string? shadingPattern = null,
         string? shadingColor = null,
@@ -1885,6 +1889,14 @@ public sealed class DocxBuilder
         if (halfPoints is not null) sb.Append($"<w:sz w:val=\"{halfPoints}\"/>");
         if (highlight is not null) sb.Append($"<w:highlight w:val=\"{highlight}\"/>");
         if (underline is not null) sb.Append($"<w:u w:val=\"{underline}\"/>");
+
+        // CT_RPr puts the border after the underline and before the shading.
+        if (borderStyle is not null)
+        {
+            sb.Append($"<w:bdr w:val=\"{borderStyle}\" w:sz=\"{borderEighths}\" " +
+                      $"w:space=\"{borderSpace}\" w:color=\"{borderColor}\"/>");
+        }
+
         if (shadingFill is not null || shadingPattern is not null || shadingColor is not null)
         {
             sb.Append($"<w:shd w:val=\"{shadingPattern ?? "clear"}\" " +

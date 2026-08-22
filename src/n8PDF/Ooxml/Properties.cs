@@ -140,6 +140,9 @@ internal sealed class RunProperties
     /// <summary>Highlight colour name, or null.</summary>
     public string? Highlight { get; set; }
 
+    /// <summary>The box round this run, from <c>w:bdr</c>, or null where it has none.</summary>
+    public ParagraphBorderEdge? Border { get; set; }
+
     /// <summary>
     /// The background behind this run, from a <c>w:shd</c> inside its <c>w:rPr</c>. Each part is
     /// inherited on its own, the same way a paragraph's is.

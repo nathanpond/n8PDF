@@ -955,6 +955,11 @@ internal static class DocumentParser
                 case "highlight":
                     properties.Highlight = element.Val();
                     break;
+                case "bdr":
+                    properties.Border = ReadBorderEdge(element) is { IsVisible: true } line
+                        ? new ParagraphBorderEdge(line, element.IntAttr("space") ?? 0)
+                        : null;
+                    break;
                 case "shd":
                     properties.ShadingFill = element.Attr("fill");
                     properties.ShadingPattern = element.Val();

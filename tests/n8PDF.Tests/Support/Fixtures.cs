@@ -22,6 +22,9 @@ public static class Fixtures
         string? color = null,
         string? highlight = null,
         string? underline = null,
+        string? borderStyle = null,
+        int borderEighths = 8,
+        int borderSpace = 0,
         string? shadingFill = null,
         string? shadingPattern = null,
         string? shadingColor = null,
@@ -30,6 +33,7 @@ public static class Fixtures
         DocxBuilder.RunProperties(
             font: TimesNewRoman, halfPoints: halfPoints, bold: bold, italic: italic,
             strike: strike, color: color, highlight: highlight, underline: underline,
+            borderStyle: borderStyle, borderEighths: borderEighths, borderSpace: borderSpace,
             shadingFill: shadingFill, shadingPattern: shadingPattern, shadingColor: shadingColor,
             kerningHalfPoints: kerningHalfPoints, positionHalfPoints: positionHalfPoints);
 
@@ -3159,6 +3163,117 @@ public static class Fixtures
                 Rail();
                 Bordered("A bar beside this one.", Box(sides: "", bar: true));
                 Rail();
+
+                return builder;
+            },
+
+            // The box round a run, from w:bdr, which is a different thing from the box round a
+            // paragraph and has to be measured as one. Six pages:
+            //
+            //   1  where it stands against the run, at four sizes
+            //   2  what its weight does, from a quarter point to six
+            //   3  what its space does, at nothing, four points and twelve
+            //   4  the joins: two bordered runs side by side, two with a plain space between
+            //      them, and one long enough to be broken across two lines
+            //   5  a bordered run beside a much larger one, which says whether the box follows
+            //      the run or the line, as a highlight follows the line
+            //   6  a bordered run that is also highlighted, one that is also shaded, and one
+            //      inside a paragraph that has a box of its own
+            ["run-border-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Line(string before, string inside, string after, string properties)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacing)}</w:pPr>" +
+                        (before.Length == 0 ? string.Empty :
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{before}</w:t></w:r>") +
+                        $"<w:r><w:rPr>{properties}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(inside)}</w:t></w:r>" +
+                        (after.Length == 0 ? string.Empty :
+                            $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{after}</w:t></w:r>") +
+                        "</w:p>");
+
+                    first = false;
+                }
+
+                void Page(string label)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    first = false;
+                }
+
+                Page("The box round a run.");
+                foreach (var halfPoints in new[] { 16, 24, 48, 96 })
+                {
+                    var plain = DocxBuilder.RunProperties(font: TimesNewRoman, halfPoints: halfPoints);
+                    var boxed = DocxBuilder.RunProperties(
+                        font: TimesNewRoman, halfPoints: halfPoints, borderStyle: "single");
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\">ab </w:t></w:r>" +
+                        $"<w:r><w:rPr>{boxed}</w:rPr><w:t>lit</w:t></w:r>" +
+                        $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\"> cd</w:t></w:r></w:p>");
+                }
+
+                Page("The weight.");
+                foreach (var size in new[] { 2, 8, 24, 48 })
+                    Line("ab ", "lit", " cd", Times(24, borderStyle: "single", borderEighths: size));
+
+                Page("The space.");
+                foreach (var space in new[] { 0, 4, 12 })
+                    Line("ab ", "lit", " cd", Times(24, borderStyle: "single", borderSpace: space));
+
+                Page("The joins.");
+                var boxedRun = Times(24, borderStyle: "single");
+
+                // Two bordered runs side by side, and then two with a plain space between them.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">one </w:t></w:r>" +
+                    $"<w:r><w:rPr>{boxedRun}</w:rPr><w:t>two</w:t></w:r>" +
+                    $"<w:r><w:rPr>{boxedRun}</w:rPr><w:t>three</w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> four</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">one </w:t></w:r>" +
+                    $"<w:r><w:rPr>{boxedRun}</w:rPr><w:t>two</w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> </w:t></w:r>" +
+                    $"<w:r><w:rPr>{boxedRun}</w:rPr><w:t>four</w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> five</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{boxedRun}</w:rPr><w:t xml:space=\"preserve\">" +
+                    "A bordered run long enough that it has to be broken, so that what the break " +
+                    "does to the box round it can be read off the page rather than guessed at." +
+                    "</w:t></w:r></w:p>");
+
+                Page("Two sizes on one line.");
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{boxedRun}</w:rPr><w:t xml:space=\"preserve\">small </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(72)}</w:rPr><w:t>TALL</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">small </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(72, borderStyle: "single")}</w:rPr><w:t>TALL</w:t></w:r></w:p>");
+
+                Page("Against the rest.");
+                Line("ab ", "lit", " cd", Times(24, highlight: "yellow", borderStyle: "single"));
+                Line("ab ", "lit", " cd", Times(24, borderStyle: "single", shadingFill: "DEEBF7"));
+
+                builder.AddParagraph("A bordered run inside a bordered paragraph.",
+                    "<w:pBdr><w:top w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"000000\"/>" +
+                    "<w:left w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"000000\"/>" +
+                    "<w:bottom w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"000000\"/>" +
+                    "<w:right w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"000000\"/></w:pBdr>" +
+                    ZeroSpacing, Times12);
 
                 return builder;
             },

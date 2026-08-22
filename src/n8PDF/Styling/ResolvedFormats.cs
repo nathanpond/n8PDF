@@ -34,6 +34,12 @@ internal sealed record ResolvedRunFormat
     public string? HighlightColor { get; init; }
 
     /// <summary>
+    /// The box round this run, from <c>w:bdr</c>. It makes the line it is on taller: run-border-probe
+    /// measures a step of the grid and the line's own weight above the text, and the weight below.
+    /// </summary>
+    public ParagraphBorderEdge? Border { get; init; }
+
+    /// <summary>
     /// The background behind this run, from a <c>w:shd</c> of its own. A highlight is drawn
     /// instead of it where the run has both: see RunShadingTests.
     /// </summary>
