@@ -3800,6 +3800,45 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the image.", ZeroSpacing, Times12);
             },
 
+            // How tall a line is when a picture on it is taller than the text beside it and the
+            // paragraph asks for a multiple of the line — the ordinary case in a real document,
+            // where a picture is dropped into a paragraph nobody has changed the spacing of and
+            // Word's own Normal asks for 1.08 lines.
+            //
+            // Every fixture written by hand here sets the spacing to a single line, where a
+            // multiple of one hides whatever the rule is. A picture 96 points tall on a 1.08 line
+            // is where the two readings part: a multiple of the whole line box would leave eight
+            // points under the picture, and a multiple of the text's own line leaves one.
+            //
+            // Four multiples down the page, and four picture heights across each: two shorter
+            // than the line the text alone would make, so that the plain text rule is measured in
+            // the same document, and two taller. Each picture paragraph is followed by a marker
+            // whose baseline is the whole measurement — the picture line's foot plus one ascent.
+            ["image-line-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var picture = builder.AddImagePart(PngWriter.Solid(20, 20, 60, 110, 180));
+
+                var first = true;
+                foreach (var line in new[] { 240, 259, 360, 480 })
+                {
+                    foreach (var height in new[] { 6, 12, 24, 96 })
+                    {
+                        var page = first ? string.Empty : "<w:pageBreakBefore/>";
+                        first = false;
+
+                        builder.AddImageParagraph(picture, 24, height,
+                            page + "<w:spacing w:before=\"0\" w:after=\"0\" " +
+                            $"w:line=\"{line}\" w:lineRule=\"auto\"/>",
+                            leadingText: "Picture ", leadingRunProperties: Times12);
+
+                        builder.AddParagraph($"After {height} at {line}.", ZeroSpacing, Times12);
+                    }
+                }
+
+                return builder;
+            },
+
             // Floating images: text flowing around one on the left, one on the right, and one
             // that takes the full measure so text goes above and below it.
             ["images-floating"] = () =>
@@ -7460,7 +7499,159 @@ public static class Fixtures
                     + "entry cards will not work while the work is under way.",
                     "<w:jc w:val=\"both\"/>", Times12)
                 .AddParagraph("Thank you for your patience.",
-                    "<w:spacing w:before=\"240\"/><w:jc w:val=\"right\"/>", Times(24, italic: true))
+                    "<w:spacing w:before=\"240\"/><w:jc w:val=\"right\"/>", Times(24, italic: true)),
+
+            // A newsletter: a running head, a footer that counts the pages, an address to follow,
+            // and a body set in two columns. None of that lives in the body — a header is a part
+            // of its own reached by a relationship, and an address never appears in the document
+            // at all, only in a relationship marked external — so what a round trip through Word
+            // rewrites here is the shape of the package rather than the words in it. The columns
+            // are the other half of it: Word works their widths out and writes them down instead
+            // of leaving the measure to be divided.
+            ["newsletter"] = () =>
+            {
+                var builder = new DocxBuilder()
+                    .WithHeaderFooter(header: true,
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t>The Ledger, August</w:t></w:r></w:p>")
+                    .WithHeaderFooter(header: false,
+                        $"<w:p><w:pPr>{ZeroSpacing}<w:jc w:val=\"center\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">Page </w:t></w:r>" +
+                        $"<w:fldSimple w:instr=\" PAGE \"><w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t>1</w:t></w:r></w:fldSimple>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\"> of </w:t></w:r>" +
+                        $"<w:fldSimple w:instr=\" NUMPAGES \"><w:r><w:rPr>{Times12}</w:rPr>" +
+                        "<w:t>1</w:t></w:r></w:fldSimple></w:p>");
+
+                var address = builder.AddExternalHyperlink("https://example.com/ledger/august");
+
+                builder.AddParagraph("Notes from the desk",
+                    "<w:spacing w:after=\"120\"/>", Times(28, bold: true));
+
+                for (var i = 1; i <= 14; i++)
+                {
+                    builder.AddParagraph(
+                        $"Item {i}. The figures behind this note were taken from the regional " +
+                        "ledgers on the day of publication, and the wording is long enough that " +
+                        "it wraps inside its column rather than fitting on a single line of it.",
+                        "<w:spacing w:after=\"120\"/><w:jc w:val=\"both\"/>", Times12);
+                }
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">The full figures are at </w:t></w:r>" +
+                    DocxBuilder.Hyperlink("example.com/ledger/august", address,
+                        runProperties: Times(24, color: "0563C1", underline: "single")) +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                return builder.WithSection(DocxBuilder.Section(columns: 2, columnSeparator: true));
+            },
+
+            // Notes at the foot of the page and at the end of the document. Word keeps each kind
+            // in a part of its own, and writes into it two notes nobody asked for: the rule above
+            // the notes and the one above a note carried on to the next page. Ours are written by
+            // hand from what Word produces; these are Word's own, along with the styles it adds
+            // to a document the moment a note is put in one.
+            ["notes"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                string Paragraph(string text, string tail) =>
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t xml:space=\"preserve\">{text}</w:t></w:r>" +
+                    tail + $"<w:r><w:rPr>{Times12}</w:rPr><w:t>.</w:t></w:r></w:p>";
+
+                var first = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("The ledgers are closed on the last working day.", Times(20)));
+                var second = builder.AddFootnote(
+                    DocxBuilder.FootnoteBody("Seasonal adjustment is applied afterwards.", Times(20)));
+                var ending = builder.AddEndnote(
+                    DocxBuilder.EndnoteBody("Figures for the previous year are held separately.", Times(20)));
+
+                builder.AddParagraph("Sources and their treatment",
+                    "<w:spacing w:after=\"120\"/>", Times(28, bold: true));
+
+                builder.AddRawParagraph(Paragraph(
+                    "Throughput is counted at the point of dispatch",
+                    DocxBuilder.FootnoteReference(first, Times(20))));
+
+                for (var i = 1; i <= 6; i++)
+                {
+                    builder.AddParagraph(
+                        $"Paragraph {i} between the notes, written long enough to wrap and so to " +
+                        "push the note that follows it further down the page.",
+                        ZeroSpacing, Times12);
+                }
+
+                builder.AddRawParagraph(Paragraph(
+                    "The northern figures are gathered a week later than the rest",
+                    DocxBuilder.FootnoteReference(second, Times(20))));
+
+                builder.AddRawParagraph(Paragraph(
+                    "Comparisons with last year are made on the closing figures only",
+                    DocxBuilder.EndnoteReference(ending, Times(20))));
+
+                return builder;
+            },
+
+            // Lists. A numbering part is the one thing in a document that is never written as it
+            // is read: the paragraphs say which list and which level, and everything about how
+            // the label looks is somewhere else again. Word rewrites that part wholesale — its
+            // own identifiers, its own template numbers, a full nine levels where this asks for
+            // two — and this is the seed that makes it do so.
+            ["minutes"] = () => new DocxBuilder()
+                .WithNumbering(
+                    DocxBuilder.NumberingLevel(0, "decimal", "%1.") +
+                    DocxBuilder.NumberingLevel(1, "lowerLetter", "%2)"),
+                    DocxBuilder.NumberingLevel(0, "bullet", "•"))
+                .AddParagraph("Minutes of the operations meeting",
+                    "<w:spacing w:after=\"240\"/>", Times(32, bold: true))
+                .AddParagraph("Matters arising", "<w:spacing w:after=\"120\"/>", Times(28, bold: true))
+                .AddListParagraph(
+                    "The northern depot reported a shortfall against the forecast for July.",
+                    1, runProperties: Times12)
+                .AddListParagraph("The cause was traced to a late delivery.", 1, 1, Times12)
+                .AddListParagraph("The forecast for August has been revised accordingly.", 1, 1, Times12)
+                .AddListParagraph(
+                    "The southern depot is unchanged and needs no action this month.",
+                    1, runProperties: Times12)
+                .AddParagraph("Actions", "<w:spacing w:before=\"240\" w:after=\"120\"/>", Times(28, bold: true))
+                .AddListParagraph("Circulate the revised forecast before the month end.", 2,
+                    runProperties: Times12)
+                .AddListParagraph("Confirm the delivery schedule with the carrier.", 2,
+                    runProperties: Times12)
+                .AddParagraph("Next meeting on the first Tuesday of September.",
+                    "<w:spacing w:before=\"240\"/>", Times12),
+
+            // A picture and a text box, which is where Word's markup stops resembling anything
+            // written by hand: a drawing it has saved carries an alternative for older readers
+            // beside the one it means, and the two describe the same box in two different
+            // languages. Ours writes the modern half alone, so this is the seed that says whether
+            // a document holding both is read the way Word reads it.
+            ["brochure"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var badge = builder.AddImagePart(PngWriter.Diagonal(64));
+
+                var body = string.Join(' ', Enumerable.Repeat(
+                    "The service runs from the depot every hour and takes the coast road.", 8));
+
+                builder
+                    .AddParagraph("The coast service", "<w:spacing w:after=\"120\"/>", Times(32, bold: true))
+                    .AddImageParagraph(badge, 96, 96, "<w:spacing w:after=\"120\"/>",
+                        leadingText: "Route badge ")
+                    .AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        DocxBuilder.AnchoredShape(144, 72,
+                            ShapeText("Timetable"), alignX: "right", fillHex: "DEEBF7",
+                            lineHex: "2E74B5") +
+                        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">{DocxBuilder.Escape(body)}</w:t></w:r></w:p>")
+                    .AddParagraph("Fares are unchanged for the season.",
+                        "<w:spacing w:before=\"120\"/>", Times12);
+
+                return builder;
+            }
         };
 
     /// <summary>Builds a fixture's bytes by name.</summary>

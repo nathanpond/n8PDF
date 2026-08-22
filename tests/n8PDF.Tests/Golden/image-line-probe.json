@@ -1,0 +1,357 @@
+{
+  "pageCount": 16,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 69.979, "font": "Times New Roman", "size": 12, "text": "After 6 at 240."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 84,
+          "height": 14.596,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 97.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 12 at 240."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 96,
+          "height": 26.596,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 109.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 24 at 240."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 168,
+          "height": 98.596,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 181.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 96 at 240."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 83.28,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 98.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 69.979, "font": "Times New Roman", "size": 12, "text": "After 6 at 259."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 84,
+          "height": 15.688,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 98.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 12 at 259."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 96,
+          "height": 27.688,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 110.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 24 at 259."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 168,
+          "height": 99.688,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 182.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 96 at 259."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 16,
+          "baselineY": 83.04,
+          "height": 20.698,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 103.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 69.979, "font": "Times New Roman", "size": 12, "text": "After 6 at 360."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 18,
+          "baselineY": 84,
+          "height": 21.495,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 104.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 12 at 360."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 20,
+          "baselineY": 96,
+          "height": 33.495,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 116.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 24 at 360."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 22,
+          "baselineY": 168,
+          "height": 105.495,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 188.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 96 at 360."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 24,
+          "baselineY": 83.28,
+          "height": 27.598,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 69.979, "font": "Times New Roman", "size": 12, "text": "After 6 at 480."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 26,
+          "baselineY": 84,
+          "height": 28.395,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 111.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 12 at 480."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 28,
+          "baselineY": 96,
+          "height": 40.395,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 123.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 24 at 480."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 30,
+          "baselineY": 168,
+          "height": 112.395,
+          "runs": [
+            {"x": 72, "width": 36.99, "font": "Times New Roman", "size": 12, "text": "Picture "}
+          ]
+        },
+        {
+          "paragraph": 31,
+          "baselineY": 195.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 75.979, "font": "Times New Roman", "size": 12, "text": "After 96 at 480."}
+          ]
+        }
+      ]
+    }
+  ]
+}

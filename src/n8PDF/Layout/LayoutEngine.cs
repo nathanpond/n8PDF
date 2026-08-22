@@ -750,6 +750,8 @@ internal sealed class LayoutEngine(
         // 24pt, and with 24pt after and 12pt before it also produces 24pt — which is only
         // consistent with a maximum. Summing them put every paragraph after the first 12pt
         // too low.
+        var stoodAt = cursor.Y;
+
         if (cursor.PreviousFormat is null)
         {
             cursor.Y += spaceBefore;
@@ -771,7 +773,7 @@ internal sealed class LayoutEngine(
 
         // Anchored drawings are placed before the paragraph's own text is composed, so that its
         // very first line already flows around them.
-        PlaceAnchoredDrawings(cursor, paragraph);
+        PlaceAnchoredDrawings(cursor, paragraph, cursor.Y - stoodAt);
 
         _pendingBookmarks.Clear();
         _pendingMarks.Clear();
@@ -941,7 +943,7 @@ internal sealed class LayoutEngine(
     /// The float is given the room above the flow only. What it takes below is registered by
     /// whoever placed it, once it knows how far down it reaches.
     /// </remarks>
-    private void ReflowLinesReachedBy(Cursor cursor, FloatRegion reach)
+    private void ReflowLinesReachedBy(Cursor cursor, FloatRegion reach, double room = 0)
     {
         if (_reflowable is not { } previous) return;
 
@@ -987,6 +989,13 @@ internal sealed class LayoutEngine(
         // Not offered twice: a paragraph laid again is not laid a third time for the same float.
         _reflowable = null;
         LayoutParagraph(cursor, previous.Paragraph, previous.Siblings, previous.Index);
+
+        // The flow is back at that paragraph's foot with its space-after pending again, but the
+        // paragraph holding the float has already made the room between the two. It is made again
+        // here rather than left to be made twice or not at all: brochure, whose text box has nine
+        // points of clearance over a picture paragraph six points above it, put every line of the
+        // paragraph six points high without this.
+        cursor.Y += room;
 
         cursor.Floats.Remove(reach);
     }
@@ -1639,7 +1648,11 @@ internal sealed class LayoutEngine(
     /// <summary>
     /// Positions the anchored drawings of a paragraph and registers the areas text must avoid.
     /// </summary>
-    private void PlaceAnchoredDrawings(Cursor cursor, Paragraph paragraph)
+    /// <param name="room">
+    /// The space this paragraph has already made between itself and the one before it, which a
+    /// float reaching back over that paragraph unmakes by laying it again.
+    /// </param>
+    private void PlaceAnchoredDrawings(Cursor cursor, Paragraph paragraph, double room)
     {
         foreach (var anchored in paragraph.Runs.SelectMany(run => run.Content).OfType<AnchoredDrawing>())
         {
@@ -1658,7 +1671,7 @@ internal sealed class LayoutEngine(
             // them, so they are moved down instead, which is what DisplaceOverlappedLines does and
             // what Word does with them.
             if (anchored.Wrap is not (TextWrapMode.None or TextWrapMode.TopAndBottom))
-                ReflowLinesReachedBy(cursor, region);
+                ReflowLinesReachedBy(cursor, region, room);
 
             (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top)? composed =
                 anchored.Chart is { } chart
@@ -5835,6 +5848,11 @@ internal sealed class LayoutEngine(
         // way, since one run's ascent and descent are its natural height.
         natural = Math.Max(natural, maxTextNatural);
 
+        // The same box with no picture in it, which is what a multiple of the line is measured
+        // against: see ApplyLineMetrics.
+        var textBox = Math.Max(Math.Max(maxTextAscent + descent, maxTextNatural), 0);
+        var textAscent = maxTextAscent;
+
         // A line holding nothing but a picture is no shorter than the paragraph's own mark.
         // vml-stroke-stack-probe stacks shapes four and a half and nine points tall under an
         // eleven point mark, and Word gives both the mark's own line of 13.43 rather than the
@@ -5854,9 +5872,14 @@ internal sealed class LayoutEngine(
             // asks for, plus the two its outline is offset by.
             natural = markHeight;
             ascent = natural - descent;
+
+            // With nothing but a picture on it, the mark's line is the line the multiple has to
+            // work on, since there is no text box of its own to take.
+            textBox = natural;
+            textAscent = ascent;
         }
 
-        ApplyLineMetrics(line, format, ascent, natural);
+        ApplyLineMetrics(line, format, ascent, natural, textBox, textAscent);
     }
 
     /// <summary>
@@ -5873,7 +5896,7 @@ internal sealed class LayoutEngine(
     {
         if (line.Height > 0) return;
 
-        ApplyLineMetrics(line, format, mark.Ascent, mark.Height);
+        ApplyLineMetrics(line, format, mark.Ascent, mark.Height, mark.Height, mark.Ascent);
     }
 
     /// <summary>
@@ -5936,7 +5959,8 @@ internal sealed class LayoutEngine(
     }
 
     private static void ApplyLineMetrics(
-        ComposedLine line, ResolvedParagraphFormat format, double maxAscent, double naturalHeight)
+        ComposedLine line, ResolvedParagraphFormat format, double maxAscent, double naturalHeight,
+        double textBox, double textAscent)
     {
         if (naturalHeight <= 0) return;
 
@@ -5961,7 +5985,16 @@ internal sealed class LayoutEngine(
                 break;
 
             default:
-                line.Height = naturalHeight * format.LineSpacingMultiple;
+                // A multiple is a multiple of the line the *text* would have made, not of the
+                // line a picture on it has made taller. image-line-probe puts a picture of six,
+                // twelve, twenty-four and ninety-six points on a line of twelve point Times at
+                // multiples of one, 1.08, one and a half and two, and in all sixteen Word leaves
+                // exactly the room under the picture that it leaves under the text alone: a
+                // ninety-six point picture on a 1.08 line is 99.6 points tall, which is the
+                // picture plus the 3.6 the text asks for, and not the 106.8 that multiplying the
+                // whole box gives. Word's own Normal asks for 1.08, so every picture dropped into
+                // a real document lands on this rule.
+                line.Height = maxAscent + (textBox * format.LineSpacingMultiple - textAscent);
 
                 // Extra leading from a multiple goes *below* the baseline, not above it, so the
                 // first line of a paragraph sits at its natural ascent no matter what the

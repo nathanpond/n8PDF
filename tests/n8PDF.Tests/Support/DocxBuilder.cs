@@ -538,7 +538,8 @@ public sealed class DocxBuilder
     /// </remarks>
     public DocxBuilder AddImageParagraph(
         string relationshipId, double widthPoints, double heightPoints,
-        string? paragraphProperties = null, string? leadingText = null)
+        string? paragraphProperties = null, string? leadingText = null,
+        string? leadingRunProperties = null)
     {
         var cx = (long)Math.Round(widthPoints * 12700);
         var cy = (long)Math.Round(heightPoints * 12700);
@@ -547,7 +548,11 @@ public sealed class DocxBuilder
         if (paragraphProperties is not null) _body.Append($"<w:pPr>{paragraphProperties}</w:pPr>");
 
         if (leadingText is not null)
-            _body.Append($"<w:r><w:t xml:space=\"preserve\">{Escape(leadingText)}</w:t></w:r>");
+        {
+            _body.Append("<w:r>");
+            if (leadingRunProperties is not null) _body.Append($"<w:rPr>{leadingRunProperties}</w:rPr>");
+            _body.Append($"<w:t xml:space=\"preserve\">{Escape(leadingText)}</w:t></w:r>");
+        }
 
         _body.Append($"""
             <w:r><w:drawing>

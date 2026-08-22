@@ -321,9 +321,10 @@ say what is rounded and what is not:
 
 Neither rounding accumulates: the next line starts from the exact height. Six of the nine forty-line
 pages come out as Word's line for line, and 292 of the 360 baselines overall. Across the whole
-fixture set, twenty-two documents now agree with Word's page **exactly**, where before none did, and
-the average of each document's worst baseline fell from 0.387pt to 0.352 — what is left is almost
-everywhere a single step of the grid, where a rounding falls the other way.
+fixture set, twenty-four documents of the 140 now agree with Word's page **exactly**, where before
+the grid none did, and the average of each document's worst baseline is 0.298pt against the 0.387
+it stood at then — what is left is almost everywhere a single step of the grid, where a rounding
+falls the other way.
 
 Anything moved after it is written — a line pushed down by a float, a page centred between its
 margins, the contents of a table cell or a footnote, a raised or lowered run — is moved onto the
@@ -331,6 +332,24 @@ grid too, so nothing this engine writes along a line stands off it. What a line 
 the rule above a carried footnote is where the arithmetic puts it, within a hundredth of a point
 of Word's, and rounding it would take it a twentieth of a point away. `LineGridTests` holds every
 fixture to the grid, and the two probes to Word's own page.
+
+### A multiple of a line a picture has made taller
+
+`w:lineRule="auto"` asks for a multiple of the line — 1.08 of it in Word's own Normal, which every
+document Word writes inherits. Put a picture on such a line and the two readings of "the line" part
+company: a multiple of the whole box, picture and all, or a multiple of the line the *text* would
+have made with the picture set on top of it.
+
+It is the second. `image-line-probe` puts pictures of six, twelve, twenty-four and ninety-six points
+on a line of twelve point Times at multiples of one, 1.08, one and a half and two, and Word leaves
+exactly the same room under the picture as under the text alone in all sixteen: a ninety-six point
+picture on a 1.08 line makes a line 99.6 points tall, not the 106.8 that multiplying the whole box
+gives. Two of the four heights are shorter than the line the text makes on its own, so the plain
+rule is measured in the same document as the rule that replaces it.
+
+Every fixture written by hand here sets its spacing to a single line, where a multiple of one makes
+the two readings identical. It took a document Word wrote — `brochure`, whose picture paragraph
+inherits Word's 1.08 — to tell them apart, and the error it found was 6.8 points.
 
 ### How far inside its own edges a shape sets its text
 
@@ -1351,6 +1370,12 @@ Two things about it are Word's, not ours to choose:
   it reaches back over, so they are moved down instead, which is what Word does with them and what
   this already did.
 
+The paragraph the float belongs to has already made the room between itself and the one before it
+by the time the float is placed, and laying that one again puts the flow back before the gap — so
+the gap is made a second time, rather than left to be lost. `brochure`, whose text box keeps nine
+points of clearance over a picture paragraph six points above it, is what said so: without it every
+line of the paragraph sat six points high.
+
 Only the paragraph immediately before the float is offered this, and only where it can be laid
 twice — one that broke across a page cannot, since the page it left behind is not this page's to
 take back. That is the case Word's own behaviour shows up in and the one a document is likely to
@@ -2313,6 +2338,19 @@ which rewrites the package in Word's own terms — a `styles.xml` carrying sever
 styles, `settings.xml`, its theme, `docProps`. None of that can be produced by hand, and it is
 what these fixtures exist to test. They go through the same per-line comparison as everything
 else.
+
+Seven of them: `smartart` and `smartart-lines`, whose cached drawing is only worth comparing when
+Word wrote it; `report` and `memo`; `newsletter`, a running head and a footer that counts the pages
+over a body in two columns, with an address that lives only in a relationship; `notes`, whose
+footnotes and endnotes are in parts Word wrote, separators and all; `minutes`, whose numbering part
+Word rewrote wholesale; and `brochure`, a picture and a text box, where Word writes the drawing
+twice over — the modern markup and a VML fallback beside it.
+
+`brochure` is what the real documents are for. Every fixture written by hand sets its line spacing
+to a single line, and Word's own Normal asks for 1.08 — so nothing here had ever put a picture on a
+line that asked for a multiple. Word applies the multiple to the line the *text* would have made
+and leaves the picture out of it, where we multiplied the whole line box and left a 96pt picture
+6.8 points too low. `image-line-probe` measures it sixteen ways and `ImageLineTests` holds it.
 
 `tools/make-real-fixtures.sh` --list shows what would be generated. Add to `RealSeeds` to cover
 more; third-party templates are best avoided, since their licence terms would come with them.
