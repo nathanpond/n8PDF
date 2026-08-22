@@ -230,6 +230,9 @@ internal sealed class ParagraphProperties
     /// <summary>Whether the lines of this paragraph are passed over by the margin's numbering.</summary>
     public bool? SuppressLineNumbers { get; set; }
 
+    /// <summary>The box round this paragraph, from <c>w:pBdr</c>, or null where it has none.</summary>
+    public ParagraphBorders? Borders { get; set; }
+
     /// <summary>
     /// The background behind this paragraph, from <c>w:shd</c>: a fill, a pattern and the colour
     /// the pattern is laid on in. Each part is inherited on its own through the cascade, which is

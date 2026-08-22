@@ -1044,6 +1044,10 @@ internal static class DocumentParser
                     properties.SuppressLineNumbers = element.OnOff();
                     break;
 
+                case "pBdr":
+                    properties.Borders = ReadParagraphBorders(element);
+                    break;
+
                 case "shd":
                     properties.ShadingFill = element.Attr("fill");
                     properties.ShadingPattern = element.Val();
@@ -1575,6 +1579,26 @@ internal static class DocumentParser
                 "notFirstPage" => PageBorderDisplay.NotFirstPage,
                 _ => PageBorderDisplay.AllPages
             }
+        };
+
+        return borders.IsEmpty ? null : borders;
+    }
+
+    /// <summary>Reads <c>w:pBdr</c>: the box round a paragraph, each side with its own distance.</summary>
+    private static ParagraphBorders? ReadParagraphBorders(XElement element)
+    {
+        static ParagraphBorderEdge? Edge(XElement? side) =>
+            ReadBorderEdge(side) is { IsVisible: true } line
+                ? new ParagraphBorderEdge(line, side?.IntAttr("space") ?? 0)
+                : null;
+
+        var borders = new ParagraphBorders
+        {
+            Top = Edge(element.Element(W.Main + "top")),
+            Left = Edge(element.Element(W.Main + "left") ?? element.Element(W.Main + "start")),
+            Bottom = Edge(element.Element(W.Main + "bottom")),
+            Right = Edge(element.Element(W.Main + "right") ?? element.Element(W.Main + "end")),
+            Between = Edge(element.Element(W.Main + "between"))
         };
 
         return borders.IsEmpty ? null : borders;

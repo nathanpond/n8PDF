@@ -351,6 +351,28 @@ Every fixture written by hand here sets its spacing to a single line, where a mu
 the two readings identical. It took a document Word wrote — `brochure`, whose picture paragraph
 inherits Word's 1.08 — to tell them apart, and the error it found was 6.8 points.
 
+### The box round a paragraph
+
+`w:pBdr` was parsed by nothing and drawn by nothing until `paragraph-border-probe` measured it,
+seven pages of one export:
+
+| | |
+|---|---|
+| the reach | a fiftieth of an inch clear of the text, and the declared space beyond that, the space rounded **down** to the grid — four points comes out 3.84, twelve comes out twelve |
+| above | one step more than the space, the same step a line box keeps above its text everywhere here |
+| below | exactly the space: the foot of the box sits on the foot of the last line |
+| the weight | the line is its eighths of a point rounded **down** to the grid — three points draws 2.88 — and grows outward from the reach |
+| the indents | move the box, as they move a background; a first-line indent and a centred line do not |
+| in a row | paragraphs bordered alike share **one** box, with no line between them unless `w:between` asks for one, and then it sits at the foot of the paragraph above with the usual step under it |
+| with shading | the background fills the box rather than the lines, so it reaches as far as the border |
+| the bar | `w:bar` draws nothing, which is what Word's own export has for it |
+
+The first page comes out ink for ink — Word draws each side as a bar between the corners and fills
+the corners in, where this draws the bars corner to corner, and the ground covered is identical.
+The pages after it carry a step of drift in the text, which is the paragraph-to-paragraph rounding
+this engine has everywhere rather than anything this rule does, so what `ParagraphBorderTests` holds
+them to is the geometry that does not depend on where the text landed.
+
 ### What a highlight and a background cover
 
 Both are filled rectangles behind text, and both are measured rather than assumed — `highlight-probe`
@@ -1653,7 +1675,8 @@ line and page breaks, line breaking by the Unicode algorithm (so the scripts wri
 spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wraps them), tabs
 (left, centre, right, decimal and bar stops, with leaders), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, highlighting, caps, super/subscript, character spacing
-and scaling, the background behind a paragraph or a run (`w:shd`, patterns included),
+and scaling, the background behind a paragraph or a run (`w:shd`, patterns included), the box round
+a paragraph (`w:pBdr`, shared between paragraphs bordered alike),
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.

@@ -871,6 +871,48 @@ internal sealed record BorderEdge(string Style, double SizeEighthPoints, string?
 }
 
 /// <summary>The six border edges a table or cell can declare.</summary>
+/// <summary>
+/// One side of the box round a paragraph: the line, and how far it stands from the text.
+/// </summary>
+/// <param name="SpacePoints">
+/// From <c>w:space</c>, in points. paragraph-border-probe measures what it does: the line stands
+/// that far from the text — rounded down to the grid — and a fiftieth of an inch further out
+/// again, which is the same reach a paragraph's background has.
+/// </param>
+internal sealed record ParagraphBorderEdge(BorderEdge Line, double SpacePoints);
+
+/// <summary>The box round a paragraph, from <c>w:pBdr</c>.</summary>
+/// <remarks>
+/// <c>w:bar</c> is read and not drawn: Word's own export has no ink for a paragraph whose only
+/// border is a bar, which paragraph-border-probe's last page shows.
+/// </remarks>
+internal sealed class ParagraphBorders
+{
+    public ParagraphBorderEdge? Top { get; set; }
+
+    public ParagraphBorderEdge? Left { get; set; }
+
+    public ParagraphBorderEdge? Bottom { get; set; }
+
+    public ParagraphBorderEdge? Right { get; set; }
+
+    /// <summary>The line drawn where two paragraphs of the same box meet.</summary>
+    public ParagraphBorderEdge? Between { get; set; }
+
+    public bool IsEmpty => Top is null && Left is null && Bottom is null && Right is null &&
+                           Between is null;
+
+    /// <summary>
+    /// Whether two paragraphs carry the same box, which is what decides that they share one rather
+    /// than each drawing its own.
+    /// </summary>
+    public bool SameAs(ParagraphBorders? other) =>
+        other is not null &&
+        Equals(Top, other.Top) && Equals(Left, other.Left) &&
+        Equals(Bottom, other.Bottom) && Equals(Right, other.Right) &&
+        Equals(Between, other.Between);
+}
+
 internal sealed class BorderSet
 {
     public BorderEdge? Top { get; set; }

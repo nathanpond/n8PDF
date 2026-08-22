@@ -597,6 +597,187 @@ internal sealed class LayoutEngine(
     private const double ShadingBleedPoints = 1.44;
 
     /// <summary>
+    /// The box a paragraph asks for, while it is still open: paragraphs of the same box in a row
+    /// share one, which is what Word draws.
+    /// </summary>
+    /// <remarks>
+    /// paragraph-border-probe measures every part of it. The line stands a fiftieth of an inch
+    /// clear of the text on each side and its own declared space beyond that, the space rounded
+    /// down to the grid; above the text there is one step more than the space says, and below it
+    /// exactly the space. The line grows outward from there, as thick as its weight rounded down
+    /// to the grid. Three paragraphs bordered alike come out as one box with no line between them
+    /// unless <c>w:between</c> asks for one, and where it does the line sits at the foot of the
+    /// paragraph above with the usual step under it.
+    /// </remarks>
+    private sealed class BorderBox
+    {
+        public required ParagraphBorders Borders { get; init; }
+
+        public required LaidOutPage Page { get; init; }
+
+        public required int Column { get; init; }
+
+        /// <summary>The edges of the area the box encloses, which the lines are drawn outside of.</summary>
+        public required double Left { get; init; }
+
+        public required double Right { get; init; }
+
+        public required double Top { get; init; }
+
+        public double Bottom { get; set; }
+
+        /// <summary>Where a line was asked for between two paragraphs sharing the box.</summary>
+        public List<double> Between { get; } = [];
+
+        /// <summary>
+        /// The background of each paragraph in it, by where that paragraph's fill begins: a fill
+        /// runs to where the next begins, and the last of them to the foot of the box, so that a
+        /// shaded paragraph in a box is filled to the box rather than to its own lines.
+        /// </summary>
+        public List<(double Top, (double Red, double Green, double Blue) Colour)> Fills { get; } = [];
+    }
+
+    private BorderBox? _openBox;
+
+    /// <summary>How far a border stands from the text: its own space, and the usual fiftieth.</summary>
+    private static double BorderReach(ParagraphBorderEdge? edge) =>
+        edge is null ? 0 : Grid.Width(edge.SpacePoints);
+
+    /// <summary>The room a side takes over and above what it stands clear of.</summary>
+    private static double BorderWeight(ParagraphBorderEdge? edge) =>
+        edge is null ? 0 : Grid.Width(edge.Line.WidthPoints);
+
+    /// <summary>
+    /// Opens a box for a paragraph, or carries on the one the paragraph before it opened, and
+    /// takes the room the top of it needs out of the flow.
+    /// </summary>
+    private void OpenOrContinueBox(Cursor cursor, ResolvedParagraphFormat format)
+    {
+        // A paragraph with no box of its own closes whatever box stood before it.
+        if (format.Borders is not { } borders)
+        {
+            CloseBox(cursor);
+            return;
+        }
+
+        var left = cursor.Left + format.IndentLeftPoints -
+                   ShadingBleedPoints - BorderReach(borders.Left);
+
+        var right = cursor.Left + cursor.Width - format.IndentRightPoints +
+                    ShadingBleedPoints + BorderReach(borders.Right);
+
+        if (_openBox is { } open && open.Borders.SameAs(borders) &&
+            ReferenceEquals(open.Page, cursor.Page) && open.Column == cursor.ColumnIndex &&
+            Math.Abs(open.Left - left) < 0.001 && Math.Abs(open.Right - right) < 0.001)
+        {
+            // Carrying on: a line between them where the box asks for one, and nothing at all
+            // where it does not — three paragraphs bordered alike run on in Word with no room
+            // between them beyond their own lines.
+            if (borders.Between is { } between)
+            {
+                open.Between.Add(Grid.Snap(cursor.Y));
+                cursor.Y += BorderWeight(between) + Grid.Step;
+            }
+
+            return;
+        }
+
+        CloseBox(cursor);
+
+        cursor.Y += BorderWeight(borders.Top);
+
+        // Where the box is drawn is on the grid, as everything drawn is; what the flow advances by
+        // stays exact, as everything in the flow is.
+        var top = Grid.Snap(cursor.Y);
+
+        _openBox = new BorderBox
+        {
+            Borders = borders,
+            Page = cursor.Page,
+            Column = cursor.ColumnIndex,
+            Left = left,
+            Right = right,
+            Top = top,
+            Bottom = top
+        };
+
+        // The step Word leaves between the top of the box and the text inside it.
+        cursor.Y += Grid.Step + BorderReach(borders.Top);
+    }
+
+    /// <summary>
+    /// Draws the box that was open, if any, and takes the room its foot needs out of the flow.
+    /// </summary>
+    private void CloseBox(Cursor cursor)
+    {
+        if (_openBox is not { } box) return;
+
+        _openBox = null;
+
+        // A box left behind on another page or column is still drawn, but the flow it belonged to
+        // is not this one and is not moved.
+        var ours = ReferenceEquals(box.Page, cursor.Page) && box.Column == cursor.ColumnIndex;
+
+        var borders = box.Borders;
+        var bottom = box.Bottom + BorderReach(borders.Bottom);
+
+        var leftWeight = BorderWeight(borders.Left);
+        var rightWeight = BorderWeight(borders.Right);
+        var topWeight = BorderWeight(borders.Top);
+        var bottomWeight = BorderWeight(borders.Bottom);
+
+        // The background first: it fills what the box encloses rather than what the lines cover,
+        // which is why a shaded paragraph inside a box reaches further than one without.
+        for (var i = 0; i < box.Fills.Count; i++)
+        {
+            var (top, colour) = box.Fills[i];
+            var foot = i + 1 < box.Fills.Count ? box.Fills[i + 1].Top : bottom;
+
+            if (foot <= top) continue;
+
+            box.Page.Rectangles.Add(new PositionedRectangle
+            {
+                X = box.Left, Y = top, Width = box.Right - box.Left, Height = foot - top,
+                Color = colour
+            });
+        }
+
+        void Bar(double x, double y, double width, double height, BorderEdge line)
+        {
+            if (width <= 0 || height <= 0) return;
+
+            box.Page.Rectangles.Add(new PositionedRectangle
+            {
+                X = x, Y = y, Width = width, Height = height, Color = line.GetColor()
+            });
+        }
+
+        // The sides stop at the box; the top and bottom run the whole way across it, corners and
+        // all, which is the same ground Word covers with a bar and a square at each end.
+        if (borders.Top is { } top2)
+            Bar(box.Left - leftWeight, box.Top - topWeight,
+                box.Right - box.Left + leftWeight + rightWeight, topWeight, top2.Line);
+
+        if (borders.Bottom is { } foot2)
+            Bar(box.Left - leftWeight, bottom,
+                box.Right - box.Left + leftWeight + rightWeight, bottomWeight, foot2.Line);
+
+        if (borders.Left is { } side)
+            Bar(box.Left - leftWeight, box.Top, leftWeight, bottom - box.Top, side.Line);
+
+        if (borders.Right is { } other)
+            Bar(box.Right, box.Top, rightWeight, bottom - box.Top, other.Line);
+
+        if (borders.Between is { } between)
+        {
+            foreach (var y in box.Between)
+                Bar(box.Left, y, box.Right - box.Left, BorderWeight(between), between.Line);
+        }
+
+        if (ours) cursor.Y = bottom + bottomWeight;
+    }
+
+    /// <summary>
     /// Paints the background of the paragraph a line belongs to, behind that line.
     /// </summary>
     /// <remarks>
@@ -747,10 +928,14 @@ internal sealed class LayoutEngine(
                     break;
 
                 case Table table:
+                    CloseBox(cursor);
                     LayoutTable(cursor, table);
                     break;
             }
         }
+
+        // Whatever box the last paragraph left open is drawn where the flow ends.
+        CloseBox(cursor);
     }
 
     private void LayoutParagraph(
@@ -817,6 +1002,17 @@ internal sealed class LayoutEngine(
         {
             cursor.Y += Math.Max(cursor.PendingSpaceAfter, spaceBefore);
         }
+
+        // The box round the paragraph, which the one before it may already have opened. Closing
+        // the old one takes the room its foot needs, so it happens before this paragraph's own
+        // lines are placed and after the space between them has been made.
+        OpenOrContinueBox(cursor, format);
+
+        // Where this paragraph's own background begins inside the box: at the box's top if it
+        // opened it, and where the paragraph before it ended if it did not.
+        var boxFillTop = _openBox is { } opened
+            ? opened.Fills.Count == 0 ? opened.Top : opened.Bottom
+            : 0;
 
         // Anchored drawings are placed before the paragraph's own text is composed, so that its
         // very first line already flows around them.
@@ -939,6 +1135,12 @@ internal sealed class LayoutEngine(
 
             Place(cursor, line, index, ordinal, format.KeepNext, footnoteIds, footnotes);
             emitted++;
+        }
+
+        if (format.Borders is not null && _openBox is { } grown &&
+            format.Shading.Resolve() is { } fill)
+        {
+            grown.Fills.Add((boxFillTop, fill));
         }
 
         var spaceAfter = format.SpaceAfterPoints;
@@ -1126,13 +1328,18 @@ internal sealed class LayoutEngine(
 
         RecordFieldPages(cursor.Page, line);
 
-        ShadeLine(cursor.Page, line, cursor.Left, cursor.Width, cursor.Y);
+        // A paragraph inside a box is shaded by the box, which reaches further than a line does.
+        if (_openBox is null) ShadeLine(cursor.Page, line, cursor.Left, cursor.Width, cursor.Y);
 
         var baseline = EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
         NumberLine(cursor, line, baseline);
 
         CommitFootnotes(cursor, footnotes, line.Height);
         cursor.Y += line.Height;
+
+        // The box round the paragraph reaches to the foot of its last line, which is where the
+        // line was drawn to rather than where the arithmetic left the flow.
+        if (_openBox is { } box) box.Bottom = Grid.Snap(cursor.Y);
     }
 
 

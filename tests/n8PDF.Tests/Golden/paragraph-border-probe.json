@@ -1,0 +1,463 @@
+{
+  "pageCount": 7,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 42.656, "font": "Times New Roman", "size": 12, "text": "The box."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.65, "font": "Times New Roman", "size": 12, "text": "Rail above."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 111.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 104.977, "font": "Times New Roman", "size": 12, "text": "One line inside a box."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 126.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 141.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 454.869, "font": "Times New Roman", "size": 12, "text": "Three lines inside a box, which needs enough words in it to take three lines of the measure and"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 155.28,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 335.596, "font": "Times New Roman", "size": 12, "text": "so to show where the sides of the box run down the page beside them."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 169.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 55.324, "font": "Times New Roman", "size": 12, "text": "Rail below."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 51.305, "font": "Times New Roman", "size": 12, "text": "The space."}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 98.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 85.986, "font": "Times New Roman", "size": 12, "text": "Space of 0 points."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 112.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 131.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 85.986, "font": "Times New Roman", "size": 12, "text": "Space of 4 points."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 150.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 177.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 91.986, "font": "Times New Roman", "size": 12, "text": "Space of 12 points."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 204,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 250.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 91.986, "font": "Times New Roman", "size": 12, "text": "Space of 31 points."}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 295.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 15,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 57.316, "font": "Times New Roman", "size": 12, "text": "The weight."}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 97.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 97.98, "font": "Times New Roman", "size": 12, "text": "Weight of 2 eighths."}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 111.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 126.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 97.98, "font": "Times New Roman", "size": 12, "text": "Weight of 8 eighths."}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 141.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 158.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 103.98, "font": "Times New Roman", "size": 12, "text": "Weight of 24 eighths."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 174.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 194.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 103.98, "font": "Times New Roman", "size": 12, "text": "Weight of 48 eighths."}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 214.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 24,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 109.641, "font": "Times New Roman", "size": 12, "text": "Indents and alignment."}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 98.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 108, "width": 167.602, "font": "Times New Roman", "size": 12, "text": "Indented half an inch from the left."}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 112.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 127.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 174.275, "font": "Times New Roman", "size": 12, "text": "Indented half an inch from the right."}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 142.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 157.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 213.533, "width": 184.934, "font": "Times New Roman", "size": 12, "text": "Centred, and shorter than the measure."}
+          ]
+        },
+        {
+          "paragraph": 30,
+          "baselineY": 172.32,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 31,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 86.953, "font": "Times New Roman", "size": 12, "text": "One after another."}
+          ]
+        },
+        {
+          "paragraph": 32,
+          "baselineY": 98.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 154.945, "font": "Times New Roman", "size": 12, "text": "First of three, all bordered alike."}
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 111.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 78.305, "font": "Times New Roman", "size": 12, "text": "Second of three."}
+          ]
+        },
+        {
+          "paragraph": 34,
+          "baselineY": 125.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 69.639, "font": "Times New Roman", "size": 12, "text": "Third of three."}
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 140.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 36,
+          "baselineY": 155.52,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 198.955, "font": "Times New Roman", "size": 12, "text": "First of two, with a border between them."}
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 170.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 72.322, "font": "Times New Roman", "size": 12, "text": "Second of two."}
+          ]
+        },
+        {
+          "paragraph": 38,
+          "baselineY": 185.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 39,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 117.639, "font": "Times New Roman", "size": 12, "text": "Against the background."}
+          ]
+        },
+        {
+          "paragraph": 40,
+          "baselineY": 98.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 146.613, "font": "Times New Roman", "size": 12, "text": "Bordered and shaded together."}
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 112.8,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 42,
+          "baselineY": 139.92,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 220.266, "font": "Times New Roman", "size": 12, "text": "Shaded, bordered, and twelve points of space."}
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 166.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 44,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 74.309, "font": "Times New Roman", "size": 12, "text": "One side alone."}
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 97.2,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 104.977, "font": "Times New Roman", "size": 12, "text": "A rule under this line."}
+          ]
+        },
+        {
+          "paragraph": 46,
+          "baselineY": 111.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 126.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 98.309, "font": "Times New Roman", "size": 12, "text": "A rule over this one."}
+          ]
+        },
+        {
+          "paragraph": 48,
+          "baselineY": 140.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 154.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 104.309, "font": "Times New Roman", "size": 12, "text": "A bar beside this one."}
+          ]
+        },
+        {
+          "paragraph": 50,
+          "baselineY": 168.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.996, "font": "Times New Roman", "size": 12, "text": "-"}
+          ]
+        }
+      ]
+    }
+  ]
+}

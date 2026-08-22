@@ -256,6 +256,7 @@ internal sealed class StyleResolver(
 
         // Kept apart rather than resolved as they arrive: a style may give the fill and the
         // paragraph the pattern, and each part carries down the chain on its own.
+        private ParagraphBorders? _borders;
         private string? _shadingFill;
         private string? _shadingPattern;
         private string? _shadingColor;
@@ -299,6 +300,7 @@ internal sealed class StyleResolver(
             if (source.KeepNext is { } keepNext) _keepNext = keepNext;
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
             if (source.SuppressLineNumbers is { } suppress) _suppressLineNumbers = suppress;
+            if (source.Borders is { } borders) _borders = borders;
             if (source.ShadingFill is { } shadingFill) _shadingFill = shadingFill;
             if (source.ShadingPattern is { } shadingPattern) _shadingPattern = shadingPattern;
             if (source.ShadingColor is { } shadingColor) _shadingColor = shadingColor;
@@ -337,6 +339,7 @@ internal sealed class StyleResolver(
             KeepNext = _keepNext ?? false,
             KeepLines = _keepLines ?? false,
             SuppressLineNumbers = _suppressLineNumbers ?? false,
+            Borders = _borders,
             Shading = new Shading(_shadingFill, _shadingPattern, _shadingColor),
             PageBreakBefore = _pageBreakBefore ?? false,
             WidowControl = _widowControl ?? true,

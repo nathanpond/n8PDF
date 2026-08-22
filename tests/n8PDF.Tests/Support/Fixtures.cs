@@ -3061,6 +3061,108 @@ public static class Fixtures
                 return builder;
             },
 
+            // The box round a paragraph, which is drawn and nothing else: every question about it
+            // is a question about where the ink is. Seven pages, each asking one:
+            //
+            //   1  where the four sides stand against the text, on one line and on three
+            //   2  what the space of each side does, at nothing, four points, twelve and
+            //      thirty-one, which is as much as the format allows
+            //   3  what the weight does, from a quarter point to six
+            //   4  whether the indents move it, and whether centring the text does
+            //   5  what two and three paragraphs of the same border in a row make — one box or
+            //      several — and what a declared border between them changes
+            //   6  how it stands against the paragraph's own background, which reaches a fiftieth
+            //      of an inch past the text
+            //   7  one side on its own: the rule under a heading, and the bar down the margin
+            ["paragraph-border-probe"] = () =>
+            {
+                string Edge(string name, int size = 8, int space = 0, string colour = "000000") =>
+                    $"<w:{name} w:val=\"single\" w:sz=\"{size}\" w:space=\"{space}\" w:color=\"{colour}\"/>";
+
+                string Box(int size = 8, int space = 0, bool between = false, bool bar = false,
+                    string? sides = null) =>
+                    "<w:pBdr>" +
+                    string.Concat((sides ?? "top left bottom right").Split(' ',
+                            StringSplitOptions.RemoveEmptyEntries)
+                        .Select(side => Edge(side, size, space))) +
+                    (between ? Edge("between", size, space) : string.Empty) +
+                    (bar ? Edge("bar", size, space) : string.Empty) +
+                    "</w:pBdr>";
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    first = false;
+                }
+
+                void Rail(string text = "-") => builder.AddParagraph(text, ZeroSpacing, Times12);
+
+                void Bordered(string text, string border, string? extra = null) =>
+                    builder.AddParagraph(text, border + ZeroSpacing + extra, Times12);
+
+                Page("The box.");
+                Rail("Rail above.");
+                Bordered("One line inside a box.", Box());
+                Rail();
+                Bordered(
+                    "Three lines inside a box, which needs enough words in it to take three lines "
+                    + "of the measure and so to show where the sides of the box run down the page "
+                    + "beside them.", Box());
+                Rail("Rail below.");
+
+                Page("The space.");
+                foreach (var space in new[] { 0, 4, 12, 31 })
+                {
+                    Bordered($"Space of {space} points.", Box(space: space));
+                    Rail();
+                }
+
+                Page("The weight.");
+                foreach (var size in new[] { 2, 8, 24, 48 })
+                {
+                    Bordered($"Weight of {size} eighths.", Box(size));
+                    Rail();
+                }
+
+                Page("Indents and alignment.");
+                Bordered("Indented half an inch from the left.", Box(), "<w:ind w:left=\"720\"/>");
+                Rail();
+                Bordered("Indented half an inch from the right.", Box(), "<w:ind w:right=\"720\"/>");
+                Rail();
+                Bordered("Centred, and shorter than the measure.", Box(), "<w:jc w:val=\"center\"/>");
+                Rail();
+
+                Page("One after another.");
+                Bordered("First of three, all bordered alike.", Box());
+                Bordered("Second of three.", Box());
+                Bordered("Third of three.", Box());
+                Rail();
+                Bordered("First of two, with a border between them.", Box(between: true));
+                Bordered("Second of two.", Box(between: true));
+                Rail();
+
+                Page("Against the background.");
+                Bordered("Bordered and shaded together.",
+                    Box() + "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"DEEBF7\"/>");
+                Rail();
+                Bordered("Shaded, bordered, and twelve points of space.",
+                    Box(space: 12) + "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"FCE4D6\"/>");
+                Rail();
+
+                Page("One side alone.");
+                Bordered("A rule under this line.", Box(sides: "bottom"));
+                Rail();
+                Bordered("A rule over this one.", Box(sides: "top"));
+                Rail();
+                Bordered("A bar beside this one.", Box(sides: "", bar: true));
+                Rail();
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

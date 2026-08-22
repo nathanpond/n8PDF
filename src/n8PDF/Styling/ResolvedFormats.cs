@@ -192,6 +192,9 @@ internal sealed record ResolvedParagraphFormat
     /// </summary>
     public bool SuppressLineNumbers { get; init; }
 
+    /// <summary>The box round this paragraph, from <c>w:pBdr</c>, or null where it has none.</summary>
+    public ParagraphBorders? Borders { get; init; }
+
     /// <summary>The background behind this paragraph, from <c>w:shd</c>.</summary>
     public Shading Shading { get; init; }
 
