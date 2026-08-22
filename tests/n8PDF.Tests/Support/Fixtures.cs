@@ -20,12 +20,13 @@ public static class Fixtures
         bool italic = false,
         bool strike = false,
         string? color = null,
+        string? highlight = null,
         string? underline = null,
         int? kerningHalfPoints = null,
         int? positionHalfPoints = null) =>
         DocxBuilder.RunProperties(
             font: TimesNewRoman, halfPoints: halfPoints, bold: bold, italic: italic,
-            strike: strike, color: color, underline: underline,
+            strike: strike, color: color, highlight: highlight, underline: underline,
             kerningHalfPoints: kerningHalfPoints, positionHalfPoints: positionHalfPoints);
 
     private static readonly string Times12 = Times();
@@ -2184,6 +2185,173 @@ public static class Fixtures
                     ("struck through, ", Times(strike: true)),
                     ("red.", Times(color: "CC0000"))
                 ]),
+
+            // What a highlight covers. Word paints a rectangle behind the run and writes nothing
+            // else about it, so every question here is a question about ink: which colour each of
+            // the sixteen names is, how far the box reaches above and below the baseline and what
+            // decides that, and where it starts and stops along the line.
+            //
+            // Four pages. The names, one to a line, so each fill can be read off on its own. Then
+            // the box at four sizes in Times and two in Arial, since a box that follows the run's
+            // own face and one that follows the line are the same thing until a line holds two
+            // sizes. Then the joins: a space between two highlighted words, highlighted or not,
+            // and a highlighted run that wraps, where the trailing space at the break is the
+            // question. Then a line whose highlighted run is the shorter of two, which is what
+            // separates the run's box from the line's.
+            ["highlight-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                string[] names =
+                [
+                    "yellow", "green", "cyan", "magenta", "blue", "red", "darkBlue", "darkCyan",
+                    "darkGreen", "darkMagenta", "darkRed", "darkYellow", "darkGray", "lightGray",
+                    "black", "white"
+                ];
+
+                foreach (var name in names)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times(24, highlight: name)}</w:rPr>" +
+                        $"<w:t>{name}</w:t></w:r></w:p>");
+                }
+
+                // The box against the type: one word highlighted between two that are not, so the
+                // baseline is read off the same line the box is measured on.
+                var first = true;
+                void Sized(string face, int halfPoints)
+                {
+                    var plain = DocxBuilder.RunProperties(font: face, halfPoints: halfPoints);
+                    var lit = DocxBuilder.RunProperties(
+                        font: face, halfPoints: halfPoints, highlight: "yellow");
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(first ? ZeroSpacingNewPage : ZeroSpacing)}</w:pPr>" +
+                        $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\">ab </w:t></w:r>" +
+                        $"<w:r><w:rPr>{lit}</w:rPr><w:t>lit</w:t></w:r>" +
+                        $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\"> cd</w:t></w:r></w:p>");
+
+                    first = false;
+                }
+
+                Sized(TimesNewRoman, 16);
+                Sized(TimesNewRoman, 24);
+                Sized(TimesNewRoman, 48);
+                Sized(TimesNewRoman, 96);
+                Sized("Arial", 24);
+                Sized("Arial", 48);
+
+                // The joins. The space between two highlighted words decides whether a highlight
+                // is one box or two, and a run that wraps decides what happens to the space the
+                // break falls on.
+                var plain12 = Times12;
+                var lit12 = Times(24, highlight: "yellow");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">one </w:t></w:r>" +
+                    $"<w:r><w:rPr>{lit12}</w:rPr><w:t>two</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> </w:t></w:r>" +
+                    $"<w:r><w:rPr>{lit12}</w:rPr><w:t>four</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> five</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">one </w:t></w:r>" +
+                    $"<w:r><w:rPr>{lit12}</w:rPr><w:t xml:space=\"preserve\">two three four</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> five</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{lit12}</w:rPr><w:t xml:space=\"preserve\">" +
+                    "A highlighted run long enough that it has to be broken, so that what the " +
+                    "break does to the space it falls on can be read off the page rather than " +
+                    "guessed at.</w:t></w:r></w:p>");
+
+                // A paragraph whose own mark is highlighted, with a short last line: whether the
+                // box reaches past the last character is the mark's doing.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}<w:rPr><w:highlight w:val=\"yellow\"/></w:rPr></w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t>Marked paragraph.</w:t></w:r></w:p>");
+
+                // Two sizes on one line, the highlighted one the smaller: a box that follows the
+                // line would be as tall as the thirty-six point run beside it.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                    $"<w:r><w:rPr>{lit12}</w:rPr><w:t xml:space=\"preserve\">small </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(72)}</w:rPr><w:t>TALL</w:t></w:r></w:p>");
+
+                // And the other way about, the highlighted run the taller of the two.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">small </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(72, highlight: "yellow")}</w:rPr><w:t>TALL</w:t></w:r></w:p>");
+
+                return builder;
+            },
+
+            // What a shaded paragraph covers. Four pages, one question each: how far the fill
+            // reaches above the first line and below the last, whether the indents move its edges,
+            // whether two shaded paragraphs in a row are one box or two, and what a pattern —
+            // pct25 and the rest — makes of the two colours it is given.
+            ["paragraph-shading-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                string Shade(string fill, string pattern = "clear", string color = "auto") =>
+                    $"<w:shd w:val=\"{pattern}\" w:color=\"{color}\" w:fill=\"{fill}\"/>";
+
+                void Rail(string text) => builder.AddParagraph(text, ZeroSpacing, Times12);
+
+                // Page one: the vertical extent, against rails above and below. The spacing is
+                // where the question is — a fill that covers the room a paragraph asks for before
+                // and after it looks nothing like one that covers its lines.
+                Rail("Rail above the first.");
+                builder.AddParagraph("One shaded line, no spacing.",
+                    Shade("FFF2CC") + ZeroSpacing, Times12);
+                Rail("Rail between.");
+                builder.AddParagraph("One shaded line with twelve points before and after it.",
+                    Shade("FFF2CC") + "<w:spacing w:before=\"240\" w:after=\"240\"/>", Times12);
+                Rail("Rail between again.");
+                builder.AddParagraph(
+                    "A shaded paragraph long enough to take three lines of the measure, so that "
+                    + "the fill has an inside as well as a top and a bottom, and a last line that "
+                    + "stops short of the right margin.",
+                    Shade("FFF2CC") + ZeroSpacing, Times12);
+                Rail("Rail below.");
+
+                // Page two: the horizontal extent. An indent moves the text; whether it moves the
+                // fill with it is the whole question, and the centred paragraph asks whether the
+                // fill follows the text or the measure.
+                builder.AddParagraph("Indents.", ZeroSpacingNewPage, Times12);
+                builder.AddParagraph("Half an inch in from the left.",
+                    Shade("DEEBF7") + ZeroSpacing + "<w:ind w:left=\"720\"/>", Times12);
+                builder.AddParagraph("Half an inch in from the right.",
+                    Shade("DEEBF7") + ZeroSpacing + "<w:ind w:right=\"720\"/>", Times12);
+                builder.AddParagraph("First line indented, the rest not.",
+                    Shade("DEEBF7") + ZeroSpacing + "<w:ind w:firstLine=\"720\"/>", Times12);
+                builder.AddParagraph("Centred, and shorter than the measure.",
+                    Shade("DEEBF7") + ZeroSpacing + "<w:jc w:val=\"center\"/>", Times12);
+
+                // Page three: two in a row, the same fill and then a different one.
+                builder.AddParagraph("Two in a row.", ZeroSpacingNewPage, Times12);
+                builder.AddParagraph("The first of two, shaded.", Shade("E2EFDA") + ZeroSpacing, Times12);
+                builder.AddParagraph("The second of two, the same.", Shade("E2EFDA") + ZeroSpacing, Times12);
+                builder.AddParagraph("The third, a different fill.", Shade("FCE4D6") + ZeroSpacing, Times12);
+                Rail("Rail below the three.");
+
+                // Page four: the patterns. A pattern is two colours and a share, and what Word
+                // does with the pair is not written down anywhere but the page.
+                builder.AddParagraph("Patterns.", ZeroSpacingNewPage, Times12);
+                foreach (var pattern in new[] { "pct10", "pct25", "pct50", "pct75", "solid" })
+                {
+                    builder.AddParagraph($"Pattern {pattern}, red on yellow.",
+                        Shade("FFFF00", pattern, "FF0000") + ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
 
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)

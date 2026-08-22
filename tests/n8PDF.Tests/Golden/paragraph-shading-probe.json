@@ -1,0 +1,221 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 94.641, "font": "Times New Roman", "size": 12, "text": "Rail above the first."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 137.965, "font": "Times New Roman", "size": 12, "text": "One shaded line, no spacing."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 65.977, "font": "Times New Roman", "size": 12, "text": "Rail between."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 136.8,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 260.584, "font": "Times New Roman", "size": 12, "text": "One shaded line with twelve points before and after it."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 163.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 94.963, "font": "Times New Roman", "size": 12, "text": "Rail between again."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 177.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 457.529, "font": "Times New Roman", "size": 12, "text": "A shaded paragraph long enough to take three lines of the measure, so that the fill has an inside"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 191.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 383.256, "font": "Times New Roman", "size": 12, "text": "as well as a top and a bottom, and a last line that stops short of the right margin."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 204.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 55.324, "font": "Times New Roman", "size": 12, "text": "Rail below."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 7,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 38.326, "font": "Times New Roman", "size": 12, "text": "Indents."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 108, "width": 137.619, "font": "Times New Roman", "size": 12, "text": "Half an inch in from the left."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 144.293, "font": "Times New Roman", "size": 12, "text": "Half an inch in from the right."}
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 108, "width": 149.643, "font": "Times New Roman", "size": 12, "text": "First line indented, the rest not."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 213.533, "width": 184.934, "font": "Times New Roman", "size": 12, "text": "Centred, and shorter than the measure."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 67.318, "font": "Times New Roman", "size": 12, "text": "Two in a row."}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 117.305, "font": "Times New Roman", "size": 12, "text": "The first of two, shaded."}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 140.291, "font": "Times New Roman", "size": 12, "text": "The second of two, the same."}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 119.953, "font": "Times New Roman", "size": 12, "text": "The third, a different fill."}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 99.967, "font": "Times New Roman", "size": 12, "text": "Rail below the three."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 17,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 41.66, "font": "Times New Roman", "size": 12, "text": "Patterns."}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.633, "font": "Times New Roman", "size": 12, "text": "Pattern pct10, red on yellow."}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.633, "font": "Times New Roman", "size": 12, "text": "Pattern pct25, red on yellow."}
+          ]
+        },
+        {
+          "paragraph": 20,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.633, "font": "Times New Roman", "size": 12, "text": "Pattern pct50, red on yellow."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 138.633, "font": "Times New Roman", "size": 12, "text": "Pattern pct75, red on yellow."}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 135.311, "font": "Times New Roman", "size": 12, "text": "Pattern solid, red on yellow."}
+          ]
+        }
+      ]
+    }
+  ]
+}

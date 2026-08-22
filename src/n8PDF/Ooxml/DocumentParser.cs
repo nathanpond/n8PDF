@@ -1039,6 +1039,12 @@ internal static class DocumentParser
                     properties.SuppressLineNumbers = element.OnOff();
                     break;
 
+                case "shd":
+                    properties.ShadingFill = element.Attr("fill");
+                    properties.ShadingPattern = element.Val();
+                    properties.ShadingColor = element.Attr("color");
+                    break;
+
                 case "pageBreakBefore":
                     properties.PageBreakBefore = element.OnOff();
                     break;

@@ -186,6 +186,9 @@ internal sealed record ResolvedParagraphFormat
     /// </summary>
     public bool SuppressLineNumbers { get; init; }
 
+    /// <summary>The background behind this paragraph, from <c>w:shd</c>.</summary>
+    public Shading Shading { get; init; }
+
     /// <summary>The frame round this paragraph, or null where it has none.</summary>
     public FrameProperties? Frame { get; init; }
 

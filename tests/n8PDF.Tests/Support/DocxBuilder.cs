@@ -1859,6 +1859,7 @@ public sealed class DocxBuilder
         bool smallCaps = false,
         bool strike = false,
         string? color = null,
+        string? highlight = null,
         string? underline = null,
         string? verticalAlign = null,
         string? styleId = null,
@@ -1879,6 +1880,7 @@ public sealed class DocxBuilder
         if (kerningHalfPoints is not null) sb.Append($"<w:kern w:val=\"{kerningHalfPoints}\"/>");
         if (positionHalfPoints is not null) sb.Append($"<w:position w:val=\"{positionHalfPoints}\"/>");
         if (halfPoints is not null) sb.Append($"<w:sz w:val=\"{halfPoints}\"/>");
+        if (highlight is not null) sb.Append($"<w:highlight w:val=\"{highlight}\"/>");
         if (underline is not null) sb.Append($"<w:u w:val=\"{underline}\"/>");
         if (verticalAlign is not null) sb.Append($"<w:vertAlign w:val=\"{verticalAlign}\"/>");
 

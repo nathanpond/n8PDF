@@ -243,6 +243,12 @@ internal sealed class StyleResolver(
         private bool? _keepNext;
         private bool? _keepLines;
         private bool? _suppressLineNumbers;
+
+        // Kept apart rather than resolved as they arrive: a style may give the fill and the
+        // paragraph the pattern, and each part carries down the chain on its own.
+        private string? _shadingFill;
+        private string? _shadingPattern;
+        private string? _shadingColor;
         private bool? _suppressAutoHyphens;
         private FrameProperties? _frame;
         private bool? _pageBreakBefore;
@@ -283,6 +289,9 @@ internal sealed class StyleResolver(
             if (source.KeepNext is { } keepNext) _keepNext = keepNext;
             if (source.KeepLines is { } keepLines) _keepLines = keepLines;
             if (source.SuppressLineNumbers is { } suppress) _suppressLineNumbers = suppress;
+            if (source.ShadingFill is { } shadingFill) _shadingFill = shadingFill;
+            if (source.ShadingPattern is { } shadingPattern) _shadingPattern = shadingPattern;
+            if (source.ShadingColor is { } shadingColor) _shadingColor = shadingColor;
             if (source.SuppressAutoHyphens is { } whole) _suppressAutoHyphens = whole;
             if (source.Frame is { } frame) _frame = frame;
             if (source.PageBreakBefore is { } pageBreak) _pageBreakBefore = pageBreak;
@@ -318,6 +327,7 @@ internal sealed class StyleResolver(
             KeepNext = _keepNext ?? false,
             KeepLines = _keepLines ?? false,
             SuppressLineNumbers = _suppressLineNumbers ?? false,
+            Shading = new Shading(_shadingFill, _shadingPattern, _shadingColor),
             PageBreakBefore = _pageBreakBefore ?? false,
             WidowControl = _widowControl ?? true,
             OutlineLevel = _outlineLevel,

@@ -351,6 +351,36 @@ Every fixture written by hand here sets its spacing to a single line, where a mu
 the two readings identical. It took a document Word wrote — `brochure`, whose picture paragraph
 inherits Word's 1.08 — to tell them apart, and the error it found was 6.8 points.
 
+### What a highlight and a shaded paragraph cover
+
+Both are filled rectangles behind text, and both are measured rather than assumed — `highlight-probe`
+and `paragraph-shading-probe`, compared against Word's own ink rather than its text.
+
+A **highlight** is as wide as the run and as tall as the **line**, both edges put on the grid. The
+line, not the run: a twelve point run beside a thirty-six point one is highlighted the full
+forty-one points the two share. Its ends are where the run's are — a space inside the line is
+covered, a space dropped at a line break is not, and a plain space between two highlighted words
+leaves two boxes rather than one long one. A highlighted paragraph mark paints nothing at all. The
+sixteen names are the sixteen colours of an old display adapter, each channel off, half on at 128,
+or full; they are listed in `HighlightColors` and read off Word's page, not off a table.
+
+A **shaded paragraph** is one rectangle per line, each covering its line box exactly, so the fills
+of a paragraph — and of two shaded paragraphs in a row — tile without a seam. It reaches a fiftieth
+of an inch past the paragraph's own edges on both sides: text from 72 to 540 is filled from 70.56 to
+541.44. The paragraph's indents move it and the *first line's* indent does not, and centring the text
+does not either — it is the paragraph that is shaded, not the line. A pattern is a straight blend of
+the two colours it is given: `pct25` of red on yellow is #FFBF00, `solid` is the pattern colour
+alone, and Word works the blend in whole 255ths with a half going down. The named textures —
+`horzStripe` and its kind — are hatchings rather than blends and take the fill alone.
+
+What a line paints now comes off the page with the line. A line at the foot of a page can be taken
+off and laid again on the next — widow control alone moves two of them — and its fill has to go
+with it or the page it left keeps a rectangle under empty space. The same bookkeeping carries a bar
+tab's rule and a form field's box, neither of which was taken off before this.
+
+Run shading (a `w:shd` inside `w:rPr`) is not drawn: it is a different rectangle from either of
+these and nothing here has measured it.
+
 ### How far inside its own edges a shape sets its text
 
 A text box holds its text clear of its edges by two things added together: the inset the shape
@@ -1603,7 +1633,8 @@ from `sectPr`, paragraphs and runs, `xml:space` handling,
 line and page breaks, line breaking by the Unicode algorithm (so the scripts written without
 spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wraps them), tabs
 (left, centre, right, decimal and bar stops, with leaders), font family via theme resolution, size, bold,
-italic, underline, strikethrough, colour, caps, super/subscript, character spacing and scaling,
+italic, underline, strikethrough, colour, highlighting, caps, super/subscript, character spacing
+and scaling, the background behind a paragraph (`w:shd`, patterns included),
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.

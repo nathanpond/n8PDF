@@ -220,6 +220,17 @@ internal sealed class ParagraphProperties
     /// <summary>Whether the lines of this paragraph are passed over by the margin's numbering.</summary>
     public bool? SuppressLineNumbers { get; set; }
 
+    /// <summary>
+    /// The background behind this paragraph, from <c>w:shd</c>: a fill, a pattern and the colour
+    /// the pattern is laid on in. Each part is inherited on its own through the cascade, which is
+    /// why the three are kept apart rather than resolved here.
+    /// </summary>
+    public string? ShadingFill { get; set; }
+
+    public string? ShadingPattern { get; set; }
+
+    public string? ShadingColor { get; set; }
+
     public bool? PageBreakBefore { get; set; }
 
     /// <summary>Suppress widow and orphan control. Word enables the control by default.</summary>

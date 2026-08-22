@@ -584,6 +584,53 @@ internal sealed class LayoutEngine(
     private const double BarTabWidthPoints = 0.24;
 
     /// <summary>
+    /// How far a paragraph's background reaches past its own edges: a fiftieth of an inch, on
+    /// every side that has an edge to reach past.
+    /// </summary>
+    /// <remarks>
+    /// paragraph-shading-probe measures it. A shaded paragraph at the margins of a letter page
+    /// comes out of Word as a rectangle from 70.56 to 541.44 where the text runs from 72 to 540,
+    /// and half an inch of indent moves the near edge with it — 106.56 against text at 108. The
+    /// far edge stays where it was, so it is the paragraph's own edges the fill is measured from
+    /// and not the page's.
+    /// </remarks>
+    private const double ShadingBleedPoints = 1.44;
+
+    /// <summary>
+    /// Paints the background of the paragraph a line belongs to, behind that line.
+    /// </summary>
+    /// <remarks>
+    /// One rectangle per line rather than one per paragraph: Word writes them that way, two lines
+    /// of a paragraph coming out as two fills that meet, and so do two shaded paragraphs one after
+    /// the other. What the fill covers vertically is the line box — the exact top and the exact
+    /// foot, each put on the grid — so the fills of a column tile it with no seam between them and
+    /// no overlap, which a height rounded on its own would not do.
+    ///
+    /// The first-line indent is left out of it deliberately: the probe's indented-first-line
+    /// paragraph is shaded across the full measure, so it is the paragraph's indents that the fill
+    /// follows and not the line's. A centred paragraph is shaded the same way, whatever its text
+    /// does.
+    /// </remarks>
+    private static void ShadeLine(
+        LaidOutPage page, ComposedLine line, double contentLeft, double contentWidth, double top)
+    {
+        if (line.Shading is not { } fill) return;
+
+        var left = Grid.Snap(contentLeft + line.ShadeLeft - ShadingBleedPoints);
+        var right = Grid.Snap(contentLeft + contentWidth - line.ShadeRight + ShadingBleedPoints);
+        if (right <= left) return;
+
+        page.Rectangles.Add(new PositionedRectangle
+        {
+            X = left,
+            Y = Grid.Snap(top),
+            Width = right - left,
+            Height = Grid.Snap(top + line.Height) - Grid.Snap(top),
+            Color = fill
+        });
+    }
+
+    /// <summary>
     /// Word draws the rule between columns a hundredth of an inch and a bit wide, measured from
     /// its export of the <c>columns</c> fixture.
     /// </summary>
@@ -1054,6 +1101,7 @@ internal sealed class LayoutEngine(
         int LineIndex,
         int RuleIndex,
         int ImageIndex,
+        int RectangleIndex,
         IReadOnlyList<int> FootnoteIds,
         int FootnoteCount,
         double FootnoteHeight,
@@ -1069,6 +1117,7 @@ internal sealed class LayoutEngine(
         var placed = new PlacedLine(
             line, cursor.Y,
             cursor.Page.Lines.Count, cursor.Page.Rules.Count, cursor.Page.Images.Count,
+            cursor.Page.Rectangles.Count,
             footnoteIds, footnotes.Flows.Count, footnotes.Height,
             ordinal, paragraphIndex, keepNext);
 
@@ -1076,6 +1125,8 @@ internal sealed class LayoutEngine(
         cursor.PagePlaced.Add((cursor.ColumnIndex, _sectionOrdinal, placed));
 
         RecordFieldPages(cursor.Page, line);
+
+        ShadeLine(cursor.Page, line, cursor.Left, cursor.Width, cursor.Y);
 
         var baseline = EmitLine(cursor.Page, line, cursor.Left, cursor.Y, paragraphIndex, TabSettings());
         NumberLine(cursor, line, baseline);
@@ -1551,6 +1602,12 @@ internal sealed class LayoutEngine(
         page.Rules.RemoveRange(first.RuleIndex, page.Rules.Count - first.RuleIndex);
         page.Images.RemoveRange(first.ImageIndex, page.Images.Count - first.ImageIndex);
 
+        // What the lines painted goes with them: a paragraph's background, a highlight behind a
+        // run, the bar of a tab stop, the box of a form field. A line taken off the page and laid
+        // again on the next would otherwise leave its fill behind on the page it left.
+        page.Rectangles.RemoveRange(
+            first.RectangleIndex, page.Rectangles.Count - first.RectangleIndex);
+
         // The notes these lines referred to belong to wherever the lines end up, so the page gets
         // back both them and the space it set aside for them.
         var flows = 0;
@@ -1789,6 +1846,24 @@ internal sealed class LayoutEngine(
         // the spacing between them intact.
         for (var i = first; i < lines.Count; i++)
             lines[i] = ShiftLine(lines[i], delta);
+
+        // A background, a highlight, a bar tab and a form field's box are all rectangles held
+        // apart from the lines that put them there, so they move with the text or they stay
+        // behind under empty space.
+        var rectangles = cursor.Page.Rectangles;
+        for (var i = 0; i < rectangles.Count; i++)
+        {
+            if (rectangles[i].Y < region.Top) continue;
+
+            rectangles[i] = new PositionedRectangle
+            {
+                X = rectangles[i].X,
+                Y = rectangles[i].Y + delta,
+                Width = rectangles[i].Width,
+                Height = rectangles[i].Height,
+                Color = rectangles[i].Color
+            };
+        }
 
         // Underlines and strikethroughs are held separately from the text they belong to, so
         // they have to move with it or they stay behind under empty space.
@@ -4810,6 +4885,13 @@ internal sealed class LayoutEngine(
         // its offset, never a grid step off it, however the rounding of the line falls.
         var restingY = top + line.Ascent;
 
+        // What a highlight covers, on the other hand, is the line box exactly as the flow reached
+        // it: both edges put on the grid from the unrounded position, so that the boxes of one
+        // line and the next meet. Reading them off the rounded baseline instead leaves a quarter
+        // point of daylight between every other pair, which highlight-probe shows Word has none of.
+        var boxTop = Grid.Snap(top);
+        var boxHeight = Grid.Snap(top + line.Height) - boxTop;
+
         // What the line draws, on the other hand — a bar tab down its side, a footnote's separator
         // — hangs off the line box as it was written, or it stands a fraction of a step away from
         // the text it belongs to.
@@ -4861,6 +4943,26 @@ internal sealed class LayoutEngine(
             };
 
             laidOut.Texts.Add(text);
+
+            // The highlight goes under the text and over the paragraph's own background, which is
+            // the order the two are added to the page in. It covers the run as the line set it —
+            // a space inside the line included, one dropped at a break not — and is the height of
+            // the line rather than of the run: highlight-probe's twelve point run beside a
+            // thirty-six point one is highlighted the full forty-one points of the line they share.
+            if (HighlightColors.Resolve(segment.Format.HighlightColor) is { } lit && boxHeight > 0)
+            {
+                var litLeft = Grid.Snap(text.X);
+
+                page.Rectangles.Add(new PositionedRectangle
+                {
+                    X = litLeft,
+                    Y = boxTop,
+                    Width = Grid.Snap(text.X + segment.Width) - litLeft,
+                    Height = boxHeight,
+                    Color = lit
+                });
+            }
+
             AddDecorations(page, text);
         }
 
@@ -5279,6 +5381,13 @@ internal sealed class LayoutEngine(
             // Whether the margin's numbering passes it over belongs to the paragraph, and the line
             // has to carry it: a line outlives the paragraph that composed it.
             line.SuppressNumber = format.SuppressLineNumbers;
+
+            // The background behind the paragraph rides on the line for the same reason, and the
+            // indents with it: a shaded paragraph is one filled rectangle per line, and each is
+            // drawn where the paragraph's own edges are rather than where its text reached.
+            line.Shading = format.Shading.Resolve();
+            line.ShadeLeft = format.IndentLeftPoints;
+            line.ShadeRight = format.IndentRightPoints;
 
             return line;
         }
@@ -8039,5 +8148,12 @@ internal sealed class LayoutEngine(
 
         public double IndentLeft { get; init; }
 
+        /// <summary>The colour behind this line, from its paragraph's <c>w:shd</c>.</summary>
+        public (double Red, double Green, double Blue)? Shading { get; set; }
+
+        /// <summary>The paragraph's own indents, which are where its background begins and ends.</summary>
+        public double ShadeLeft { get; set; }
+
+        public double ShadeRight { get; set; }
     }
 }
