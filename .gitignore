@@ -14,3 +14,6 @@ riderModule.iml
 
 # Word's owner-lock files, left beside any document it has open.
 ~$*
+
+# Claude Code: the commands and rules are shared, per-machine permissions are not.
+.claude/settings.local.json
