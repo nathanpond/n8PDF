@@ -1104,17 +1104,40 @@ is not thrown away with it:
   the other way round — a narrow one first — and Word keeps them that way, a table being free to
   have rows of different widths.
 - **Its rows keep their own indent**, which is a row's property in Word's model rather than a
-  table's.
+  table's. So does the *first* table's — the merged table stands where the first table's indent
+  puts it, and then each row is indented again by whatever its own table asked for, which means a
+  first table asking for half an inch has its own rows an inch in. That reading is forced by the
+  one page where the first table is the indented one.
 - **What it said about its borders is** thrown away: the line round the merged table is the first
   table's.
 
-**One thing Word does here that this does not.** Where a folded table asks to be indented, Word
-indents its rows *and then refits the whole merged table* — columns and indent together — into the
-width the first table declared: the probe's fourth page comes out with columns of 123.12 and 61.44
-points where they were written 144 and 72, and rows indented 30 points where they asked for 36.
-This indents the rows by what they ask for and leaves the columns alone, so those rows stand 5.54
-points further in than Word's. It is written up in `AdjacentTableTests`, and it is the only page of
-the probe that differs: the rest agrees with Word outright.
+**And where the merged table will not fit, the whole of it is squeezed until it does.** A row that
+overruns — because its own columns are wider, or because it asks to be indented, or both — does not
+hang off the edge: Word fits every row's columns and every row's indent by one scale, so that the
+widest row ends exactly at the width the first table declared. `merged-indent-probe` measures it
+over ten pages:
+
+| the second table | the widest row wants | the scale |
+|---|---|---|
+| indented 18 points | 233.52 | 0.925 |
+| indented 36 | 251.52 | 0.859 |
+| indented 72 | 287.52 | 0.751 |
+| indented 108 | 323.52 | 0.668 |
+| 270 points wide, not indented | 270 | 0.8 |
+| 270 wide and indented 36 | 305.52 | 0.707 |
+| narrow enough to fit indent and all | — | none |
+
+so it is the width that decides it and not the indent, and a table that fits is left alone. What a
+row is fitted *to* is the width the table **declares** rather than what its own columns come to: a
+first table calling itself 180 points wide over a grid of 216 squeezes to 180. The indent an
+overrunning row keeps is measured the way any indent is — to the edge the cell's text stands at,
+so the border and the cell margin are absorbed into it — and is scaled with everything else.
+
+Every row of all ten pages lands within 0.4pt of Word's, and the fourth page of
+`adjacent-tables-probe`, which used to stand 5.54 points out, now lands within 0.03. The residual
+is Word's own rounding of the share each column takes of the squeezed total: its first column comes
+out a whisker narrower than two thirds every time, and what decides that is not measurable from
+here.
 
 ### The boxes a form is filled in by
 

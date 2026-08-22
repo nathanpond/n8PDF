@@ -80,14 +80,19 @@ internal static class DocumentParser
             if (blocks[i] is not Table second || blocks[i - 1] is not Table first) continue;
 
             var grid = second.Grid.SequenceEqual(first.Grid) ? null : second.Grid;
-            var indent = second.Properties.IndentTwips == first.Properties.IndentTwips
-                ? null
-                : second.Properties.IndentTwips;
+
+            // Every row of a merged table carries the indent of the table it was written in, the
+            // first table's rows included: Word draws the merged table at the first table's own
+            // indent and then indents each row again by whatever its own table asked for, so a
+            // first table asking for half an inch has its rows an inch in. Measured on the eighth
+            // page of merged-indent-probe, which is the one page where the first table is the
+            // indented one.
+            foreach (var row in first.Rows) row.IndentTwips ??= first.Properties.IndentTwips ?? 0;
 
             foreach (var row in second.Rows)
             {
                 row.Grid ??= grid;
-                row.IndentTwips ??= indent;
+                row.IndentTwips ??= second.Properties.IndentTwips ?? 0;
                 first.Rows.Add(row);
             }
 

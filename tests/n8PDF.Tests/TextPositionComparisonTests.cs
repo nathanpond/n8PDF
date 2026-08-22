@@ -71,14 +71,6 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         // The same fitting, on the page whose pie is left to Word to place: see below.
         ["chart-kinds-probe-two"] = 0.7,
 
-        // Where a table folded into the one before it asks to be indented, Word indents it and
-        // then refits the whole merged table — columns and indent together — into the width the
-        // first table declared. This indents the rows and leaves the columns alone, so its rows
-        // stand 5.54pt further in than Word's and its lines are wider by the difference. What
-        // Word does is written up in AdjacentTableTests; the pages where neither table is
-        // indented agree with Word outright.
-        ["adjacent-tables-probe"] = 5.6,
-
         // A script hangs off the plain advance of what it is on, which is where Word hangs one at
         // twelve point to the last decimal place — and 1.09 points further along when the letter
         // under it is twenty. The face states a kern for that: MathKernInfo gives every glyph a
@@ -92,14 +84,11 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
     /// Fixtures where a line comes out wider or narrower than Word's, and by how much.
     /// </summary>
     /// <remarks>
-    /// One, and for the same reason its lines begin in another place: a merged table Word refits
-    /// to the first table's width has narrower columns than this gives it, so the two cells of a
-    /// row stand closer together and the line they make is shorter.
+    /// None at present: the one that was here — a merged table Word refits into the first table's
+    /// width — is refitted the same way now, and its lines come out within a tenth of a point of
+    /// Word's.
     /// </remarks>
-    private static readonly Dictionary<string, double> KnownWidthDivergences = new()
-    {
-        ["adjacent-tables-probe"] = 20.5
-    };
+    private static readonly Dictionary<string, double> KnownWidthDivergences = new();
 
     private static readonly Dictionary<string, (double Tolerance, string Reason)> KnownVerticalDivergences =
         new()

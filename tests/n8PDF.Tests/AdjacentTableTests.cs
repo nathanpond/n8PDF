@@ -107,22 +107,17 @@ public class AdjacentTableTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The one thing Word does here that this does not: where a folded table asks to be indented,
-    /// Word indents its rows and then refits the whole merged table — columns and indent together
-    /// — into the width the first table declared.
+    /// Where a folded table asks to be indented, Word indents its rows and then squeezes the whole
+    /// merged table — columns and indents together — into the width the first table declared.
     /// </summary>
     /// <remarks>
-    /// The probe's fourth page has a second table indented half an inch. Word draws the merged
-    /// table's columns at 123.12 and 61.44 points where they were written 144 and 72, and sets the
-    /// indented rows 30 points in rather than 36 — the pair fitted into the 216 points the first
-    /// table declared. This indents the rows by what they ask for and leaves the columns alone, so
-    /// its rows stand 5.54 points further in than Word's.
-    ///
-    /// Held here so the difference is written down rather than merely absent. Everything else about
-    /// the merge agrees with Word outright.
+    /// The probe's fourth page has a second table indented half an inch against a first 216 points
+    /// wide, so the widest row wants 251.52 and gets 216: Word draws the columns 123.6 and 61.92
+    /// where they were written 144 and 72, and sets the indented rows 30.48 points in rather than
+    /// 36. What squeezes by how much is measured in merged-indent-probe.
     /// </remarks>
     [Fact]
-    public void An_indented_fold_is_not_refitted_the_way_word_refits_it()
+    public void An_indented_fold_is_squeezed_the_way_word_squeezes_it()
     {
         if (TestFonts.SkipForMissingFonts("adjacent-tables-probe")) return;
 
@@ -132,13 +127,84 @@ public class AdjacentTableTests(ITestOutputHelper output)
         output.WriteLine($"word {string.Join(" | ", word.Select(line => $"{line.Left:0.##}"))}");
         output.WriteLine($"ours {string.Join(" | ", ours.Select(line => $"{line.Left:0.##}"))}");
 
-        // The rows that were not indented stand where Word's stand.
-        Assert.Equal(word[0].Left, ours[0].Left, 0.3);
+        Assert.Equal(word.Count, ours.Count);
 
-        // The indented ones do not: Word refits them, this does not.
-        Assert.Equal(102.96, word[2].Left, 0.1);
-        Assert.Equal(108.5, ours[2].Left, 0.3);
+        for (var i = 0; i < word.Count; i++) Assert.Equal(word[i].Left, ours[i].Left, 0.2);
+
+        // The rows that asked to be indented stand 30.48 in rather than the 36 they asked for.
+        Assert.Equal(102.96, ours[2].Left, 0.2);
     }
+
+    /// <summary>
+    /// What is squeezed and by how much, over the ten pages of merged-indent-probe.
+    /// </summary>
+    /// <remarks>
+    /// Each page's rows are read as the vertical lines they are drawn between, so the columns can
+    /// be measured without going through the text. Word's numbers are given here; where a page has
+    /// rows of two widths the wider set is the one named.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, "indented 18 points", new[] { 72.0, 205.2, 271.92 })]
+    [InlineData(1, "indented 36", new[] { 72.0, 195.6, 257.52 })]
+    [InlineData(2, "indented 72", new[] { 72.0, 180.0, 234.24 })]
+    [InlineData(3, "indented 108", new[] { 72.0, 167.76, 216.24 })]
+    [InlineData(4, "narrow enough to fit", new[] { 72.0, 216.0, 288.0 })]
+    [InlineData(5, "wider, not indented", new[] { 72.0, 186.96, 244.8 })]
+    [InlineData(6, "wider and indented", new[] { 72.0, 173.52, 224.64 })]
+    [InlineData(7, "the first table indented", new[] { 138.0, 261.6, 323.52 })]
+    [InlineData(8, "a width narrower than the grid", new[] { 72.0, 174.72, 226.56 })]
+    [InlineData(9, "three tables", new[] { 72.0, 180.0, 234.24 })]
+    public void The_rows_of_a_merged_table_are_squeezed_as_word_squeezes_them(
+        int page, string what, double[] word)
+    {
+        if (TestFonts.SkipForMissingFonts("merged-indent-probe")) return;
+
+        output.WriteLine(what);
+
+        var ours = Boundaries(Converter.Convert(Fixtures.Build("merged-indent-probe"),
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }), page);
+
+        output.WriteLine($"word {string.Join(", ", word.Select(x => $"{x:0.##}"))}");
+        output.WriteLine($"ours {string.Join(" / ", ours.Select(row => string.Join(", ", row.Select(x => $"{x:0.##}"))))}");
+
+        var mine = ours[0];
+
+        Assert.Equal(word.Length, mine.Count);
+
+        // Word rounds the share each column takes of the squeezed total a shade differently than
+        // this does — its first column comes out a whisker narrower than two thirds every time —
+        // which is worth a third of a point on the widest of these pages.
+        for (var i = 0; i < word.Length; i++) Assert.Equal(word[i], mine[i], 0.4);
+    }
+
+    /// <summary>
+    /// A merged table whose rows all fit is not squeezed at all, and a row asking for no indent is
+    /// not moved.
+    /// </summary>
+    [Fact]
+    public void A_merged_table_that_fits_is_left_alone()
+    {
+        if (TestFonts.SkipForMissingFonts("merged-indent-probe")) return;
+
+        var rows = Boundaries(Converter.Convert(Fixtures.Build("merged-indent-probe"),
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }), 4);
+
+        // The first table's rows keep the 144 and 72 they were written with...
+        Assert.Equal([72, 216, 288], rows[0].Select(x => Math.Round(x, 1)));
+
+        // ...and the folded rows keep theirs, indented by what they asked for less the inset the
+        // indent absorbs: 36 points less half a point.
+        Assert.Equal([107.5, 179.5, 215.5], rows[^1].Select(x => Math.Round(x, 1)));
+    }
+
+    /// <summary>The x of every vertical line on a page, row set by row set, top first.</summary>
+    private static List<List<double>> Boundaries(byte[] pdf, int page) =>
+        [.. PdfPathExtractor.Extract(pdf)
+            .Where(rect => rect.PageIndex == page && rect.Width < 1 && rect.Height > 3)
+            .GroupBy(rect => Math.Round(rect.Top, 1))
+            .OrderBy(group => group.Key)
+            .Select(group => group.Select(rect => Math.Round(rect.Left + rect.Width / 2, 2))
+                .Distinct().OrderBy(x => x).ToList())];
 
     private static byte[] Ours() =>
         Converter.Convert(Fixtures.Build("adjacent-tables-probe"),

@@ -3019,6 +3019,9 @@ internal sealed class LayoutEngine(
     {
         var properties = table.Properties;
 
+        // What the rows of a merged table have to give up for the widest of them to fit.
+        var squeeze = MergedSqueeze(table, columns);
+
         // Merged runs open here and close some rows further down, so they outlive any one row.
         var merges = new Dictionary<int, OpenMerge>();
 
@@ -3040,7 +3043,7 @@ internal sealed class LayoutEngine(
 
             for (var i = 0; i < headings; i++)
             {
-                var cells = MeasureRow(table, table.Rows[i], i, columns, tableLeft);
+                var cells = MeasureRow(table, table.Rows[i], i, columns, tableLeft, squeeze);
                 if (cells.Count == 0) continue;
 
                 var height = ComputeRowHeight(table.Rows[i], cells);
@@ -3060,7 +3063,7 @@ internal sealed class LayoutEngine(
         for (var rowIndex = from; rowIndex < table.Rows.Count; rowIndex++)
         {
             var row = table.Rows[rowIndex];
-            var placed = MeasureRow(table, row, rowIndex, columns, tableLeft);
+            var placed = MeasureRow(table, row, rowIndex, columns, tableLeft, squeeze);
             if (placed.Count == 0) continue;
 
             // A row that ends a merged run has to be tall enough for whatever of that run's
@@ -3326,30 +3329,102 @@ internal sealed class LayoutEngine(
         return anything && fittedHeight > 0;
     }
 
+    /// <summary>
+    /// The columns a row is laid on: the table's own, or the ones the row was written with where
+    /// it was folded in from a table that used to follow this one.
+    /// </summary>
+    private static List<double> RowColumns(Table table, TableRow row, List<double> columns)
+    {
+        if (row.Grid is not { Count: > 0 } own) return columns;
+
+        var mine = own.Select(twips => Units.TwipsToPoints(twips)).Where(width => width > 0).ToList();
+
+        return mine.Count > 0 ? mine : columns;
+    }
+
+    /// <summary>
+    /// How far in a row of a merged table stands, over and above wherever the table itself does.
+    /// </summary>
+    /// <remarks>
+    /// An indent names the edge the cell's <em>text</em> stands at rather than the edge of the
+    /// table, so the border and the cell margin are absorbed into it — the same rule an ordinary
+    /// table's own indent follows, and the reason a row indented by half an inch has its border
+    /// drawn a shade less than that in. A row asking for no indent at all is not moved: absent and
+    /// zero are the same thing here, since the table has already been put where its own indent
+    /// says.
+    /// </remarks>
+    private double RowIndent(Table table, TableRow row, int columnCount) =>
+        row.IndentTwips is { } indent && indent > 0
+            ? Math.Max(0, Units.TwipsToPoints(indent) - LeadingCellInset(table, columnCount))
+            : 0;
+
+    /// <summary>
+    /// How much the rows of a merged table are squeezed so that the widest of them fits the width
+    /// the table declares.
+    /// </summary>
+    /// <remarks>
+    /// Word reads two tables written one after the other as one, and a row folded in from the
+    /// second that will not fit — because its own columns are wider, or because it asks to be
+    /// indented, or both — does not overrun: Word squeezes the whole merged table, every row's
+    /// columns and every row's indent together, until the widest of them ends exactly at the width
+    /// the first table declared. Measured from merged-indent-probe, ten pages:
+    ///
+    ///   a second table indented 18, 36, 72 and 108 points, against a first 216 points wide, comes
+    ///   out at scales of 0.925, 0.859, 0.751 and 0.668 — which is 216 divided by the widest row
+    ///   each time, that row being its indent (less the inset the indent absorbs) and its columns
+    ///
+    ///   a second table 270 points wide and not indented at all squeezes just the same, to 0.8,
+    ///   so it is the width that decides it and not the indent
+    ///
+    ///   a second table narrow enough to fit indent and all is left alone
+    ///
+    ///   a first table declaring itself 180 points wide over a grid of 216 squeezes to 180, so
+    ///   what the rows are fitted to is the width the table declares rather than what its own
+    ///   columns come to
+    ///
+    /// Everything lands within a third of a point of Word, which is Word's own rounding of the
+    /// share each column takes of the squeezed total: its first column comes out a whisker
+    /// narrower than two thirds every time, and what decides that is not measurable from here.
+    /// </remarks>
+    private double MergedSqueeze(Table table, List<double> columns)
+    {
+        // Only a merged table has rows carrying a width or an indent of their own, and only a
+        // merged table pays for any of this.
+        if (!table.Rows.Any(row => row.Grid is { Count: > 0 } || row.IndentTwips is > 0)) return 1;
+
+        var declared = table.Properties.WidthTwips is { } width and > 0
+            ? Units.TwipsToPoints(width)
+            : columns.Sum();
+
+        if (declared <= 0) return 1;
+
+        var widest = 0.0;
+
+        foreach (var row in table.Rows)
+        {
+            var mine = RowColumns(table, row, columns);
+
+            widest = Math.Max(widest, RowIndent(table, row, mine.Count) + mine.Sum());
+        }
+
+        return widest > declared + 0.01 ? declared / widest : 1;
+    }
+
     /// <summary>Lays out each cell of a row into its own detached page and records its geometry.</summary>
     private List<PlacedCell> MeasureRow(
-        Table table, TableRow row, int rowIndex, List<double> columns, double tableLeft)
+        Table table, TableRow row, int rowIndex, List<double> columns, double tableLeft,
+        double squeeze = 1)
     {
         var properties = table.Properties;
         var placed = new List<PlacedCell>(row.Cells.Count);
 
         // A row folded in from the table that used to follow this one keeps the columns and the
         // indent it was written with, which is what Word does with two tables written one after
-        // the other. Neither is set on a row of a table nobody folded.
-        if (row.Grid is { Count: > 0 } own)
-        {
-            var total = columns.Sum();
-            var mine = own.Select(twips => Units.TwipsToPoints(twips)).Where(width => width > 0).ToList();
-            var wanted = mine.Sum();
+        // the other; where the widest of them will not fit, every row of the merged table is
+        // squeezed until it does. Neither is set on a row of a table nobody folded.
+        columns = [.. RowColumns(table, row, columns).Select(width => width * squeeze)];
 
-            if (mine.Count > 0)
-                columns = wanted > total + 0.01
-                    ? mine.Select(width => width * total / wanted).ToList()
-                    : mine;
-        }
-
-        if (row.IndentTwips is { } indent)
-            tableLeft += Units.TwipsToPoints(indent - (properties.IndentTwips ?? 0));
+        tableLeft += RowIndent(table, row, columns.Count) * squeeze;
 
         // A mirrored table is filled from its right-hand end: the first cell of the row is the
         // rightmost, and each that follows stands to the left of the last.

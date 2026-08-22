@@ -242,7 +242,8 @@ public static class Fixtures
     /// other with nothing in between.
     /// </summary>
     private static string AdjacentTable(
-        string label, int first, int second, string fill, int? indentTwips = null, bool banded = false)
+        string label, int first, int second, string fill, int? indentTwips = null,
+        bool banded = false, int? declaredWidth = null)
     {
         string Cell(string text, int width) =>
             $"<w:tc><w:tcPr><w:tcW w:w=\"{width}\" w:type=\"dxa\"/>" +
@@ -256,7 +257,7 @@ public static class Fixtures
         return $"""
                 <w:tbl>
                   <w:tblPr>
-                    <w:tblW w:w="{first + second}" w:type="dxa"/>
+                    <w:tblW w:w="{declaredWidth ?? first + second}" w:type="dxa"/>
                     {(indentTwips is { } indent ? $"<w:tblInd w:w=\"{indent}\" w:type=\"dxa\"/>" : string.Empty)}
                     <w:tblBorders>
                       <w:top w:val="single" w:sz="24" w:color="auto"/>
@@ -3442,6 +3443,54 @@ public static class Fixtures
                                             DocxBuilder.ChartDrawing(rest[i].Width, rest[i].Height,
                                                 id: 1301 + i, relationshipId: rest[i].Id) + "</w:p>");
                 }
+
+                return builder;
+            },
+
+            // What Word does with a merged table whose rows are not all the same width: the
+            // fourth page of adjacent-tables-probe shows that it refits the whole of it, and
+            // these ten pages are what says by how much.
+            //
+            //   pages 1 to 4  a second table indented 18, 36, 72 and 108 points
+            //   page 5   a second table narrow enough that its indent still fits
+            //   page 6   a second table wider than the first, and not indented at all
+            //   page 7   the same, indented as well
+            //   page 8   the first table indented and the second not
+            //   page 9   a first table that declares a width narrower than its own columns
+            //   page 10  three tables: no indent, then 36 points, then 72
+            ["merged-indent-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                void Page(params string[] tables)
+                {
+                    foreach (var table in tables) builder.AddRawParagraph(table);
+
+                    builder.AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr></w:p>");
+                }
+
+                string Plain(string label = "Plain") =>
+                    AdjacentTable(label, 2880, 1440, "FFE0E0");
+
+                foreach (var indent in new[] { 360, 720, 1440, 2160 })
+                {
+                    Page(Plain(),
+                        AdjacentTable($"In{indent}", 2880, 1440, "E0E0FF", indentTwips: indent));
+                }
+
+                Page(Plain(), AdjacentTable("Narrow", 1440, 720, "E0E0FF", indentTwips: 720));
+                Page(Plain(), AdjacentTable("Wider", 3600, 1800, "E0E0FF"));
+                Page(Plain(), AdjacentTable("Wider in", 3600, 1800, "E0E0FF", indentTwips: 720));
+
+                Page(AdjacentTable("Front in", 2880, 1440, "FFE0E0", indentTwips: 720),
+                    AdjacentTable("Behind", 2880, 1440, "E0E0FF"));
+
+                Page(AdjacentTable("Narrow said", 2880, 1440, "FFE0E0", declaredWidth: 3600),
+                    AdjacentTable("After", 2880, 1440, "E0E0FF", indentTwips: 720));
+
+                Page(Plain(),
+                    AdjacentTable("Middle", 2880, 1440, "E0E0FF", indentTwips: 720),
+                    AdjacentTable("Last", 2880, 1440, "E0FFE0", indentTwips: 1440));
 
                 return builder;
             },

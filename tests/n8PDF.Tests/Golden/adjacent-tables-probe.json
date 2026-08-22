@@ -257,7 +257,7 @@
           "baselineY": 99.36,
           "height": 13.799,
           "runs": [
-            {"x": 216.5, "width": 39.668, "font": "Times New Roman", "size": 12, "text": "Plain 1b"}
+            {"x": 196.174, "width": 39.668, "font": "Times New Roman", "size": 12, "text": "Plain 1b"}
           ]
         },
         {
@@ -273,7 +273,7 @@
           "baselineY": 113.76,
           "height": 13.799,
           "runs": [
-            {"x": 216.5, "width": 39.668, "font": "Times New Roman", "size": 12, "text": "Plain 2b"}
+            {"x": 196.174, "width": 39.668, "font": "Times New Roman", "size": 12, "text": "Plain 2b"}
           ]
         },
         {
@@ -281,7 +281,7 @@
           "baselineY": 128.16,
           "height": 13.799,
           "runs": [
-            {"x": 108.5, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "Indented 1a"}
+            {"x": 102.989, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "Indented 1a"}
           ]
         },
         {
@@ -289,7 +289,7 @@
           "baselineY": 128.16,
           "height": 13.799,
           "runs": [
-            {"x": 252.5, "width": 56.982, "font": "Times New Roman", "size": 12, "text": "Indented 1b"}
+            {"x": 226.663, "width": 56.982, "font": "Times New Roman", "size": 12, "text": "Indented 1b"}
           ]
         },
         {
@@ -297,7 +297,7 @@
           "baselineY": 142.32,
           "height": 13.799,
           "runs": [
-            {"x": 108.5, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "Indented 2a"}
+            {"x": 102.989, "width": 56.309, "font": "Times New Roman", "size": 12, "text": "Indented 2a"}
           ]
         },
         {
@@ -305,7 +305,7 @@
           "baselineY": 142.32,
           "height": 13.799,
           "runs": [
-            {"x": 252.5, "width": 56.982, "font": "Times New Roman", "size": 12, "text": "Indented 2b"}
+            {"x": 226.663, "width": 56.982, "font": "Times New Roman", "size": 12, "text": "Indented 2b"}
           ]
         }
       ]
