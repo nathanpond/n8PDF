@@ -1767,15 +1767,21 @@ rather than break it. Neither is implemented here, and both are written down in 
 their numbers rather than guessed at.
 
 **A table's own stated width** (`w:tblW`) is met exactly, and `table-preferred-width-probe` settles
-four things about it: the width is taken whether it is wider than the contents want or narrower; a
+five things about it: the width is taken whether it is wider than the contents want or narrower; a
 share is a share of the **measure**, so half of a 468 point column comes out 234; a width narrower
-than the contents wraps them; and a width wider than the page is **not** brought back to it — Word
-writes such a table straight off the paper's edge, and so does this. How the width is then divided
-between the columns is the part that is fitted: they grow in proportion to what each wanted, which
-follows Word to within 0.7pt on the probe — 0.14pt where the columns differ most, 0.58pt where they
-are nearly equal. Word's own idea of what a cell wants is not the sum of the advances its PDF
-writes, and no constant, share or rounding of what can be measured off the page reproduces the last
-fraction of a point.
+than the contents wraps them; a width wider than the page is **not** brought back to it — Word
+writes such a table straight off the paper's edge, and so does this; and the width is divided in
+proportion to what each column wants, each want being its content rounded up to a whole twip.
+
+Five of the probe's seven pages come out exactly Word's. The two that do not are the same shape —
+three columns of nearly equal content — and what separates them from Word is the smallest thing in
+this file. Word's first edge falls at or past 2076 twips of the 6480 the table asks for and its
+second short of 4404; dividing in proportion puts them at 2075.93 and 4404.07, **seven hundredths
+of a twip** outside each, and each lands on the far side of a rounding boundary. Three thousandths
+of a point, one part in ninety thousand of the table, and a grid step in the drawing. Wants of
+content plus a twip land that page and throw another; equal sharing, proportional-to-minimum, a
+constant per cell and any blend of proportional and equal sharing are each ruled out by a page they
+break. It is written up in `TablePreferredWidthTests` with the arithmetic rather than papered over.
 
 How far inside its edge a cell starts its text was settled by measuring rather than by reading, and
 is stranger than it sounds. `table-inset-weights-probe` holds the same one-cell table fifteen times

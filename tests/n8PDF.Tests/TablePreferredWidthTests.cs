@@ -9,38 +9,56 @@ namespace n8PDF.Tests;
 /// and nothing about how to divide it.
 /// </summary>
 /// <remarks>
-/// table-preferred-width-probe measures seven of them. Four things it settles outright, and this
-/// matches Word on all four:
+/// table-preferred-width-probe measures seven of them, and five come out exactly Word's:
 ///
 ///   * the width is met exactly, whether it is wider than the contents want or narrower;
 ///   * a share (<c>w:type="pct"</c>) is a share of the **measure** — half of a 468 point column
 ///     comes out 234;
-///   * a width narrower than the contents want wraps them rather than overflowing;
-///   * a width wider than the page is **not** held to the page: Word writes the table straight off
-///     the paper's edge, and so does this.
+///   * a width narrower than the contents wraps them rather than overflowing;
+///   * a width wider than the page is **not** held to the page: Word writes such a table straight
+///     off the paper's edge, and so does this;
+///   * the width is divided in proportion to what each column wants, each want being its content
+///     rounded up to a whole twip, and the resulting edges go on the grid.
 ///
-/// The fifth thing — how the width is divided between the columns — is fitted rather than derived,
-/// and this says so. The columns grow in proportion to what each wanted, which follows Word to
-/// within 0.7pt on the probe: closest where the columns differ most (0.14pt with one long column
-/// against two letters) and furthest where they are nearly equal (0.58pt across three letters).
-/// Word's own idea of what a cell wants is not the sum of the advances its PDF writes — no
-/// constant, share or rounding of the measured content reproduces the last fraction of a point —
-/// so what is asserted below is the total exactly and each column to within a point.
+/// Two of the seven are a grid step out on their outer columns, and both are the same shape: three
+/// columns of nearly equal content — 'a', 'b' and 'c', which are 5.32617, 6 and 5.32617 points of
+/// Times at twelve. What is left there is smaller than anything this repository has failed to close
+/// before, and it is worth writing down exactly how small.
+///
+/// Word's own page says its first edge falls at or past 2076 twips of the 6480 the table asks for,
+/// and its second short of 4404. Dividing in proportion to wants of 107, 120 and 107 twips puts
+/// them at 2075.93 and 4404.07 — **seven hundredths of a twip** outside each, which is three
+/// thousandths of a point, and each lands on the far side of a rounding boundary. The same
+/// arithmetic is exactly right for every other page of the probe.
+///
+/// What has been ruled out, each by the page it breaks: wants of content plus one twip (lands this
+/// page, but throws the second edge of the three-differing-widths page 1.2 twips wide); equal
+/// sharing of the surplus (out by four points); proportional to the minimum rather than the
+/// maximum (out by sixty on the unequal page); a constant added per cell, which cannot satisfy this
+/// page and the three-differing-widths page together at any value; and any blend of proportional
+/// and equal sharing, which needs 0.93 here and 1.00 there. Word's answer is pinned to a
+/// hundredth of a point and no rule of this family reaches it.
 /// </remarks>
 public class TablePreferredWidthTests(ITestOutputHelper output)
 {
     /// <summary>
     /// The stated width is met exactly, page by page, and each column is within a point of Word's.
     /// </summary>
+    /// <param name="apart">
+    /// How far from Word's this page's columns may be: nothing at all, except on the two whose
+    /// division falls the wrong side of a rounding boundary by three thousandths of a point. There
+    /// the outer columns are a step narrow and the middle one takes both steps, so it is two out
+    /// where they are one.
+    /// </param>
     [Theory]
-    [InlineData(0, "nearly equal content", 324.0)]
-    [InlineData(1, "very unequal content", 324.0)]
-    [InlineData(2, "three widths that differ", 324.0)]
-    [InlineData(3, "narrower than the content wants", 144.0)]
-    [InlineData(4, "a share of the measure", 234.0)]
-    [InlineData(5, "the cells stating widths too", 324.0)]
-    [InlineData(6, "wider than the page allows", 720.0)]
-    public void The_table_is_as_wide_as_it_says_it_is(int page, string what, double width)
+    [InlineData(0, "nearly equal content", 324.0, 0.5)]
+    [InlineData(1, "very unequal content", 324.0, 0.001)]
+    [InlineData(2, "three widths that differ", 324.0, 0.001)]
+    [InlineData(3, "narrower than the content wants", 144.0, 0.001)]
+    [InlineData(4, "a share of the measure", 234.0, 0.25)]
+    [InlineData(5, "the cells stating widths too", 324.0, 0.001)]
+    [InlineData(6, "wider than the page allows", 720.0, 0.001)]
+    public void The_table_is_as_wide_as_it_says_it_is(int page, string what, double width, double apart)
     {
         if (TestFonts.SkipForMissingFonts("table-preferred-width-probe")) return;
 
@@ -57,7 +75,7 @@ public class TablePreferredWidthTests(ITestOutputHelper output)
         Assert.Equal(width, word.Sum(), 0.01);
         Assert.Equal(width, ours.Sum(), 0.01);
 
-        for (var i = 0; i < word.Count; i++) Assert.Equal(word[i], ours[i], 1.0);
+        for (var i = 0; i < word.Count; i++) Assert.Equal(word[i], ours[i], apart);
     }
 
     /// <summary>
