@@ -1,0 +1,295 @@
+{
+  "pageCount": 7,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 102.955, "font": "Times New Roman", "size": 12, "text": "Nearly equal content."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 175.63, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 292.37, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 106.295, "font": "Times New Roman", "size": 12, "text": "Very unequal content."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 78.409, "width": 258.604, "font": "Times New Roman", "size": 12, "text": "a column holding a good deal more than the others do"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 389.591, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 116.625, "font": "Times New Roman", "size": 12, "text": "Three widths that differ."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 13.336, "font": "Times New Roman", "size": 12, "text": "iiii"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 106.472, "width": 42.68, "font": "Times New Roman", "size": 12, "text": "MMMM"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 216.794, "width": 69.328, "font": "Times New Roman", "size": 12, "text": "wwwwwwww"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 159.609, "font": "Times New Roman", "size": 12, "text": "Narrower than the content wants."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 83.988, "font": "Times New Roman", "size": 12, "text": "a column holding"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 79.295, "font": "Times New Roman", "size": 12, "text": "rather more than"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 124.32,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 39.656, "font": "Times New Roman", "size": 12, "text": "its share"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 160.768, "width": 17.326, "font": "Times New Roman", "size": 12, "text": "and"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 160.768, "width": 35.982, "font": "Times New Roman", "size": 12, "text": "another"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 124.32,
+          "height": 13.799,
+          "runs": [
+            {"x": 160.768, "width": 40.324, "font": "Times New Roman", "size": 12, "text": "beside it"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 113.619, "font": "Times New Roman", "size": 12, "text": "A share of the measure."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 146.844, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 231.156, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.982, "font": "Times New Roman", "size": 12, "text": "The cells stating widths too."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 180, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 288, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 134.285, "font": "Times New Roman", "size": 12, "text": "Wider than the page allows."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 302.289, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 561.711, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -2638,6 +2638,84 @@ public static class Fixtures
                 return builder;
             },
 
+            // What a table's own stated width does, which is a different question from what a
+            // cell's does: the table says how wide the whole is to be and says nothing about how
+            // to divide it. Seven pages, each one table with every cell shaded a colour of its
+            // own so the columns are read off the page as rectangles.
+            //
+            //   1  a width to divide between three columns of nearly equal content
+            //   2  the same width between columns of very unequal content
+            //   3  and again, with three widths that differ but none of them long
+            //   4  a width narrower than the content wants
+            //   5  a width stated as a share of the measure
+            //   6  a width with the cells stating widths of their own as well
+            //   7  a width wider than the page allows
+            ["table-preferred-width-probe"] = () =>
+            {
+                string[] fills = ["DEEBF7", "FCE4D6", "E2EFDA", "FFF2CC"];
+
+                string Cell(string text, int index, string? width = null)
+                {
+                    var declared = width is null
+                        ? string.Empty
+                        : $"<w:tcW w:w=\"{width}\" w:type=\"dxa\"/>";
+
+                    return $"<w:tc><w:tcPr>{declared}" +
+                           $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fills[index % 4]}\"/>" +
+                           $"</w:tcPr><w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                           $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{DocxBuilder.Escape(text)}</w:t></w:r>" +
+                           "</w:p></w:tc>";
+                }
+
+                string Table(string width, params string[] cells) =>
+                    "<w:tbl><w:tblPr>" + width +
+                    "<w:tblCellMar><w:left w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"0\" w:type=\"dxa\"/>" +
+                    "<w:top w:w=\"0\" w:type=\"dxa\"/><w:bottom w:w=\"0\" w:type=\"dxa\"/></w:tblCellMar>" +
+                    "</w:tblPr><w:tr>" + string.Join(string.Empty, cells) + "</w:tr></w:tbl>";
+
+                // Three hundred and twenty-four points, which is well inside the measure.
+                const string Stated = "<w:tblW w:w=\"6480\" w:type=\"dxa\"/>";
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label, string table)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    builder.AddRawParagraph(table);
+                    first = false;
+                }
+
+                Page("Nearly equal content.",
+                    Table(Stated, Cell("a", 0), Cell("b", 1), Cell("c", 2)));
+
+                Page("Very unequal content.",
+                    Table(Stated, Cell("a", 0),
+                        Cell("a column holding a good deal more than the others do", 1),
+                        Cell("c", 2)));
+
+                Page("Three widths that differ.",
+                    Table(Stated, Cell("iiii", 0), Cell("MMMM", 1), Cell("wwwwwwww", 2)));
+
+                Page("Narrower than the content wants.",
+                    Table("<w:tblW w:w=\"2880\" w:type=\"dxa\"/>",
+                        Cell("a column holding rather more than its share", 0),
+                        Cell("and another beside it", 1)));
+
+                Page("A share of the measure.",
+                    Table("<w:tblW w:w=\"2500\" w:type=\"pct\"/>",
+                        Cell("a", 0), Cell("b", 1), Cell("c", 2)));
+
+                Page("The cells stating widths too.",
+                    Table(Stated, Cell("a", 0, "1440"), Cell("b", 1, "1440"), Cell("c", 2, "1440")));
+
+                Page("Wider than the page allows.",
+                    Table("<w:tblW w:w=\"14400\" w:type=\"dxa\"/>",
+                        Cell("a", 0), Cell("b", 1), Cell("c", 2)));
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

@@ -3957,25 +3957,63 @@ internal sealed class LayoutEngine(
 
         var totalMax = maximums.Sum();
 
-        // Everything fits: each column is exactly as wide as its content.
-        if (totalMax <= availableWidth) return [.. maximums];
+        // A table that states its own width is made that wide, whether that is wider than its
+        // contents want or narrower, and whether or not it fits the page.
+        var stated = StatedTableWidth(table, availableWidth);
+        var limit = stated ?? availableWidth;
+
+        if (totalMax <= limit)
+        {
+            // Nothing stated: the table is only as wide as its contents.
+            if (stated is null) return [.. maximums];
+
+            // Stated: the columns are grown to fill it, in proportion to what each wanted.
+            return totalMax > 0
+                ? [.. maximums.Select(m => m * stated.Value / totalMax)]
+                : [.. Enumerable.Repeat(stated.Value / columnCount, columnCount)];
+        }
 
         var totalMin = minimums.Sum();
 
         // Not even the minimums fit; scale them down together rather than overflow the page.
-        if (totalMin >= availableWidth)
+        if (totalMin >= limit)
         {
-            var scale = totalMin > 0 ? availableWidth / totalMin : 0;
+            var scale = totalMin > 0 ? limit / totalMin : 0;
             return [.. minimums.Select(m => m * scale)];
         }
 
         // Start from the minimums and share the remainder in proportion to what each column
         // still wants.
-        var slack = availableWidth - totalMin;
+        var slack = limit - totalMin;
         var demand = totalMax - totalMin;
 
         return [.. Enumerable.Range(0, columnCount)
             .Select(i => minimums[i] + slack * (maximums[i] - minimums[i]) / demand)];
+    }
+
+    /// <summary>
+    /// The width a table states for itself, or null where it leaves that to its contents.
+    /// </summary>
+    /// <remarks>
+    /// table-preferred-width-probe measures what such a width does. It is met exactly, and it is
+    /// not held to the page: a table stating twice the measure is written straight off the paper's
+    /// edge, which is what Word does with one. A share (<c>w:type="pct"</c>) is a share of the
+    /// measure — half of a 468 point column comes out 234.
+    ///
+    /// How the width is then divided is the part that is fitted rather than derived: the columns
+    /// grow in proportion to what each wanted, which follows Word's own division to within about
+    /// half a point on the probe — closest where the columns differ most (0.14pt) and furthest
+    /// where they are nearly equal (0.55pt). Word's own measurement of what a cell wants is not
+    /// the sum of the advances its PDF writes, and nothing measurable from the page reproduces the
+    /// last fraction of it. See TablePreferredWidthTests, which states the residual outright.
+    /// </remarks>
+    private static double? StatedTableWidth(Table table, double availableWidth)
+    {
+        if (table.Properties.WidthFraction is { } fraction and > 0) return availableWidth * fraction;
+
+        return table.Properties.WidthTwips is { } twips and > 0
+            ? Units.TwipsToPoints(twips)
+            : null;
     }
 
     private static void SpreadAcrossSpan(double[] widths, int start, int span, double required)

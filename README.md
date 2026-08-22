@@ -1706,11 +1706,21 @@ content beside ones that ask; and where two rows ask for different widths of one
 wins. Before this the declaration was ignored outright, which put a table of three declared columns
 300 points from Word's.
 
-Only a width in twips is honoured. A width asked for as a **share of the table** (`w:type="pct"`)
+Only a cell width in twips is honoured. One asked for as a **share of the table** (`w:type="pct"`)
 inside a table whose own width is left to its content is answered by Word with neither the share
-nor the content but something between the two, and a **table stating its own width** whose cells
-state none divides the surplus by a rule that one page does not pin down. Both are measured in the
-backlog rather than guessed at here.
+nor the content but something between the two, and that one is measured in the backlog rather than
+guessed at here.
+
+**A table's own stated width** (`w:tblW`) is met exactly, and `table-preferred-width-probe` settles
+four things about it: the width is taken whether it is wider than the contents want or narrower; a
+share is a share of the **measure**, so half of a 468 point column comes out 234; a width narrower
+than the contents wraps them; and a width wider than the page is **not** brought back to it — Word
+writes such a table straight off the paper's edge, and so does this. How the width is then divided
+between the columns is the part that is fitted: they grow in proportion to what each wanted, which
+follows Word to within 0.7pt on the probe — 0.14pt where the columns differ most, 0.58pt where they
+are nearly equal. Word's own idea of what a cell wants is not the sum of the advances its PDF
+writes, and no constant, share or rounding of what can be measured off the page reproduces the last
+fraction of a point.
 
 How far inside its edge a cell starts its text was settled by measuring rather than by reading, and
 is stranger than it sounds. `table-inset-weights-probe` holds the same one-cell table fifteen times
