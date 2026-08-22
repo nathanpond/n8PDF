@@ -386,8 +386,19 @@ measured there: it is drawn over the paragraph's background and takes none of th
 fiftieth of an inch of reach, and a run asking for a background *and* a highlight gets the
 highlight alone — Word's page has one rectangle for such a run, not two.
 
-Cell shading still ignores patterns: a cell takes its `w:fill` and nothing else, which is what it
-did before any of this and is not what a paragraph or a run now does.
+**A cell** blends the same way, which `cell-shading-probe` measures rather than assumes: six shares
+of red over yellow come out of Word as the same six colours a paragraph gives them, `pct12` among
+them — that name means an eighth, not a twelfth, and Word's #FFDF00 says so. A cell differs from a
+paragraph in one thing only, and it is worth knowing: **an automatic fill is a white surface in a
+cell**. A cell asking for a clear pattern over `fill="auto"` is painted white; a paragraph asking
+for exactly the same thing is not painted at all. Over an automatic fill a pattern blends with
+white — half red comes out #FF7F7F in a cell, in a paragraph and in a run alike.
+
+Two things the same probe settles by showing nothing at all. A `w:shd` on the **table** reaches no
+cell of it: Word's export has nothing behind the cell that says nothing of its own, so neither has
+this. And a **texture** — `horzStripe` and its kind — is a real hatch, which Word writes into its
+PDF as a tiling pattern; a flat rectangle of the fill is drawn here instead, which is the one place
+in all of this that is an approximation rather than a match.
 
 ### How far inside its own edges a shape sets its text
 

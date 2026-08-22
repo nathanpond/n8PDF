@@ -3264,7 +3264,7 @@ internal sealed class LayoutEngine(
         // belong to the run, and are drawn when it closes.
         foreach (var cell in placed)
         {
-            if (cell.MergedBelow || cell.Source.ShadingColorHex is not { } fill) continue;
+            if (cell.MergedBelow || cell.Source.ShadingPaint is not { } fill) continue;
 
             cursor.Page.Rectangles.Add(new PositionedRectangle
             {
@@ -3272,7 +3272,7 @@ internal sealed class LayoutEngine(
                 Y = top,
                 Width = cell.Width,
                 Height = height,
-                Color = ParseHexColor(fill)
+                Color = fill
             });
         }
 
@@ -7841,7 +7841,7 @@ internal sealed class LayoutEngine(
 
         /// <summary>Reserves the place in the page where the run's fill will go.</summary>
         private void Reserve() =>
-            _shadingAt = Cell.Source.ShadingColorHex is null ? -1 : Page.Rectangles.Count;
+            _shadingAt = Cell.Source.ShadingPaint is null ? -1 : Page.Rectangles.Count;
 
         /// <summary>
         /// Fills the run in, at the place reserved for it when it opened — underneath the borders
@@ -7849,7 +7849,7 @@ internal sealed class LayoutEngine(
         /// </summary>
         private void Shade()
         {
-            if (_shadingAt < 0 || Cell.Source.ShadingColorHex is not { } fill) return;
+            if (_shadingAt < 0 || Cell.Source.ShadingPaint is not { } fill) return;
 
             Page.Rectangles.Insert(_shadingAt, new PositionedRectangle
             {
@@ -7857,7 +7857,7 @@ internal sealed class LayoutEngine(
                 Y = Top,
                 Width = Cell.Width,
                 Height = Bottom - Top,
-                Color = ParseHexColor(fill)
+                Color = fill
             });
 
             _shadingAt = -1;

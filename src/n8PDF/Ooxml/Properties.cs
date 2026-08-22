@@ -307,6 +307,11 @@ internal sealed class TableStyleCellProperties
     /// <summary>Background fill as RRGGBB, or "auto" for none.</summary>
     public string? ShadingFill { get; set; }
 
+    /// <summary>The pattern laid over it, and the colour of that pattern.</summary>
+    public string? ShadingPattern { get; set; }
+
+    public string? ShadingPatternColor { get; set; }
+
     public VerticalCellAlignment? VerticalAlignment { get; set; }
 
     public int? MarginLeftTwips { get; set; }

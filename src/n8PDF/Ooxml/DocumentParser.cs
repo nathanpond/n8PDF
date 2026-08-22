@@ -1330,8 +1330,15 @@ internal static class DocumentParser
             if (borders is not null) ReadBorders(borders, cell.Borders);
 
             // "auto" is kept rather than dropped: a cell declaring it is turning off shading its
-            // style would otherwise give it, which is not the same as saying nothing.
-            cell.ShadingFill = tcPr.Element(W.Main + "shd")?.Attr("fill");
+            // style would otherwise give it, which is not the same as saying nothing. Word paints
+            // such a cell white — cell-shading-probe — where a paragraph declaring the same thing
+            // is not painted at all, so the difference has to survive as far as the drawing.
+            if (tcPr.Element(W.Main + "shd") is { } shd)
+            {
+                cell.ShadingFill = shd.Attr("fill") ?? "auto";
+                cell.ShadingPattern = shd.Val();
+                cell.ShadingPatternColor = shd.Attr("color");
+            }
 
             cell.VerticalAlignment = ReadVerticalAlignment(tcPr.Element(W.Main + "vAlign"));
 
@@ -1401,9 +1408,13 @@ internal static class DocumentParser
     /// <summary>Reads the <c>w:tcPr</c> of a table style.</summary>
     public static TableStyleCellProperties ParseTableStyleCellProperties(XElement tcPr)
     {
+        var shd = tcPr.Element(W.Main + "shd");
+
         var properties = new TableStyleCellProperties
         {
-            ShadingFill = tcPr.Element(W.Main + "shd")?.Attr("fill"),
+            ShadingFill = shd is null ? null : shd.Attr("fill") ?? "auto",
+            ShadingPattern = shd?.Val(),
+            ShadingPatternColor = shd?.Attr("color"),
             VerticalAlignment = ReadVerticalAlignment(tcPr.Element(W.Main + "vAlign"))
         };
 

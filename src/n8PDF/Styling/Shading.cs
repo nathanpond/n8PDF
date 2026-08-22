@@ -21,28 +21,42 @@ internal readonly record struct Shading(string? Fill, string? Pattern, string? C
     public bool IsEmpty => Fill is null && Pattern is null && Color is null;
 
     /// <summary>
-    /// The colour to paint, or null where the shading amounts to nothing: no fill, an automatic
-    /// one, or a pattern of none.
+    /// The colour to paint, or null where the shading amounts to nothing.
     /// </summary>
-    public (double Red, double Green, double Blue)? Resolve()
+    /// <param name="automaticIsWhite">
+    /// Whether an automatic fill is a white surface rather than no surface at all, which is what
+    /// separates a cell from a paragraph: cell-shading-probe's cell declaring <c>clear</c> over an
+    /// <c>auto</c> fill is painted white by Word, and its paragraph declaring exactly the same
+    /// thing is not painted at all.
+    /// </param>
+    public (double Red, double Green, double Blue)? Resolve(bool automaticIsWhite = false)
     {
         var pattern = Pattern ?? "clear";
         if (pattern is "nil") return null;
 
         var share = PatternShare(pattern);
-
-        // With no pattern colour there is nothing to lay over the fill, whatever share was asked
-        // for; with no fill there is nothing under the pattern, so the pattern colour stands alone.
         var fill = Parse(Fill);
         var color = Parse(Color);
 
-        if (share <= 0 || color is null) return fill;
-        if (fill is null) return share >= 1 ? color : null;
+        // A pattern is laid over the fill, and over white where the fill is automatic — the probe
+        // asks for half red over an automatic fill in a cell, in a paragraph and in a run, and
+        // Word paints #FF7F7F in all three.
+        if (share > 0 && color is not null)
+        {
+            var under = fill ?? White;
 
-        return (Mix(fill.Value.Red, color.Value.Red, share),
-            Mix(fill.Value.Green, color.Value.Green, share),
-            Mix(fill.Value.Blue, color.Value.Blue, share));
+            return (Mix(under.Red, color.Value.Red, share),
+                Mix(under.Green, color.Value.Green, share),
+                Mix(under.Blue, color.Value.Blue, share));
+        }
+
+        // No pattern to lay: the fill alone, which is also what a texture comes to here. Word
+        // draws those as a real hatch — its export carries a tiling pattern for horzStripe — and a
+        // flat rectangle of the fill is the nearest a single colour gets to one.
+        return fill ?? (automaticIsWhite && Fill is not null ? White : null);
     }
+
+    private static readonly (double Red, double Green, double Blue) White = (1, 1, 1);
 
     /// <summary>
     /// Word works the blend in whole 255ths and puts a half down: yellow's green channel at a

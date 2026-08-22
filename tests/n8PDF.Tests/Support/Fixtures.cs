@@ -2469,6 +2469,89 @@ public static class Fixtures
                 return builder;
             },
 
+            // What a cell makes of a pattern, which until now it made nothing of: a cell took its
+            // fill and ignored the rest, where a paragraph and a run both blend the two colours
+            // they are given. Two tables. The first asks every pattern of a cell directly — the
+            // shares, a texture, and the three ways of saying "none" — and the second asks where a
+            // pattern may be written: on the table as a whole, on a cell of it, and on a cell that
+            // turns the table's off again.
+            ["cell-shading-probe"] = () =>
+            {
+                string Cell(string shading, string text) =>
+                    $"<w:tc><w:tcPr><w:tcW w:w=\"1560\" w:type=\"dxa\"/>{shading}</w:tcPr>" +
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times(16)}</w:rPr>" +
+                    $"<w:t>{DocxBuilder.Escape(text)}</w:t></w:r></w:p></w:tc>";
+
+                string Shd(string? pattern, string fill = "FFFF00", string color = "FF0000") =>
+                    pattern is null
+                        ? string.Empty
+                        : $"<w:shd w:val=\"{pattern}\" w:color=\"{color}\" w:fill=\"{fill}\"/>";
+
+                string Row(params string[] cells) => $"<w:tr>{string.Join(string.Empty, cells)}</w:tr>";
+
+                // A fixed layout with a grid stated outright, so that what the columns are is not
+                // a question this probe is asking: it is asking what colour each cell comes out.
+                string Table(string properties, int columns, params string[] rows) =>
+                    $"<w:tbl><w:tblPr><w:tblW w:w=\"{columns * 1560}\" w:type=\"dxa\"/>{properties}" +
+                    "<w:tblLayout w:type=\"fixed\"/></w:tblPr><w:tblGrid>" +
+                    string.Concat(Enumerable.Repeat("<w:gridCol w:w=\"1560\"/>", columns)) +
+                    "</w:tblGrid>" + string.Join(string.Empty, rows) + "</w:tbl>";
+
+                var plain = Times12;
+
+                var builder = new DocxBuilder()
+                    .AddParagraph("Patterns in a cell.", ZeroSpacing, Times12);
+
+                // The shares, red on yellow, so the blend can be read against the one a paragraph
+                // makes of the same pair. pct12 is there for the names that mean a half — an
+                // eighth rather than a tenth — and pct5 for the smallest share there is.
+                builder.AddRawParagraph(Table(string.Empty, 6,
+                    Row(
+                        Cell(Shd("pct5"), "5"),
+                        Cell(Shd("pct10"), "10"),
+                        Cell(Shd("pct12"), "12"),
+                        Cell(Shd("pct25"), "25"),
+                        Cell(Shd("pct50"), "50"),
+                        Cell(Shd("pct75"), "75")),
+                    Row(
+                        Cell(Shd("solid"), "solid"),
+                        Cell(Shd("clear"), "clear"),
+                        Cell(Shd("nil"), "nil"),
+                        Cell(Shd("clear", fill: "auto"), "auto"),
+                        Cell(Shd("pct50", fill: "auto"), "auto 50"),
+                        Cell(Shd("horzStripe"), "stripe"))));
+
+                // The same question of a paragraph and of a run, since a cell is not the only
+                // thing that can be given a pattern over a fill of nothing in particular.
+                builder.AddParagraph("A paragraph, clear over an automatic fill.",
+                    "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"auto\"/>" + ZeroSpacing, Times12);
+
+                builder.AddParagraph("A paragraph, half red over an automatic fill.",
+                    "<w:shd w:val=\"pct50\" w:color=\"FF0000\" w:fill=\"auto\"/>" + ZeroSpacing, Times12);
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\">A run, </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(24, shadingFill: "auto", shadingPattern: "pct50", shadingColor: "FF0000")}</w:rPr>" +
+                    "<w:t>half red over an automatic fill</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain}</w:rPr><w:t>.</w:t></w:r></w:p>");
+
+                builder.AddParagraph("Where a pattern may be written.",
+                    "<w:spacing w:before=\"240\" w:after=\"120\"/>", Times12);
+
+                // A pattern on the whole table, a cell with one of its own, and a cell that turns
+                // the table's off — which is what an automatic fill means where something above
+                // has given one.
+                builder.AddRawParagraph(Table(Shd("pct25", "FFFF00", "0070C0"), 4,
+                    Row(
+                        Cell(string.Empty, "table"),
+                        Cell(Shd("pct50", "FFFF00", "FF0000"), "own"),
+                        Cell(Shd("clear", fill: "auto"), "auto"),
+                        Cell(Shd("solid", "FFFF00", "00B050"), "solid"))));
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

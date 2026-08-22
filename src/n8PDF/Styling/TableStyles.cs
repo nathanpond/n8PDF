@@ -298,6 +298,8 @@ internal static class TableStyles
             if (format.Cell is not { } from) continue;
 
             accumulated.ShadingFill = from.ShadingFill ?? accumulated.ShadingFill;
+            accumulated.ShadingPattern = from.ShadingPattern ?? accumulated.ShadingPattern;
+            accumulated.ShadingPatternColor = from.ShadingPatternColor ?? accumulated.ShadingPatternColor;
             accumulated.VerticalAlignment = from.VerticalAlignment ?? accumulated.VerticalAlignment;
             accumulated.MarginLeftTwips = from.MarginLeftTwips ?? accumulated.MarginLeftTwips;
             accumulated.MarginRightTwips = from.MarginRightTwips ?? accumulated.MarginRightTwips;
@@ -309,6 +311,8 @@ internal static class TableStyles
 
         // The cell's own formatting wins over all of it.
         cell.ShadingFill ??= accumulated.ShadingFill;
+        cell.ShadingPattern ??= accumulated.ShadingPattern;
+        cell.ShadingPatternColor ??= accumulated.ShadingPatternColor;
         cell.VerticalAlignment ??= accumulated.VerticalAlignment;
         cell.MarginLeftTwips ??= accumulated.MarginLeftTwips;
         cell.MarginRightTwips ??= accumulated.MarginRightTwips;

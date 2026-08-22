@@ -1092,12 +1092,26 @@ internal sealed class TableCell
     /// <remarks>
     /// The three are not two: a cell whose style shades it and which declares <c>fill="auto"</c>
     /// of its own comes out unshaded, and telling that from a cell that said nothing is the whole
-    /// difference. <see cref="ShadingColorHex"/> is what to draw with.
+    /// difference. <see cref="ShadingPaint"/> is what to draw with.
     /// </remarks>
     public string? ShadingFill { get; set; }
 
-    /// <summary>The colour to fill the cell with, or null where it takes none.</summary>
-    public string? ShadingColorHex => ShadingFill is null or "auto" ? null : ShadingFill;
+    /// <summary>The pattern laid over that fill, and the colour it is laid in.</summary>
+    public string? ShadingPattern { get; set; }
+
+    public string? ShadingPatternColor { get; set; }
+
+    /// <summary>
+    /// The colour to fill the cell with, or null where it takes none.
+    /// </summary>
+    /// <remarks>
+    /// A cell blends a pattern over its fill the way a paragraph and a run do, and differs from
+    /// them in one thing: an automatic fill is a white surface here rather than no surface, which
+    /// cell-shading-probe measures.
+    /// </remarks>
+    public (double Red, double Green, double Blue)? ShadingPaint =>
+        new Styling.Shading(ShadingFill, ShadingPattern, ShadingPatternColor)
+            .Resolve(automaticIsWhite: true);
 
     public VerticalCellAlignment? VerticalAlignment { get; set; }
 

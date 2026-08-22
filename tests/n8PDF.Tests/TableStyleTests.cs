@@ -151,13 +151,13 @@ public class TableStyleTests
     {
         // Nothing asked for: no first row, so no shading and no banding either.
         var plain = Build("<w:tblLook w:val=\"0000\" w:firstRow=\"0\" w:noHBand=\"1\"/>");
-        Assert.Null(plain.Rows[0].Cells[0].ShadingColorHex);
-        Assert.Null(plain.Rows[1].Cells[0].ShadingColorHex);
+        Assert.Null(plain.Rows[0].Cells[0].ShadingPaint);
+        Assert.Null(plain.Rows[1].Cells[0].ShadingPaint);
 
         // Asked for: the first row is shaded, and the row after it is the first band.
         var styled = Build("<w:tblLook w:val=\"0020\" w:firstRow=\"1\" w:noHBand=\"0\"/>");
-        Assert.Equal("D9D9D9", styled.Rows[0].Cells[0].ShadingColorHex);
-        Assert.Equal("EEEEEE", styled.Rows[1].Cells[0].ShadingColorHex);
+        Assert.Equal("D9D9D9", Hex(styled.Rows[0].Cells[0]));
+        Assert.Equal("EEEEEE", Hex(styled.Rows[1].Cells[0]));
     }
 
     /// <summary>The older spelling of the look says the same thing in one number.</summary>
@@ -167,27 +167,41 @@ public class TableStyleTests
         // 0x0020 is the first row and nothing else; the banding bits being clear leaves banding on.
         var table = Build("<w:tblLook w:val=\"0020\"/>");
 
-        Assert.Equal("D9D9D9", table.Rows[0].Cells[0].ShadingColorHex);
-        Assert.Equal("EEEEEE", table.Rows[1].Cells[0].ShadingColorHex);
+        Assert.Equal("D9D9D9", Hex(table.Rows[0].Cells[0]));
+        Assert.Equal("EEEEEE", Hex(table.Rows[1].Cells[0]));
     }
 
     /// <summary>
     /// A cell shading itself overrides the style, and a cell declaring no fill at all is not the
     /// same as one declaring "auto": the second turns off shading the style would have given it.
     /// </summary>
+    /// <remarks>
+    /// Turning it off leaves the cell white rather than leaving it unpainted, which is Word's own
+    /// doing — see cell-shading-probe, where a cell asking for a clear pattern over an automatic
+    /// fill comes out of Word as a white rectangle and a paragraph asking for exactly the same
+    /// thing comes out as nothing at all.
+    /// </remarks>
     [Fact]
     public void A_cell_overrides_the_shading_its_style_gives_it()
     {
         var look = "<w:tblLook w:val=\"0020\" w:firstRow=\"1\"/>";
 
-        Assert.Equal("FF0000", Build(look, "<w:shd w:val=\"clear\" w:fill=\"FF0000\"/>")
-            .Rows[0].Cells[0].ShadingColorHex);
+        Assert.Equal("FF0000", Hex(Build(look, "<w:shd w:val=\"clear\" w:fill=\"FF0000\"/>")
+            .Rows[0].Cells[0]));
 
-        Assert.Null(Build(look, "<w:shd w:val=\"clear\" w:fill=\"auto\"/>")
-            .Rows[0].Cells[0].ShadingColorHex);
+        Assert.Equal("FFFFFF", Hex(Build(look, "<w:shd w:val=\"clear\" w:fill=\"auto\"/>")
+            .Rows[0].Cells[0]));
 
-        Assert.Equal("D9D9D9", Build(look).Rows[0].Cells[0].ShadingColorHex);
+        Assert.Equal("D9D9D9", Hex(Build(look).Rows[0].Cells[0]));
     }
+
+    /// <summary>The colour a cell is painted, as RRGGBB, or null where it is painted none.</summary>
+    private static string? Hex(n8PDF.Ooxml.TableCell cell) =>
+        cell.ShadingPaint is not { } paint
+            ? null
+            : $"{(int)Math.Round(paint.Red * 255):X2}" +
+              $"{(int)Math.Round(paint.Green * 255):X2}" +
+              $"{(int)Math.Round(paint.Blue * 255):X2}";
 
     /// <summary>
     /// The style's text formatting reaches the paragraphs in its cells, and sits below the

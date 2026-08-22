@@ -1,0 +1,181 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.641, "font": "Times New Roman", "size": 12, "text": "Patterns in a cell."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 93.12,
+          "height": 9.199,
+          "runs": [
+            {"x": 72.5, "width": 4, "font": "Times New Roman", "size": 8, "text": "5"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 93.12,
+          "height": 9.199,
+          "runs": [
+            {"x": 150.5, "width": 8, "font": "Times New Roman", "size": 8, "text": "10"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 93.12,
+          "height": 9.199,
+          "runs": [
+            {"x": 228.5, "width": 8, "font": "Times New Roman", "size": 8, "text": "12"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 93.12,
+          "height": 9.199,
+          "runs": [
+            {"x": 306.5, "width": 8, "font": "Times New Roman", "size": 8, "text": "25"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 93.12,
+          "height": 9.199,
+          "runs": [
+            {"x": 384.5, "width": 8, "font": "Times New Roman", "size": 8, "text": "50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 93.12,
+          "height": 9.199,
+          "runs": [
+            {"x": 462.5, "width": 8, "font": "Times New Roman", "size": 8, "text": "75"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.48,
+          "height": 9.199,
+          "runs": [
+            {"x": 72.5, "width": 15.559, "font": "Times New Roman", "size": 8, "text": "solid"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.48,
+          "height": 9.199,
+          "runs": [
+            {"x": 150.5, "width": 15.539, "font": "Times New Roman", "size": 8, "text": "clear"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.48,
+          "height": 9.199,
+          "runs": [
+            {"x": 228.5, "width": 8.445, "font": "Times New Roman", "size": 8, "text": "nil"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.48,
+          "height": 9.199,
+          "runs": [
+            {"x": 306.5, "width": 13.773, "font": "Times New Roman", "size": 8, "text": "auto"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.48,
+          "height": 9.199,
+          "runs": [
+            {"x": 384.5, "width": 23.773, "font": "Times New Roman", "size": 8, "text": "auto 50"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 102.48,
+          "height": 9.199,
+          "runs": [
+            {"x": 462.5, "width": 17.773, "font": "Times New Roman", "size": 8, "text": "stripe"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 115.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 197.906, "font": "Times New Roman", "size": 12, "text": "A paragraph, clear over an automatic fill."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 129.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 211.576, "font": "Times New Roman", "size": 12, "text": "A paragraph, half red over an automatic fill."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 143.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 33.662, "font": "Times New Roman", "size": 12, "text": "A run, "},
+            {"x": 105.662, "width": 142.939, "font": "Times New Roman", "size": 12, "text": "half red over an automatic fill"},
+            {"x": 248.602, "width": 3, "font": "Times New Roman", "size": 12, "text": "."}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 168.96,
+          "height": 14.891,
+          "runs": [
+            {"x": 72, "width": 154.594, "font": "Times New Roman", "size": 12, "text": "Where a pattern may be written."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 186,
+          "height": 9.199,
+          "runs": [
+            {"x": 72.5, "width": 15.547, "font": "Times New Roman", "size": 8, "text": "table"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 186,
+          "height": 9.199,
+          "runs": [
+            {"x": 150.5, "width": 13.777, "font": "Times New Roman", "size": 8, "text": "own"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 186,
+          "height": 9.199,
+          "runs": [
+            {"x": 228.5, "width": 13.773, "font": "Times New Roman", "size": 8, "text": "auto"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 186,
+          "height": 9.199,
+          "runs": [
+            {"x": 306.5, "width": 15.559, "font": "Times New Roman", "size": 8, "text": "solid"}
+          ]
+        }
+      ]
+    }
+  ]
+}
