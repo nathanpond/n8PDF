@@ -101,10 +101,17 @@ or have a clean tree to read or file them. The repo only needs its GitHub remote
 - **Severity** (findings): `sev:critical`, `sev:high`, `sev:medium`, `sev:low`
 - **Source**: `security`, `audit`, `tech-debt`, `needs-triage`, `blocked`, `epic`,
   `documentation`
+- **Kind**: `feature` — a capability that does not exist yet, as against a defect in one that
+  does. It carries no severity: a thing that was never built cannot be a `sev:` of anything, and
+  what an absent feature costs is a judgement about the product rather than a measurement of a
+  failure. Distinct from `tech-debt`, which is about code that exists being harder to work with
+  than it should be.
 - **That list is complete.** GitHub's stock labels (`bug`, `enhancement`, `duplicate`,
   `invalid`, `question`, `wontfix`, `good first issue`, `help wanted`) were deleted rather
   than left to sit alongside it: `bug` and `enhancement` overlap the scheme above, and a
-  severity signal split across two vocabularies is worse than either one alone.
+  severity signal split across two vocabularies is worse than either one alone. `feature` is not
+  `enhancement` returning under another name — `enhancement` was deleted for straddling defects
+  and absences, which is the distinction this one exists to draw.
 - **No `--type`.** Issue types are an organization-level setting and `nathanpond` is a user
   account, so `Bug`/`Task`/`Feature`/`Epic` are not available here. The labels above carry the
   same information. Sub-issues (`--parent`) and dependencies (`--blocked-by`) are *not*
