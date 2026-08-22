@@ -99,7 +99,12 @@ or have a clean tree to read or file them. The repo only needs its GitHub remote
 ### Vocabulary
 
 - **Severity** (findings): `sev:critical`, `sev:high`, `sev:medium`, `sev:low`
-- **Source**: `security`, `audit`, `tech-debt`, `needs-triage`, `blocked`, `epic`
+- **Source**: `security`, `audit`, `tech-debt`, `needs-triage`, `blocked`, `epic`,
+  `documentation`
+- **That list is complete.** GitHub's stock labels (`bug`, `enhancement`, `duplicate`,
+  `invalid`, `question`, `wontfix`, `good first issue`, `help wanted`) were deleted rather
+  than left to sit alongside it: `bug` and `enhancement` overlap the scheme above, and a
+  severity signal split across two vocabularies is worse than either one alone.
 - **No `--type`.** Issue types are an organization-level setting and `nathanpond` is a user
   account, so `Bug`/`Task`/`Feature`/`Epic` are not available here. The labels above carry the
   same information. Sub-issues (`--parent`) and dependencies (`--blocked-by`) are *not*
