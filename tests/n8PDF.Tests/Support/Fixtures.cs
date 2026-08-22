@@ -2716,6 +2716,82 @@ public static class Fixtures
                 return builder;
             },
 
+            // A cell width asked for as a share rather than a measurement: w:tcW w:type="pct", in
+            // fiftieths of a percent. What the share is a share *of* is the whole question, and it
+            // depends on what the table says about its own width — a table that states one has a
+            // number to take shares of, and a table left to its contents has not.
+            //
+            //   1  shares of a table stating its width in points
+            //   2  shares of a table stating its width as a share of the measure
+            //   3  shares of a table left to its contents, holding a letter each
+            //   4  the same, with one cell holding a good deal more
+            //   5  shares adding up to less than the whole
+            //   6  shares adding up to more than the whole
+            //   7  a share beside a measurement and beside a cell that asks for nothing
+            ["cell-percent-width-probe"] = () =>
+            {
+                string[] fills = ["DEEBF7", "FCE4D6", "E2EFDA", "FFF2CC"];
+
+                string Cell(string text, int index, string? width, string type = "pct") =>
+                    "<w:tc><w:tcPr>" +
+                    (width is null ? string.Empty : $"<w:tcW w:w=\"{width}\" w:type=\"{type}\"/>") +
+                    $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fills[index % 4]}\"/>" +
+                    $"</w:tcPr><w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{DocxBuilder.Escape(text)}</w:t></w:r>" +
+                    "</w:p></w:tc>";
+
+                string Table(string width, params string[] cells) =>
+                    "<w:tbl><w:tblPr>" + width +
+                    "<w:tblCellMar><w:left w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"0\" w:type=\"dxa\"/>" +
+                    "<w:top w:w=\"0\" w:type=\"dxa\"/><w:bottom w:w=\"0\" w:type=\"dxa\"/></w:tblCellMar>" +
+                    "</w:tblPr><w:tr>" + string.Join(string.Empty, cells) + "</w:tr></w:tbl>";
+
+                const string Stated = "<w:tblW w:w=\"6480\" w:type=\"dxa\"/>";
+                const string Whole = "<w:tblW w:w=\"5000\" w:type=\"pct\"/>";
+                const string Auto = "<w:tblW w:w=\"0\" w:type=\"auto\"/>";
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label, string table)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    builder.AddRawParagraph(table);
+                    first = false;
+                }
+
+                // A quarter, a half and a quarter of three hundred and twenty-four points.
+                Page("Shares of a stated width.", Table(Stated,
+                    Cell("a", 0, "1250"), Cell("b", 1, "2500"), Cell("c", 2, "1250")));
+
+                // The same shares of a table that is itself the whole measure.
+                Page("Shares of the whole measure.", Table(Whole,
+                    Cell("a", 0, "1250"), Cell("b", 1, "2500"), Cell("c", 2, "1250")));
+
+                // And of a table that states nothing, so there is nothing to take a share of but
+                // what the cells hold.
+                Page("Shares of a table left to its contents.", Table(Auto,
+                    Cell("a", 0, "1250"), Cell("b", 1, "2500"), Cell("c", 2, "1250")));
+
+                Page("The same, one cell holding more.", Table(Auto,
+                    Cell("a", 0, "1250"),
+                    Cell("a column holding a good deal more than the others", 1, "2500"),
+                    Cell("c", 2, "1250")));
+
+                // Half the table between two cells, and then half again as much as there is.
+                Page("Shares adding up to less than the whole.", Table(Stated,
+                    Cell("a", 0, "1250"), Cell("b", 1, "1250")));
+
+                Page("Shares adding up to more than the whole.", Table(Stated,
+                    Cell("a", 0, "3750"), Cell("b", 1, "3750")));
+
+                // A share, a measurement and a cell that asks for nothing, side by side.
+                Page("A share beside a measurement.", Table(Stated,
+                    Cell("a", 0, "2500"), Cell("b", 1, "1440", "dxa"), Cell("c", 2, null)));
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

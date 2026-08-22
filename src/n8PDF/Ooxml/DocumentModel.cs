@@ -1099,6 +1099,15 @@ internal sealed class TableCell
             ? Units.TwipsToPoints(twips)
             : null;
 
+    /// <summary>
+    /// The share of the table this cell asks for, where it asks in fiftieths of a percent rather
+    /// than in twips.
+    /// </summary>
+    public double? PreferredWidthShare =>
+        WidthType == "pct" && WidthTwips is { } fiftieths and > 0
+            ? Units.FiftiethsOfPercentToFraction(fiftieths)
+            : null;
+
     /// <summary>Number of grid columns this cell spans.</summary>
     public int GridSpan { get; set; } = 1;
 

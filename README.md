@@ -1706,10 +1706,23 @@ content beside ones that ask; and where two rows ask for different widths of one
 wins. Before this the declaration was ignored outright, which put a table of three declared columns
 300 points from Word's.
 
-Only a cell width in twips is honoured. One asked for as a **share of the table** (`w:type="pct"`)
-inside a table whose own width is left to its content is answered by Word with neither the share
-nor the content but something between the two, and that one is measured in the backlog rather than
-guessed at here.
+A width asked for as a **share of the table** (`w:type="pct"`, in fiftieths of a percent) is a
+share of whatever the table's own width came to, which `cell-percent-width-probe` settles seven
+ways. Of a table stating its width in points, the share is of that; of a table stating its width as
+a share of the measure, it is of the measure through it. Of a table stating nothing there is
+nothing to take a share of but the contents, and Word makes such a table **as narrow as the shares
+allow** — a quarter, a half and a quarter round a letter each come out 5.28, 10.8 and 5.28, the
+narrowest table at which a quarter still holds its letter — capping that at the measure, so the
+same table with a column of text in its middle cell fills the 468 points instead. Shares falling
+short of the whole are stretched to fill it and shares beyond it are taken in order until it is
+spent; a share beside a stated 72 points and a column asking for nothing comes out 162, 72 and 90,
+the share taken first, the statement kept, and the remainder going to the column that asked for
+nothing.
+
+What is left between us and Word there is a twelfth of a point, for one reason: Word puts each
+column on the grid and gives the last of them the remainder, so its quarter of 324 points is 81.12
+and 80.88 where ours is 81 and 81. Column widths are exact everywhere else in this engine, and
+snapping them here alone would be a rule with a single probe behind it.
 
 **A table's own stated width** (`w:tblW`) is met exactly, and `table-preferred-width-probe` settles
 four things about it: the width is taken whether it is wider than the contents want or narrower; a

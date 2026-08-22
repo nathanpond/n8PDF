@@ -3889,8 +3889,10 @@ internal sealed class LayoutEngine(
         var maximums = new double[columnCount];
 
         // What the cells of each column asked for, which stands in place of the content's own
-        // width where anything asked at all.
+        // width where anything asked at all, and the share of the table any of them asked for
+        // instead.
         var preferred = new double[columnCount];
+        var shares = new double[columnCount];
 
         var properties = table.Properties;
 
@@ -3921,6 +3923,7 @@ internal sealed class LayoutEngine(
                 // A declared width names the cell's own edge to edge, padding included, which is
                 // what the columns here are measured in.
                 var asked = cell.PreferredWidthPoints;
+                var share = cell.PreferredWidthShare;
 
                 if (span == 1)
                 {
@@ -3929,6 +3932,7 @@ internal sealed class LayoutEngine(
 
                     // Two rows asking for different widths of one column: the wider wins.
                     if (asked is { } width) preferred[column] = Math.Max(preferred[column], width);
+                    if (share is { } part) shares[column] = Math.Max(shares[column], part);
                 }
                 else
                 {
@@ -3958,20 +3962,16 @@ internal sealed class LayoutEngine(
         var totalMax = maximums.Sum();
 
         // A table that states its own width is made that wide, whether that is wider than its
-        // contents want or narrower, and whether or not it fits the page.
-        var stated = StatedTableWidth(table, availableWidth);
-        var limit = stated ?? availableWidth;
+        // contents want or narrower, and whether or not it fits the page. A table that states
+        // none but whose cells ask for shares of it is made as narrow as those shares allow.
+        var stated = StatedTableWidth(table, availableWidth) ?? WidthTheSharesNeed(shares, maximums, availableWidth);
 
-        if (totalMax <= limit)
-        {
-            // Nothing stated: the table is only as wide as its contents.
-            if (stated is null) return [.. maximums];
+        if (stated is { } target) return ShareOut(target, minimums, maximums, preferred, shares);
 
-            // Stated: the columns are grown to fill it, in proportion to what each wanted.
-            return totalMax > 0
-                ? [.. maximums.Select(m => m * stated.Value / totalMax)]
-                : [.. Enumerable.Repeat(stated.Value / columnCount, columnCount)];
-        }
+        var limit = availableWidth;
+
+        // Nothing stated: the table is only as wide as its contents, where they fit.
+        if (totalMax <= limit) return [.. maximums];
 
         var totalMin = minimums.Sum();
 
@@ -4014,6 +4014,115 @@ internal sealed class LayoutEngine(
         return table.Properties.WidthTwips is { } twips and > 0
             ? Units.TwipsToPoints(twips)
             : null;
+    }
+
+    /// <summary>
+    /// How wide a table has to be for the shares its cells ask for to hold what they hold, where
+    /// the table itself states no width. Null where no cell asks in shares.
+    /// </summary>
+    /// <remarks>
+    /// cell-percent-width-probe measures it: three cells asking for a quarter, a half and a
+    /// quarter of a table that states nothing come out 5.28, 10.8 and 5.28 — a table of 21.36
+    /// points, which is the narrowest at which a quarter still holds the letter that has to fit in
+    /// it. Put a column of text in the middle cell and the same table fills the measure instead,
+    /// its half being 234 points wide: the requirement is capped at the room there is.
+    /// </remarks>
+    private static double? WidthTheSharesNeed(double[] shares, double[] maximums, double availableWidth)
+    {
+        var needed = 0.0;
+
+        for (var i = 0; i < shares.Length; i++)
+        {
+            if (shares[i] > 0) needed = Math.Max(needed, maximums[i] / shares[i]);
+        }
+
+        return needed > 0 ? Math.Min(availableWidth, needed) : null;
+    }
+
+    /// <summary>
+    /// Divides a width the table has settled on between its columns.
+    /// </summary>
+    /// <remarks>
+    /// Measured on cell-percent-width-probe and table-preferred-width-probe, in this order:
+    ///
+    ///   * a column asking for a share of the table takes that share of it, and takes it before
+    ///     anything else does. Shares that do not add up to the whole are stretched to fill it,
+    ///     but only where every column asks in shares: a half beside a stated 72 points and a
+    ///     column asking nothing leaves the half at exactly half. Shares that add up to more than
+    ///     the whole are taken in order until it is spent, which is what leaves the second of two
+    ///     three-quarters with the remaining quarter.
+    ///   * a column stating a width in points takes it;
+    ///   * a column asking for nothing takes what its content wants;
+    ///   * and whatever is left over goes to the columns that asked for nothing, in proportion to
+    ///     what their contents wanted — or, where every column asked for something, is shared out
+    ///     among them all in the same proportion. Three columns each stating 72 points inside a
+    ///     table stating 324 come out 108 apiece, and a half beside a stated 72 and a column
+    ///     asking nothing comes out 162, 72 and 90.
+    /// </remarks>
+    private static List<double> ShareOut(
+        double target, double[] minimums, double[] maximums, double[] preferred, double[] shares)
+    {
+        var count = maximums.Length;
+        var widths = new double[count];
+
+        // Shares that fall short of the whole are stretched to fill it, but only where the whole
+        // table is divided in shares.
+        var shareTotal = shares.Sum();
+        var stretch = shareTotal > 0 && shareTotal < 1 && shares.All(share => share > 0)
+            ? 1 / shareTotal
+            : 1;
+
+        var spent = 0.0;
+
+        for (var i = 0; i < count; i++)
+        {
+            if (shares[i] <= 0) continue;
+
+            widths[i] = Math.Max(0, Math.Min(shares[i] * stretch * target, target - spent));
+            spent += widths[i];
+        }
+
+        // What is left is the room the rest of the columns divide.
+        var room = Math.Max(0, target - spent);
+        var rest = Enumerable.Range(0, count).Where(i => shares[i] <= 0).ToList();
+
+        if (rest.Count == 0) return [.. widths];
+
+        var wanted = rest.Sum(i => maximums[i]);
+
+        if (wanted >= room)
+        {
+            // No room to spare: the columns that are left share what there is between them, from
+            // their minimums up, which is the ordinary autofit rule.
+            var floors = rest.Sum(i => minimums[i]);
+
+            foreach (var i in rest)
+            {
+                widths[i] = floors >= room
+                    ? (floors > 0 ? minimums[i] * room / floors : room / rest.Count)
+                    : minimums[i] + (room - floors) * (maximums[i] - minimums[i]) /
+                    Math.Max(0.0001, wanted - floors);
+            }
+
+            return [.. widths];
+        }
+
+        // Room to spare. It goes to the columns that asked for nothing at all; where every column
+        // asked, they grow together instead.
+        var free = rest.Where(i => preferred[i] <= 0).ToList();
+        var growing = free.Count > 0 ? free : rest;
+        var share = growing.Sum(i => maximums[i]);
+
+        foreach (var i in rest) widths[i] = maximums[i];
+
+        foreach (var i in growing)
+        {
+            widths[i] += share > 0
+                ? (room - wanted) * maximums[i] / share
+                : (room - wanted) / growing.Count;
+        }
+
+        return [.. widths];
     }
 
     private static void SpreadAcrossSpan(double[] widths, int start, int span, double required)

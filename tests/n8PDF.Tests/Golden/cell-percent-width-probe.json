@@ -1,0 +1,263 @@
+{
+  "pageCount": 7,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 117.639, "font": "Times New Roman", "size": 12, "text": "Shares of a stated width."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 153, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 315, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 140.953, "font": "Times New Roman", "size": 12, "text": "Shares of the whole measure."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 189, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 423, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 171.287, "font": "Times New Roman", "size": 12, "text": "Shares of a table left to its contents."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 77.326, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 87.979, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 160.283, "font": "Times New Roman", "size": 12, "text": "The same, one cell holding more."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 189, "width": 211.277, "font": "Times New Roman", "size": 12, "text": "a column holding a good deal more than the"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 189, "width": 29.326, "font": "Times New Roman", "size": 12, "text": "others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 423, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 192.633, "font": "Times New Roman", "size": 12, "text": "Shares adding up to less than the whole."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 234, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 199.289, "font": "Times New Roman", "size": 12, "text": "Shares adding up to more than the whole."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 315, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 148.939, "font": "Times New Roman", "size": 12, "text": "A share beside a measurement."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 234, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 306, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    }
+  ]
+}
