@@ -2123,6 +2123,102 @@ public static class Fixtures
         </c:chart>
         """;
 
+    /// <summary>
+    /// A chart of four points carrying error bars, for measuring what Word draws for them.
+    /// </summary>
+    /// <remarks>
+    /// Built like the trendline probe beside it: everything about the plot stated, the bars
+    /// painted a red nothing else on the page uses, and one thing varying per page. The values
+    /// 30/45/20/55 have a population deviation of 13.462 and a sample one of 15.546 — 15% apart,
+    /// which is what lets one page tell them from each other.
+    /// </remarks>
+    private static string ErrorBarProbeChart(
+        string amount, double value = 10, string type = "both", bool caps = true,
+        double plotWidth = 0.7, double labelSize = 10, string? plus = null, string? minus = null) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/>
+                <c:w val="{plotWidth.ToString(CultureInfo.InvariantCulture)}"/><c:h val="0.7"/>
+              </c:manualLayout>
+            </c:layout>
+            <c:lineChart>
+              <c:grouping val="standard"/>
+              <c:varyColors val="0"/>
+              <c:ser>
+                <c:idx val="0"/>
+                <c:order val="0"/>
+                <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f>
+                  <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>Units</c:v></c:pt></c:strCache>
+                </c:strRef></c:tx>
+                <c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="4472C4"/></a:solidFill></a:ln></c:spPr>
+                <c:marker><c:symbol val="none"/></c:marker>
+                <c:errBars>
+                  <c:spPr><a:ln w="12700"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill></a:ln></c:spPr>
+                  <c:errDir val="y"/>
+                  <c:errBarType val="{type}"/>
+                  <c:errValType val="{amount}"/>
+                  <c:noEndCap val="{(caps ? "0" : "1")}"/>
+                  {(plus is null ? string.Empty : $"<c:plus><c:numRef><c:f>Sheet1!$C$2:$C$5</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val=\"4\"/>{plus}</c:numCache></c:numRef></c:plus>")}
+                  {(minus is null ? string.Empty : $"<c:minus><c:numRef><c:f>Sheet1!$D$2:$D$5</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val=\"4\"/>{minus}</c:numCache></c:numRef></c:minus>")}
+                  <c:val val="{value.ToString(CultureInfo.InvariantCulture)}"/>
+                </c:errBars>
+                <c:cat><c:strRef><c:f>Sheet1!$A$2:$A$5</c:f>
+                  <c:strCache><c:ptCount val="4"/><c:pt idx="0"><c:v>North</c:v></c:pt><c:pt idx="1"><c:v>South</c:v></c:pt><c:pt idx="2"><c:v>East</c:v></c:pt><c:pt idx="3"><c:v>West</c:v></c:pt></c:strCache>
+                </c:strRef></c:cat>
+                <c:val><c:numRef><c:f>Sheet1!$B$2:$B$5</c:f>
+                  <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="4"/>
+                    <c:pt idx="0"><c:v>30</c:v></c:pt><c:pt idx="1"><c:v>45</c:v></c:pt><c:pt idx="2"><c:v>20</c:v></c:pt><c:pt idx="3"><c:v>55</c:v></c:pt>
+                  </c:numCache>
+                </c:numRef></c:val>
+                <c:smooth val="0"/>
+              </c:ser>
+              <c:marker val="1"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:lineChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="{(int)(labelSize * 100)}"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling>
+                <c:orientation val="minMax"/>
+                <c:max val="80"/>
+                <c:min val="0"/>
+              </c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string ColumnChart() => $"""
         <c:chart>
           <c:autoTitleDeleted val="1"/>
@@ -4150,6 +4246,82 @@ public static class Fixtures
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216) + "</w:p>")
                 .AddParagraph("Paragraph after the chart.", ZeroSpacing, Times12),
+
+            // What Word draws for error bars, one thing to a page. Eight:
+            //
+            //   page 1  a fixed ten, capped        -> the shaft, and how wide a cap is
+            //   page 2  the same, uncapped         -> that noEndCap is the only difference
+            //   page 3  a fixed ten, plus only     -> which side a one-way bar reaches
+            //   page 4  twenty percent of a point  -> that a share follows the point
+            //   page 5  one standard deviation     -> n or n-1, which differ by 15% here
+            //   page 6  the standard error         -> and whether the stated value counts
+            //   page 7  stated per point           -> plus and minus read separately
+            //   page 8  a narrower plot, larger type -> whether the cap follows either
+            //
+            // Pages 1 and 8 together are what say the cap is a fixed width: page 8 moves the plot
+            // and the type around it and the cap is expected not to move with them.
+            ["chart-error-bar-probe"] = () => new DocxBuilder()
+                .WithChart(ErrorBarProbeChart("fixedVal"))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("fixedVal", caps: false)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("fixedVal", type: "plus")),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("percentage", value: 20)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("stdDev", value: 1)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("stdErr")),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("cust",
+                        plus: """<c:pt idx="0"><c:v>5</c:v></c:pt><c:pt idx="1"><c:v>10</c:v></c:pt><c:pt idx="2"><c:v>15</c:v></c:pt><c:pt idx="3"><c:v>20</c:v></c:pt>""",
+                        minus: """<c:pt idx="0"><c:v>20</c:v></c:pt><c:pt idx="1"><c:v>15</c:v></c:pt><c:pt idx="2"><c:v>10</c:v></c:pt><c:pt idx="3"><c:v>5</c:v></c:pt>""")),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ErrorBarProbeChart("fixedVal", plotWidth: 0.5, labelSize: 18)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 571) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 572, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 573, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 574, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 575, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 576, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 577, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 578, relationshipId: "rIdChart8") +
+                                 "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the
             // kind that caused it. Six pages:

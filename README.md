@@ -1735,8 +1735,29 @@ a legend on any of the four sides; and a number written at every point, in the f
 for and where the kind of chart puts it; and the trendlines a series carries, of all six kinds the
 format allows — straight, polynomial, exponential, logarithmic, power and a moving average — run
 forward or back past the data and forced through an intercept where the chart asks for it. What is
-not: error bars, drop lines, three-dimensional charts of any kind, and a legend or a title placed
-by hand rather than by side.
+not: drop lines, three-dimensional charts of any kind, and a legend or a title placed by hand
+rather than by side.
+
+Error bars are drawn too, of all five kinds the format allows — a fixed amount, a share of each
+point, a multiple of the series' deviation, its standard error, and a distance stated for every
+point and each side of it separately — reaching both ways or one, capped or not. Three things
+about them had to be measured, and `chart-error-bar-probe` measures each on a page of its own.
+
+The end cap is **4.5pt** wide, read out of Word's own path geometry rather than guessed from the
+picture: it spans 57,150 EMU. A page that halves the plot and near enough doubles the type around
+it draws the same cap, so it follows neither.
+
+The deviation is the **sample** one, dividing by n−1. The format does not say which, and the two
+are 15% apart over the probe's four points — Word reaches 15.55 of the value axis where the whole
+series' deviation would reach 13.46.
+
+And the strangest of the three: a deviation's bars are not drawn about the points they belong to
+at all. Word draws **every one of them about the series' mean**, so four points get four identical
+bars at four places along the foot, saying where the middle of the data is and how far it scatters
+rather than anything about the point each stands on. All four cover the same 144..203 of the page
+where drawing them about their points would spread them over 111..236. A standard error does not
+do this — its bars sit on their own points, which the next page confirms to the pixel. The two are
+inconsistent with each other, and this reproduces the inconsistency.
 
 Two things about a trendline had to be measured rather than read, and neither is in the format's
 description of one. A line asked to run **forward** does not merely draw further: Word widens the

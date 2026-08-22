@@ -1617,6 +1617,10 @@ internal static class ChartComposer
         // Over the data it describes, and over every kind of it: a trendline belongs to a series
         // rather than to a way of drawing one, so a column chart may carry one as readily as a
         // line chart.
+        // Under the trendlines and over the data, which is the order Word writes them in: a bar
+        // says how far a point might be out, so it belongs to the point rather than over the line
+        // drawn through them all.
+        operations.AddRange(ErrorBars(chart, plan, theme));
         operations.AddRange(Trendlines(chart, plan, theme));
 
         return new VectorDrawing(width, height, operations);
@@ -1783,6 +1787,110 @@ internal static class ChartComposer
     /// A line through each series' points, curving through them unless the series says not to,
     /// which is the format's own default.
     /// </summary>
+    /// <summary>
+    /// How wide the tick across the end of an error bar is drawn, in points.
+    /// </summary>
+    /// <remarks>
+    /// Read out of Word's own path geometry rather than guessed from the picture: the cap spans
+    /// 57,150 EMU, which is 4.5pt exactly. The probe's eighth page halves the plot and near enough
+    /// doubles the type around it and the cap does not move, so it follows neither — it is a fixed
+    /// width, and this is it.
+    /// </remarks>
+    private const double ErrorCapWidth = 4.5;
+
+    /// <summary>
+    /// The bars either side of a series' points, saying how far the numbers might be out.
+    /// </summary>
+    /// <remarks>
+    /// The reach is worked out in the data's own numbers and only then turned into positions, for
+    /// the reason the trendlines are: a bar of five units is five units of the value axis wherever
+    /// the plot happens to be, and would otherwise change with the picture's shape.
+    ///
+    /// Bars that reach along the categories rather than up the values are drawn only for a chart
+    /// of pairs, where the foot is a scale and a distance along it means something. A category
+    /// chart's foot is a list of names, and Word draws nothing there either.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> ErrorBars(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        if (chart.Kind is ChartKind.Pie or ChartKind.Doughnut or ChartKind.Radar) yield break;
+
+        foreach (var series in chart.Series)
+        {
+            if (series.ErrorBars.Count == 0) continue;
+
+            var points = Points(chart, series, plan);
+            var data = Data(chart, series);
+            if (points.Count == 0 || points.Count != data.Count) continue;
+
+            var values = new List<double>(data.Count);
+            foreach (var (_, y) in data) values.Add(y);
+
+            foreach (var bars in series.ErrorBars)
+            {
+                var sideways = bars.Direction == ChartErrorDirection.Category;
+                if (sideways && !chart.Paired) continue;
+
+                var along = sideways ? data.Select(point => point.X).ToList() : values;
+                var reach = ChartErrorAmounts.Reach(bars, along);
+
+                // A deviation's bars are all drawn about the series' middle rather than about the
+                // points they stand on. See ChartErrorAmounts.Centre.
+                var centre = ChartErrorAmounts.Centre(bars, along);
+
+                var steps = new List<PathStep>();
+
+                for (var i = 0; i < points.Count && i < reach.Count; i++)
+                {
+                    var (up, down) = reach[i];
+                    if (up <= 0 && down <= 0) continue;
+
+                    var (x, y) = points[i];
+                    var about = centre ?? (sideways ? data[i].X : data[i].Y);
+
+                    var (from, to) = sideways
+                        ? (plan.AcrossOf(about - down), plan.AcrossOf(about + up))
+                        : (plan.PositionOf(about - down), plan.PositionOf(about + up));
+
+                    var half = ErrorCapWidth / 2;
+
+                    if (sideways)
+                    {
+                        steps.Add(new PathStep(PathStepKind.Move, [(from, y)]));
+                        steps.Add(new PathStep(PathStepKind.Line, [(to, y)]));
+
+                        if (!bars.Capped) continue;
+
+                        if (down > 0) Cap(steps, from, y - half, from, y + half);
+                        if (up > 0) Cap(steps, to, y - half, to, y + half);
+                    }
+                    else
+                    {
+                        steps.Add(new PathStep(PathStepKind.Move, [(x, from)]));
+                        steps.Add(new PathStep(PathStepKind.Line, [(x, to)]));
+
+                        if (!bars.Capped) continue;
+
+                        if (down > 0) Cap(steps, x - half, from, x + half, from);
+                        if (up > 0) Cap(steps, x - half, to, x + half, to);
+                    }
+                }
+
+                if (steps.Count == 0) continue;
+
+                yield return new PathOperation(
+                    steps, null, Resolve(bars.Line, theme), bars.LineWidthPoints, EvenOdd: false,
+                    Clip: (plan.Left, plan.Top, plan.Width, plan.Height));
+            }
+        }
+
+        static void Cap(List<PathStep> steps, double x1, double y1, double x2, double y2)
+        {
+            steps.Add(new PathStep(PathStepKind.Move, [(x1, y1)]));
+            steps.Add(new PathStep(PathStepKind.Line, [(x2, y2)]));
+        }
+    }
+
     /// <summary>
     /// How far past its categories a chart's trendlines reach, in category slots.
     /// </summary>
