@@ -1391,13 +1391,32 @@ point and two steps out at fifty. The probe holds the same height in Times, Aria
 whose own descents are 0.1953, 0.1897 and 0.2200 of their lines, five steps of the grid apart at
 that size — and Word sets all three on one baseline.
 
-**Four fifths of an exact line stands above the baseline.** That lands on Word's answer at
-thirty-six of the fifty-three heights swept and one step of the grid from it at the other
-seventeen, never further. What Word does with that last step is not a rounding of anything that
-could be measured here: the residual repeats every six points, and no rule of the form
-round(*aH* + *b*) — in points, in twips, or in the grid's own units — reproduces it. `ExactLineTests`
-holds both sets, the heights that agree exactly and the ones a step out, so the day the rule is
-found the test will say what changed.
+**Four fifths of an exact line stands above the baseline.** That alone lands one step of the grid
+out on about a fifth of the heights, and the last step was found by sweeping every height a twip at
+a time rather than a point at a time: **865 heights from fifteen points to a hundred and fifty**, in
+four exports. Two rules come out of it, and neither is derived from anything:
+
+- The height behaves as though it were **one twip larger or smaller** before the four fifths is
+  taken — a twip larger where the whole steps of the ascent leave one over four, a twip smaller
+  where they leave two or three, the height itself where they divide evenly. That accounts for 779
+  of the 865.
+- Where the height **and its fifth both land half way** between two steps of the grid — which is
+  every odd multiple of three points — Word takes a further step, at all but one such height in
+  five and then one of those in five again. Written in base five, with *j* the number of such
+  heights below this one: the step is taken where *j*'s last digit is under three and its next
+  digit is not two.
+
+The second is a measured pattern and nothing here explains why base five should come into it beyond
+the four fifths itself, so it was checked the only way a fitted rule can be: against a second sweep
+at sixty-three heights the first never reached, which it predicted every one of. Together the two
+account for all 865, and `exact-line-probe` holds the nineteen heights that pin them.
+
+What is still open is the **next** line. Word advances by a whole number of steps of the grid rather
+than by the height itself — its two baselines are 83 steps apart at twenty points where the height
+is 83⅓ — and what decides the last of those steps is no more a rounding of the height than the
+ascent was. This advances by the height, which is within a step of Word either way and never drifts,
+since nothing accumulates: fourteen of the probe's sixty-three lines are a step from Word's, and
+every one of them is a line under the first.
 
 ### A character named by its code
 

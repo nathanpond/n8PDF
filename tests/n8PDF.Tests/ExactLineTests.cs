@@ -9,26 +9,48 @@ namespace n8PDF.Tests;
 /// and says nothing about how the room is divided above and below the baseline.
 /// </summary>
 /// <remarks>
-/// <c>exact-line-probe</c> measures eleven heights, and a sweep of fifty-three from twenty points
-/// to seventy-two was run twice over while this was written — fifty-six point Times and twenty-four
-/// point Verdana — and Word put every baseline of the second sweep in exactly the place it put the
-/// first. So the share is Word's own and not the font's, which is what this holds: the probe's
-/// last three pages are the same height in Times, Arial and Calibri, whose own descents are 0.1953,
-/// 0.1897 and 0.2200 of their line — five steps of the grid apart at this size — and Word sets all
-/// three on one baseline.
+/// The share is four fifths, and it is Word's own rather than the font's: the probe's last three
+/// pages are the same height in Times, Arial and Calibri, whose own descents are 0.1953, 0.1897 and
+/// 0.2200 of their line — five steps of the grid apart at this size — and Word sets all three on
+/// one baseline. A sweep of fifty-three heights run twice over, in fifty-six point Times and in
+/// twenty-four point Verdana, put every baseline of the second in exactly the place it put the
+/// first.
 ///
-/// The share is four fifths. That lands on Word's answer at thirty-six of the fifty-three heights
-/// swept and one step of the grid from it at the other seventeen, never further, and what Word
-/// does with that last step is not a rounding of anything measured here: the residual repeats every
-/// six points, and no rule of the form round(aH + b) — in points, in twips, or in the grid's own
-/// units — reproduces it. Both sets are held below, so the day the rule is found this test will say
-/// what changed.
+/// Four fifths alone lands one step of the grid out on about a fifth of the heights, and the last
+/// step was measured by sweeping every height a twip at a time rather than a point at a time: 865
+/// heights from fifteen points to a hundred and fifty, in four exports. Two rules come out of it,
+/// and <see cref="LayoutEngine"/> writes both up where they are applied:
+///
+///   * the height behaves as though it were a twip larger or smaller before the four fifths is
+///     taken, by how many whole steps of the ascent leave over four — larger at one, smaller at
+///     two and three, the height itself at nought. That is 779 of the 865;
+///   * where the height and its fifth both land half way between two steps — every odd multiple of
+///     three points — Word takes a further step, at all but one such height in five and then one
+///     of those in five again. A base-five pattern, measured and not derived, which is why it was
+///     checked against a second sweep of sixty-three heights the first never reached: it predicted
+///     every one of them.
+///
+/// Together they account for all 865. What the probe holds is the nineteen heights that pin them,
+/// so the rule cannot drift without a test saying so.
 /// </remarks>
 public class ExactLineTests(ITestOutputHelper output)
 {
-    /// <summary>Every line of the probe, against Word's own.</summary>
+    /// <summary>
+    /// Every line of the probe, against Word's own: the first line of each page exactly, and the
+    /// lines under it within a step of the grid.
+    /// </summary>
+    /// <remarks>
+    /// The rule above says where the baseline of an exact line falls below the top of its own box,
+    /// and the top of the first box on a page is the margin. Where the next line's box begins is a
+    /// second question, and one this does not answer: Word advances by a whole number of steps of
+    /// the grid rather than by the height itself — its two baselines are 83 steps apart at twenty
+    /// points where the height is 83⅓ — and what decides the last of those steps is no more a
+    /// rounding of the height than the ascent was. This advances by the height, which is within a
+    /// step of Word either way and never drifts, since nothing accumulates: the second line of
+    /// fourteen of the probe's sixty-three lines is a step from Word's and the rest are exact.
+    /// </remarks>
     [Fact]
-    public void The_baselines_are_words_or_one_step_from_them()
+    public void The_first_baseline_of_every_page_is_words()
     {
         if (TestFonts.SkipForMissingFonts("exact-line-probe")) return;
 
@@ -42,26 +64,45 @@ public class ExactLineTests(ITestOutputHelper output)
 
         output.WriteLine($"word {string.Join(" ", word)}");
         output.WriteLine($"ours {string.Join(" ", ours)}");
-        output.WriteLine($"{apart.Count(a => a > 0.001)} of {apart.Count} a step out, worst {apart.Max():0.###}pt");
+        output.WriteLine($"{apart.Count(a => a > 0.001)} of {apart.Count} out at all, worst {apart.Max():0.###}pt");
+
+        // Three lines to a page: the exact-spaced pair and the ordinary line beneath them.
+        for (var i = 0; i < apart.Count; i += 3)
+        {
+            Assert.True(apart[i] < 0.001,
+                $"the first baseline of page {i / 3 + 1} is {apart[i]:0.###}pt from Word's");
+        }
 
         Assert.True(apart.Max() <= 0.24 + 0.001, $"a baseline is {apart.Max():0.###}pt from Word's");
     }
 
     /// <summary>
-    /// The heights Word and this agree on exactly, and the two the sweep says are a step out.
-    /// Twenty and fifty are the probe's own; the whole list of seventeen from the sweep is 20, 21,
-    /// 26, 27, 32, 33, 38, 39, 44, 50, 51, 56, 57, 62, 63, 68 and 69 points.
+    /// Every height the probe holds, at the baseline Word's own export puts it on. The last ten are
+    /// the ones the whole-point sweep could not reach: three where four fifths lands exactly half
+    /// way between two steps and the number of whole steps under it decides which way it goes, two
+    /// where it lands a third of a step over and Word takes the step anyway, and five that say what
+    /// happens where the height and its fifth both land half way.
     /// </summary>
     [Theory]
-    [InlineData(600, 96.0, 0.0, "thirty points, exactly Word's")]
-    [InlineData(800, 104.16, 0.0, "forty, exactly Word's")]
-    [InlineData(827, 105.12, 0.0, "Word's own three-line cap height")]
-    [InlineData(1100, 115.92, 0.0, "fifty-five, exactly Word's")]
-    [InlineData(1200, 120.0, 0.0, "sixty, exactly Word's")]
-    [InlineData(1400, 128.16, 0.0, "seventy, exactly Word's")]
-    [InlineData(400, 88.08, -0.24, "twenty: a step above Word's")]
-    [InlineData(1000, 112.08, -0.24, "fifty: a step above Word's")]
-    public void Each_height_lands_where_the_sweep_said(int twips, double word, double apart, string what)
+    [InlineData(600, 96.0, "thirty points")]
+    [InlineData(800, 104.16, "forty")]
+    [InlineData(827, 105.12, "Word's own three-line cap height")]
+    [InlineData(1100, 115.92, "fifty-five")]
+    [InlineData(1200, 120.0, "sixty")]
+    [InlineData(1400, 128.16, "seventy")]
+    [InlineData(400, 88.08, "twenty")]
+    [InlineData(1000, 112.08, "fifty")]
+    [InlineData(405, 88.08, "half way, three whole steps over four: down")]
+    [InlineData(411, 88.56, "half way, none over: up")]
+    [InlineData(423, 88.8, "half way, two over: down")]
+    [InlineData(416, 88.8, "a third of a step over, one whole step over four: up")]
+    [InlineData(440, 89.76, "the same again")]
+    [InlineData(420, 89.04, "twenty-one points: the height and its fifth both half way")]
+    [InlineData(540, 93.84, "twenty-seven, the same")]
+    [InlineData(300, 84.0, "fifteen: the same, and Word does not take the step")]
+    [InlineData(900, 108.0, "forty-five, the same")]
+    [InlineData(444, 89.76, "the ordinary half-way height")]
+    public void Each_height_lands_where_word_puts_it(int twips, double word, string what)
     {
         if (TestFonts.SkipForMissingFonts("exact-line-probe")) return;
 
@@ -77,7 +118,7 @@ public class ExactLineTests(ITestOutputHelper output)
             .Where(run => run.PageIndex == page)
             .Min(run => run.BaselineY);
 
-        Assert.Equal(word + apart, first, 2);
+        Assert.Equal(word, first, 2);
     }
 
     /// <summary>
@@ -108,7 +149,11 @@ public class ExactLineTests(ITestOutputHelper output)
         runs.Where(run => run.PageIndex == page).Min(run => run.BaselineY);
 
     /// <summary>The exact heights the probe is written in, in twips, in the order of its pages.</summary>
-    private static readonly int[] Heights = [400, 500, 600, 800, 827, 1000, 1100, 1200, 1400];
+    private static readonly int[] Heights =
+    [
+        400, 500, 600, 800, 827, 1000, 1100, 1200, 1400,
+        405, 411, 423, 416, 440, 420, 540, 300, 900, 444
+    ];
 
     /// <summary>Every baseline of the document, page by page and top first.</summary>
     private static List<double> Baselines(byte[] pdf) =>

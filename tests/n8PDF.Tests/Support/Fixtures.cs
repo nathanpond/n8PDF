@@ -6485,13 +6485,26 @@ public static class Fixtures
                     builder.AddParagraph("And an ordinary line beneath it.", ZeroSpacing, Times12);
                 }
 
-                // Six heights of the same text, so the share of the line above the baseline can be
-                // read off six times over rather than fitted to one.
-                // Nine heights of the same text, so the share of the line above the baseline can
-                // be read off nine times over rather than fitted to one. Three of them — 25, 40
-                // and 55 points — are the ones that say which way the rounding goes, being the
-                // heights where four fifths lands a third of a step above a whole one.
-                foreach (var twips in new[] { 400, 500, 600, 800, 827, 1000, 1100, 1200, 1400 })
+                // Eighteen heights of the same text, so the share of the line above the baseline
+                // can be read off eighteen times over rather than fitted to one. The first nine
+                // are the round ones; the rest are the heights that say what happens to the last
+                // step of the grid, which a whole-point sweep cannot reach:
+                //
+                //   405, 411, 423   four fifths lands exactly half way between two steps, and
+                //                   which way it goes depends on how many whole steps are under
+                //                   it: up at 411, down at the other two
+                //   416, 440        a third of a step over a whole one, and Word takes the step
+                //                   anyway — the one place the nudge of a twip shows plainly
+                //   420, 540        the height and its fifth both land half way, and Word takes
+                //                   a further step
+                //   300, 900        the same, and Word does not: the exception that made the
+                //                   pattern base five rather than base twenty-five
+                //   444             the ordinary half-way height, for the other side of it
+                foreach (var twips in new[]
+                         {
+                             400, 500, 600, 800, 827, 1000, 1100, 1200, 1400,
+                             405, 411, 423, 416, 440, 420, 540, 300, 900, 444
+                         })
                     Line("Hxg", twips);
 
                 // The same height in two other faces. Times keeps 0.1953 of its own line below

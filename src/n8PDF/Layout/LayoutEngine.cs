@@ -5873,6 +5873,65 @@ internal sealed class LayoutEngine(
         ApplyLineMetrics(line, format, mark.Ascent, mark.Height);
     }
 
+    /// <summary>
+    /// Where the baseline of a line of an exact height falls: four fifths of the way down it, on
+    /// the step of the grid Word draws on.
+    /// </summary>
+    /// <remarks>
+    /// The share is Word's own and not the font's. A sweep of fifty-three heights was run twice
+    /// over — fifty-six point Times and twenty-four point Verdana — and Word put every baseline of
+    /// the second in exactly the place it put the first; the probe's own last three pages set the
+    /// same height in Times, Arial and Calibri, whose descents are five steps of the grid apart,
+    /// and Word sets all three on one baseline.
+    ///
+    /// Four fifths alone lands one step of the grid out on about a fifth of the heights, and what
+    /// it takes to land on all of them was measured by sweeping every height a twip at a time —
+    /// 865 of them, from fifteen points to a hundred and fifty. Two things come out of that sweep,
+    /// and neither is derived from anything:
+    ///
+    ///   * the height behaves as though it were **one twip larger or smaller** before the four
+    ///     fifths is taken, by where the answer falls: a twip larger where the whole steps of the
+    ///     ascent leave one over four, a twip smaller where they leave two or three, and the
+    ///     height itself where they divide evenly. That is 779 of the 865 exactly, and the whole
+    ///     of the rest is the case below.
+    ///
+    ///   * where the height and its fifth **both** land half way between two steps of the grid —
+    ///     which is every odd multiple of three points — Word takes a further step, except at one
+    ///     height in five and then at one of those in five again. Written in fifths, with j the
+    ///     number of such heights below this one: the step is taken where j's last digit in base
+    ///     five is under three and its next digit is not two. That accounts for all 128 of the
+    ///     heights the sweeps hold, from fifteen points to a hundred and forty-nine.
+    ///
+    /// The second rule is the one to be suspicious of: it is a measured pattern in base five and
+    /// nothing here explains why base five should come into it, beyond the four fifths itself.
+    /// It was checked against a second sweep at heights the first never reached and predicted
+    /// all sixty-three of them, which is the only reason it is here rather than left as a step
+    /// out. ExactLineTests holds both, and the sweep that measured them.
+    /// </remarks>
+    private static double ExactAscent(int heightTwips)
+    {
+        if (heightTwips <= 0) return 0;
+
+        // The ascent in whole steps of the grid, before anything is done about the last one: the
+        // height in twips is six twips to the step, four fifths of the 4.8 a step of the grid is.
+        var steps = heightTwips / 6;
+
+        var nudged = heightTwips + (steps % 4) switch { 1 => 1, 2 or 3 => -1, _ => 0 };
+
+        // Rounded to the nearest step, halves away from nought, in whole numbers so that nothing
+        // of the twip the nudge added is lost on the way.
+        var ascent = (2 * nudged + 6) / 12;
+
+        if (heightTwips % 24 == 12)
+        {
+            var j = (heightTwips - 12) / 24;
+
+            if (j % 5 <= 2 && j % 25 is not (10 or 11 or 12)) ascent++;
+        }
+
+        return ascent * Grid.Step;
+    }
+
     private static void ApplyLineMetrics(
         ComposedLine line, ResolvedParagraphFormat format, double maxAscent, double naturalHeight)
     {
@@ -5882,23 +5941,7 @@ internal sealed class LayoutEngine(
         {
             case LineSpacingRule.Exact:
                 line.Height = format.LineSpacingPoints;
-
-                // Four fifths of an exact line stands above the baseline, whatever is set on it.
-                // exact-line-probe measures fifty-three heights from twenty points to seventy-two,
-                // twice over — fifty-six point Times and twenty-four point Verdana — and Word puts
-                // the baseline in the same place both times, to the last hundredth. So the share
-                // is Word's and not the font's, which is the whole of the finding: the reading
-                // this replaced took the share from the font's own ascent and descent, which is
-                // within a step of four fifths at twelve point and two steps out at fifty.
-                //
-                // Four fifths lands exactly on Word's answer at thirty-six of the fifty-three and
-                // one step of the grid from it at the other seventeen, never further. What Word
-                // does with the last step is not a rounding of anything measured here: the
-                // residual repeats every six points, and no rule of the form round(aH + b), in
-                // points, twips or the grid's own units, reproduces it. LineBoxTests holds the
-                // heights that are exact and the ones that are a step out, so the day the rule
-                // is found the test will say so.
-                line.Ascent = line.Height * 0.8;
+                line.Ascent = ExactAscent(format.Line);
                 break;
 
             case LineSpacingRule.AtLeast:
