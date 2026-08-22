@@ -51,10 +51,11 @@ public class TableWidthTests(ITestOutputHelper output)
 
             // A column sized by its content is held to a step of the grid rather than exactly.
             // Every column edge goes on that grid (see OnTheGrid), and a column that has to hold
-            // something unbreakable keeps enough room for it — so where our measure of a word
-            // runs a hair above Word's, as it does for the probe's long one by nine hundredths of
-            // a point, the column takes the next step up and the column after it gives one back.
-            // A column whose width is declared or divided has no such slack and is exact.
+            // something unbreakable keeps enough room for it — so a column measured to fit the
+            // probe's long word to the hundredth takes the next step up, and the column after it
+            // gives one back. Word instead leaves the word in a column a fiftieth of a point too
+            // narrow, which it does not break. A column whose width is declared or divided has no
+            // such slack and is exact.
             Assert.Equal(expected[i], ours[i], 0.25);
         }
     }

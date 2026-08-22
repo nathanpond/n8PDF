@@ -2867,6 +2867,67 @@ public static class Fixtures
                 return builder;
             },
 
+            // How wide Word thinks a piece of text is, measured directly rather than inferred from
+            // where a column edge landed. Every line here is set against the right margin, so the
+            // place it begins is the margin less the width Word measured — and the same string is
+            // repeated one, five, ten and forty times over, so that the rounding of a single
+            // measurement is divided by forty and what is left is the rule.
+            //
+            // The letters are chosen for what they are in the font's own units at twelve point:
+            // 'a' is 444 thousandths of an em, which is 5.328 points and 106.56 twips, so a
+            // measurement quantised to the twip would show; 'b' is 500, which is 6 points and 120
+            // twips exactly, so it would not. 'i' and 'M' are the narrowest and widest of the
+            // ordinary letters. If Word rounds each glyph to something coarser than the point it
+            // draws at, forty 'a's will say so and forty 'b's will stay silent.
+            ["text-measure-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Line(string face, int halfPoints, string text, int times)
+                {
+                    var properties = DocxBuilder.RunProperties(font: face, halfPoints: halfPoints);
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacing)}" +
+                        "<w:jc w:val=\"right\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{properties}</w:rPr>" +
+                        $"<w:t>{string.Concat(Enumerable.Repeat(text, times))}</w:t></w:r></w:p>");
+
+                    first = false;
+                }
+
+                // The longest run on each page is chosen so that even a line of the widest letter
+                // stays inside the measure: a line that wrapped would be measuring the wrap
+                // instead of the text.
+                void Page(string face, int halfPoints, int longest, string label)
+                {
+                    builder.AddParagraph($"{label}.", first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    first = false;
+
+                    foreach (var text in new[] { "a", "b", "i", "M", "iM" })
+                    {
+                        foreach (var times in new[] { 1, 5, 10, longest })
+                        {
+                            // Six tenths of an em a letter is a generous guess at the width, and
+                            // what it is guarding against is a line long enough to be broken:
+                            // these strings hold no spaces, so a line that did not fit would be
+                            // measuring what Word does with a word too long for the measure.
+                            if (text.Length * times * halfPoints * 0.3 > 440) continue;
+
+                            Line(face, halfPoints, text, times);
+                        }
+                    }
+                }
+
+                Page(TimesNewRoman, 24, 40, "Times at twelve point");
+                Page(TimesNewRoman, 22, 40, "Times at eleven point");
+                Page(TimesNewRoman, 27, 30, "Times at thirteen and a half");
+                Page("Arial", 24, 40, "Arial at twelve point");
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

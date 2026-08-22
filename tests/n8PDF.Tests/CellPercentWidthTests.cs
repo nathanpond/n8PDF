@@ -60,8 +60,9 @@ public class CellPercentWidthTests(ITestOutputHelper output)
 
         // A step of the grid. Every column edge is put on it, so a table whose width is stated
         // comes out exactly Word's; one whose width the shares had to work out from the contents
-        // carries whatever our measure of those contents differs from Word's by, which on the
-        // third page is enough to move a column a step.
+        // carries what Word makes of a cell's content width before dividing, which on the third
+        // page is enough to move a column a step. The text itself is measured identically — see
+        // TextMeasureTests.
         for (var i = 0; i < expected.Length; i++) Assert.Equal(expected[i], ours[i], 0.25);
 
         Assert.Equal(word.Sum(), ours.Sum(), 0.25);

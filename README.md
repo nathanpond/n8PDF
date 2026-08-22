@@ -1730,10 +1730,27 @@ fixed layout, widths scaled down to fit the measure, and halves falling the othe
 One rule goes with it. A column sized to hold something that cannot be broken keeps enough room for
 it, taking the step it needs out of the column after it rather than out of the table — without
 that, a column measured to fit a long word exactly loses a hundredth to the rounding and breaks a
-word Word leaves whole. The sixth page is where that shows: its columns are sized by their
-contents, and our measure of a letter runs a hair above Word's — enough on one edge in three to
-carry it to the next step. A quarter point of column is the price of not breaking the word, and it
-is the only place any of this is not exact.
+word Word leaves whole. The sixth page is where the remaining difference shows: its columns are
+sized by their contents, and one edge in three lands a step from Word's.
+
+### How wide Word thinks a piece of text is
+
+The font's own advances at the font's own resolution, and nothing else. `text-measure-probe` sets
+every line against the right margin, so where a line begins is the margin less the width Word
+measured, and repeats the same letter up to forty times so a single rounding is divided by forty.
+Over eighty lines — Times at eleven, twelve and thirteen and a half points, and Arial at twelve —
+every one of ours begins **exactly** where Word's does, the worst a ten-thousandth of a point.
+
+The probe also lays a trap this repository walked into. A PDF records the widths it draws with in
+thousandths of an em, so reading Word's own export back gives 444 thousandths for Times 'a' — 5.328
+points at twelve. Word did not measure it as 5.328: the font says 909 units of 2048, which is
+5.32618. Two hundredths of a point a letter is nothing on a line and a whole step of the grid
+across a table column, and two commits here blamed a column that was a step out on "our measure
+running a hair above Word's". It runs exactly with Word's. What is left over in a table column is
+the column, not the text: Word's own page says it rounds what a *cell* wants up to a whole twip
+before dividing, and that it will keep a word in a column a fiftieth of a point too narrow for it
+rather than break it. Neither is implemented here, and both are written down in the backlog with
+their numbers rather than guessed at.
 
 **A table's own stated width** (`w:tblW`) is met exactly, and `table-preferred-width-probe` settles
 four things about it: the width is taken whether it is wider than the contents want or narrower; a

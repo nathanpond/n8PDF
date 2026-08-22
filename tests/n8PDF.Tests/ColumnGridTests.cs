@@ -18,14 +18,16 @@ namespace n8PDF.Tests;
 /// Five of the probe's six pages come out of this engine identical to Word's: declared widths,
 /// awkward declared widths, a stated grid under a fixed layout, widths scaled down to fit the
 /// measure, and halves falling the other side of a step. The sixth sizes its columns by their
-/// contents, and there our measure of a letter runs a hair above Word's — enough on one edge in
-/// three to carry it to the next step, which is the same hair's breadth that keeps a divided width
-/// a fraction from Word's.
+/// contents and is a step out on one edge of three — not because the text is measured differently
+/// (TextMeasureTests shows it is not), but because of what Word makes of a cell's content width
+/// before the edges accumulate.
 ///
 /// One rule goes with the snapping: a column sized to hold something that cannot be broken keeps
 /// enough room for it, taking the step it needs out of the column after it. Without that, a column
 /// measured to fit a long word exactly loses a hundredth to the rounding and breaks the word Word
-/// leaves whole — which is a visible difference where a quarter point of column is not.
+/// leaves whole — which is a visible difference where a quarter point of column is not. Word keeps
+/// such a word in a column a fiftieth of a point too narrow for it instead, which is a tolerance in
+/// its line breaking that nothing here has measured yet.
 /// </remarks>
 public class ColumnGridTests(ITestOutputHelper output)
 {

@@ -3830,11 +3830,14 @@ internal sealed class LayoutEngine(
     /// follow that rule to the last hundredth, over declared widths, awkward widths, a stated
     /// grid, and widths scaled down to fit the measure.
     ///
-    /// The sixth is the one where the columns are sized by their contents, and there Word's own
-    /// idea of how wide a letter is runs a shade above the advances its PDF writes — enough, on
-    /// one of the three edges, to carry it to the next step. That is the same hair's breadth that
-    /// keeps the division of a stated width a fraction from Word's, and nothing measurable from
-    /// the page pins it down.
+    /// The sixth is the one where the columns are sized by their contents, and it is a step out on
+    /// one edge in three. That is not the text: text-measure-probe shows our measure of a run to be
+    /// Word's exactly, to a ten-thousandth of a point over forty letters. It is what Word makes of
+    /// a *cell's* content width, which its own page says is rounded up to a whole twip before the
+    /// edges accumulate — 3.35, 10.7 and 8.7 rather than 3.334, 10.670 and 8.666, which lands all
+    /// three of its edges. Not implemented, because the same page also shows Word keeping a word
+    /// in a column a fiftieth of a point too narrow for it rather than breaking it, and that
+    /// tolerance has not been measured.
     ///
     /// The table's own left edge is taken as being on the grid, which it is for any indent a
     /// document actually states.
@@ -3852,11 +3855,14 @@ internal sealed class LayoutEngine(
             var edge = Math.Max(placed, Grid.Snap(exact));
 
             // A column sized to hold something that cannot be broken keeps enough room for it: a
-            // step lost to the rounding would break a word Word leaves whole. The step comes out
-            // of the column after it rather than out of the table, since the edge beyond is still
-            // the one the arithmetic put there. That is what Word's own page shows, its three
-            // content-sized columns coming out 3.36, 10.8 and 8.64 where the plain rounding of
-            // each edge would have given 3.36, 10.56 and 8.88.
+            // step lost to the rounding would break a word Word leaves whole, and a broken word is
+            // a difference anyone can see where a quarter point of column is not. The step comes
+            // out of the column after it rather than out of the table, since the edge beyond is
+            // still the one the arithmetic put there.
+            //
+            // Word arrives at nearly the same place by another road — rounding what a cell wants
+            // up to a whole twip and then rounding every edge to the nearest step — and differs
+            // from this on the last column of one page.
             var floor = floors is null || i >= floors.Length ? 0 : floors[i];
 
             if (edge - placed < floor - 0.001)
