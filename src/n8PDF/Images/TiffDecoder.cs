@@ -23,7 +23,8 @@ internal static class TiffDecoder
         ((data[0] == 'I' && data[1] == 'I' && data[2] == 42 && data[3] == 0) ||
          (data[0] == 'M' && data[1] == 'M' && data[2] == 0 && data[3] == 42));
 
-    public static ImageData Decode(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
+    public static ImageData Decode(
+        byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels, int nesting = 0)
     {
         if (!IsTiff(data)) throw new ImageFormatException("Not a TIFF.");
 
@@ -72,7 +73,8 @@ internal static class TiffDecoder
         // A TIFF may hold a JPEG rather than pixels, and a PDF carries JPEG as it stands: so what
         // is wanted is not to decode it but to put the file back together.
         if (compression is 6 or 7)
-            return Jpeg(data, reader, tags, width, height, samples, tiled, rowsPerStrip, maximumPixels);
+            return Jpeg(
+                data, reader, tags, width, height, samples, tiled, rowsPerStrip, maximumPixels, nesting);
 
         var rowBytes = (width * perPlane * bits + 7) / 8;
         var gathered = new byte[planes][];
@@ -216,14 +218,14 @@ internal static class TiffDecoder
     /// </remarks>
     private static ImageData Jpeg(
         byte[] data, Reader reader, Dictionary<int, Tag> tags, int width, int height, int samples,
-        bool tiled, int rowsPerStrip, long maximumPixels)
+        bool tiled, int rowsPerStrip, long maximumPixels, int nesting)
     {
         // The older way: the whole file, in a tag.
         var wholeAt = (int)Value(reader, tags, 513, 0);
         var wholeLength = (int)Value(reader, tags, 514, 0);
 
         if (wholeAt > 0 && wholeLength > 0 && wholeAt + wholeLength <= data.Length)
-            return Whole(data[wholeAt..(wholeAt + wholeLength)], maximumPixels);
+            return Whole(data[wholeAt..(wholeAt + wholeLength)], maximumPixels, nesting);
 
         var offsets = tags.TryGetValue(tiled ? 324 : 273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
         var counts = tags.TryGetValue(tiled ? 325 : 279, out var countTag) ? Numbers(reader, countTag) : [];
@@ -244,12 +246,15 @@ internal static class TiffDecoder
 
         if (offset <= 0 || length <= 0) throw new ImageFormatException("TIFF holds an empty JPEG.");
 
-        return Whole(Rebuild(data[offset..(offset + length)]), maximumPixels);
+        return Whole(Rebuild(data[offset..(offset + length)]), maximumPixels, nesting);
 
         // A JPEG whole, which a PDF carries as the file it already is.
-        static ImageData Whole(byte[] jpeg, long maximumPixels)
+        static ImageData Whole(byte[] jpeg, long maximumPixels, int nesting)
         {
-            var image = ImageReader.TryRead(jpeg, maximumPixels);
+            // Counted, because what a strip holds is decided by looking at it: the check below
+            // that it really was a JPEG runs only once this has returned, which is too late to
+            // stop a TIFF holding a TIFF. See ImageLimits.MaximumNesting.
+            var image = ImageReader.TryRead(jpeg, maximumPixels, nesting + 1);
 
             if (image is null || image.Encoding != ImageEncoding.Jpeg)
                 throw new ImageFormatException("TIFF holds something that is not a JPEG after all.");

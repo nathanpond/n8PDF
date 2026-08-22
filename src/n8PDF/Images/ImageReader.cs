@@ -21,24 +21,39 @@ internal static class ImageReader
     /// the header, because that is where the dimensions are known and where the memory is asked
     /// for. See <see cref="ImageLimits"/>.
     /// </param>
-    public static ImageData Read(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
+    /// <param name="nesting">
+    /// How many pictures this one is already inside. Zero for a part of the document; one more
+    /// each time a decoder finds a whole image file within the one it is reading and hands it
+    /// back here. See <see cref="ImageLimits.MaximumNesting"/>.
+    /// </param>
+    public static ImageData Read(
+        byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels, int nesting = 0)
     {
+        // Before anything is looked at, because what is being refused is the looking: a picture
+        // that holds itself is read again at every level, and it is the stack that gives out.
+        if (nesting > ImageLimits.MaximumNesting)
+        {
+            throw new ImageFormatException(
+                $"An image is nested more than {ImageLimits.MaximumNesting} deep inside another.");
+        }
+
         if (PngDecoder.IsPng(data)) return PngDecoder.Decode(data, maximumPixels);
         if (IsJpeg(data)) return ReadJpeg(data, maximumPixels);
         if (GifDecoder.IsGif(data)) return GifDecoder.Decode(data, maximumPixels);
         if (BmpDecoder.IsBmp(data)) return BmpDecoder.Decode(data, maximumPixels);
-        if (TiffDecoder.IsTiff(data)) return TiffDecoder.Decode(data, maximumPixels);
-        if (EmfDecoder.IsEmf(data)) return EmfDecoder.Decode(data, maximumPixels);
+        if (TiffDecoder.IsTiff(data)) return TiffDecoder.Decode(data, maximumPixels, nesting);
+        if (EmfDecoder.IsEmf(data)) return EmfDecoder.Decode(data, maximumPixels, nesting);
 
         throw new ImageFormatException("Unsupported image format.");
     }
 
     /// <summary>Reads an image if the format is one we handle, and returns null otherwise.</summary>
-    public static ImageData? TryRead(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
+    public static ImageData? TryRead(
+        byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels, int nesting = 0)
     {
         try
         {
-            return IsSupported(data) ? Read(data, maximumPixels) : null;
+            return IsSupported(data) ? Read(data, maximumPixels, nesting) : null;
         }
         catch (ImageFormatException)
         {

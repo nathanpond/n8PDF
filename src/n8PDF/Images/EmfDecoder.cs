@@ -33,13 +33,14 @@ internal static class EmfDecoder
         data[0] == 0x01 && data[1] == 0 && data[2] == 0 && data[3] == 0 &&
         data[40] == 0x20 && data[41] == 0x45 && data[42] == 0x4D && data[43] == 0x46;
 
-    public static ImageData Decode(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels)
+    public static ImageData Decode(
+        byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels, int nesting = 0)
     {
         if (!IsEmf(data)) throw new ImageFormatException("Not an enhanced metafile.");
 
         // A drawing has no pixels of its own, but it can hold pictures that have, so the limit
         // goes down with it.
-        var drawing = new Interpreter(data, HasEmfPlus(data), Units(data), maximumPixels).Run();
+        var drawing = new Interpreter(data, HasEmfPlus(data), Units(data), maximumPixels, nesting).Run();
 
         if (drawing.Operations.Count == 0)
             throw new ImageFormatException("The metafile draws nothing this can read.");
@@ -103,7 +104,8 @@ internal static class EmfDecoder
     /// old records draw only what the file hands back to them.
     /// </param>
     /// <param name="units">How many of its own units the drawing is across.</param>
-    private sealed class Interpreter(byte[] data, bool hasPlus, int units, long maximumPixels)
+    private sealed class Interpreter(
+        byte[] data, bool hasPlus, int units, long maximumPixels, int nesting)
     {
         private readonly List<DrawingOperation> _operations = [];
 
@@ -157,7 +159,11 @@ internal static class EmfDecoder
 
             // What the newer records measure in: the same units the bounds are given in, which the
             // header has just said how to turn into points.
-            if (hasPlus) _plus = EmfPlusInterpreter.Begin(_width / Math.Max(1, units), _operations, maximumPixels);
+            if (hasPlus)
+            {
+                _plus = EmfPlusInterpreter.Begin(
+                    _width / Math.Max(1, units), _operations, maximumPixels, nesting);
+            }
 
             var at = 0;
 

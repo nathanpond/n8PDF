@@ -34,7 +34,7 @@ internal static class EmfPlusInterpreter
     /// </summary>
     public static List<DrawingOperation> Read(byte[] records, double unitsToPoints)
     {
-        var state = new Interpreter(unitsToPoints, [], ImageLimits.DefaultMaximumPixels);
+        var state = new Interpreter(unitsToPoints, [], ImageLimits.DefaultMaximumPixels, 0);
         state.Feed(records, 0, records.Length);
 
         return state.Operations;
@@ -45,13 +45,14 @@ internal static class EmfPlusInterpreter
     /// the one order the file puts them in.
     /// </summary>
     internal static Reader Begin(
-        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels) =>
-        new(unitsToPoints, operations, maximumPixels);
+        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels, int nesting) =>
+        new(unitsToPoints, operations, maximumPixels, nesting);
 
     /// <summary>Reads the records as they arrive, holding on to what a comment cut in half.</summary>
-    internal sealed class Reader(double unitsToPoints, List<DrawingOperation> operations, long maximumPixels)
+    internal sealed class Reader(
+        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels, int nesting)
     {
-        private readonly Interpreter _interpreter = new(unitsToPoints, operations, maximumPixels);
+        private readonly Interpreter _interpreter = new(unitsToPoints, operations, maximumPixels, nesting);
 
         /// <summary>
         /// Whether the last record read handed the drawing back to the older interface, after
@@ -84,7 +85,7 @@ internal static class EmfPlusInterpreter
     }
 
     private sealed class Interpreter(
-        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels)
+        double unitsToPoints, List<DrawingOperation> operations, long maximumPixels, int nesting)
     {
         public List<DrawingOperation> Operations => operations;
 
@@ -415,7 +416,9 @@ internal static class EmfPlusInterpreter
             var start = at + 24;
             if (start >= end) return null;
 
-            return ImageReader.TryRead(data[start..end], maximumPixels);
+            // A picture inside a drawing, read as the file it is — and counted, because that
+            // file may be another drawing holding another picture. See ImageLimits.MaximumNesting.
+            return ImageReader.TryRead(data[start..end], maximumPixels, nesting + 1);
         }
 
         // ----- what is drawn -----
