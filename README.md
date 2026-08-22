@@ -373,6 +373,28 @@ The pages after it carry a step of drift in the text, which is the paragraph-to-
 this engine has everywhere rather than anything this rule does, so what `ParagraphBorderTests` holds
 them to is the geometry that does not depend on where the text landed.
 
+### The marks over a run's characters
+
+`w:em` draws a mark over (or under) every character of a run, and Word draws each as a character in
+its own right, at the text's size, in an East Asian face — a fullwidth stop for the dot and for the
+dot below, an ideographic comma for the comma, a ring above for the circle.
+`emphasis-mark-probe` reads the rest off Word's page:
+
+- **every character but a space** takes one, punctuation included: "a,b" takes three;
+- the mark is centred over the character **by its ink**, not by its advance — Word's fullwidth stop
+  carries its dot a sixth of an em from the glyph's own edge, and the mark still lands in the middle
+  of the letter. Centring by ink is also what makes the result independent of which face the mark
+  came from, which matters because that face depends on what is installed;
+- the dot and the comma stand **the type size and a step of the grid** above the baseline — exact at
+  twelve, twenty-four and forty-eight point, a step out at eight — the ring three tenths of the size
+  above, and the dot below three eighths of the size under;
+- the line **grows** to hold whatever stands above the text's own ascent.
+
+Because the mark is a character of whatever face carries it, its own origin sits wherever that face
+puts it, so the probe is left out of the line-by-line comparison and held by `EmphasisMarkTests`
+instead: the marks step with the characters they mark, to a hundredth of a point, and stand where
+Word's numbers say.
+
 ### The box round a run
 
 `w:bdr` is neither the paragraph's box in miniature nor a highlight with a line round it, and
@@ -1695,6 +1717,7 @@ spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wrap
 italic, underline, strikethrough, colour, highlighting, caps, super/subscript, character spacing
 and scaling, the background behind a paragraph or a run (`w:shd`, patterns included), the box round
 a paragraph (`w:pBdr`, shared between paragraphs bordered alike) and round a run (`w:bdr`),
+emphasis marks over a run's characters (`w:em`),
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.

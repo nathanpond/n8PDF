@@ -139,7 +139,7 @@ public static class TestFonts
         "chart-area-scatter", "chart-axis-probe", "chart-bar-scale-probe", "chart-bar-stacked",
         "chart-doughnut-bubble", "chart-kinds-probe", "chart-kinds-probe-two",
         "chart-legend-key-probe", "chart-radar-stock", "merged-indent-probe",
-        "brochure", "minutes", "notes",
+        "brochure", "emphasis-mark-probe", "minutes", "notes",
         "cell-direction-probe", "adjacent-tables-probe", "checkbox-probe", "chart-column", "chart-layout-probe", "chart-line-pie", "chart-scale-probe",
         "chart-title-legend-label", "column-order-probe", "columns-uneven", "content-controls", "east-asian-line-box-probe",
         "exact-line-probe", "endnote-restart-section", "endnote-section-end", "endnotes", "equations", "font-fallback",

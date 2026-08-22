@@ -913,6 +913,23 @@ internal sealed class ParagraphBorders
         Equals(Between, other.Between);
 }
 
+/// <summary>
+/// The mark a run asks for over each of its characters, from <c>w:em</c>.
+/// </summary>
+/// <remarks>
+/// Word draws each as a character of its own in an East Asian face — a fullwidth stop for the dot
+/// and the dot below, an ideographic comma for the comma, a ring above for the circle — centred
+/// over the character it marks. emphasis-mark-probe reads all four off Word's page.
+/// </remarks>
+internal enum EmphasisMark
+{
+    None,
+    Dot,
+    Comma,
+    Circle,
+    UnderDot
+}
+
 internal sealed class BorderSet
 {
     public BorderEdge? Top { get; set; }

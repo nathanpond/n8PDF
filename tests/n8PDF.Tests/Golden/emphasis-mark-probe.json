@@ -1,0 +1,316 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 73.652, "font": "Times New Roman", "size": 12, "text": "The four kinds."}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.296, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 77.959, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 83.622, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 16.652, "font": "Times New Roman", "size": 12, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 71.874, "width": 0, "font": "KaiTi", "size": 12, "text": "、"},
+            {"x": 77.537, "width": 0, "font": "KaiTi", "size": 12, "text": "、"},
+            {"x": 83.2, "width": 0, "font": "KaiTi", "size": 12, "text": "、"},
+            {"x": 72, "width": 16.652, "font": "Times New Roman", "size": 12, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.662, "width": 0, "font": "Times New Roman", "size": 12, "text": "˚"},
+            {"x": 78.325, "width": 0, "font": "Times New Roman", "size": 12, "text": "˚"},
+            {"x": 83.988, "width": 0, "font": "Times New Roman", "size": 12, "text": "˚"},
+            {"x": 72, "width": 16.652, "font": "Times New Roman", "size": 12, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 8,
+          "baselineY": 193.44,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.296, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 77.959, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 83.622, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 16.652, "font": "Times New Roman", "size": 12, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 207.36,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 100.969, "font": "Times New Roman", "size": 12, "text": "The dot at four sizes."}
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 12,
+          "baselineY": 107.04,
+          "height": 9.199,
+          "runs": [
+            {"x": 72.197, "width": 0, "font": "KaiTi", "size": 8, "text": "．"},
+            {"x": 75.973, "width": 0, "font": "KaiTi", "size": 8, "text": "．"},
+            {"x": 79.748, "width": 0, "font": "KaiTi", "size": 8, "text": "．"},
+            {"x": 72, "width": 11.102, "font": "Times New Roman", "size": 8, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 120,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 14,
+          "baselineY": 133.68,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.296, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 77.959, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 83.622, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 16.652, "font": "Times New Roman", "size": 12, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 147.6,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 16,
+          "baselineY": 172.56,
+          "height": 27.598,
+          "runs": [
+            {"x": 72.592, "width": 0, "font": "KaiTi", "size": 24, "text": "．"},
+            {"x": 83.918, "width": 0, "font": "KaiTi", "size": 24, "text": "．"},
+            {"x": 95.244, "width": 0, "font": "KaiTi", "size": 24, "text": "．"},
+            {"x": 72, "width": 33.305, "font": "Times New Roman", "size": 24, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 188.88,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        },
+        {
+          "paragraph": 18,
+          "baselineY": 236.4,
+          "height": 55.195,
+          "runs": [
+            {"x": 73.184, "width": 0, "font": "KaiTi", "size": 48, "text": "．"},
+            {"x": 95.836, "width": 0, "font": "KaiTi", "size": 48, "text": "．"},
+            {"x": 118.488, "width": 0, "font": "KaiTi", "size": 48, "text": "．"},
+            {"x": 72, "width": 66.609, "font": "Times New Roman", "size": 48, "text": "abc"}
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 258,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 22.998, "font": "Times New Roman", "size": 12, "text": "Rail."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 20,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 71.643, "font": "Times New Roman", "size": 12, "text": "What gets one."}
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.296, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 80.959, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 14.326, "font": "Times New Roman", "size": 12, "text": "a b"}
+          ]
+        },
+        {
+          "paragraph": 22,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72.296, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 76.459, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 80.959, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 14.326, "font": "Times New Roman", "size": 12, "text": "a,b"}
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 74.3, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 81.63, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 86.291, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 91.289, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 96.952, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 102.615, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 35.982, "font": "Times New Roman", "size": 12, "text": "marked"},
+            {"x": 107.982, "width": 23.994, "font": "Times New Roman", "size": 12, "text": "plain"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 24,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 96.305, "font": "Times New Roman", "size": 12, "text": "Does the line grow?"}
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 54.65, "font": "Times New Roman", "size": 12, "text": "Rail above."}
+          ]
+        },
+        {
+          "paragraph": 26,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 74.968, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 82.966, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 87.627, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 92.625, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 98.288, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 103.951, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 111.618, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 114.952, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 119.619, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 125.282, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 129.445, "width": 0, "font": "KaiTi", "size": 12, "text": "．"},
+            {"x": 72, "width": 61.312, "font": "Times New Roman", "size": 12, "text": "Marked line."}
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 65.977, "font": "Times New Roman", "size": 12, "text": "Rail between."}
+          ]
+        },
+        {
+          "paragraph": 28,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 48.662, "font": "Times New Roman", "size": 12, "text": "Plain line."}
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 55.324, "font": "Times New Roman", "size": 12, "text": "Rail below."}
+          ]
+        }
+      ]
+    }
+  ]
+}

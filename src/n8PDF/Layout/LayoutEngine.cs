@@ -639,6 +639,74 @@ internal sealed class LayoutEngine(
 
     private BorderBox? _openBox;
 
+    /// <summary>
+    /// A mark over a character: the glyph Word draws for it, where its ink sits inside that glyph,
+    /// and how far its baseline stands from the text's.
+    /// </summary>
+    /// <remarks>
+    /// emphasis-mark-probe reads all of it off Word's own page. The mark is a character in its own
+    /// right, drawn at the text's size in whatever face carries it — a fullwidth stop for the dot
+    /// and the dot below, an ideographic comma for the comma, a ring above for the circle — and it
+    /// is the mark's **ink** that is centred over the character, not its advance: Word's fullwidth
+    /// stop carries its dot a sixth of an em from the glyph's own edge, and the mark still lands in
+    /// the middle of the letter.
+    ///
+    /// The dot and the comma stand the type size and a step of the grid above the baseline, which
+    /// is exact at twelve, twenty-four and forty-eight point and a step out at eight. The ring
+    /// stands three tenths of the size above it, and the dot below three eighths of the size under
+    /// it; both are measured at one size only.
+    /// </remarks>
+    private readonly record struct Emphasis(
+        FontSelection Font, int CodePoint, double InkCentre, double InkTop, double Offset);
+
+    private readonly Dictionary<(EmphasisMark, string, double, bool, bool), Emphasis?> _emphasis = [];
+
+    private Emphasis? ResolveEmphasis(ResolvedRunFormat format, FontSelection selection)
+    {
+        if (format.Emphasis is EmphasisMark.None) return null;
+
+        var key = (format.Emphasis, format.FontFamily, format.FontSizePoints, format.Bold, format.Italic);
+        if (_emphasis.TryGetValue(key, out var known)) return known;
+
+        var codePoint = format.Emphasis switch
+        {
+            EmphasisMark.Comma => 0x3001,
+            EmphasisMark.Circle => 0x02DA,
+            _ => 0xFF0E
+        };
+
+        var font = selection.Font.GetGlyphIndex(codePoint) != 0
+            ? selection
+            : _fonts.ResolveForCharacter(codePoint, selection, format.Bold, format.Italic);
+
+        var glyph = font?.Font.GetGlyphIndex(codePoint) ?? 0;
+
+        if (font is null || glyph == 0)
+        {
+            _emphasis[key] = null;
+            return null;
+        }
+
+        var size = format.FontSizePoints;
+        var em = font.Font.UnitsPerEm;
+        var bounds = font.Font.GetGlyphBounds(glyph);
+
+        var centre = bounds is { } box ? (box.MinX + box.MaxX) / 2.0 * size / em : size / 2;
+        var top = bounds is { } ink ? Math.Max(0, ink.MaxY * size / em) : size * 0.2;
+
+        var offset = format.Emphasis switch
+        {
+            EmphasisMark.Circle => -(size * 0.3),
+            EmphasisMark.UnderDot => size * 0.38,
+            _ => -(size + Grid.Step)
+        };
+
+        var resolved = new Emphasis(font, codePoint, centre, top, offset);
+        _emphasis[key] = resolved;
+
+        return resolved;
+    }
+
     /// <summary>How far a border stands from the text: its own space, and the usual fiftieth.</summary>
     private static double BorderReach(ParagraphBorderEdge? edge) =>
         edge is null ? 0 : Grid.Width(edge.SpacePoints);
@@ -5349,7 +5417,7 @@ internal sealed class LayoutEngine(
         return drawn;
     }
 
-    private static double EmitLine(
+    private double EmitLine(
         LaidOutPage page, ComposedLine line, double contentLeft, double top, int paragraphIndex,
         TabOptions tabs)
     {
@@ -5422,6 +5490,38 @@ internal sealed class LayoutEngine(
                 Kerned = segment.Kerned,
                 RightToLeft = (segment.Level & 1) != 0
             };
+
+            // A mark over each character of the run, written before the run itself, which is the
+            // order Word writes them in.
+            if (ResolveEmphasis(segment.Format, segment.Font) is { } mark)
+            {
+                var pen = text.X;
+                var em = segment.Font.Font.UnitsPerEm;
+                var marked = char.ConvertFromUtf32(mark.CodePoint);
+
+                foreach (var character in segment.Text)
+                {
+                    var glyph = segment.Font.Font.GetGlyphIndex(character);
+                    var advance = segment.Font.Font.GetAdvanceWidth(glyph) *
+                                  segment.Format.FontSizePoints / em;
+
+                    // A space carries no mark; everything else does, punctuation included.
+                    if (!char.IsWhiteSpace(character))
+                    {
+                        laidOut.Texts.Add(new PositionedText
+                        {
+                            X = pen + advance / 2 - mark.InkCentre,
+                            BaselineY = Grid.Snap(baselineY + mark.Offset),
+                            Text = marked,
+                            Format = segment.Format,
+                            Font = mark.Font,
+                            Width = 0
+                        });
+                    }
+
+                    pen += advance;
+                }
+            }
 
             laidOut.Texts.Add(text);
 

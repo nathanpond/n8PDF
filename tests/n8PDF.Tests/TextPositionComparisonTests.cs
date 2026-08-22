@@ -285,11 +285,34 @@ public class TextPositionComparisonTests(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// Fixtures whose text cannot be lined up run for run, and what holds them to Word instead.
+    /// </summary>
+    /// <remarks>
+    /// One. A mark over a character is drawn as a character of its own, in whatever face carries
+    /// the glyph — Word's own page uses the East Asian faces that come with Office, and this uses
+    /// whatever the caller's fonts offer. The mark's **ink** lands in the same place either way,
+    /// since it is the ink that is centred over the character, but the glyph's own origin sits
+    /// wherever its face puts it, and that is what a run's x is. EmphasisMarkTests compares the
+    /// ink, which is the thing the rule is about.
+    /// </remarks>
+    private static readonly Dictionary<string, string> ComparedByInkInstead = new()
+    {
+        ["emphasis-mark-probe"] =
+            "a mark is a character of whatever face carries it; EmphasisMarkTests compares its ink"
+    };
+
     [Theory]
     [MemberData(nameof(FixtureNames))]
     public void Line_positions_are_within_tolerance_of_word(string name)
     {
         if (TestFonts.SkipForMissingFonts(name)) return;
+
+        if (ComparedByInkInstead.TryGetValue(name, out var instead))
+        {
+            _output.WriteLine($"'{name}' is not compared here: {instead}.");
+            return;
+        }
 
         var referencePath = Path.Combine(TestPaths.ReferencePdfs, name + ".pdf");
         if (!File.Exists(referencePath)) return; // reported by Fixture_has_a_reference_pdf

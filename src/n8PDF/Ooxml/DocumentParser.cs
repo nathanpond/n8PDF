@@ -955,6 +955,16 @@ internal static class DocumentParser
                 case "highlight":
                     properties.Highlight = element.Val();
                     break;
+                case "em":
+                    properties.Emphasis = element.Val() switch
+                    {
+                        "dot" => EmphasisMark.Dot,
+                        "comma" => EmphasisMark.Comma,
+                        "circle" => EmphasisMark.Circle,
+                        "underDot" => EmphasisMark.UnderDot,
+                        _ => EmphasisMark.None
+                    };
+                    break;
                 case "bdr":
                     properties.Border = ReadBorderEdge(element) is { IsVisible: true } line
                         ? new ParagraphBorderEdge(line, element.IntAttr("space") ?? 0)

@@ -22,6 +22,7 @@ public static class Fixtures
         string? color = null,
         string? highlight = null,
         string? underline = null,
+        string? emphasis = null,
         string? borderStyle = null,
         int borderEighths = 8,
         int borderSpace = 0,
@@ -33,6 +34,7 @@ public static class Fixtures
         DocxBuilder.RunProperties(
             font: TimesNewRoman, halfPoints: halfPoints, bold: bold, italic: italic,
             strike: strike, color: color, highlight: highlight, underline: underline,
+            emphasis: emphasis,
             borderStyle: borderStyle, borderEighths: borderEighths, borderSpace: borderSpace,
             shadingFill: shadingFill, shadingPattern: shadingPattern, shadingColor: shadingColor,
             kerningHalfPoints: kerningHalfPoints, positionHalfPoints: positionHalfPoints);
@@ -3274,6 +3276,67 @@ public static class Fixtures
                     "<w:bottom w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"000000\"/>" +
                     "<w:right w:val=\"single\" w:sz=\"8\" w:space=\"0\" w:color=\"000000\"/></w:pBdr>" +
                     ZeroSpacing, Times12);
+
+                return builder;
+            },
+
+            // The marks a run can ask for over its characters, from w:em. Four pages:
+            //
+            //   1  the four kinds, one to a line, over the same three letters
+            //   2  the dot at four sizes, which says what the mark is measured in
+            //   3  what gets one: letters, the space between two words, and a stop
+            //   4  whether the line grows to hold them, against rails above and below
+            ["emphasis-mark-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    first = false;
+                }
+
+                void Marked(string text, string mark, int halfPoints = 24)
+                {
+                    builder.AddParagraph(text, ZeroSpacing,
+                        Times(halfPoints, emphasis: mark));
+                }
+
+                Page("The four kinds.");
+                foreach (var mark in new[] { "dot", "comma", "circle", "underDot" })
+                {
+                    builder.AddParagraph("Rail.", ZeroSpacing, Times12);
+                    Marked("abc", mark);
+                }
+
+                builder.AddParagraph("Rail.", ZeroSpacing, Times12);
+
+                Page("The dot at four sizes.");
+                foreach (var halfPoints in new[] { 16, 24, 48, 96 })
+                {
+                    builder.AddParagraph("Rail.", ZeroSpacing, Times12);
+                    Marked("abc", "dot", halfPoints);
+                }
+
+                builder.AddParagraph("Rail.", ZeroSpacing, Times12);
+
+                Page("What gets one.");
+                Marked("a b", "dot");
+                Marked("a,b", "dot");
+
+                // Half the line marked and half not, so that where the marks stop can be seen.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times(24, emphasis: "dot")}</w:rPr><w:t>marked</w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>plain</w:t></w:r></w:p>");
+
+                Page("Does the line grow?");
+                builder.AddParagraph("Rail above.", ZeroSpacing, Times12);
+                Marked("Marked line.", "dot");
+                builder.AddParagraph("Rail between.", ZeroSpacing, Times12);
+                builder.AddParagraph("Plain line.", ZeroSpacing, Times12);
+                builder.AddParagraph("Rail below.", ZeroSpacing, Times12);
 
                 return builder;
             },

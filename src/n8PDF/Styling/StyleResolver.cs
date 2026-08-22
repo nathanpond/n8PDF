@@ -151,6 +151,7 @@ internal sealed class StyleResolver(
         private string? _colorTheme;
         private string? _highlight;
         private ParagraphBorderEdge? _runBorder;
+        private EmphasisMark? _emphasis;
 
         // The three parts of a run's own background, kept apart for the same reason a paragraph's
         // are: a character style may name the fill and the run the pattern.
@@ -192,6 +193,7 @@ internal sealed class StyleResolver(
             if (source.ColorThemeSlot is not null) _colorTheme = source.ColorThemeSlot;
             if (source.Highlight is not null) _highlight = source.Highlight;
             if (source.Border is not null) _runBorder = source.Border;
+            if (source.Emphasis is { } emphasis) _emphasis = emphasis;
             if (source.ShadingFill is not null) _runShadingFill = source.ShadingFill;
             if (source.ShadingPattern is not null) _runShadingPattern = source.ShadingPattern;
             if (source.ShadingColor is not null) _runShadingColor = source.ShadingColor;
@@ -226,6 +228,7 @@ internal sealed class StyleResolver(
                 ColorHex = theme.ResolveColor(_colorTheme) ?? _color,
                 HighlightColor = _highlight,
                 Border = _runBorder,
+                Emphasis = _emphasis ?? EmphasisMark.None,
                 Shading = new Shading(_runShadingFill, _runShadingPattern, _runShadingColor),
                 VerticalAlignment = _verticalAlignment ?? VerticalTextAlignment.Baseline,
                 PositionPoints = (_positionHalfPoints ?? 0) / 2.0,

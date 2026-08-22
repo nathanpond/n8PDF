@@ -39,6 +39,9 @@ internal sealed record ResolvedRunFormat
     /// </summary>
     public ParagraphBorderEdge? Border { get; init; }
 
+    /// <summary>The mark drawn over each character of this run, from <c>w:em</c>.</summary>
+    public EmphasisMark Emphasis { get; init; }
+
     /// <summary>
     /// The background behind this run, from a <c>w:shd</c> of its own. A highlight is drawn
     /// instead of it where the run has both: see RunShadingTests.

@@ -1861,6 +1861,7 @@ public sealed class DocxBuilder
         string? color = null,
         string? highlight = null,
         string? underline = null,
+        string? emphasis = null,
         string? borderStyle = null,
         int borderEighths = 8,
         int borderSpace = 0,
@@ -1889,6 +1890,9 @@ public sealed class DocxBuilder
         if (halfPoints is not null) sb.Append($"<w:sz w:val=\"{halfPoints}\"/>");
         if (highlight is not null) sb.Append($"<w:highlight w:val=\"{highlight}\"/>");
         if (underline is not null) sb.Append($"<w:u w:val=\"{underline}\"/>");
+
+        // CT_RPr puts the emphasis mark after the effect and the border, before the shading.
+        if (emphasis is not null) sb.Append($"<w:em w:val=\"{emphasis}\"/>");
 
         // CT_RPr puts the border after the underline and before the shading.
         if (borderStyle is not null)
