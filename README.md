@@ -1420,11 +1420,16 @@ the gaps between Word's own baselines then take **two** values rather than one: 
 number, and would drift by up to three points over those twenty lines.
 
 Nothing drifts either way: the last baseline of five of the six pages is exactly Word's and the
-sixth is one step from it. What is left is the last step of the rounding *within* the paragraph —
-where a line's exact position falls between two steps of the grid, which way Word goes is, again,
-not a rounding of the height, and it is not the font's doing either (the same twenty lines set in
-twenty-four point Verdana land exactly where the twelve point Times ones do). About one line in
-seven under the first comes out a step from Word's, and never further.
+sixth is one step from it.
+
+**How that rounding goes** is the last part of it, and it is not to the nearest step. Measured over
+the same sweeps — 121 heights of up to thirty-two lines apiece — rounding to the nearest agrees with
+Word on 84% of the lines under the first, and **rounding down from five twelfths of a step above**
+agrees on 89%. Five twelfths is a fitted constant and nothing here derives it, so it was checked at
+sixty-one heights the fitting never saw, where it agrees on 92% against the nearest's 84%. What is
+left over is a last step that no rule of the height reproduces: not the font's doing either — the
+same twenty lines set in twenty-four point Verdana land exactly where the twelve point Times ones do
+— and about one line in ten under the first comes out a step from Word's, never further.
 
 ### A character named by its code
 

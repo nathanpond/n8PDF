@@ -43,9 +43,11 @@ public class ExactLineTests(ITestOutputHelper output)
     /// The rule above says where the baseline of an exact line falls below the top of its own box,
     /// and the top of the first box on a page is the margin. Where the next line's box begins is a
     /// second question, settled by exact-line-advance-probe: Word advances by the height itself
-    /// and rounds each baseline where it lands, which this does too. What is left is the last
-    /// step of that rounding, which is no more a rounding of the height than the ascent was — so
-    /// a line under the first is a step from Word's about one time in seven, and never further.
+    /// and rounds each baseline where it lands, which this does too. How that rounding goes is a
+    /// third: it is not to the nearest step but from five twelfths of one above, which is measured
+    /// in Grid.ExactBaseline. What is left after that is a last step no rule of the height
+    /// reproduces — a line under the first is a step from Word's about one time in ten, and never
+    /// further.
     /// </remarks>
     [Fact]
     public void The_first_baseline_of_every_page_is_words()
@@ -167,13 +169,14 @@ public class ExactLineTests(ITestOutputHelper output)
     /// from it. A rounded advance would have drifted by up to three points over the same twenty.
     /// </remarks>
     [Theory]
-    [InlineData(0, 401, 367, 1954)]
-    [InlineData(1, 405, 367, 1970)]
-    [InlineData(2, 411, 369, 1996)]
-    [InlineData(3, 420, 371, 2033)]
-    [InlineData(4, 423, 370, 2044)]
-    [InlineData(5, 500, 383, 2362)]
-    public void A_paragraph_advances_by_the_height_itself(int page, int twips, int first, int last)
+    [InlineData(0, 401, 367, 1954, 13)]
+    [InlineData(1, 405, 367, 1970, 18)]
+    [InlineData(2, 411, 369, 1996, 15)]
+    [InlineData(3, 420, 371, 2033, 20)]
+    [InlineData(4, 423, 370, 2044, 20)]
+    [InlineData(5, 500, 383, 2362, 17)]
+    public void A_paragraph_advances_by_the_height_itself(
+        int page, int twips, int first, int last, int exact)
     {
         if (TestFonts.SkipForMissingFonts("exact-line-advance-probe")) return;
 
@@ -207,6 +210,40 @@ public class ExactLineTests(ITestOutputHelper output)
             Assert.True(Math.Abs(ours[i] - word[i]) <= 1,
                 $"line {i + 1} of the {twips} twip page is {ours[i] - word[i]} steps from Word's");
         }
+
+        Assert.Equal(exact, word.Zip(ours, (w, o) => w == o).Count(same => same));
+    }
+
+    /// <summary>
+    /// How much of the probe lands exactly where Word puts it, held to the number so that a rule
+    /// better than five twelfths says so by failing this.
+    /// </summary>
+    [Fact]
+    public void The_rounding_of_the_lines_between_is_as_close_as_it_is()
+    {
+        if (TestFonts.SkipForMissingFonts("exact-line-advance-probe")) return;
+
+        var reference = Path.Combine(TestPaths.ReferencePdfs, "exact-line-advance-probe.pdf");
+        var pdf = Converter.Convert(Fixtures.Build("exact-line-advance-probe"),
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        var (same, all) = (0, 0);
+
+        for (var page = 0; page < 6; page++)
+        {
+            var word = Steps(File.ReadAllBytes(reference), page);
+            var ours = Steps(pdf, page);
+
+            same += word.Zip(ours, (w, o) => w == o).Count(match => match);
+            all += word.Count;
+        }
+
+        output.WriteLine($"{same} of {all} baselines are exactly Word's");
+
+        // 103 of 120 at the time of writing; rounding to the nearest step gives 96.
+        Assert.Equal(120, all);
+        Assert.True(same >= 103,
+            $"only {same} of {all} baselines land where Word puts them, where 103 did");
     }
 
     /// <summary>Every baseline of a page, in whole steps of the grid, top first.</summary>

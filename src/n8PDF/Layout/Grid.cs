@@ -62,4 +62,25 @@ internal static class Grid
     /// </remarks>
     public static double Baseline(double top, double ascent, double height) =>
         Snap(top + height - Snap(height - ascent));
+
+    /// <summary>
+    /// Where the baseline of a line of an exact height goes: its own place, rounded down to the
+    /// grid from five twelfths of a step above it.
+    /// </summary>
+    /// <remarks>
+    /// A line whose height is fixed keeps no room below the baseline to be rounded — the share
+    /// above it is settled by <see cref="LayoutEngine"/>'s own rule and is already a whole number
+    /// of steps — so what is left is where the *place* lands, and Word does not round it to the
+    /// nearest. Measured from the exact-spaced paragraphs of the sweeps behind that rule, 121
+    /// heights of up to thirty-two lines each: rounding to the nearest agrees with Word on 84% of
+    /// the lines under the first, and rounding down from five twelfths of a step above agrees on
+    /// 89%. The five twelfths was then checked at sixty-one heights the fitting never saw, where
+    /// it agrees on 92% against the nearest's 84%.
+    ///
+    /// It is a fitted constant and nothing here derives it. What is left over is the last step of
+    /// a rounding that no rule of the height reproduces — see ExactLineTests — and it is never
+    /// more than one step of the grid.
+    /// </remarks>
+    public static double ExactBaseline(double top, double ascent) =>
+        Math.Floor((top + ascent) / Step + 5.0 / 12) * Step;
 }

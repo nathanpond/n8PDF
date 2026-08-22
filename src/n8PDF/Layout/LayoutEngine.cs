@@ -4786,8 +4786,11 @@ internal sealed class LayoutEngine(
     {
         // Word works the height of a line out exactly and then writes its baseline on the grid;
         // the line below it starts from the exact height all the same, so the rounding never
-        // accumulates. Grid holds what says so.
-        var baselineY = Grid.Baseline(top, line.Ascent, line.Height);
+        // accumulates. Grid holds what says so — and a line of an exact height is rounded by a
+        // rule of its own, since it keeps no room below the baseline to round instead.
+        var baselineY = line.ExactHeight
+            ? Grid.ExactBaseline(top, line.Ascent)
+            : Grid.Baseline(top, line.Ascent, line.Height);
 
         // A picture sits on the line's own baseline rather than on the rounded one the text is
         // written at. Word says so: vml-stroke-probe puts every shape at exactly the margin plus
@@ -5942,6 +5945,7 @@ internal sealed class LayoutEngine(
             case LineSpacingRule.Exact:
                 line.Height = format.LineSpacingPoints;
                 line.Ascent = ExactAscent(format.Line);
+                line.ExactHeight = true;
                 break;
 
             case LineSpacingRule.AtLeast:
@@ -7966,6 +7970,12 @@ internal sealed class LayoutEngine(
         /// column places it again from what was recorded.
         /// </summary>
         public bool SuppressNumber { get; set; }
+
+        /// <summary>
+        /// True where the line's height was fixed by <c>w:lineRule="exact"</c>, which decides how
+        /// its baseline is rounded onto the grid: see <see cref="Grid.ExactBaseline"/>.
+        /// </summary>
+        public bool ExactHeight { get; set; }
 
         public List<PlacedAtom> Items { get; } = [];
 
