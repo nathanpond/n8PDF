@@ -1696,6 +1696,22 @@ content-width columns when the table fits, and a table filling the text area exa
 not — and agrees with Word to 0.16pt on `table-autofit-probe`, but it is not derived from the real
 algorithm the way the paragraph rules are.
 
+A **declared cell width** (`w:tcW`) enters it as the width the column would like, which
+`table-width-probe` measures five ways and this now follows exactly: widths that fit are taken as
+they stand (72, 108 and 144 points come out as those); a column whose content will not fit the
+width it asks for grows to hold it while its neighbours keep theirs (36/36/36 with an unbreakable
+word in the middle comes out 36/142.56/36); widths adding to more than the measure are scaled down
+together (three of 200 come out three of 156); a column asking for nothing is sized by its own
+content beside ones that ask; and where two rows ask for different widths of one column, the wider
+wins. Before this the declaration was ignored outright, which put a table of three declared columns
+300 points from Word's.
+
+Only a width in twips is honoured. A width asked for as a **share of the table** (`w:type="pct"`)
+inside a table whose own width is left to its content is answered by Word with neither the share
+nor the content but something between the two, and a **table stating its own width** whose cells
+state none divides the surplus by a rule that one page does not pin down. Both are measured in the
+backlog rather than guessed at here.
+
 How far inside its edge a cell starts its text was settled by measuring rather than by reading, and
 is stranger than it sounds. `table-inset-weights-probe` holds the same one-cell table fifteen times
 over — border weights from nothing to six points against no margin, then margins against a fixed

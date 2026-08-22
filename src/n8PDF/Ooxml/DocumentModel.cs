@@ -1080,6 +1080,25 @@ internal sealed class TableCell
     /// <summary>Preferred cell width in twips, when the cell declares one.</summary>
     public int? WidthTwips { get; set; }
 
+    /// <summary>
+    /// The unit that width was stated in — <c>dxa</c> for twips, <c>pct</c> for a share of the
+    /// table, <c>auto</c> or <c>nil</c> for none.
+    /// </summary>
+    public string? WidthType { get; set; }
+
+    /// <summary>
+    /// The width this cell asks for, in points, or null where it asks for none.
+    /// </summary>
+    /// <remarks>
+    /// Only twips are honoured. A share of a table whose own width is left to its content is
+    /// answered by Word with neither the share nor the content but something between them, and
+    /// table-width-probe leaves that question alone rather than guessing at it.
+    /// </remarks>
+    public double? PreferredWidthPoints =>
+        WidthTwips is { } twips and > 0 && WidthType is null or "dxa"
+            ? Units.TwipsToPoints(twips)
+            : null;
+
     /// <summary>Number of grid columns this cell spans.</summary>
     public int GridSpan { get; set; } = 1;
 

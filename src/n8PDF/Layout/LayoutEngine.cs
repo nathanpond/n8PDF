@@ -3854,9 +3854,18 @@ internal sealed class LayoutEngine(
     /// </summary>
     /// <remarks>
     /// Each column is measured for the width it needs at minimum — its widest unbreakable word —
-    /// and the width it would like, which is its content unwrapped. If every column can have what
-    /// it wants the table is only as wide as its contents; otherwise the columns start at their
-    /// minimums and share out what is left in proportion to how much more each one asked for.
+    /// and the width it would like, which is its content unwrapped, or the width its cells asked
+    /// for where any of them did. If every column can have what it wants the table is only as wide
+    /// as that; otherwise the columns start at their minimums and share out what is left in
+    /// proportion to how much more each one asked for.
+    ///
+    /// A declared width (<c>w:tcW</c>) is a preference and not a measurement, which
+    /// table-width-probe settles in five pages: widths that fit are taken exactly (72, 108 and 144
+    /// points come out as those); a column whose content will not fit the width it asks for grows
+    /// to hold it and its neighbours keep theirs (36/36/36 with an unbreakable word in the middle
+    /// comes out 36/142.56/36); widths adding to more than the measure are scaled down together
+    /// (three of 200 come out three of 156); a column asking for nothing is sized by its content
+    /// beside ones that ask; and where two rows ask for different widths the wider wins.
     ///
     /// This is an approximation. It reproduces the two behaviours that were measured directly —
     /// content-width columns when the table fits, and a table filling the text area exactly when
@@ -3878,6 +3887,11 @@ internal sealed class LayoutEngine(
 
         var minimums = new double[columnCount];
         var maximums = new double[columnCount];
+
+        // What the cells of each column asked for, which stands in place of the content's own
+        // width where anything asked at all.
+        var preferred = new double[columnCount];
+
         var properties = table.Properties;
 
         foreach (var row in table.Rows)
@@ -3904,10 +3918,17 @@ internal sealed class LayoutEngine(
                 min += padding;
                 max += padding;
 
+                // A declared width names the cell's own edge to edge, padding included, which is
+                // what the columns here are measured in.
+                var asked = cell.PreferredWidthPoints;
+
                 if (span == 1)
                 {
                     minimums[column] = Math.Max(minimums[column], min);
                     maximums[column] = Math.Max(maximums[column], max);
+
+                    // Two rows asking for different widths of one column: the wider wins.
+                    if (asked is { } width) preferred[column] = Math.Max(preferred[column], width);
                 }
                 else
                 {
@@ -3915,6 +3936,8 @@ internal sealed class LayoutEngine(
                     // long as they add up, so it is spread evenly and only where they fall short.
                     SpreadAcrossSpan(minimums, column, span, min);
                     SpreadAcrossSpan(maximums, column, span, max);
+
+                    if (asked is { } width) SpreadAcrossSpan(preferred, column, span, width);
                 }
 
                 column += span;
@@ -3922,7 +3945,15 @@ internal sealed class LayoutEngine(
         }
 
         for (var i = 0; i < columnCount; i++)
+        {
+            // A column that asked for a width takes it in place of what its content would have
+            // wanted — narrower as readily as wider, since asking for less is how a document
+            // makes a column wrap. What it cannot do is ask for less than the content's own
+            // minimum: an unbreakable word has to go somewhere, and Word gives the column to it.
+            if (preferred[i] > 0) maximums[i] = preferred[i];
+
             maximums[i] = Math.Max(maximums[i], minimums[i]);
+        }
 
         var totalMax = maximums.Sum();
 

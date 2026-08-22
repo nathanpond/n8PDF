@@ -2552,6 +2552,92 @@ public static class Fixtures
                 return builder;
             },
 
+            // What a declared cell width does to a table left on autofit. Word treats it as the
+            // width the column would *like*, which is a different thing from the width it gets:
+            // content that will not fit in it, a row that asks for something else, or a table
+            // whose columns add up to more than the measure all move it. Nothing here was read
+            // off the format — every page is one table and one question.
+            //
+            //   1  widths that fit, and content narrower than them
+            //   2  a column whose content will not fit the width it asks for
+            //   3  widths adding up to more than the measure
+            //   4  some columns asking and others saying nothing
+            //   5  two rows asking for different widths in the same column
+            //
+            // Two neighbouring questions are deliberately not here, having been measured and left
+            // alone: a width asked for as a share of the table (`w:type="pct"`) inside a table of
+            // no stated width, which Word answers with neither the share nor the content but
+            // something between the two; and a table stating its own width whose cells state
+            // none, where Word divides the surplus by a rule no reading of one page pins down.
+            // Both are in the backlog with the numbers.
+            //
+            // Each cell is shaded a colour of its own, so the columns can be read straight off
+            // the page as rectangles rather than inferred from where the text landed.
+            ["table-width-probe"] = () =>
+            {
+                string[] fills = ["DEEBF7", "FCE4D6", "E2EFDA", "FFF2CC"];
+
+                string Cell(string? width, string text, int index, string type = "dxa")
+                {
+                    var declared = width is null
+                        ? string.Empty
+                        : $"<w:tcW w:w=\"{width}\" w:type=\"{type}\"/>";
+
+                    return $"<w:tc><w:tcPr>{declared}" +
+                           $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fills[index % 4]}\"/>" +
+                           $"</w:tcPr><w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                           $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{DocxBuilder.Escape(text)}</w:t></w:r>" +
+                           "</w:p></w:tc>";
+                }
+
+                string Table(string tableWidth, params string[] rows) =>
+                    "<w:tbl><w:tblPr>" + tableWidth +
+                    "<w:tblCellMar><w:left w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"0\" w:type=\"dxa\"/>" +
+                    "<w:top w:w=\"0\" w:type=\"dxa\"/><w:bottom w:w=\"0\" w:type=\"dxa\"/></w:tblCellMar>" +
+                    "</w:tblPr>" + string.Join(string.Empty, rows) + "</w:tbl>";
+
+                string Row(params string[] cells) => $"<w:tr>{string.Join(string.Empty, cells)}</w:tr>";
+
+                const string Auto = "<w:tblW w:w=\"0\" w:type=\"auto\"/>";
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label, string table)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    builder.AddRawParagraph(table);
+                    first = false;
+                }
+
+                // Seventy-two, a hundred and eight and a hundred and forty-four points, well
+                // inside the measure, holding a letter each.
+                Page("Widths that fit.", Table(Auto,
+                    Row(Cell("1440", "a", 0), Cell("2160", "b", 1), Cell("2880", "c", 2))));
+
+                // Thirty-six points a column, and the middle one holding a word four times that
+                // wide with nowhere to break it.
+                Page("A column that cannot hold what it asks for.", Table(Auto,
+                    Row(Cell("720", "a", 0), Cell("720", "Antidisestablishmentarianism", 1),
+                        Cell("720", "c", 2))));
+
+                // Two hundred points a column against a measure of four hundred and sixty-eight.
+                Page("Widths adding up to more than the measure.", Table(Auto,
+                    Row(Cell("4000", "a", 0), Cell("4000", "b", 1), Cell("4000", "c", 2))));
+
+                // The middle column says nothing and holds more than the others.
+                Page("Some columns asking, one saying nothing.", Table(Auto,
+                    Row(Cell("1440", "a", 0), Cell(null, "a word or two here", 1), Cell("1440", "c", 2))));
+
+                // The rows disagree: the first asks for seventy-two and a hundred and forty-four,
+                // the second for the other way about.
+                Page("Two rows asking for different widths.", Table(Auto,
+                    Row(Cell("1440", "a", 0), Cell("2880", "b", 1)),
+                    Row(Cell("2880", "c", 2), Cell("1440", "d", 3))));
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

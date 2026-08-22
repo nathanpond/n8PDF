@@ -1323,7 +1323,9 @@ internal static class DocumentParser
         var tcPr = cellElement.Element(W.Main + "tcPr");
         if (tcPr is not null)
         {
-            cell.WidthTwips = tcPr.Element(W.Main + "tcW")?.IntAttr("w");
+            var declaredWidth = tcPr.Element(W.Main + "tcW");
+            cell.WidthTwips = declaredWidth?.IntAttr("w");
+            cell.WidthType = declaredWidth?.Attr("type");
             cell.GridSpan = Math.Max(1, tcPr.Element(W.Main + "gridSpan")?.IntVal() ?? 1);
 
             var borders = tcPr.Element(W.Main + "tcBorders");
