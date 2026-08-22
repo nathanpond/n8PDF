@@ -79,6 +79,41 @@ internal enum ChartGrouping
     Standard
 }
 
+/// <summary>How a trendline follows the points it is drawn through.</summary>
+internal enum ChartTrendlineKind
+{
+    Linear,
+    Polynomial,
+    Exponential,
+    Logarithmic,
+    Power,
+
+    /// <summary>Not a fit at all, but the mean of each run of points as it goes.</summary>
+    MovingAverage
+}
+
+/// <summary>
+/// A line drawn through a series' points saying what they tend towards.
+/// </summary>
+/// <remarks>
+/// A series may carry more than one — the format allows it, and a chart comparing a straight fit
+/// against a curved one is the reason to.
+/// </remarks>
+/// <param name="Order">The degree of a polynomial, which the format bounds to 2..6.</param>
+/// <param name="Period">How many points a moving average takes the mean of.</param>
+/// <param name="Forward">How far past the last point it runs, in categories.</param>
+/// <param name="Backward">How far before the first it runs.</param>
+/// <param name="Intercept">Where it is forced to cross, or null where it is free.</param>
+internal sealed record ChartTrendline(
+    ChartTrendlineKind Kind,
+    int Order,
+    int Period,
+    double Forward,
+    double Backward,
+    double? Intercept,
+    DrawingColorReference? Line,
+    double LineWidthPoints);
+
 /// <summary>One series: its name, and what it holds against each category.</summary>
 /// <param name="Values">
 /// One for each category, or null where the series has nothing for that one — a gap in the data
@@ -137,6 +172,9 @@ internal sealed record ChartSeries(
     /// everything else.
     /// </summary>
     public IReadOnlyList<double?> BubbleSizes { get; init; } = [];
+
+    /// <summary>The lines drawn through these points saying what they tend towards.</summary>
+    public IReadOnlyList<ChartTrendline> Trendlines { get; init; } = [];
 }
 
 /// <summary>
@@ -507,6 +545,43 @@ internal static class ChartReader
         return labels.Any ? labels : inherited;
     }
 
+    /// <summary>
+    /// Reads a trendline: which curve it follows, how far it runs, and what it is drawn in.
+    /// </summary>
+    /// <remarks>
+    /// The kind is the one thing here with no sensible default — a trendline that says nothing
+    /// about its shape is a straight one, which is both the format's default and the only reading
+    /// that draws anything at all.
+    /// </remarks>
+    private static ChartTrendline ReadTrendline(XElement element)
+    {
+        var kind = element.Element(Main + "trendlineType")?.Attribute("val")?.Value switch
+        {
+            "poly" => ChartTrendlineKind.Polynomial,
+            "exp" => ChartTrendlineKind.Exponential,
+            "log" => ChartTrendlineKind.Logarithmic,
+            "power" => ChartTrendlineKind.Power,
+            "movingAvg" => ChartTrendlineKind.MovingAverage,
+            _ => ChartTrendlineKind.Linear
+        };
+
+        var line = element.Element(Main + "spPr")?.Element(W.Drawing + "ln");
+
+        return new ChartTrendline(
+            kind,
+
+            // The format bounds a polynomial to 2..6 and a period to 2 or more. A file saying
+            // otherwise is clamped rather than refused: the rest of the chart is still worth
+            // drawing, and an order of nought is a horizontal line through nothing.
+            Math.Clamp(Integer(element.Element(Main + "order")) ?? 2, 2, 6),
+            Math.Max(2, Integer(element.Element(Main + "period")) ?? 2),
+            Number(element.Element(Main + "forward")) ?? 0,
+            Number(element.Element(Main + "backward")) ?? 0,
+            Number(element.Element(Main + "intercept")),
+            DrawingText.ReadFill(line),
+            Width(line) ?? 2.25);
+    }
+
     private static ChartSeries ReadSeries(XElement element, ChartLabels? inherited = null)
     {
         var name = element.Element(Main + "tx") is { } tx
@@ -530,9 +605,14 @@ internal static class ChartReader
             points[index] = DrawingText.ReadFill(point.Element(Main + "spPr"));
         }
 
+        var trendlines = new List<ChartTrendline>();
+        foreach (var trend in element.Elements(Main + "trendline"))
+            trendlines.Add(ReadTrendline(trend));
+
         return new ChartSeries(name, categories, values, DrawingText.ReadFill(properties))
         {
             PointFills = points,
+            Trendlines = trendlines,
             Line = DrawingText.ReadFill(line),
             NoLine = line?.Element(W.Drawing + "noFill") is not null,
             LineWidthPoints = Width(line) ?? 2.25,

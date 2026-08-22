@@ -2022,6 +2022,107 @@ public static class Fixtures
     /// Nothing is left to a default that could be guessed at: the axes state their bounds and
     /// their spacing, the bars state their colours, and there is neither a title nor a legend.
     /// </remarks>
+    /// <summary>
+    /// A chart of four points carrying one trendline, for measuring what Word draws for it.
+    /// </summary>
+    /// <remarks>
+    /// Everything about the plot is stated rather than left to Word — where it goes, what the
+    /// value axis runs between — so that the only thing varying between the probe's pages is the
+    /// trendline itself. The values 30/45/20/55 are the ones the other chart fixtures use, and
+    /// they are deliberately not collinear: points on a line would make every kind of fit agree
+    /// and measure nothing.
+    ///
+    /// The trendline states its own line format, which is what Word writes when one is added
+    /// through its interface, so the colour and weight are read from the document rather than
+    /// guessed at.
+    /// </remarks>
+    private static string TrendlineProbeChart(
+        string kind, int order = 2, int period = 2, double forward = 0, double backward = 0,
+        double? intercept = null) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/>
+                <c:w val="0.7"/><c:h val="0.7"/>
+              </c:manualLayout>
+            </c:layout>
+            <c:lineChart>
+              <c:grouping val="standard"/>
+              <c:varyColors val="0"/>
+              <c:ser>
+                <c:idx val="0"/>
+                <c:order val="0"/>
+                <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f>
+                  <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>Units</c:v></c:pt></c:strCache>
+                </c:strRef></c:tx>
+                <c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="4472C4"/></a:solidFill></a:ln></c:spPr>
+                <c:marker><c:symbol val="none"/></c:marker>
+                <c:trendline>
+                  <c:spPr><a:ln w="19050"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill></a:ln></c:spPr>
+                  <c:trendlineType val="{kind}"/>
+                  {(kind == "poly" ? $"<c:order val=\"{order}\"/>" : string.Empty)}
+                  {(kind == "movingAvg" ? $"<c:period val=\"{period}\"/>" : string.Empty)}
+                  {(forward != 0 ? $"<c:forward val=\"{forward.ToString(CultureInfo.InvariantCulture)}\"/>" : string.Empty)}
+                  {(backward != 0 ? $"<c:backward val=\"{backward.ToString(CultureInfo.InvariantCulture)}\"/>" : string.Empty)}
+                  {(intercept is { } cross ? $"<c:intercept val=\"{cross.ToString(CultureInfo.InvariantCulture)}\"/>" : string.Empty)}
+                  <c:dispRSqr val="0"/>
+                  <c:dispEq val="0"/>
+                </c:trendline>
+                <c:cat><c:strRef><c:f>Sheet1!$A$2:$A$5</c:f>
+                  <c:strCache><c:ptCount val="4"/><c:pt idx="0"><c:v>North</c:v></c:pt><c:pt idx="1"><c:v>South</c:v></c:pt><c:pt idx="2"><c:v>East</c:v></c:pt><c:pt idx="3"><c:v>West</c:v></c:pt></c:strCache>
+                </c:strRef></c:cat>
+                <c:val><c:numRef><c:f>Sheet1!$B$2:$B$5</c:f>
+                  <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="4"/>
+                    <c:pt idx="0"><c:v>30</c:v></c:pt><c:pt idx="1"><c:v>45</c:v></c:pt><c:pt idx="2"><c:v>20</c:v></c:pt><c:pt idx="3"><c:v>55</c:v></c:pt>
+                  </c:numCache>
+                </c:numRef></c:val>
+                <c:smooth val="0"/>
+              </c:ser>
+              <c:marker val="1"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:lineChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling>
+                <c:orientation val="minMax"/>
+                <c:max val="80"/>
+                <c:min val="0"/>
+              </c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string ColumnChart() => $"""
         <c:chart>
           <c:autoTitleDeleted val="1"/>
@@ -4049,6 +4150,74 @@ public static class Fixtures
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216) + "</w:p>")
                 .AddParagraph("Paragraph after the chart.", ZeroSpacing, Times12),
+
+            // What Word draws for a trendline, one kind to a page so that a divergence names the
+            // kind that caused it. Six pages:
+            //
+            //   page 1  linear
+            //   page 2  polynomial of the second order
+            //   page 3  a moving average over two points   -> which end the mean is drawn at
+            //   page 4  linear, running two categories on  -> how far past the data it reaches
+            //   page 5  exponential
+            //   page 6  linear through a forced intercept
+            //   page 7  linear, running one category back  -> the other half of the same rule
+            //
+            // The fitting itself is not what this measures — that is arithmetic, and
+            // ChartTrendlineTests checks it against coefficients worked out independently. What
+            // is measured here is what Word *draws*: where the line starts and stops, and whether
+            // it is clipped by the plot when it runs past the data.
+            ["chart-trendline-probe"] = () => new DocxBuilder()
+                .WithChart(TrendlineProbeChart("linear"))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TrendlineProbeChart("poly", order: 2)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TrendlineProbeChart("movingAvg", period: 2)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TrendlineProbeChart("linear", forward: 2)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TrendlineProbeChart("exp")),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TrendlineProbeChart("linear", intercept: 0)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TrendlineProbeChart("linear", backward: 1)),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 561) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 562, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 563, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 564, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 565, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 566, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 567, relationshipId: "rIdChart7") +
+                                 "</w:p>"),
 
             // How far a chart's labels sit from the axes they belong to, which one chart cannot
             // say: four of them, varying the marks the labels may have to clear, the type they
