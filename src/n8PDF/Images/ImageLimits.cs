@@ -26,6 +26,26 @@ internal static class ImageLimits
     public const long DefaultMaximumPixels = 50_000_000;
 
     /// <summary>
+    /// How deeply one picture may be embedded inside another.
+    /// </summary>
+    /// <remarks>
+    /// A picture can hold a picture. A metafile's image object carries a whole image file, and a
+    /// TIFF's JPEG strip is a whole JPEG; both are read by handing the bytes back to
+    /// <see cref="ImageReader"/>, which decides what they are by looking at them. Neither asks
+    /// what it is already inside, so a file that embeds itself is read again, and again.
+    ///
+    /// Nothing about that is expensive per level — it is the stack that runs out. A few hundred
+    /// levels cost a few tens of kilobytes on disk and exhaust the thread; and a
+    /// <see cref="StackOverflowException"/> cannot be caught, so the process goes rather than the
+    /// conversion. That is the one failure in this layer the rest of its error handling cannot
+    /// reach, which is why the bound is here rather than in whichever decoder was noticed first.
+    ///
+    /// Two, because one level is what really happens — a drawing with a picture in it, a TIFF
+    /// holding its JPEG — and nothing Word writes goes deeper. The second is slack, not need.
+    /// </remarks>
+    public const int MaximumNesting = 2;
+
+    /// <summary>
     /// Refuses a picture whose declared dimensions are past the limit, before anything is
     /// allocated for it.
     /// </summary>

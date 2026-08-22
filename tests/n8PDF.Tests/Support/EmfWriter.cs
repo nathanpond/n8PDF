@@ -308,6 +308,38 @@ public sealed class EmfWriter(int width, int height)
         return this;
     }
 
+    /// <summary>
+    /// An image object holding a whole image file, which is how a drawing carries a picture.
+    /// </summary>
+    /// <remarks>
+    /// The point of interest for the tests that use this is that the payload is a file in its own
+    /// right, decided by looking at it — so it may be another metafile, holding another picture,
+    /// and so on down. See <c>ImageLimits.MaximumNesting</c>.
+    /// </remarks>
+    public EmfWriter PlusImage(int id, byte[] file)
+    {
+        PlusRecord(0x4008, id | (4 << 8),
+            Int32(unchecked((int)PlusVersion)),
+            Int32(1),                                  // an image rather than a metafile record
+            Int32(0), Int32(0), Int32(0),              // the bitmap header this reader passes over
+            Int32(1),                                  // kept as a file of its own, not as samples
+            file);
+
+        return this;
+    }
+
+    /// <summary>Draws a picture already made an object, which is what puts one on the page.</summary>
+    public EmfWriter PlusDrawImage(int id, float x, float y, float width, float height)
+    {
+        PlusRecord(0x401B, id,
+            Int32(0),                                  // no attributes of its own
+            Int32(2),                                  // measured in the drawing's own units
+            Single(0), Single(0), Single(width), Single(height),   // all of the picture
+            Single(x), Single(y), Single(width), Single(height));  // and where it goes
+
+        return this;
+    }
+
     public EmfWriter PlusPen(int id, byte red, byte green, byte blue, float lineWidth = 1)
     {
         PlusRecord(0x4008, id | (1 << 8),
