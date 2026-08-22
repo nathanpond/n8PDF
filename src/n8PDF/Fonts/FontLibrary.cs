@@ -70,6 +70,9 @@ public sealed class FontLibrary
         public int WeightClass { get; }
 
         public TrueTypeFont Font => _font.Value;
+
+        /// <summary>Whether the face has been read from its file yet, rather than merely known of.</summary>
+        public bool IsRead => _font.IsValueCreated;
     }
 
     private readonly Dictionary<string, List<Face>> _byFamily = new(StringComparer.OrdinalIgnoreCase);
@@ -111,6 +114,25 @@ public sealed class FontLibrary
         get
         {
             lock (_gate) return _all.Count;
+        }
+    }
+
+    /// <summary>
+    /// How many of this library's faces have been read from their files, rather than merely known
+    /// of by name.
+    /// </summary>
+    /// <remarks>
+    /// A face indexed from a directory learns its name at the scan and reads the rest of itself
+    /// only when something asks for the face, so this is nought after a scan and one after
+    /// resolving one family. It is what FontLibraryCacheTests asserts: the saving that makes a
+    /// conversion setting two families read two files rather than six hundred is exactly the
+    /// difference between this number and the face count.
+    /// </remarks>
+    internal int FacesRead
+    {
+        get
+        {
+            lock (_gate) return _all.Count(face => face.IsRead);
         }
     }
 
@@ -361,11 +383,30 @@ public sealed class FontLibrary
     /// shared space that routinely holds files that cannot be parsed or read, and one of those
     /// must not take out the whole scan.
     /// </remarks>
-    private static IReadOnlyList<Face> ScanSystemFonts()
+    private static IReadOnlyList<Face> ScanSystemFonts() => Scan(GetSystemFontDirectories());
+
+    /// <summary>
+    /// Indexes every font file in a directory without holding what it read: each face learns its
+    /// name, its style and where it lives, and reads the rest of itself only when something asks
+    /// for the face. That is what the platform's own directories are taken in by, and the
+    /// difference from <see cref="RegisterDirectory"/>, which reads a directory outright, is the
+    /// 1.3GB those directories hold on the machine this was measured on.
+    /// </summary>
+    /// <returns>How many faces were indexed.</returns>
+    internal int IndexDirectory(string path)
+    {
+        var faces = Scan([path]);
+
+        foreach (var face in faces) Add(face);
+
+        return faces.Count;
+    }
+
+    private static IReadOnlyList<Face> Scan(IReadOnlyList<string> directories)
     {
         var faces = new List<Face>();
 
-        foreach (var directory in GetSystemFontDirectories())
+        foreach (var directory in directories)
         {
             if (!Directory.Exists(directory)) continue;
 

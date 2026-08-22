@@ -147,6 +147,12 @@ Before that, a conversion that said nothing about fonts read all 1.3GB, held 1.5
 threw it away, and did the whole thing again for the next document: 450ms a page, whatever the page
 held.
 
+`FontLibraryCacheTests` holds that arrangement to the number, on a library of its own rather than on
+this machine's font collection: three files indexed into a directory it writes itself, none of them
+read; one family resolved, one of them read. It used to weigh the process's memory before and after
+instead, which made every other test allocating at the same moment part of the answer — a test that
+failed for reasons unconnected to fonts, and passed when run alone.
+
 ## Validation
 
 Four tiers, cheapest and most diagnostic first.

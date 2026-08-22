@@ -49,31 +49,59 @@ public class FontLibraryCacheTests(ITestOutputHelper output)
     /// And a library that wants one family does not read the rest.
     /// </summary>
     /// <remarks>
-    /// Measured rather than asserted exactly: what is held after resolving one family used to be
-    /// the whole of the platform's fonts, which was 1.5GB here. A hundred megabytes is far more
-    /// than a face or two costs and far less than reading everything, so it tells the two apart
-    /// without turning into a test of this machine's font collection.
+    /// Counted rather than weighed, and counted on a library of its own. What this used to do was
+    /// measure the memory the whole process held before and after resolving a family: under the
+    /// parallel run every other test allocating at the same moment went into the answer, and it
+    /// failed for reasons that had nothing to do with fonts. It also made the machine's own font
+    /// collection part of the test.
+    ///
+    /// What is actually being asserted is the library's own arrangement — that a face indexed
+    /// from a directory learns its name and reads the rest of itself only when something asks for
+    /// the face — so the test indexes a directory it wrote itself and asks that directly. Three
+    /// files in, nothing read; one family out, one file read.
     /// </remarks>
     [Fact]
     public void Resolving_one_family_does_not_read_the_rest()
     {
-        // Warm the index first: what is being measured is what a resolve costs, not what the one
-        // scan of the platform's directories costs.
-        new FontLibrary().TryResolve("Calibri", false, false, out _);
+        // Two faces of the family that is asked for and one of another, so that what is read is
+        // the face that was chosen rather than merely the family that was named.
+        string[] fonts =
+            [TestFonts.TimesNewRomanPath, TestFonts.TimesNewRomanBoldPath, TestFonts.ArialPath];
 
-        var before = GC.GetTotalMemory(true);
+        if (fonts.Any(font => !File.Exists(font)))
+        {
+            _output.WriteLine("the faces this indexes are not on this machine; nothing to count.");
+            return;
+        }
 
-        var library = new FontLibrary();
-        library.TryResolve("Times New Roman", false, false, out _);
+        var directory = Directory.CreateTempSubdirectory("n8pdf-fonts-").FullName;
 
-        var after = GC.GetTotalMemory(true);
-        var held = (after - before) / 1024.0 / 1024;
+        try
+        {
+            foreach (var font in fonts)
+                File.Copy(font, Path.Combine(directory, Path.GetFileName(font)));
 
-        _output.WriteLine($"{library.RegisteredFaceCount} faces indexed, {held:0.0}MB held");
+            var library = new FontLibrary { UseSystemFonts = false };
+            var indexed = library.IndexDirectory(directory);
 
-        Assert.True(held < 100,
-            $"resolving one family held {held:0.0}MB, which is the whole of the platform's fonts " +
-            "rather than the one that was asked for.");
+            _output.WriteLine($"{indexed} faces indexed, {library.FacesRead} read");
+
+            Assert.Equal(fonts.Length, indexed);
+            Assert.Equal(0, library.FacesRead);
+
+            Assert.True(library.TryResolve("Times New Roman", false, false, out var selection),
+                "the family that was just indexed did not resolve.");
+
+            Assert.False(selection.Font.IsBold, "the upright face was not the one chosen.");
+
+            _output.WriteLine($"after resolving one family, {library.FacesRead} read");
+
+            Assert.Equal(1, library.FacesRead);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     /// <summary>
