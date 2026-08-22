@@ -351,7 +351,7 @@ Every fixture written by hand here sets its spacing to a single line, where a mu
 the two readings identical. It took a document Word wrote — `brochure`, whose picture paragraph
 inherits Word's 1.08 — to tell them apart, and the error it found was 6.8 points.
 
-### What a highlight and a shaded paragraph cover
+### What a highlight and a background cover
 
 Both are filled rectangles behind text, and both are measured rather than assumed — `highlight-probe`
 and `paragraph-shading-probe`, compared against Word's own ink rather than its text.
@@ -378,8 +378,16 @@ off and laid again on the next — widow control alone moves two of them — and
 with it or the page it left keeps a rectangle under empty space. The same bookkeeping carries a bar
 tab's rule and a form field's box, neither of which was taken off before this.
 
-Run shading (a `w:shd` inside `w:rPr`) is not drawn: it is a different rectangle from either of
-these and nothing here has measured it.
+**A run's own background** — a `w:shd` inside a `w:rPr` — turns out to be the highlight's
+rectangle exactly. `run-shading-probe` mirrors `highlight-probe` page for page, and Word draws the
+two identically down to the thousandth of a point: the run's width by the line's height, the same
+ends, the same nothing behind a shaded paragraph mark. Two things are its own, and both are
+measured there: it is drawn over the paragraph's background and takes none of the paragraph's
+fiftieth of an inch of reach, and a run asking for a background *and* a highlight gets the
+highlight alone — Word's page has one rectangle for such a run, not two.
+
+Cell shading still ignores patterns: a cell takes its `w:fill` and nothing else, which is what it
+did before any of this and is not what a paragraph or a run now does.
 
 ### How far inside its own edges a shape sets its text
 
@@ -1634,7 +1642,7 @@ line and page breaks, line breaking by the Unicode algorithm (so the scripts wri
 spaces — Chinese, Japanese, Thai, Lao, Khmer, Burmese — wrap where Word wraps them), tabs
 (left, centre, right, decimal and bar stops, with leaders), font family via theme resolution, size, bold,
 italic, underline, strikethrough, colour, highlighting, caps, super/subscript, character spacing
-and scaling, the background behind a paragraph (`w:shd`, patterns included),
+and scaling, the background behind a paragraph or a run (`w:shd`, patterns included),
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
 `.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.

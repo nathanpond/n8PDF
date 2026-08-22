@@ -33,6 +33,12 @@ internal sealed record ResolvedRunFormat
 
     public string? HighlightColor { get; init; }
 
+    /// <summary>
+    /// The background behind this run, from a <c>w:shd</c> of its own. A highlight is drawn
+    /// instead of it where the run has both: see RunShadingTests.
+    /// </summary>
+    public Shading Shading { get; init; }
+
     public VerticalTextAlignment VerticalAlignment { get; init; } = VerticalTextAlignment.Baseline;
 
     /// <summary>Extra spacing added after every character, in points.</summary>

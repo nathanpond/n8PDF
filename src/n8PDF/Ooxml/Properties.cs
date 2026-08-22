@@ -140,6 +140,16 @@ internal sealed class RunProperties
     /// <summary>Highlight colour name, or null.</summary>
     public string? Highlight { get; set; }
 
+    /// <summary>
+    /// The background behind this run, from a <c>w:shd</c> inside its <c>w:rPr</c>. Each part is
+    /// inherited on its own, the same way a paragraph's is.
+    /// </summary>
+    public string? ShadingFill { get; set; }
+
+    public string? ShadingPattern { get; set; }
+
+    public string? ShadingColor { get; set; }
+
     public VerticalTextAlignment? VerticalAlignment { get; set; }
 
     /// <summary>

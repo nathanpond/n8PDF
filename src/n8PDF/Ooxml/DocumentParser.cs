@@ -955,6 +955,11 @@ internal static class DocumentParser
                 case "highlight":
                     properties.Highlight = element.Val();
                     break;
+                case "shd":
+                    properties.ShadingFill = element.Attr("fill");
+                    properties.ShadingPattern = element.Val();
+                    properties.ShadingColor = element.Attr("color");
+                    break;
                 case "vertAlign":
                     properties.VerticalAlignment = element.Val() switch
                     {

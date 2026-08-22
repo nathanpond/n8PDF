@@ -1861,6 +1861,9 @@ public sealed class DocxBuilder
         string? color = null,
         string? highlight = null,
         string? underline = null,
+        string? shadingFill = null,
+        string? shadingPattern = null,
+        string? shadingColor = null,
         string? verticalAlign = null,
         string? styleId = null,
         int? kerningHalfPoints = null,
@@ -1882,6 +1885,12 @@ public sealed class DocxBuilder
         if (halfPoints is not null) sb.Append($"<w:sz w:val=\"{halfPoints}\"/>");
         if (highlight is not null) sb.Append($"<w:highlight w:val=\"{highlight}\"/>");
         if (underline is not null) sb.Append($"<w:u w:val=\"{underline}\"/>");
+        if (shadingFill is not null || shadingPattern is not null || shadingColor is not null)
+        {
+            sb.Append($"<w:shd w:val=\"{shadingPattern ?? "clear"}\" " +
+                      $"w:color=\"{shadingColor ?? "auto"}\" w:fill=\"{shadingFill ?? "auto"}\"/>");
+        }
+
         if (verticalAlign is not null) sb.Append($"<w:vertAlign w:val=\"{verticalAlign}\"/>");
 
         return sb.ToString();

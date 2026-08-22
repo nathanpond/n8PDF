@@ -22,11 +22,15 @@ public static class Fixtures
         string? color = null,
         string? highlight = null,
         string? underline = null,
+        string? shadingFill = null,
+        string? shadingPattern = null,
+        string? shadingColor = null,
         int? kerningHalfPoints = null,
         int? positionHalfPoints = null) =>
         DocxBuilder.RunProperties(
             font: TimesNewRoman, halfPoints: halfPoints, bold: bold, italic: italic,
             strike: strike, color: color, highlight: highlight, underline: underline,
+            shadingFill: shadingFill, shadingPattern: shadingPattern, shadingColor: shadingColor,
             kerningHalfPoints: kerningHalfPoints, positionHalfPoints: positionHalfPoints);
 
     private static readonly string Times12 = Times();
@@ -2349,6 +2353,118 @@ public static class Fixtures
                     builder.AddParagraph($"Pattern {pattern}, red on yellow.",
                         Shade("FFFF00", pattern, "FF0000") + ZeroSpacing, Times12);
                 }
+
+                return builder;
+            },
+
+            // What a run's own background covers, which is a different question from what a
+            // highlight covers even though both are a rectangle behind a run. The pages mirror
+            // highlight-probe's so the two can be read side by side: the box against four sizes
+            // and two faces, the joins, a line of two sizes, the patterns, and then the two cases
+            // only a run's background has — a run inside a shaded paragraph, and a run carrying a
+            // background and a highlight at once.
+            ["run-shading-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                string Shaded(string face, int halfPoints, string fill = "FFF2CC") =>
+                    DocxBuilder.RunProperties(
+                        font: face, halfPoints: halfPoints, shadingFill: fill);
+
+                var first = true;
+                void Sized(string face, int halfPoints)
+                {
+                    var plain = DocxBuilder.RunProperties(font: face, halfPoints: halfPoints);
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(first ? ZeroSpacing : ZeroSpacing)}</w:pPr>" +
+                        $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\">ab </w:t></w:r>" +
+                        $"<w:r><w:rPr>{Shaded(face, halfPoints)}</w:rPr><w:t>lit</w:t></w:r>" +
+                        $"<w:r><w:rPr>{plain}</w:rPr><w:t xml:space=\"preserve\"> cd</w:t></w:r></w:p>");
+
+                    first = false;
+                }
+
+                Sized(TimesNewRoman, 16);
+                Sized(TimesNewRoman, 24);
+                Sized(TimesNewRoman, 48);
+                Sized(TimesNewRoman, 96);
+                Sized("Arial", 24);
+                Sized("Arial", 48);
+
+                // The joins, exactly as highlight-probe asks them.
+                var plain12 = Times12;
+                var shaded12 = Times(24, shadingFill: "FFF2CC");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">one </w:t></w:r>" +
+                    $"<w:r><w:rPr>{shaded12}</w:rPr><w:t>two</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> </w:t></w:r>" +
+                    $"<w:r><w:rPr>{shaded12}</w:rPr><w:t>four</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> five</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">one </w:t></w:r>" +
+                    $"<w:r><w:rPr>{shaded12}</w:rPr><w:t xml:space=\"preserve\">two three four</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> five</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{shaded12}</w:rPr><w:t xml:space=\"preserve\">" +
+                    "A run with a background of its own, long enough that it has to be broken, so " +
+                    "that what the break does to the space it falls on can be read off the page " +
+                    "rather than guessed at.</w:t></w:r></w:p>");
+
+                // A paragraph whose own mark carries the background, and a short last line.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}<w:rPr>" +
+                    "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"FFF2CC\"/></w:rPr></w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t>Marked paragraph.</w:t></w:r></w:p>");
+
+                // Two sizes on one line, each way about.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                    $"<w:r><w:rPr>{shaded12}</w:rPr><w:t xml:space=\"preserve\">small </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(72)}</w:rPr><w:t>TALL</w:t></w:r></w:p>");
+
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">small </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(72, shadingFill: "FFF2CC")}</w:rPr><w:t>TALL</w:t></w:r></w:p>");
+
+                // The patterns, red on yellow, so that the blend can be compared against the one
+                // a paragraph's background makes of the same pair.
+                var pattern = true;
+                foreach (var name in new[] { "pct10", "pct25", "pct50", "pct75", "solid" })
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(pattern ? ZeroSpacingNewPage : ZeroSpacing)}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times(24, shadingFill: "FFFF00", shadingPattern: name, shadingColor: "FF0000")}</w:rPr>" +
+                        $"<w:t>Pattern {name}, red on yellow.</w:t></w:r></w:p>");
+
+                    pattern = false;
+                }
+
+                // A run's background inside a paragraph's, which says which is drawn over which
+                // and whether the run's reaches as far as the paragraph's does.
+                builder.AddRawParagraph(
+                    "<w:p><w:pPr><w:pageBreakBefore/>" +
+                    "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"DEEBF7\"/>" +
+                    $"{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">A paragraph shaded blue with </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(24, shadingFill: "FCE4D6")}</w:rPr><w:t>a run shaded orange</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\"> inside it.</w:t></w:r></w:p>");
+
+                // And a run carrying both a background and a highlight, which is the only case
+                // where the two rules meet.
+                builder.AddRawParagraph(
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t xml:space=\"preserve\">Both at once: </w:t></w:r>" +
+                    $"<w:r><w:rPr>{Times(24, highlight: "yellow", shadingFill: "FCE4D6")}</w:rPr>" +
+                    "<w:t>shaded and highlighted</w:t></w:r>" +
+                    $"<w:r><w:rPr>{plain12}</w:rPr><w:t>.</w:t></w:r></w:p>");
 
                 return builder;
             },

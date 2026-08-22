@@ -150,6 +150,12 @@ internal sealed class StyleResolver(
         private string? _color;
         private string? _colorTheme;
         private string? _highlight;
+
+        // The three parts of a run's own background, kept apart for the same reason a paragraph's
+        // are: a character style may name the fill and the run the pattern.
+        private string? _runShadingFill;
+        private string? _runShadingPattern;
+        private string? _runShadingColor;
         private VerticalTextAlignment? _verticalAlignment;
         private int? _positionHalfPoints;
         private double? _characterSpacingPoints;
@@ -184,6 +190,9 @@ internal sealed class StyleResolver(
             if (source.Color is not null) _color = source.Color;
             if (source.ColorThemeSlot is not null) _colorTheme = source.ColorThemeSlot;
             if (source.Highlight is not null) _highlight = source.Highlight;
+            if (source.ShadingFill is not null) _runShadingFill = source.ShadingFill;
+            if (source.ShadingPattern is not null) _runShadingPattern = source.ShadingPattern;
+            if (source.ShadingColor is not null) _runShadingColor = source.ShadingColor;
             if (source.VerticalAlignment is { } vertical) _verticalAlignment = vertical;
             if (source.PositionHalfPoints is { } position) _positionHalfPoints = position;
             if (source.CharacterSpacingTwips is { } spacing)
@@ -214,6 +223,7 @@ internal sealed class StyleResolver(
                 Underline = _underline ?? UnderlineStyle.None,
                 ColorHex = theme.ResolveColor(_colorTheme) ?? _color,
                 HighlightColor = _highlight,
+                Shading = new Shading(_runShadingFill, _runShadingPattern, _runShadingColor),
                 VerticalAlignment = _verticalAlignment ?? VerticalTextAlignment.Baseline,
                 PositionPoints = (_positionHalfPoints ?? 0) / 2.0,
                 CharacterSpacingPoints = _characterSpacingPoints ?? 0,

@@ -4944,12 +4944,20 @@ internal sealed class LayoutEngine(
 
             laidOut.Texts.Add(text);
 
-            // The highlight goes under the text and over the paragraph's own background, which is
-            // the order the two are added to the page in. It covers the run as the line set it —
-            // a space inside the line included, one dropped at a break not — and is the height of
-            // the line rather than of the run: highlight-probe's twelve point run beside a
-            // thirty-six point one is highlighted the full forty-one points of the line they share.
-            if (HighlightColors.Resolve(segment.Format.HighlightColor) is { } lit && boxHeight > 0)
+            // What goes behind the run: its highlight, or the background it asks for itself where
+            // it has no highlight. Both are the same rectangle — the run as the line set it, a
+            // space inside the line included and one dropped at a break not, and the height of the
+            // line rather than of the run, so that a twelve point run beside a thirty-six point
+            // one is covered the full forty-one points of the line they share. It goes under the
+            // text and over the paragraph's own background, which is the order they are added in.
+            //
+            // A highlight and a background on one run is a case Word settles by drawing the
+            // highlight alone: run-shading-probe's last line asks for an orange background under a
+            // yellow highlight and Word's page has one rectangle on it, the yellow.
+            var behind = HighlightColors.Resolve(segment.Format.HighlightColor)
+                         ?? segment.Format.Shading.Resolve();
+
+            if (behind is { } lit && boxHeight > 0)
             {
                 var litLeft = Grid.Snap(text.X);
 
