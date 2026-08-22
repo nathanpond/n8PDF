@@ -2996,6 +2996,71 @@ public static class Fixtures
                 return builder;
             },
 
+            // The division of a stated width, asked in the one shape that can answer it. Two
+            // columns leave one edge between them, so where that edge falls is the whole of what
+            // Word decided: the share the first column got. Sweeping the width of the table moves
+            // that edge across the grid, and each width says the share lies in a window a step
+            // wide divided by the width — so thirty-six widths together say it far more narrowly
+            // than any one of them could.
+            //
+            // The letters are chosen to tell the candidate rules apart. An 'i' is 66.68 twips of
+            // Times at twelve and a 'b' is 120 exactly, so the share is 0.357193 of the pair as
+            // they are, 0.358289 if each is rounded up to a whole twip, and 0.359788 if a twip is
+            // then added to each. Those are a thousandth apart, which a wide table resolves.
+            ["two-column-sweep-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                string Table(int twips, bool reversed = false)
+                {
+                    string Cell(string text, string? fill) =>
+                        "<w:tc><w:tcPr>" +
+                        (fill is null ? string.Empty
+                            : $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fill}\"/>") +
+                        $"</w:tcPr><w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{text}</w:t></w:r></w:p></w:tc>";
+
+                    var cells = reversed
+                        ? Cell("b", "DEEBF7") + Cell("i", null)
+                        : Cell("i", "DEEBF7") + Cell("b", null);
+
+                    return $"<w:tbl><w:tblPr><w:tblW w:w=\"{twips}\" w:type=\"dxa\"/>" +
+                           "<w:tblCellMar><w:left w:w=\"0\" w:type=\"dxa\"/>" +
+                           "<w:right w:w=\"0\" w:type=\"dxa\"/><w:top w:w=\"0\" w:type=\"dxa\"/>" +
+                           "<w:bottom w:w=\"0\" w:type=\"dxa\"/></w:tblCellMar></w:tblPr>" +
+                           $"<w:tr>{cells}</w:tr></w:tbl>";
+                }
+
+                void Add(int twips, bool reversed = false)
+                {
+                    builder.AddParagraph(first ? "Widths." : "-",
+                        first ? ZeroSpacing : ZeroSpacing, Times12);
+                    builder.AddRawParagraph(Table(twips, reversed));
+                    first = false;
+                }
+
+                // Thirty-six widths from a hundred points to two hundred and eighty-seven and a
+                // half, two and a half points apart, which walks the edge round the grid many
+                // times over. Twelve to a page, since each table and its rail take 28 points.
+                var count = 0;
+                foreach (var twips in Enumerable.Range(0, 36).Select(i => 2000 + i * 50))
+                {
+                    if (count > 0 && count % 12 == 0)
+                        builder.AddParagraph("More.", ZeroSpacingNewPage, Times12);
+
+                    Add(twips);
+                    count++;
+                }
+
+                // And four with the columns the other way about, which should put the same edge
+                // the other side of the table.
+                builder.AddParagraph("Reversed.", ZeroSpacingNewPage, Times12);
+                foreach (var twips in new[] { 2000, 2400, 2800, 3200 }) Add(twips, reversed: true);
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

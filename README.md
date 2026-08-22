@@ -1774,14 +1774,23 @@ writes such a table straight off the paper's edge, and so does this; and the wid
 proportion to what each column wants, each want being its content rounded up to a whole twip.
 
 Five of the probe's seven pages come out exactly Word's. The two that do not are the same shape —
-three columns of nearly equal content — and what separates them from Word is the smallest thing in
-this file. Word's first edge falls at or past 2076 twips of the 6480 the table asks for and its
-second short of 4404; dividing in proportion puts them at 2075.93 and 4404.07, **seven hundredths
-of a twip** outside each, and each lands on the far side of a rounding boundary. Three thousandths
-of a point, one part in ninety thousand of the table, and a grid step in the drawing. Wants of
-content plus a twip land that page and throw another; equal sharing, proportional-to-minimum, a
-constant per cell and any blend of proportional and equal sharing are each ruled out by a page they
-break. It is written up in `TablePreferredWidthTests` with the arithmetic rather than papered over.
+three columns of nearly equal content — and `two-column-sweep-probe` was written to settle whether
+a better rule exists. It settles it the other way.
+
+Two columns leave one edge between them, so where that edge falls is the whole of what Word
+decided. The sweep puts an 'i' and a 'b' either side of it and moves the table's stated width
+through thirty-six values, each of which pins the share the first column got to a window a grid step
+wide divided by that width. **No share satisfies them all**: 3450 twips of table needs at least
+0.358261 and 3250 needs below 0.358154. Sweeping every ratio between 0.3555 and 0.3605 against
+every rounding of the column — exact, whole twip, half twip, up, down — the best any of them
+manages is 35 of the 36, and that one wants a ratio matching no measurement of the two letters.
+Word's division is not a fixed proportion of the table applied to a fixed pair of wants.
+
+Ours is proportional to wants of 67 and 120 twips, each letter rounded up to a whole twip, which
+lands 34 of the 36 — the best any natural ratio does — and misses only where its edge falls a
+hundredth of a point the wrong side of a rounding boundary. The four tables at the end of the probe
+put the same edge in from the right and agree exactly. `TwoColumnSweepTests` holds both halves of
+that, including the crossing bounds, so nobody re-opens this expecting a tidy ratio.
 
 How far inside its edge a cell starts its text was settled by measuring rather than by reading, and
 is stranger than it sounds. `table-inset-weights-probe` holds the same one-cell table fifteen times
