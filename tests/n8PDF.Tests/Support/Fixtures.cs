@@ -2928,6 +2928,74 @@ public static class Fixtures
                 return builder;
             },
 
+            // How far a word may overrun the measure before Word breaks it. That there is any
+            // slack at all is something table-width-probe showed by accident: Word left a word of
+            // 142.65 points in a column of 142.56 rather than breaking it, which is nine
+            // hundredths of a point of overhang it was content with.
+            //
+            // The instrument is a right indent, which moves the measure a twip at a time — a
+            // twentieth of a point, five times finer than the grid Word writes on. Every paragraph
+            // holds the same ten capital Ms, which is 106.6992 points of Times at twelve and has
+            // nowhere to break, so a paragraph that comes out as two lines is a paragraph whose
+            // word Word gave up on. The sweep runs from a measure a third of a point wider than
+            // the word to one three quarters of a point narrower.
+            //
+            // The second page asks the same of a table cell, where the column is put on the grid
+            // first and the answer can only be read to a quarter point — but it is the case the
+            // question came from.
+            ["break-tolerance-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+
+                const string Word = "MMMMMMMMMM";
+
+                void Line(int rightTwips, bool newPage = false)
+                {
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{(newPage ? ZeroSpacingNewPage : ZeroSpacing)}" +
+                        $"<w:ind w:right=\"{rightTwips}\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{Word}</w:t></w:r></w:p>");
+                }
+
+                // 7226 twips of indent leaves 106.7 points, which is a thousandth of a point more
+                // than the word; every twip after that takes another twentieth off.
+                var first = true;
+                foreach (var indent in new[]
+                         {
+                             7220, 7224, 7226, 7227, 7228, 7229, 7230, 7231, 7232, 7233, 7234,
+                             7236, 7238, 7240, 7245
+                         })
+                {
+                    Line(indent, first);
+                    first = false;
+                }
+
+                // The same in a cell, at the four grid steps around the word's own width. A fixed
+                // layout so that the column is the width it is told and nothing else.
+                string Cell(int twips) =>
+                    "<w:tbl><w:tblPr><w:tblW w:w=\"" + twips + "\" w:type=\"dxa\"/>" +
+                    "<w:tblLayout w:type=\"fixed\"/>" +
+                    "<w:tblCellMar><w:left w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"0\" w:type=\"dxa\"/>" +
+                    "<w:top w:w=\"0\" w:type=\"dxa\"/><w:bottom w:w=\"0\" w:type=\"dxa\"/></w:tblCellMar>" +
+                    $"</w:tblPr><w:tblGrid><w:gridCol w:w=\"{twips}\"/></w:tblGrid>" +
+                    $"<w:tr><w:tc><w:tcPr><w:tcW w:w=\"{twips}\" w:type=\"dxa\"/>" +
+                    "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"DEEBF7\"/></w:tcPr>" +
+                    $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:rPr>{Times12}</w:rPr>" +
+                    $"<w:t>{Word}</w:t></w:r></w:p></w:tc></w:tr></w:tbl>";
+
+                builder.AddParagraph("In a cell.", ZeroSpacingNewPage, Times12);
+
+                // 2136 twips is 106.8 points, a step above the word; each of the rest is a step
+                // further down, so the last is nearly three quarters of a point short of it.
+                foreach (var twips in new[] { 2136, 2131, 2126, 2121, 2116, 2111 })
+                {
+                    builder.AddRawParagraph(Cell(twips));
+                    builder.AddParagraph("-", ZeroSpacing, Times12);
+                }
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

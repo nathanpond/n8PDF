@@ -278,7 +278,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 302.4, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 302.64, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -286,7 +286,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 561.6, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 561.36, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]

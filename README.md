@@ -951,8 +951,8 @@ Two things about diagram text differ from anything on a page. Its spacing is a p
 line, where DrawingML's line is a flat six fifths of the type size rather than whatever the face
 asks for — Word sets the fixture's paragraphs 15.6pt apart where 35% of the type size would be
 12.6pt and 35% of six fifths of it is 15.1pt. And a word too wide for its box **comes apart between
-its letters**: Word sets "Three" in a 67.84pt box as "Thre" and "e", where a page would let the word
-overrun the margin whole.
+its letters**: Word sets "Three" in a 67.84pt box as "Thre" and "e". So does a page — this
+repository believed otherwise until `break-tolerance-probe` asked a page directly.
 
 What is left is a constant 3.1pt: every line of the diagram is where Word puts it across the page,
 and every line the right distance below the one above it, but each box's block of text sits 3.1pt
@@ -1727,11 +1727,25 @@ being 208 steps and a third, come out 49.92, 50.16 and 49.92 in Word and now her
 probe's six pages are identical to Word's: declared widths, awkward ones, a stated grid under a
 fixed layout, widths scaled down to fit the measure, and halves falling the other side of a step.
 
-One rule goes with it. A column sized to hold something that cannot be broken keeps enough room for
-it, taking the step it needs out of the column after it rather than out of the table — without
-that, a column measured to fit a long word exactly loses a hundredth to the rounding and breaks a
-word Word leaves whole. The sixth page is where the remaining difference shows: its columns are
-sized by their contents, and one edge in three lands a step from Word's.
+All six pages are Word's exactly, and so is every column of the three other table probes. Getting
+the sixth — the one whose columns are sized by their contents — took two things measured elsewhere:
+that a cell's content width is rounded **up to a whole twip** before anything is shared out, and
+that what a cell's text is broken against is the width the arithmetic gave rather than the width
+that was drawn. A column is drawn on the grid and its text broken against the exact width, which is
+why a word can end a fraction past the column it sits in.
+
+### How far a word may overrun before it is broken
+
+Not at all. `break-tolerance-probe` moves the measure a twip at a time — a twentieth of a point,
+five times finer than the grid — past the width of a word with nowhere to break: ten capital Ms of
+Times at twelve point, which are 106.6992pt wide. A measure of 106.7 holds them; 106.65 breaks
+them, nine and one. A table cell is no different, and neither is a page.
+
+That answers a question two earlier probes had raised the other way. A word had seemed to survive
+in a column a tenth of a point too narrow for it, which looked like tolerance and was not: the
+column was **drawn** on the grid while its text was broken against the width the arithmetic gave.
+Carrying both — the snapped widths for the drawing, the exact ones for the breaking — is what makes
+every column of the table probes come out Word's.
 
 ### How wide Word thinks a piece of text is
 

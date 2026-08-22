@@ -826,7 +826,7 @@ internal sealed class LayoutEngine(
         _pendingMarks.Clear();
         var composer = new ParagraphComposer(
             BuildAtoms(paragraph, format), format, TabSettings(), MarkMetrics(format),
-            _breakInsideWords is not null, _hyphenation);
+            breakInsideWords: true, _hyphenation);
         var bookmarks = _pendingBookmarks.ToList();
         var marks = _pendingMarks.ToList();
         var firstLine = true;
@@ -3036,7 +3036,7 @@ internal sealed class LayoutEngine(
     /// </remarks>
     private void LayoutTable(Cursor cursor, Table table)
     {
-        var columns = ComputeColumnWidths(table, cursor.Width);
+        var columns = ComputeColumnWidths(table, cursor.Width, out var exact);
         if (columns.Count == 0) return;
 
         // A table with a place of its own is taken out of the flow and the text runs round it.
@@ -3086,7 +3086,7 @@ internal sealed class LayoutEngine(
         cursor.PendingSpaceAfter = 0;
         cursor.PreviousFormat = null;
 
-        LayoutTableRows(cursor, table, columns, tableLeft);
+        LayoutTableRows(cursor, table, columns, tableLeft, exact: exact);
     }
 
     /// <summary>
@@ -3103,7 +3103,7 @@ internal sealed class LayoutEngine(
     /// <returns>The row to carry on at, which is the count of rows where none was left.</returns>
     private int LayoutTableRows(
         Cursor cursor, Table table, List<double> columns, double tableLeft,
-        int from = 0, bool floating = false)
+        int from = 0, bool floating = false, List<double>? exact = null)
     {
         var properties = table.Properties;
 
@@ -3131,7 +3131,7 @@ internal sealed class LayoutEngine(
 
             for (var i = 0; i < headings; i++)
             {
-                var cells = MeasureRow(table, table.Rows[i], i, columns, tableLeft, squeeze);
+                var cells = MeasureRow(table, table.Rows[i], i, columns, tableLeft, squeeze, exact);
                 if (cells.Count == 0) continue;
 
                 var height = ComputeRowHeight(table.Rows[i], cells);
@@ -3151,7 +3151,7 @@ internal sealed class LayoutEngine(
         for (var rowIndex = from; rowIndex < table.Rows.Count; rowIndex++)
         {
             var row = table.Rows[rowIndex];
-            var placed = MeasureRow(table, row, rowIndex, columns, tableLeft, squeeze);
+            var placed = MeasureRow(table, row, rowIndex, columns, tableLeft, squeeze, exact);
             if (placed.Count == 0) continue;
 
             // A row that ends a merged run has to be tall enough for whatever of that run's
@@ -3501,15 +3501,21 @@ internal sealed class LayoutEngine(
     /// <summary>Lays out each cell of a row into its own detached page and records its geometry.</summary>
     private List<PlacedCell> MeasureRow(
         Table table, TableRow row, int rowIndex, List<double> columns, double tableLeft,
-        double squeeze = 1)
+        double squeeze = 1, List<double>? exact = null)
     {
         var properties = table.Properties;
         var placed = new List<PlacedCell>(row.Cells.Count);
+
+        // The columns as the arithmetic left them, which is what the content is broken against —
+        // see ComputeColumnWidths. A row carrying a grid of its own is measured by that grid and
+        // has nothing for the grid of the table to say about it.
+        var measured = exact is null || row.Grid is { Count: > 0 } ? columns : exact;
 
         // A row folded in from the table that used to follow this one keeps the columns and the
         // indent it was written with, which is what Word does with two tables written one after
         // the other; where the widest of them will not fit, every row of the merged table is
         // squeezed until it does. Neither is set on a row of a table nobody folded.
+        measured = [.. RowColumns(table, row, measured).Select(width => width * squeeze)];
         columns = [.. RowColumns(table, row, columns).Select(width => width * squeeze)];
 
         tableLeft += RowIndent(table, row, columns.Count) * squeeze;
@@ -3527,7 +3533,13 @@ internal sealed class LayoutEngine(
             var span = Math.Min(cell.GridSpan, columns.Count - column);
 
             var width = 0.0;
-            for (var i = 0; i < span; i++) width += columns[column + i];
+            var inside = 0.0;
+
+            for (var i = 0; i < span; i++)
+            {
+                width += columns[column + i];
+                inside += column + i < measured.Count ? measured[column + i] : columns[column + i];
+            }
 
             if (mirrored) x -= width;
 
@@ -3560,7 +3572,7 @@ internal sealed class LayoutEngine(
             // started the merge owns it.
             var content = cell.VerticalMerge == "continue"
                 ? DetachedFlow.Empty
-                : MeasureInside(cell.Content, Math.Max(1, width - marginLeft - marginRight));
+                : MeasureInside(cell.Content, Math.Max(1, inside - marginLeft - marginRight));
 
             Fields.Cells = outer;
 
@@ -3811,11 +3823,23 @@ internal sealed class LayoutEngine(
     /// widths are used, and failing that the available width is divided evenly. A grid wider than
     /// the text area is scaled down rather than allowed to run off the page.
     /// </remarks>
-    private List<double> ComputeColumnWidths(Table table, double availableWidth)
-    {
-        var widths = ComputeColumnWidthsExactly(table, availableWidth, out var floors);
+    private List<double> ComputeColumnWidths(Table table, double availableWidth) =>
+        ComputeColumnWidths(table, availableWidth, out _);
 
-        return OnTheGrid(widths, floors);
+    /// <param name="exact">
+    /// The same columns before the grid took hold of them. What a cell's content is broken against
+    /// is this and not what is drawn: Word lays a table out against the widths the arithmetic gave
+    /// and writes it on the grid, which is why a word can end a hair past the column it is in
+    /// rather than being broken to fit what was drawn. break-tolerance-probe says there is no
+    /// tolerance in the breaking itself — a word a twentieth of a point too wide for the measure
+    /// is broken — so the hair has to come from somewhere, and this is where.
+    /// </param>
+    private List<double> ComputeColumnWidths(
+        Table table, double availableWidth, out List<double> exact)
+    {
+        exact = ComputeColumnWidthsExactly(table, availableWidth, out _);
+
+        return OnTheGrid(exact);
     }
 
     /// <summary>
@@ -3842,32 +3866,17 @@ internal sealed class LayoutEngine(
     /// The table's own left edge is taken as being on the grid, which it is for any indent a
     /// document actually states.
     /// </remarks>
-    private static List<double> OnTheGrid(List<double> widths, double[]? floors)
+    private static List<double> OnTheGrid(List<double> widths)
     {
         var snapped = new List<double>(widths.Count);
         var exact = 0.0;
         var placed = 0.0;
 
-        for (var i = 0; i < widths.Count; i++)
+        foreach (var width in widths)
         {
-            exact += widths[i];
+            exact += width;
 
-            var edge = Math.Max(placed, Grid.Snap(exact));
-
-            // A column sized to hold something that cannot be broken keeps enough room for it: a
-            // step lost to the rounding would break a word Word leaves whole, and a broken word is
-            // a difference anyone can see where a quarter point of column is not. The step comes
-            // out of the column after it rather than out of the table, since the edge beyond is
-            // still the one the arithmetic put there.
-            //
-            // Word arrives at nearly the same place by another road — rounding what a cell wants
-            // up to a whole twip and then rounding every edge to the nearest step — and differs
-            // from this on the last column of one page.
-            var floor = floors is null || i >= floors.Length ? 0 : floors[i];
-
-            if (edge - placed < floor - 0.001)
-                edge = Math.Ceiling((placed + floor) / Grid.Step - 0.001) * Grid.Step;
-
+            var edge = Grid.Snap(exact);
             snapped.Add(edge - placed);
             placed = edge;
         }
@@ -3987,8 +3996,12 @@ internal sealed class LayoutEngine(
                     Units.TwipsToPoints(cell.MarginRightTwips ?? properties.CellMarginRight) +
                     BorderWidth(borders.Left) + BorderWidth(borders.Right);
 
-                min += padding;
-                max += padding;
+                // What a cell wants is rounded up to a whole twip before any of it is shared out,
+                // which is Word's own arithmetic showing through: column-grid-probe's three
+                // content-sized columns want 3.334, 10.670 and 8.666 points and Word puts their
+                // edges where 3.35, 10.7 and 8.7 put them.
+                min = ToWholeTwip(min + padding);
+                max = ToWholeTwip(max + padding);
 
                 // A declared width names the cell's own edge to edge, padding included, which is
                 // what the columns here are measured in.
@@ -4196,6 +4209,10 @@ internal sealed class LayoutEngine(
 
         return [.. widths];
     }
+
+    /// <summary>The next whole twip at or above a width, twips being what a document is written in.</summary>
+    private static double ToWholeTwip(double points) =>
+        Units.TwipsToPoints(Math.Ceiling(Units.PointsToTwips(points) - 0.0001));
 
     private static void SpreadAcrossSpan(double[] widths, int start, int span, double required)
     {
@@ -4912,11 +4929,10 @@ internal sealed class LayoutEngine(
     /// breaks a word that will not fit rather than letting it overrun the box.
     /// </summary>
     /// <remarks>
-    /// A page lets a long word overrun the margin and stay whole; a box does not. Word's own
-    /// drawing of the diagram fixture sets "Three" across two lines as "Thre" and "e", and
-    /// cell-direction-probe has a cell a fifth of an inch wide in which Word breaks "Unturnable"
-    /// into "Unt", "urn", "abl" and "e". So the rule is the box's, not the turning's: a turned
-    /// cell breaks its words for the same reason an upright narrow one does.
+    /// The width a box gives its content, which is what its words are broken against. A page is no
+    /// different — break-tolerance-probe breaks ten capital Ms into nine and one the moment the
+    /// measure falls a twip short of them, exactly as a box does — so the breaking itself is not
+    /// what this carries; it is the measure.
     /// </remarks>
     private DetachedFlow MeasureInside(IReadOnlyList<BlockElement> blocks, double width)
     {
@@ -5851,11 +5867,15 @@ internal sealed class LayoutEngine(
             // folded into its width for the atom that used to precede it comes back off.
             var width = placedAnything ? textAtom.Width : textAtom.Width - textAtom.LeadingKern;
 
-            // A word too wide for a line of its own is broken inside where the box says it must
-            // be — a shape or a table cell — rather than overrunning it. The break is put off
-            // until the word has a line to itself: Word ends the line before it first and breaks
-            // what is left, which is why cell-direction-probe's "and rather" comes out "an", "d",
-            // "rat" and not "an", "d r", "at".
+            // A word too wide for a line of its own is broken inside rather than overrunning:
+            // there is no tolerance in it at all, and break-tolerance-probe measures that a twip
+            // at a time — ten capital Ms stay whole in 106.7 points of measure and come apart in
+            // 106.65, their own width being 106.6992. That is as true of a page as of a box; the
+            // note that used to stand here said otherwise, from two probes that both held boxes.
+            //
+            // The break is put off until the word has a line to itself: Word ends the line before
+            // it first and breaks what is left, which is why cell-direction-probe's "and rather"
+            // comes out "an", "d", "rat" and not "an", "d r", "at".
             if (breakInsideWords && !placedAnything && !textAtom.IsSpace &&
                 width > available + 0.001 && textAtom.Text.Length > 1)
             {
