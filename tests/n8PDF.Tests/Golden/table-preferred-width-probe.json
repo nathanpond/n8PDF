@@ -26,7 +26,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 175.63, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 175.68, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -34,7 +34,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 292.37, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 292.32, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -64,7 +64,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 78.409, "width": 258.604, "font": "Times New Roman", "size": 12, "text": "a column holding a good deal more than the others do"}
+            {"x": 78.48, "width": 258.604, "font": "Times New Roman", "size": 12, "text": "a column holding a good deal more than the others do"}
           ]
         },
         {
@@ -72,7 +72,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 389.591, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 389.52, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -102,7 +102,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 106.472, "width": 42.68, "font": "Times New Roman", "size": 12, "text": "MMMM"}
+            {"x": 106.56, "width": 42.68, "font": "Times New Roman", "size": 12, "text": "MMMM"}
           ]
         },
         {
@@ -110,7 +110,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 216.794, "width": 69.328, "font": "Times New Roman", "size": 12, "text": "wwwwwwww"}
+            {"x": 216.72, "width": 69.328, "font": "Times New Roman", "size": 12, "text": "wwwwwwww"}
           ]
         }
       ]
@@ -156,7 +156,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 160.768, "width": 17.326, "font": "Times New Roman", "size": 12, "text": "and"}
+            {"x": 160.8, "width": 17.326, "font": "Times New Roman", "size": 12, "text": "and"}
           ]
         },
         {
@@ -164,7 +164,7 @@
           "baselineY": 110.64,
           "height": 13.799,
           "runs": [
-            {"x": 160.768, "width": 35.982, "font": "Times New Roman", "size": 12, "text": "another"}
+            {"x": 160.8, "width": 35.982, "font": "Times New Roman", "size": 12, "text": "another"}
           ]
         },
         {
@@ -172,7 +172,7 @@
           "baselineY": 124.32,
           "height": 13.799,
           "runs": [
-            {"x": 160.768, "width": 40.324, "font": "Times New Roman", "size": 12, "text": "beside it"}
+            {"x": 160.8, "width": 40.324, "font": "Times New Roman", "size": 12, "text": "beside it"}
           ]
         }
       ]
@@ -202,7 +202,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 146.844, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 146.88, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -210,7 +210,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 231.156, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 231.12, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -278,7 +278,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 302.289, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 302.4, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -286,7 +286,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 561.711, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 561.6, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]

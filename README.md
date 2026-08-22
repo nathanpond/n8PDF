@@ -1719,10 +1719,21 @@ spent; a share beside a stated 72 points and a column asking for nothing comes o
 the share taken first, the statement kept, and the remainder going to the column that asked for
 nothing.
 
-What is left between us and Word there is a twelfth of a point, for one reason: Word puts each
-column on the grid and gives the last of them the remainder, so its quarter of 324 points is 81.12
-and 80.88 where ours is 81 and 81. Column widths are exact everywhere else in this engine, and
-snapping them here alone would be a rule with a single probe behind it.
+**Every column edge is on the grid**, which is what makes those numbers come out as they do:
+Word's quarter of 324 points is 81.12 and the next quarter 80.88, because 81 and 243 land either
+side of a step. It is the edges that are snapped and not the widths, so three columns of one
+declared width need not be equal — `column-grid-probe`'s three fifty-point columns, fifty points
+being 208 steps and a third, come out 49.92, 50.16 and 49.92 in Word and now here. Five of that
+probe's six pages are identical to Word's: declared widths, awkward ones, a stated grid under a
+fixed layout, widths scaled down to fit the measure, and halves falling the other side of a step.
+
+One rule goes with it. A column sized to hold something that cannot be broken keeps enough room for
+it, taking the step it needs out of the column after it rather than out of the table — without
+that, a column measured to fit a long word exactly loses a hundredth to the rounding and breaks a
+word Word leaves whole. The sixth page is where that shows: its columns are sized by their
+contents, and our measure of a letter runs a hair above Word's — enough on one edge in three to
+carry it to the next step. A quarter point of column is the price of not breaking the word, and it
+is the only place any of this is not exact.
 
 **A table's own stated width** (`w:tblW`) is met exactly, and `table-preferred-width-probe` settles
 four things about it: the width is taken whether it is wider than the contents want or narrower; a

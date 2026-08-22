@@ -1,5 +1,5 @@
 {
-  "pageCount": 5,
+  "pageCount": 6,
   "pages": [
     {
       "width": 612,
@@ -10,7 +10,7 @@
           "baselineY": 83.04,
           "height": 13.799,
           "runs": [
-            {"x": 72, "width": 72.322, "font": "Times New Roman", "size": 12, "text": "Widths that fit."}
+            {"x": 72, "width": 105.996, "font": "Times New Roman", "size": 12, "text": "Fifty points a column."}
           ]
         },
         {
@@ -26,7 +26,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 144, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 121.92, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -34,7 +34,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 252, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 172.08, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -48,7 +48,7 @@
           "baselineY": 83.04,
           "height": 13.799,
           "runs": [
-            {"x": 72, "width": 207.627, "font": "Times New Roman", "size": 12, "text": "A column that cannot hold what it asks for."}
+            {"x": 72, "width": 112.963, "font": "Times New Roman", "size": 12, "text": "Three awkward widths."}
           ]
         },
         {
@@ -64,7 +64,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 108, "width": 142.646, "font": "Times New Roman", "size": 12, "text": "Antidisestablishmentarianism"}
+            {"x": 97.92, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -72,7 +72,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 250.8, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 138.96, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -86,7 +86,83 @@
           "baselineY": 83.04,
           "height": 13.799,
           "runs": [
-            {"x": 72, "width": 212.613, "font": "Times New Roman", "size": 12, "text": "Widths adding up to more than the measure."}
+            {"x": 72, "width": 112.641, "font": "Times New Roman", "size": 12, "text": "Sized by their contents."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 3.334, "font": "Times New Roman", "size": 12, "text": "i"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 75.36, "width": 10.67, "font": "Times New Roman", "size": 12, "text": "M"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 86.16, "width": 8.666, "font": "Times New Roman", "size": 12, "text": "w"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 64.986, "font": "Times New Roman", "size": 12, "text": "A stated grid."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 121.92, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 96.72,
+          "height": 13.799,
+          "runs": [
+            {"x": 172.08, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 126.287, "font": "Times New Roman", "size": 12, "text": "Too wide for the measure."}
           ]
         },
         {
@@ -120,11 +196,11 @@
       "height": 792,
       "lines": [
         {
-          "paragraph": 6,
+          "paragraph": 10,
           "baselineY": 83.04,
           "height": 13.799,
           "runs": [
-            {"x": 72, "width": 205.652, "font": "Times New Roman", "size": 12, "text": "Some columns asking, one saying nothing."}
+            {"x": 72, "width": 104.631, "font": "Times New Roman", "size": 12, "text": "Halves the other way."}
           ]
         },
         {
@@ -140,61 +216,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 144, "width": 90.633, "font": "Times New Roman", "size": 12, "text": "a word or two here"}
-          ]
-        },
-        {
-          "paragraph": 0,
-          "baselineY": 96.72,
-          "height": 13.799,
-          "runs": [
-            {"x": 234.72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
-          ]
-        }
-      ]
-    },
-    {
-      "width": 612,
-      "height": 792,
-      "lines": [
-        {
-          "paragraph": 8,
-          "baselineY": 83.04,
-          "height": 13.799,
-          "runs": [
-            {"x": 72, "width": 181.963, "font": "Times New Roman", "size": 12, "text": "Two rows asking for different widths."}
-          ]
-        },
-        {
-          "paragraph": 0,
-          "baselineY": 96.72,
-          "height": 13.799,
-          "runs": [
-            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "a"}
-          ]
-        },
-        {
-          "paragraph": 0,
-          "baselineY": 96.72,
-          "height": 13.799,
-          "runs": [
-            {"x": 216, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
-          ]
-        },
-        {
-          "paragraph": 0,
-          "baselineY": 110.64,
-          "height": 13.799,
-          "runs": [
-            {"x": 72, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
-          ]
-        },
-        {
-          "paragraph": 0,
-          "baselineY": 110.64,
-          "height": 13.799,
-          "runs": [
-            {"x": 216, "width": 6, "font": "Times New Roman", "size": 12, "text": "d"}
+            {"x": 122.16, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         }
       ]

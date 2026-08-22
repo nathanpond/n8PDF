@@ -2792,6 +2792,81 @@ public static class Fixtures
                 return builder;
             },
 
+            // Where a column's edge falls, as against where the arithmetic puts it. Word writes
+            // on a grid of a three-hundredth of an inch and a column width is rarely a whole
+            // number of those, so something has to give: either every column is put on the grid
+            // and the table ends up a fraction short of what it asked for, or the edges are put
+            // there and the widths take what is left between them.
+            //
+            // Six pages, each a table whose cells are shaded so that every edge is ink, and every
+            // page chosen so the exact answer falls between two steps of the grid:
+            //
+            //   1  three declared widths of fifty points, which is 208⅓ steps
+            //   2  three declared widths that are all awkward, and all different
+            //   3  no declarations at all: three columns sized by a letter each
+            //   4  a stated grid and a fixed layout, so nothing is computed at all
+            //   5  declared widths too wide for the measure, so all three are scaled
+            //   6  two declared widths whose halves fall the other side of a step
+            ["column-grid-probe"] = () =>
+            {
+                string[] fills = ["DEEBF7", "FCE4D6", "E2EFDA", "FFF2CC"];
+
+                string Cell(string text, int index, int? twips) =>
+                    "<w:tc><w:tcPr>" +
+                    (twips is null ? string.Empty : $"<w:tcW w:w=\"{twips}\" w:type=\"dxa\"/>") +
+                    $"<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"{fills[index % 4]}\"/>" +
+                    $"</w:tcPr><w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                    $"<w:r><w:rPr>{Times12}</w:rPr><w:t>{DocxBuilder.Escape(text)}</w:t></w:r>" +
+                    "</w:p></w:tc>";
+
+                string Table(string properties, string grid, params string[] cells) =>
+                    "<w:tbl><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\"/>" + properties +
+                    "<w:tblCellMar><w:left w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"0\" w:type=\"dxa\"/>" +
+                    "<w:top w:w=\"0\" w:type=\"dxa\"/><w:bottom w:w=\"0\" w:type=\"dxa\"/></w:tblCellMar>" +
+                    "</w:tblPr>" + grid + "<w:tr>" + string.Join(string.Empty, cells) + "</w:tr></w:tbl>";
+
+                var builder = new DocxBuilder();
+                var first = true;
+
+                void Page(string label, string table)
+                {
+                    builder.AddParagraph(label, first ? ZeroSpacing : ZeroSpacingNewPage, Times12);
+                    builder.AddRawParagraph(table);
+                    first = false;
+                }
+
+                // Fifty points is 208 steps and a third of one.
+                Page("Fifty points a column.", Table(string.Empty, string.Empty,
+                    Cell("a", 0, 1000), Cell("b", 1, 1000), Cell("c", 2, 1000)));
+
+                // 25.85, 41.15 and 65.05 points: none of them a whole step, and each falling a
+                // different distance from one.
+                Page("Three awkward widths.", Table(string.Empty, string.Empty,
+                    Cell("a", 0, 517), Cell("b", 1, 823), Cell("c", 2, 1301)));
+
+                // Nothing declared: the columns are as wide as a letter each, and a letter is
+                // never a whole number of steps wide.
+                Page("Sized by their contents.", Table(string.Empty, string.Empty,
+                    Cell("i", 0, null), Cell("M", 1, null), Cell("w", 2, null)));
+
+                // A grid stated outright and a layout that takes it as it stands.
+                Page("A stated grid.", Table("<w:tblLayout w:type=\"fixed\"/>",
+                    "<w:tblGrid><w:gridCol w:w=\"1000\"/><w:gridCol w:w=\"1000\"/>" +
+                    "<w:gridCol w:w=\"1000\"/></w:tblGrid>",
+                    Cell("a", 0, 1000), Cell("b", 1, 1000), Cell("c", 2, 1000)));
+
+                // Three of two hundred and a fraction, against a measure of 468: every column is
+                // scaled, and the scale is nothing like a whole step.
+                Page("Too wide for the measure.", Table(string.Empty, string.Empty,
+                    Cell("a", 0, 4001), Cell("b", 1, 4001), Cell("c", 2, 4001)));
+
+                // 50.05 points apiece, which is 208.54 steps: the half falls the other side.
+                Page("Halves the other way.", Table(string.Empty, string.Empty,
+                    Cell("a", 0, 1001), Cell("b", 1, 1001)));
+
+                return builder;
+            },
+
             ["font-sizes"] = () => new DocxBuilder()
                 .AddParagraph("Twenty-four point heading.", runProperties: Times24)
                 .AddParagraph("Twelve point body text.", runProperties: Times12)

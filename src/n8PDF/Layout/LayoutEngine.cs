@@ -3813,11 +3813,72 @@ internal sealed class LayoutEngine(
     /// </remarks>
     private List<double> ComputeColumnWidths(Table table, double availableWidth)
     {
+        var widths = ComputeColumnWidthsExactly(table, availableWidth, out var floors);
+
+        return OnTheGrid(widths, floors);
+    }
+
+    /// <summary>
+    /// Puts every column edge on the grid, which is where Word writes them.
+    /// </summary>
+    /// <remarks>
+    /// It is the edges that are put there and not the widths, so a column's width is whatever the
+    /// gap between two snapped edges comes to and no two columns of the same declared width need
+    /// be equal. column-grid-probe says so plainly: three columns declaring fifty points each —
+    /// 208 steps and a third — come out of Word 49.92, 50.16 and 49.92, which is exactly where
+    /// 122, 172 and 222 land when each is rounded to the nearest step. Five of its six pages
+    /// follow that rule to the last hundredth, over declared widths, awkward widths, a stated
+    /// grid, and widths scaled down to fit the measure.
+    ///
+    /// The sixth is the one where the columns are sized by their contents, and there Word's own
+    /// idea of how wide a letter is runs a shade above the advances its PDF writes — enough, on
+    /// one of the three edges, to carry it to the next step. That is the same hair's breadth that
+    /// keeps the division of a stated width a fraction from Word's, and nothing measurable from
+    /// the page pins it down.
+    ///
+    /// The table's own left edge is taken as being on the grid, which it is for any indent a
+    /// document actually states.
+    /// </remarks>
+    private static List<double> OnTheGrid(List<double> widths, double[]? floors)
+    {
+        var snapped = new List<double>(widths.Count);
+        var exact = 0.0;
+        var placed = 0.0;
+
+        for (var i = 0; i < widths.Count; i++)
+        {
+            exact += widths[i];
+
+            var edge = Math.Max(placed, Grid.Snap(exact));
+
+            // A column sized to hold something that cannot be broken keeps enough room for it: a
+            // step lost to the rounding would break a word Word leaves whole. The step comes out
+            // of the column after it rather than out of the table, since the edge beyond is still
+            // the one the arithmetic put there. That is what Word's own page shows, its three
+            // content-sized columns coming out 3.36, 10.8 and 8.64 where the plain rounding of
+            // each edge would have given 3.36, 10.56 and 8.88.
+            var floor = floors is null || i >= floors.Length ? 0 : floors[i];
+
+            if (edge - placed < floor - 0.001)
+                edge = Math.Ceiling((placed + floor) / Grid.Step - 0.001) * Grid.Step;
+
+            snapped.Add(edge - placed);
+            placed = edge;
+        }
+
+        return snapped;
+    }
+
+    private List<double> ComputeColumnWidthsExactly(
+        Table table, double availableWidth, out double[]? floors)
+    {
+        floors = null;
+
         // Word ignores the declared grid entirely when a table is left on autofit, which is its
         // default. Measured: a table given an equal-width grid produced exactly the same columns
         // as the same table with no grid at all.
         if (table.Properties.FixedLayout != true && table.Rows.Count > 0)
-            return ComputeAutofitColumnWidths(table, availableWidth);
+            return ComputeAutofitColumnWidths(table, availableWidth, out floors);
 
         var widths = table.Grid.Select(twips => Units.TwipsToPoints(twips)).Where(w => w > 0).ToList();
 
@@ -3873,8 +3934,11 @@ internal sealed class LayoutEngine(
     /// fraction of a point that the paragraph-level rules do. See the table-autofit-probe fixture
     /// for how far apart they are.
     /// </remarks>
-    private List<double> ComputeAutofitColumnWidths(Table table, double availableWidth)
+    private List<double> ComputeAutofitColumnWidths(
+        Table table, double availableWidth, out double[]? floors)
     {
+        floors = null;
+
         var columnCount = 0;
         foreach (var row in table.Rows)
         {
@@ -3958,6 +4022,8 @@ internal sealed class LayoutEngine(
 
             maximums[i] = Math.Max(maximums[i], minimums[i]);
         }
+
+        floors = minimums;
 
         var totalMax = maximums.Sum();
 
@@ -4201,7 +4267,7 @@ internal sealed class LayoutEngine(
                 case Table nested:
                 {
                     // A nested table needs at least the sum of its own columns.
-                    var widths = ComputeAutofitColumnWidths(nested, double.MaxValue / 4);
+                    var widths = ComputeAutofitColumnWidths(nested, double.MaxValue / 4, out _);
                     var total = widths.Sum();
                     min = Math.Max(min, total);
                     max = Math.Max(max, total);

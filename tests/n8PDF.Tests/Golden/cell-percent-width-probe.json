@@ -26,7 +26,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 153, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 153.12, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -34,7 +34,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 315, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 315.12, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -64,7 +64,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 189, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 189.12, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -72,7 +72,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 423, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 423.12, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -102,7 +102,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 77.326, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 77.52, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         },
         {
@@ -110,7 +110,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 87.979, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 88.08, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -140,7 +140,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 189, "width": 211.277, "font": "Times New Roman", "size": 12, "text": "a column holding a good deal more than the"}
+            {"x": 189.12, "width": 211.277, "font": "Times New Roman", "size": 12, "text": "a column holding a good deal more than the"}
           ]
         },
         {
@@ -148,7 +148,7 @@
           "baselineY": 110.64,
           "height": 13.799,
           "runs": [
-            {"x": 189, "width": 29.326, "font": "Times New Roman", "size": 12, "text": "others"}
+            {"x": 189.12, "width": 29.326, "font": "Times New Roman", "size": 12, "text": "others"}
           ]
         },
         {
@@ -156,7 +156,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 423, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
+            {"x": 423.12, "width": 5.326, "font": "Times New Roman", "size": 12, "text": "c"}
           ]
         }
       ]
@@ -216,7 +216,7 @@
           "baselineY": 96.72,
           "height": 13.799,
           "runs": [
-            {"x": 315, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
+            {"x": 315.12, "width": 6, "font": "Times New Roman", "size": 12, "text": "b"}
           ]
         }
       ]
