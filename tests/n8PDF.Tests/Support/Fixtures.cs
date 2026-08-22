@@ -6519,6 +6519,35 @@ public static class Fixtures
                 return builder;
             },
 
+            // How an exact-spaced paragraph gets from one line to the next. Six pages, each a
+            // single paragraph of twenty lines, at heights whose fraction of a step of the grid
+            // is different in each: a paragraph whose advance was rounded would drift by up to
+            // three points over twenty lines, and one advancing by the height itself cannot drift
+            // at all. The gaps between Word's own baselines are not all equal, which is what says
+            // the advance is the height rather than a whole number of steps.
+            ["exact-line-advance-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var first = true;
+
+                foreach (var twips in new[] { 401, 405, 411, 420, 423, 500 })
+                {
+                    var before = first ? string.Empty : "<w:pageBreakBefore/>";
+                    first = false;
+
+                    var lines = string.Concat(Enumerable.Range(2, 19)
+                        .Select(i => $"<w:br/><w:t xml:space=\"preserve\">Line {i}</w:t>"));
+
+                    builder.AddRawParagraph(
+                        $"<w:p><w:pPr>{before}<w:spacing w:before=\"0\" w:after=\"0\" " +
+                        $"w:line=\"{twips}\" w:lineRule=\"exact\"/></w:pPr>" +
+                        $"<w:r><w:rPr>{Times12}</w:rPr>" +
+                        $"<w:t xml:space=\"preserve\">Height {twips}</w:t>{lines}</w:r></w:p>");
+                }
+
+                return builder;
+            },
+
             // A dropped capital, which is a frame rather than a run: the letter is a paragraph
             // of its own that the paragraph after it wraps around. Written as Word writes it —
             // Word's own AppleScript was asked to make one, and this is what it produced, exact

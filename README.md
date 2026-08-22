@@ -1411,12 +1411,20 @@ the four fifths itself, so it was checked the only way a fitted rule can be: aga
 at sixty-three heights the first never reached, which it predicted every one of. Together the two
 account for all 865, and `exact-line-probe` holds the nineteen heights that pin them.
 
-What is still open is the **next** line. Word advances by a whole number of steps of the grid rather
-than by the height itself — its two baselines are 83 steps apart at twenty points where the height
-is 83⅓ — and what decides the last of those steps is no more a rounding of the height than the
-ascent was. This advances by the height, which is within a step of Word either way and never drifts,
-since nothing accumulates: fourteen of the probe's sixty-three lines are a step from Word's, and
-every one of them is a line under the first.
+**How the paragraph gets to its next line** is settled by `exact-line-advance-probe`, six pages of
+twenty exact-spaced lines apiece: **Word advances by the height itself** and rounds each baseline
+where it lands. A two-line sample cannot tell that from an advance of a whole number of steps — both
+put the second baseline 83 steps below the first at twenty points — but twenty lines can, because
+the gaps between Word's own baselines then take **two** values rather than one: 83 and 84 steps at
+20.05 points, where the height is 83⅓. A rounded advance would put every gap on a page at the same
+number, and would drift by up to three points over those twenty lines.
+
+Nothing drifts either way: the last baseline of five of the six pages is exactly Word's and the
+sixth is one step from it. What is left is the last step of the rounding *within* the paragraph —
+where a line's exact position falls between two steps of the grid, which way Word goes is, again,
+not a rounding of the height, and it is not the font's doing either (the same twenty lines set in
+twenty-four point Verdana land exactly where the twelve point Times ones do). About one line in
+seven under the first comes out a step from Word's, and never further.
 
 ### A character named by its code
 

@@ -42,12 +42,10 @@ public class ExactLineTests(ITestOutputHelper output)
     /// <remarks>
     /// The rule above says where the baseline of an exact line falls below the top of its own box,
     /// and the top of the first box on a page is the margin. Where the next line's box begins is a
-    /// second question, and one this does not answer: Word advances by a whole number of steps of
-    /// the grid rather than by the height itself — its two baselines are 83 steps apart at twenty
-    /// points where the height is 83⅓ — and what decides the last of those steps is no more a
-    /// rounding of the height than the ascent was. This advances by the height, which is within a
-    /// step of Word either way and never drifts, since nothing accumulates: the second line of
-    /// fourteen of the probe's sixty-three lines is a step from Word's and the rest are exact.
+    /// second question, settled by exact-line-advance-probe: Word advances by the height itself
+    /// and rounds each baseline where it lands, which this does too. What is left is the last
+    /// step of that rounding, which is no more a rounding of the height than the ascent was — so
+    /// a line under the first is a step from Word's about one time in seven, and never further.
     /// </remarks>
     [Fact]
     public void The_first_baseline_of_every_page_is_words()
@@ -156,6 +154,69 @@ public class ExactLineTests(ITestOutputHelper output)
     ];
 
     /// <summary>Every baseline of the document, page by page and top first.</summary>
+    /// <summary>
+    /// How an exact-spaced paragraph gets from one line to the next: by the height itself, not by
+    /// a whole number of steps of the grid.
+    /// </summary>
+    /// <remarks>
+    /// The two are told apart by the gaps between Word's own baselines. An advance of a whole
+    /// number of steps would put every gap of a page at the same number; Word's take two — 83 and
+    /// 84 steps at 20.05 points, where the height is 83⅓ — which is what rounding each baseline of
+    /// an unrounded run of positions gives. Nothing accumulates either way: over twenty lines the
+    /// last baseline of five of the probe's six pages is exactly Word's, and the sixth is one step
+    /// from it. A rounded advance would have drifted by up to three points over the same twenty.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 401, 367, 1954)]
+    [InlineData(1, 405, 367, 1970)]
+    [InlineData(2, 411, 369, 1996)]
+    [InlineData(3, 420, 371, 2033)]
+    [InlineData(4, 423, 370, 2044)]
+    [InlineData(5, 500, 383, 2362)]
+    public void A_paragraph_advances_by_the_height_itself(int page, int twips, int first, int last)
+    {
+        if (TestFonts.SkipForMissingFonts("exact-line-advance-probe")) return;
+
+        var reference = Path.Combine(TestPaths.ReferencePdfs, "exact-line-advance-probe.pdf");
+
+        var word = Steps(File.ReadAllBytes(reference), page);
+        var ours = Steps(Converter.Convert(Fixtures.Build("exact-line-advance-probe"),
+            new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }), page);
+
+        output.WriteLine($"{twips} twips: word {string.Join(" ", word)}");
+        output.WriteLine($"{twips} twips: ours {string.Join(" ", ours)}");
+
+        Assert.Equal(20, word.Count);
+        Assert.Equal(word.Count, ours.Count);
+
+        // Word's own gaps are not all the same, which is what says the advance is the height.
+        var gaps = word.Zip(word.Skip(1), (a, b) => b - a).Distinct().OrderBy(gap => gap).ToList();
+
+        output.WriteLine($"word's gaps: {string.Join(", ", gaps)}");
+        Assert.Equal(2, gaps.Count);
+        Assert.Equal(1, gaps[1] - gaps[0]);
+
+        // The first baseline is Word's exactly, and nothing drifts away from it: every line is
+        // within a step, the last one included.
+        Assert.Equal(first, word[0]);
+        Assert.Equal(last, word[^1]);
+        Assert.Equal(word[0], ours[0]);
+
+        for (var i = 0; i < word.Count; i++)
+        {
+            Assert.True(Math.Abs(ours[i] - word[i]) <= 1,
+                $"line {i + 1} of the {twips} twip page is {ours[i] - word[i]} steps from Word's");
+        }
+    }
+
+    /// <summary>Every baseline of a page, in whole steps of the grid, top first.</summary>
+    private static List<int> Steps(byte[] pdf, int page) =>
+        [.. PdfTextExtractor.Extract(pdf)
+            .Where(run => run.PageIndex == page)
+            .Select(run => (int)Math.Round(run.BaselineY / 0.24))
+            .Distinct()
+            .OrderBy(step => step)];
+
     private static List<double> Baselines(byte[] pdf) =>
         PdfTextExtractor.Extract(pdf)
             .GroupBy(run => (run.PageIndex, Math.Round(run.BaselineY, 2)))
