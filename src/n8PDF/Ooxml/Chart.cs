@@ -114,6 +114,61 @@ internal sealed record ChartTrendline(
     DrawingColorReference? Line,
     double LineWidthPoints);
 
+/// <summary>Which way an error bar reaches from its point.</summary>
+internal enum ChartErrorDirection
+{
+    Value,
+    Category
+}
+
+/// <summary>Which ends of the point an error bar reaches from.</summary>
+internal enum ChartErrorSides
+{
+    Both,
+    Plus,
+    Minus
+}
+
+/// <summary>What decides how far an error bar reaches.</summary>
+internal enum ChartErrorAmount
+{
+    /// <summary>The same distance at every point.</summary>
+    Fixed,
+
+    /// <summary>A share of the point's own value, so it grows with the point.</summary>
+    Percentage,
+
+    /// <summary>A multiple of the series' standard deviation — one distance for all of them.</summary>
+    StandardDeviation,
+
+    /// <summary>The series' standard error, which the stated value has no part in.</summary>
+    StandardError,
+
+    /// <summary>A distance stated for each point, and separately for each side of it.</summary>
+    Custom
+}
+
+/// <summary>
+/// The bars reaching either side of a series' points, saying how far the numbers might be out.
+/// </summary>
+/// <param name="Value">
+/// What <see cref="Amount"/> is a measure of, where it takes one: the distance itself for a fixed
+/// bar, the share for a percentage, the multiple for a standard deviation. Nothing for the other
+/// two.
+/// </param>
+/// <param name="Plus">The distance above each point, where the bars are stated point by point.</param>
+/// <param name="Minus">The distance below.</param>
+internal sealed record ChartErrorBars(
+    ChartErrorDirection Direction,
+    ChartErrorSides Sides,
+    ChartErrorAmount Amount,
+    double Value,
+    IReadOnlyList<double?> Plus,
+    IReadOnlyList<double?> Minus,
+    bool Capped,
+    DrawingColorReference? Line,
+    double LineWidthPoints);
+
 /// <summary>One series: its name, and what it holds against each category.</summary>
 /// <param name="Values">
 /// One for each category, or null where the series has nothing for that one — a gap in the data
@@ -175,6 +230,12 @@ internal sealed record ChartSeries(
 
     /// <summary>The lines drawn through these points saying what they tend towards.</summary>
     public IReadOnlyList<ChartTrendline> Trendlines { get; init; } = [];
+
+    /// <summary>
+    /// The bars reaching either side of these points. A series may carry two — one each way — so
+    /// this is a list rather than the one the common case has.
+    /// </summary>
+    public IReadOnlyList<ChartErrorBars> ErrorBars { get; init; } = [];
 }
 
 /// <summary>
@@ -582,6 +643,50 @@ internal static class ChartReader
             Width(line) ?? 2.25);
     }
 
+    /// <summary>
+    /// Reads a set of error bars: which way they reach, how far, and what they are drawn in.
+    /// </summary>
+    /// <remarks>
+    /// Every default here is the format's own. Bars reach both ways and carry end caps unless the
+    /// chart says otherwise, and a chart that names no kind of amount means a fixed one — which is
+    /// also the only reading under which a stated value means anything.
+    /// </remarks>
+    private static ChartErrorBars ReadErrorBars(XElement element)
+    {
+        var line = element.Element(Main + "spPr")?.Element(W.Drawing + "ln");
+
+        return new ChartErrorBars(
+            element.Element(Main + "errDir")?.Attribute("val")?.Value == "x"
+                ? ChartErrorDirection.Category
+                : ChartErrorDirection.Value,
+
+            element.Element(Main + "errBarType")?.Attribute("val")?.Value switch
+            {
+                "plus" => ChartErrorSides.Plus,
+                "minus" => ChartErrorSides.Minus,
+                _ => ChartErrorSides.Both
+            },
+
+            element.Element(Main + "errValType")?.Attribute("val")?.Value switch
+            {
+                "percentage" => ChartErrorAmount.Percentage,
+                "stdDev" => ChartErrorAmount.StandardDeviation,
+                "stdErr" => ChartErrorAmount.StandardError,
+                "cust" => ChartErrorAmount.Custom,
+                _ => ChartErrorAmount.Fixed
+            },
+
+            Number(element.Element(Main + "val")) ?? 0,
+            element.Element(Main + "plus") is { } plus ? Numbers(plus) : [],
+            element.Element(Main + "minus") is { } minus ? Numbers(minus) : [],
+
+            // The element says there is *no* end cap, so its absence leaves them on.
+            element.Element(Main + "noEndCap")?.Attribute("val")?.Value is not ("1" or "true"),
+
+            DrawingText.ReadFill(line),
+            Width(line) ?? 1);
+    }
+
     private static ChartSeries ReadSeries(XElement element, ChartLabels? inherited = null)
     {
         var name = element.Element(Main + "tx") is { } tx
@@ -609,10 +714,15 @@ internal static class ChartReader
         foreach (var trend in element.Elements(Main + "trendline"))
             trendlines.Add(ReadTrendline(trend));
 
+        var errorBars = new List<ChartErrorBars>();
+        foreach (var bars in element.Elements(Main + "errBars"))
+            errorBars.Add(ReadErrorBars(bars));
+
         return new ChartSeries(name, categories, values, DrawingText.ReadFill(properties))
         {
             PointFills = points,
             Trendlines = trendlines,
+            ErrorBars = errorBars,
             Line = DrawingText.ReadFill(line),
             NoLine = line?.Element(W.Drawing + "noFill") is not null,
             LineWidthPoints = Width(line) ?? 2.25,
