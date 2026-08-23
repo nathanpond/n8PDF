@@ -240,6 +240,9 @@ internal static class PdfRenderer
                     {
                         content.SetStrokeColor(stroke.Red / 255.0, stroke.Green / 255.0, stroke.Blue / 255.0);
                         content.SetLineWidth(Math.Max(0.24, path.StrokeWidth * scaleX));
+
+                        // Inside the save above, so it is put back for whatever is drawn next.
+                        if (path.RoundCap) content.SetLineCap(1);
                     }
 
                     foreach (var step in path.Steps)

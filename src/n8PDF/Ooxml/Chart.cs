@@ -385,6 +385,16 @@ internal sealed class ChartDefinition
 
     public double HighLowLineWidthPoints { get; set; } = LineWidthDefault;
 
+    /// <summary>
+    /// Whether the chart hangs a line from each point down to the category axis, and what it
+    /// draws it in.
+    /// </summary>
+    public bool DropLines { get; set; }
+
+    public DrawingColorReference? DropLine { get; set; }
+
+    public double DropLineWidthPoints { get; set; } = LineWidthDefault;
+
     /// <summary>What it draws between the opening and the closing, where it draws one at all.</summary>
     public ChartUpDownBars? UpDownBars { get; set; }
 
@@ -524,11 +534,23 @@ internal static class ChartReader
 
         if (plot.Element(Main + "hiLowLines") is { } highLow)
         {
-            var line = highLow.Element(W.Drawing + "spPr")?.Element(W.Drawing + "ln");
+            // c:spPr, not a:spPr — the element belongs to the chart namespace and only the
+            // a:ln inside it belongs to the drawing one. Looking for the wrong one finds
+            // nothing and silently falls back to the default colour.
+            var line = highLow.Element(Main + "spPr")?.Element(W.Drawing + "ln");
 
             definition.HighLowLines = true;
             definition.HighLowLine = DrawingText.ReadFill(line);
             definition.HighLowLineWidthPoints = Width(line) ?? ChartDefinition.LineWidthDefault;
+        }
+
+        if (plot.Element(Main + "dropLines") is { } drop)
+        {
+            var line = drop.Element(Main + "spPr")?.Element(W.Drawing + "ln");
+
+            definition.DropLines = true;
+            definition.DropLine = DrawingText.ReadFill(line);
+            definition.DropLineWidthPoints = Width(line) ?? ChartDefinition.LineWidthDefault;
         }
 
         if (plot.Element(Main + "upDownBars") is { } bars)

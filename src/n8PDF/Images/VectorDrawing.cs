@@ -34,13 +34,19 @@ internal abstract record DrawingOperation;
 /// its plot area is kept there — a bubble larger than the plot is cut off at its edge rather than
 /// drawn over the axis labels, which is how Word draws one.
 /// </param>
+/// <param name="RoundCap">
+/// Whether the stroke is rounded off past each end rather than stopping square at it. It reaches
+/// half its own width further either way when it is, which is visible on a short line and is what
+/// Word does with the ones a chart hangs from its points.
+/// </param>
 internal sealed record PathOperation(
     IReadOnlyList<PathStep> Steps,
     DrawingColor? Fill,
     DrawingColor? Stroke,
     double StrokeWidth,
     bool EvenOdd,
-    (double X, double Y, double Width, double Height)? Clip = null) : DrawingOperation;
+    (double X, double Y, double Width, double Height)? Clip = null,
+    bool RoundCap = false) : DrawingOperation;
 
 /// <summary>
 /// A piece of text, which is left as text rather than turned into outlines: the reader that ends
