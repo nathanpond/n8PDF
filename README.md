@@ -1732,8 +1732,30 @@ with the numbers read from the cache the part carries rather than from the workb
 it, and with the axes scaled and the plot placed the way Word does both where the chart leaves them
 to be worked out; a title over the top and one on each axis, the one up the side turned on its end;
 a legend on any of the four sides; and a number written at every point, in the format the chart asks
-for and where the kind of chart puts it. What is not: trendlines and error bars, drop lines,
-three-dimensional charts of any kind, and a legend or a title placed by hand rather than by side.
+for and where the kind of chart puts it; and the trendlines a series carries, of all six kinds the
+format allows — straight, polynomial, exponential, logarithmic, power and a moving average — run
+forward or back past the data and forced through an intercept where the chart asks for it. What is
+not: error bars, drop lines, three-dimensional charts of any kind, and a legend or a title placed
+by hand rather than by side.
+
+Two things about a trendline had to be measured rather than read, and neither is in the format's
+description of one. A line asked to run **forward** does not merely draw further: Word widens the
+category axis to hold it and everything placed by category compresses to fit, so four categories
+across a 252pt plot that put the first label centre 31.5pt in put it 21pt in once a trendline runs
+two categories on — six slots where there were four. And a category's number for the purpose of
+fitting is counted **from one**, not from nought. That second one is invisible almost everywhere:
+shifting the origin of a free fit moves its constant term and nothing else, so every kind of
+trendline draws identically either way. It shows up only where the chart forces an intercept,
+which pins the origin — a line through nought spans 40 of the value axis in Word and 53.57 counted
+from nought, and `chart-trendline-probe`'s sixth page is the one that says so.
+
+The fitting itself is the one part of a chart with no Word in it. A least-squares curve through
+given points is not a matter of anybody's opinion, so it is tested against coefficients worked out
+independently rather than against Word's export, and the three curved fits are the straight one in
+disguise: taking logs turns `y = a·e^(bx)` and `y = a·x^b` into straight lines, which is what Excel
+does and why those fits minimise the error in the logarithm rather than in the value. A fit that
+cannot be taken — a logarithm of a nought or a negative — draws nothing rather than a NaN, which
+Word also does.
 
 Both spellings of a shape are read: the `w:drawing` Word writes today and the `w:pict` it wrote
 before 2007 and still writes for a watermark. The older one says in a CSS-like `style` attribute

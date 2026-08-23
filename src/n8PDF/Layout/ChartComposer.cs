@@ -51,10 +51,16 @@ internal static class ChartComposer
     /// How far apart the marks along the foot go, where the foot is a scale of its own rather than
     /// a run of categories. Nought for every chart but a scatter.
     /// </param>
+    /// <param name="CategoriesBefore">
+    /// How many category slots stand to the left of the first category, which a trendline running
+    /// backwards puts there. See <see cref="PointAt"/>.
+    /// </param>
+    /// <param name="CategoriesAfter">The same past the last, which one running forward puts there.</param>
     public sealed record Plan(
         double Left, double Top, double Width, double Height,
         double Minimum, double Maximum, double MajorUnit, bool Lying = false,
-        double AcrossMinimum = 0, double AcrossMaximum = 0, double AcrossUnit = 0)
+        double AcrossMinimum = 0, double AcrossMaximum = 0, double AcrossUnit = 0,
+        double CategoriesBefore = 0, double CategoriesAfter = 0)
     {
         public double Right => Left + Width;
 
@@ -99,10 +105,24 @@ internal static class ChartComposer
         /// axes cross between the categories, and at the mark itself where they cross at one — so
         /// that the first and last points touch the ends of the plot.
         /// </summary>
-        public double PointAt(int index, int count, bool spanning) =>
-            spanning
-                ? Left + (count <= 1 ? Width / 2 : Width * index / (count - 1))
-                : Left + Width * (index + 0.5) / Math.Max(1, count);
+        /// <remarks>
+        /// A trendline asked to run past the data does not merely draw further: Word widens the
+        /// category axis to hold it, and everything placed by category compresses to fit. Measured
+        /// from <c>chart-trendline-probe</c> — four categories across a 252pt plot put the first
+        /// centre 31.5pt in and the four label centres 189pt apart, and the same chart with a
+        /// trendline running two categories on puts them 21pt in and 126pt apart, which is exactly
+        /// six slots rather than four. So the slots are counted here rather than the categories,
+        /// and the data sits after however many the line reaches back over.
+        /// </remarks>
+        public double PointAt(double index, int count, bool spanning)
+        {
+            var slots = count + CategoriesBefore + CategoriesAfter;
+            var at = index + CategoriesBefore;
+
+            return spanning
+                ? Left + (slots <= 1 ? Width / 2 : Width * at / (slots - 1))
+                : Left + Width * (at + 0.5) / Math.Max(1, slots);
+        }
 
         /// <summary>The middle of the plot, which is what a disc and a web are drawn about.</summary>
         public (double X, double Y) Middle => (Left + Width / 2, Top + Height / 2);
@@ -935,8 +955,12 @@ internal static class ChartComposer
             ? Across(chart, box.Width, chart.CategoryAxis?.LabelSizePoints ?? 10)
             : (0, 0, 0);
 
+        // A chart of pairs positions by value both ways, so a trendline running past the data
+        // reaches along a scale that is already numeric and widens nothing.
+        var reach = chart.Paired ? (0.0, 0.0) : Reach(chart);
+
         return new Plan(box.Left, box.Top, box.Width, box.Height, minimum, maximum, unit, lying,
-            across.Item1, across.Item2, across.Item3);
+            across.Item1, across.Item2, across.Item3, reach.Item1, reach.Item2);
     }
 
     /// <summary>Puts the plot area inside the room its labels leave it.</summary>
@@ -1590,6 +1614,11 @@ internal static class ChartComposer
         if (chart.Kind == ChartKind.Bubble)
             operations.AddRange(Bubbles(chart, plan, width, height, theme));
 
+        // Over the data it describes, and over every kind of it: a trendline belongs to a series
+        // rather than to a way of drawing one, so a column chart may carry one as readily as a
+        // line chart.
+        operations.AddRange(Trendlines(chart, plan, theme));
+
         return new VectorDrawing(width, height, operations);
     }
 
@@ -1754,6 +1783,121 @@ internal static class ChartComposer
     /// A line through each series' points, curving through them unless the series says not to,
     /// which is the format's own default.
     /// </summary>
+    /// <summary>
+    /// How far past its categories a chart's trendlines reach, in category slots.
+    /// </summary>
+    /// <remarks>
+    /// The furthest of them either way, since one axis holds them all. A moving average reaches
+    /// nowhere — it has no formula to extend, only points to average — so its forward and
+    /// backward say nothing and are not counted.
+    /// </remarks>
+    private static (double Before, double After) Reach(ChartDefinition chart)
+    {
+        var before = 0.0;
+        var after = 0.0;
+
+        foreach (var series in chart.Series)
+        {
+            foreach (var trendline in series.Trendlines)
+            {
+                if (trendline.Kind == ChartTrendlineKind.MovingAverage) continue;
+
+                before = Math.Max(before, trendline.Backward);
+                after = Math.Max(after, trendline.Forward);
+            }
+        }
+
+        return (before, after);
+    }
+
+    /// <summary>
+    /// The trendlines every series carries, drawn through the points in the chart's own
+    /// coordinates.
+    /// </summary>
+    /// <remarks>
+    /// The fitting happens in the data's own numbers rather than in the drawing's, which is what
+    /// makes it independent of where the plot happens to be: <see cref="ChartTrendlineFit"/> is
+    /// given the values the series holds and hands back values, and only then are those turned
+    /// into positions. It matters for more than tidiness — a fit done in points would be a fit to
+    /// the plot's aspect ratio, and would change if the picture were resized.
+    ///
+    /// What a category chart fits against is the category's *index*, since a category has no
+    /// number of its own; a chart of pairs fits against the x it actually holds. That is the same
+    /// distinction <see cref="Points"/> already draws, and it is why a trendline running forward
+    /// is measured in categories.
+    ///
+    /// Clipped to the plot, because a line asked to run past the data will otherwise run past the
+    /// axes as well and out over the labels.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Trendlines(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        // A disc and a web have no axis to fit anything against.
+        if (chart.Kind is ChartKind.Pie or ChartKind.Doughnut or ChartKind.Radar) yield break;
+
+        var categories = Math.Max(1, chart.Categories.Count);
+        var spanning = Spanning(chart);
+        var clip = (plan.Left, plan.Top, plan.Width, plan.Height);
+
+        foreach (var series in chart.Series)
+        {
+            if (series.Trendlines.Count == 0) continue;
+
+            var data = Data(chart, series);
+            if (data.Count < 2) continue;
+
+            foreach (var trendline in series.Trendlines)
+            {
+                var fitted = ChartTrendlineFit.Fit(trendline, data);
+                if (fitted.Count < 2) continue;
+
+                var drawn = new List<(double X, double Y)>(fitted.Count);
+                foreach (var (x, y) in fitted)
+                {
+                    drawn.Add(chart.Paired
+                        ? (plan.AcrossOf(x), plan.PositionOf(y))
+                        : (plan.PointAt(x - 1, categories, spanning), plan.PositionOf(y)));
+                }
+
+                yield return new PathOperation(
+                    Straight(drawn), null, Resolve(trendline.Line, theme),
+                    trendline.LineWidthPoints, EvenOdd: false, Clip: clip);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A series' points as the numbers they are, before anything is turned into a position.
+    /// </summary>
+    private static List<(double X, double Y)> Data(ChartDefinition chart, ChartSeries series)
+    {
+        var data = new List<(double X, double Y)>();
+
+        for (var i = 0; i < series.Values.Count; i++)
+        {
+            if (series.Values[i] is not { } value) continue;
+
+            if (chart.Paired)
+            {
+                if (i >= series.XValues.Count || series.XValues[i] is not { } x) continue;
+
+                data.Add((x, value));
+            }
+            else
+            {
+                // Counted from one rather than from nought, which is Word's own numbering of
+                // categories and which only a forced intercept can see: shifting the origin of a
+                // free fit moves its constant term and nothing else, so every other kind of
+                // trendline draws identically either way. Measured from chart-trendline-probe's
+                // sixth page, where a line forced through nought spans 40 of the value axis in
+                // Word and 53.57 counted from nought.
+                data.Add((i + 1, value));
+            }
+        }
+
+        return data;
+    }
+
     private static IEnumerable<DrawingOperation> Lines(
         ChartDefinition chart, Plan plan, DocumentTheme theme)
     {
