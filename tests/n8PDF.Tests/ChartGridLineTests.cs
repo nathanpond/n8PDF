@@ -384,18 +384,28 @@ public class ChartGridLineTests(ITestOutputHelper output)
     ///
     /// The floor's convergence cannot do that: it is a ratio of two lengths in one picture, so no
     /// scale, placement or inset is in it. Solving for the depth each of these pages implies, at a
-    /// tilt held at 25 degrees, gives ratios of **1.81** and **2.81** where a depth proportional to
-    /// the stated percentage requires 2 and 4.
+    /// tilt held at 25 degrees, the depth **keeps step at the shallow end and falls behind as it
+    /// grows** — from 20 to 25 it is 1.248 where 1.25 is required, but by 50 it is 2.17 where 2.5 is
+    /// needed and by 75 it is 2.89 where 3.75 is.
     ///
     /// The ratios are the same to three decimals at every viewing distance tried from 20 to 200, and
     /// the same again whether the perspective divides by the depth component or by the distance to
     /// the eye. So this is a property of Word's drawing and not of any parameter still being
     /// guessed at.
     /// </remarks>
+    /// <remarks>
+    /// Only the depths where two different detector settings agree to better than a hundredth are
+    /// here. At 35 they differ by a twentieth and the reading sits out of sequence; at 200 by a
+    /// twelfth; at 400 the far lines crowd past resolution and nothing reliable comes back at all.
+    /// Those pages are on the fixture and are deliberately not asserted — a number the instrument
+    /// cannot hold still is not a measurement, and pretending otherwise is how the whole-picture
+    /// fitting went wrong in the first place.
+    /// </remarks>
     [Theory]
+    [InlineData(11, 20, 0.907)]
     [InlineData(7, 25, 0.888)]
     [InlineData(8, 50, 0.806)]
-    [InlineData(3, 100, 0.716)]
+    [InlineData(14, 75, 0.757)]
     public void The_scenes_depth_does_not_follow_the_stated_percentage(int page, int depthPercent, double want)
     {
         _outputStatic = _output;
