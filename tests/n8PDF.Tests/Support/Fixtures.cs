@@ -2362,7 +2362,7 @@ public static class Fixtures
             <c:plotArea>
               <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
                 <c:xMode val="edge"/><c:yMode val="edge"/>
-                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.55"/>
+                <c:x val="0.2"/><c:y val="0.05"/><c:w val="0.6"/><c:h val="0.80"/>
               </c:manualLayout></c:layout>
               <c:bar3DChart>
                 <c:barDir val="col"/><c:grouping val="standard"/><c:varyColors val="0"/>
@@ -2423,14 +2423,14 @@ public static class Fixtures
               <c:valAx><c:axId val="222222222"/>
                 <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
                 <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
-                <c:majorGridlines><c:spPr><a:ln w="12700"><a:solidFill>
+                <c:majorGridlines><c:spPr><a:ln w="25400"><a:solidFill>
                   <a:srgbClr val="FF0000"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>
-                <c:majorUnit val="25"/>
+                <c:majorUnit val="20"/>
                 <c:crossAx val="111111111"/></c:valAx>
               <c:serAx><c:axId val="333333333"/>
                 <c:scaling><c:orientation val="minMax"/></c:scaling>
                 <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
-                <c:majorGridlines><c:spPr><a:ln w="12700"><a:solidFill>
+                <c:majorGridlines><c:spPr><a:ln w="25400"><a:solidFill>
                   <a:srgbClr val="0000FF"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>
                 <c:crossAx val="222222222"/></c:serAx>
             </c:plotArea>
