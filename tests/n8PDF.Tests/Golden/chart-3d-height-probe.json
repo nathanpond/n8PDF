@@ -1,0 +1,215 @@
+{
+  "pageCount": 10,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 71.484, "font": "Calibri", "size": 11, "text": "no view3D at all"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 87.85, "font": "Calibri", "size": 11, "text": "stated, no hPercent"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 53.996, "font": "Calibri", "size": 11, "text": "hPercent 25"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 53.996, "font": "Calibri", "size": 11, "text": "hPercent 50"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 59.571, "font": "Calibri", "size": 11, "text": "hPercent 100"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 59.571, "font": "Calibri", "size": 11, "text": "hPercent 200"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 59.571, "font": "Calibri", "size": 11, "text": "hPercent 400"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 82.967, "font": "Calibri", "size": 11, "text": "taller, no hPercent"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 16,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 82.538, "font": "Calibri", "size": 11, "text": "taller, hPercent 50"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 18,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 88.113, "font": "Calibri", "size": 11, "text": "taller, hPercent 200"}
+          ]
+        }
+      ]
+    }
+  ]
+}

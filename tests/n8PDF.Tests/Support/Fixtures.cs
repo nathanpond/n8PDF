@@ -2132,6 +2132,49 @@ public static class Fixtures
           </c:chart>
         """;
 
+    private static string ChartPart3DView(
+        string view3D, double x, double y, double w, double h) => $"""
+          <c:chart>
+            {view3D}
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="{x:0.######}"/><c:y val="{y:0.######}"/>
+                <c:w val="{w:0.######}"/><c:h val="{h:0.######}"/>
+              </c:manualLayout></c:layout>
+              <c:bar3DChart>
+                <c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>
+                <c:ser><c:idx val="0"/><c:order val="0"/>
+                  <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>S</c:v></c:pt></c:strCache></c:strRef></c:tx>
+                  <c:spPr><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>
+                    <a:ln><a:noFill/></a:ln></c:spPr>
+                  <c:cat><c:strRef><c:f>Sheet1!$A$2</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>K</c:v></c:pt></c:strCache></c:strRef></c:cat>
+                  <c:val><c:numRef><c:f>Sheet1!$B$2</c:f><c:numCache>
+                    <c:formatCode>General</c:formatCode><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>60</c:v></c:pt></c:numCache></c:numRef></c:val>
+                </c:ser>
+                <c:gapWidth val="0"/><c:gapDepth val="0"/><c:shape val="box"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:bar3DChart>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+
     private static string ChartPart(string chartXml) => $"""
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
@@ -5434,6 +5477,116 @@ public static class Fixtures
             // Pages 7 and 8 are the ones that carry the argument. Same rectangle on the page, a
             // different frame around it: if the picture does not move, the chart frame plays no
             // part in the projection at all.
+            // What c:hPercent does to a three-dimensional box, and what its absence does — which
+            // are not the same thing, and that is the finding. See #109.
+            //
+            // The scene and the bar are held throughout; only the element and the plot rectangle
+            // move. Pages 1 and 2 differ in one thing only: the first carries no c:view3D at all
+            // and the second states every value #96 measured as the absent-element defaults, but no
+            // hPercent. If they draw the same picture, hPercent has one default rather than the two
+            // that rAngAx has.
+            //
+            //   pages 1-2   the two ways of saying nothing about it
+            //   pages 3-7   25, 50, 100, 200, 400 in one rectangle
+            //   pages 8-10  a taller rectangle, without it and at 50 and 200 — which separates
+            //               hPercent multiplying the rectangle's aspect from replacing it
+            ["chart-3d-height-probe"] = () => new DocxBuilder()
+                .WithChart(ChartPart3DView("", 0.200000, 0.100000, 0.600000, 0.550000))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/></c:view3D>", 0.200000, 0.100000, 0.600000, 0.550000)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"25\"/></c:view3D>", 0.200000, 0.100000, 0.600000, 0.550000)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"50\"/></c:view3D>", 0.200000, 0.100000, 0.600000, 0.550000)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"100\"/></c:view3D>", 0.200000, 0.100000, 0.600000, 0.550000)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"200\"/></c:view3D>", 0.200000, 0.100000, 0.600000, 0.550000)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"400\"/></c:view3D>", 0.200000, 0.100000, 0.600000, 0.550000)),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/></c:view3D>", 0.200000, 0.050000, 0.600000, 0.800000)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"50\"/></c:view3D>", 0.200000, 0.050000, 0.600000, 0.800000)),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart10.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DView("<c:view3D><c:rotX val=\"15\"/><c:rotY val=\"20\"/><c:rAngAx val=\"0\"/><c:perspective val=\"30\"/><c:depthPercent val=\"100\"/><c:hPercent val=\"200\"/></c:view3D>", 0.200000, 0.050000, 0.600000, 0.800000)),
+                    fromDocument: ("rIdChart10",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 960) +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>no view3D at all</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 961, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>stated, no hPercent</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 962, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>hPercent 25</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 963, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>hPercent 50</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 964, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>hPercent 100</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 965, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>hPercent 200</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 966, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>hPercent 400</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 967, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>taller, no hPercent</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 968, relationshipId: "rIdChart9") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>taller, hPercent 50</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 969, relationshipId: "rIdChart10") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>taller, hPercent 200</w:t></w:r></w:p>"),
             ["chart-3d-geometry-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3D(0.200000, 0.100000, 0.600000, 0.550000, 15, 20))
                 .WithPart("word/charts/chart2.xml",
