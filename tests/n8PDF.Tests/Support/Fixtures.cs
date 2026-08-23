@@ -2075,6 +2075,63 @@ public static class Fixtures
     }
 
     /// <summary>A chart part, wrapped in the element every one of them begins with.</summary>
+    /// <summary>
+    /// A three-dimensional column chart whose plot area is placed by hand and whose single bar
+    /// fills the plot box across and in depth.
+    /// </summary>
+    /// <remarks>
+    /// The bar is the box: no gap between categories and none in depth, with one of each, so its
+    /// eight corners sit at the corners of the plotting itself. It reaches 60 of 100 up the value
+    /// axis, which keeps it clear of the ceiling — a bar at the maximum is cut by the plot area and
+    /// what comes back is the rectangle's corners rather than the box's.
+    ///
+    /// Every axis is deleted and labelled nothing, so the only ink on the page is the box. That is
+    /// what lets <c>BoxSilhouette</c> find it by colour alone.
+    /// </remarks>
+    private static string ChartPart3D(
+        double x, double y, double w, double h, double rotX, double rotY) => $"""
+          <c:chart>
+            <c:view3D><c:rotX val="{rotX}"/><c:rotY val="{rotY}"/><c:rAngAx val="0"/>
+              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="{x:0.######}"/><c:y val="{y:0.######}"/>
+                <c:w val="{w:0.######}"/><c:h val="{h:0.######}"/>
+              </c:manualLayout></c:layout>
+              <c:bar3DChart>
+                <c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>
+                <c:ser><c:idx val="0"/><c:order val="0"/>
+                  <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>S</c:v></c:pt></c:strCache></c:strRef></c:tx>
+                  <c:spPr><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>
+                    <a:ln><a:noFill/></a:ln></c:spPr>
+                  <c:cat><c:strRef><c:f>Sheet1!$A$2</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>K</c:v></c:pt></c:strCache></c:strRef></c:cat>
+                  <c:val><c:numRef><c:f>Sheet1!$B$2</c:f><c:numCache>
+                    <c:formatCode>General</c:formatCode><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>60</c:v></c:pt></c:numCache></c:numRef></c:val>
+                </c:ser>
+                <c:gapWidth val="0"/><c:gapDepth val="0"/><c:shape val="box"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:bar3DChart>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+
     private static string ChartPart(string chartXml) => $"""
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
@@ -5359,6 +5416,131 @@ public static class Fixtures
             // 12.24, every one of them too short for it, while the first two entries are a single
             // line and fit all four. If what decides the dropping is a block against its share,
             // this is where it shows.
+            // What a three-dimensional projection measures in, which nothing before this could
+            // tell: every earlier probe used one plot rectangle inside one chart frame, and in that
+            // space a page-unit quantity, a plot-rectangle-unit quantity and a bare constant are the
+            // same number. See #108.
+            //
+            // The scene is held throughout — the eye never moves — and only the frame the chart is
+            // drawn in and the rectangle inside it change. The bar fills the plot box across and in
+            // depth (no gaps, one category, one series) and reaches 60 of 100 up it, so its eight
+            // corners sit at known places and it never touches the ceiling.
+            //
+            //   pages 1-6   the plot rectangle: wider, narrower, taller, shorter, and moved
+            //   pages 7-8   a bigger chart and a squarer one, each with the plot rectangle placed
+            //               so that it lands at exactly the same page position and size as page 1's
+            //   pages 9-11  three of the same questions at a second scene
+            //
+            // Pages 7 and 8 are the ones that carry the argument. Same rectangle on the page, a
+            // different frame around it: if the picture does not move, the chart frame plays no
+            // part in the projection at all.
+            ["chart-3d-geometry-probe"] = () => new DocxBuilder()
+                .WithChart(ChartPart3D(0.200000, 0.100000, 0.600000, 0.550000, 15, 20))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.100000, 0.100000, 0.800000, 0.550000, 15, 20)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.300000, 0.100000, 0.400000, 0.550000, 15, 20)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.200000, 0.050000, 0.600000, 0.800000, 15, 20)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.200000, 0.200000, 0.600000, 0.300000, 15, 20)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.350000, 0.300000, 0.600000, 0.550000, 15, 20)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.166667, 0.083333, 0.500000, 0.458333, 15, 20)),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.240000, 0.072000, 0.720000, 0.396000, 15, 20)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.200000, 0.100000, 0.600000, 0.550000, 30, 40)),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart10.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.200000, 0.050000, 0.600000, 0.800000, 30, 40)),
+                    fromDocument: ("rIdChart10",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart11.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3D(0.300000, 0.100000, 0.400000, 0.550000, 30, 40)),
+                    fromDocument: ("rIdChart11",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 940) +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>base</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 941, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rect wider</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 942, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rect narrower</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 943, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rect taller</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 944, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rect shorter</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 945, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rect moved</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(432, 259.2, id: 946, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>chart bigger</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(300, 300, id: 947, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>chart squarer</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 948, relationshipId: "rIdChart9") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>another scene</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 949, relationshipId: "rIdChart10") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>that one taller</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 950, relationshipId: "rIdChart11") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>that one narrower</w:t></w:r></w:p>"),
             ["chart-legend-box-probe"] = () => new DocxBuilder()
                 .WithChart(LegendBoxProbeChart((0.5, 0.1)))
                 .WithPart("word/charts/chart2.xml",
