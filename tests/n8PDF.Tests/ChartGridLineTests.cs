@@ -279,7 +279,9 @@ public class ChartGridLineTests(ITestOutputHelper output)
     /// monotonically, at every tilt from 10 degrees to 40.
     ///
     /// That is what #98 needs and could not get: a length in the picture whose ratio to another
-    /// does not depend on the scene's own scaling.
+    /// does not depend on the scene's own scaling. The **first gap over the last** is exactly such
+    /// a ratio, both being in the same picture, and it moves steadily with the tilt — 0.584 at ten
+    /// degrees through 0.794 at forty.
     /// </remarks>
     [Theory]
     [InlineData(0, 10)]
@@ -300,8 +302,10 @@ public class ChartGridLineTests(ITestOutputHelper output)
             return;
         }
 
+        // The whole of the plot, which is 172.8 points tall in this probe — a region sized for a
+        // shorter one silently cuts the last lines off and the count comes back wrong.
         var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
-            (147, 95, 357, 212), 250, leastPixels: 120);
+            (150, 84, 354, 256), 250, leastPixels: 200);
 
         var gaps = Enumerable.Range(1, floor.Count - 1).Select(i => floor[i].At - floor[i - 1].At).ToList();
 
@@ -319,5 +323,53 @@ public class ChartGridLineTests(ITestOutputHelper output)
 
         // And by enough to be a convergence rather than a rounding.
         Assert.True(gaps[^1] - gaps[0] > 2, $"rotX {rotX}: the gaps barely change across the plot");
+    }
+
+    /// <summary>
+    /// How much the floor's gridlines converge, which no rescaling can touch.
+    /// </summary>
+    /// <remarks>
+    /// What #98 has been unable to get at: the scene is scaled into the plot rectangle, and that
+    /// scaling hides every absolute length. The ratio of the **first** floor gap to the **last** is
+    /// immune to it, both being in the same picture and scaled alike — so it depends on the tilt and
+    /// on nothing else in the fitting.
+    ///
+    /// It was to be the wall's spacing against the floor's, but the wall's gridlines are shorter and
+    /// the detector still loses one at four tilts out of seven even with them thickened. This wants
+    /// only the floor, which now reads five lines at every tilt.
+    ///
+    /// Recorded here so #98 has it as a measurement rather than as a note: 0.584, 0.651, 0.660,
+    /// 0.716, 0.749, 0.769, 0.794 for tilts of ten to forty degrees.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 10, 0.584)]
+    [InlineData(2, 20, 0.660)]
+    [InlineData(4, 30, 0.749)]
+    [InlineData(6, 40, 0.794)]
+    public void The_floors_convergence_moves_with_the_tilt_and_with_nothing_else(
+        int page, double rotX, double want)
+    {
+        _outputStatic = _output;
+
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-gridline-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), page, Scale) is not { } r)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
+            (150, 84, 354, 256), 250, leastPixels: 200);
+
+        Assert.Equal(5, floor.Count);
+
+        var gaps = Enumerable.Range(1, floor.Count - 1).Select(i => floor[i].At - floor[i - 1].At).ToList();
+        var convergence = gaps[0] / gaps[^1];
+
+        _output.WriteLine($"rotX {rotX}: first gap over last is {convergence:0.0000}, wanted {want:0.000}");
+
+        Assert.InRange(convergence - want, -0.01, 0.01);
     }
 }
