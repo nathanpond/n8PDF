@@ -2429,6 +2429,80 @@ public static class Fixtures
     /// not answer, since the answer turned out not to depend on the size at all. Stating the plot
     /// keeps that out of a fixture whose business is where the words break. See #91.
     /// </remarks>
+    /// <summary>
+    /// A chart whose plot is left to Word, for measuring what room a legend takes off it.
+    /// </summary>
+    /// <remarks>
+    /// The plot is deliberately **not** stated, which is the opposite of every other chart probe
+    /// here and the reason this needs a fixture of its own: the plot is the thing being measured.
+    /// Its width is read off the category labels, which span it.
+    ///
+    /// The legend can be an ordinary one up the side, one placed by a corner, or one placed and
+    /// given a size — and the name can be long or short. That is what separates "a stated size
+    /// changes what the plot gives up" from "the room was never right for an entry this wide".
+    /// </remarks>
+    private static string LegendRoomProbeChart(
+        string name, string placement, string? second = null) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout/>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, name, ["One", "Two", "Three", "Four"], [30, 45, 20, 55], "4472C4")}
+              {(second is null
+                  ? string.Empty
+                  : DocxBuilder.ChartSeries(1, second, ["One", "Two", "Three", "Four"], [25, 40, 15, 50], "ED7D31"))}
+              <c:gapWidth val="150"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:legend>
+            <c:legendPos val="r"/>
+            {placement switch
+            {
+                "corner" => """<c:layout><c:manualLayout><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0.6"/><c:y val="0.3"/></c:manualLayout></c:layout>""",
+                "sized" => """<c:layout><c:manualLayout><c:xMode val="edge"/><c:yMode val="edge"/><c:x val="0.6"/><c:y val="0.3"/><c:w val="0.3"/><c:h val="0.25"/></c:manualLayout></c:layout>""",
+                _ => "<c:layout/>"
+            }}
+            <c:overlay val="0"/>
+            <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1000"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>
+          </c:legend>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string LegendCutProbeChart(double boxWidth, string name = "abcdefghijklmnopqrstuvwxyz") => $"""
         <c:chart>
           <c:autoTitleDeleted val="1"/>
@@ -5101,6 +5175,97 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 649, relationshipId: "rIdChart9") +
+                                 "</w:p>"),
+
+            // What room a legend takes off the plot. Filed as a question about a legend given a
+            // size, but the evidence never implicated the size — Word's plot did not move when the
+            // box did. So this varies the name's length as well as the placement, which is what
+            // separates the two candidates.
+            //
+            //   a long name, an ordinary legend up the side
+            //   the same name, placed by a corner
+            //   the same name, placed and given a size
+            //   a short name, an ordinary legend
+            //   a short name, placed and given a size
+            //   the long name again on charts of 240, 480, 300 and 420 -> is the width a share of
+            //   the chart, or a fixed number of points?
+            //   two long names on a 360 chart -> how wrapped entries space against each other
+            ["chart-legend-room-probe"] = () => new DocxBuilder()
+                .WithChart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "side"))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "corner")),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "sized")),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("Units", "side")),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("Units", "sized")),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "side")),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "side")),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "side")),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "side")),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart10.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendRoomProbeChart("abcdefghijklmnopqrstuvwxyz", "side",
+                        second: "zyxwvutsrqponmlkjihgfedcba")),
+                    fromDocument: ("rIdChart10",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 661) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 662, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 663, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 664, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 665, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(240, 216, id: 666, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(480, 216, id: 667, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(300, 216, id: 668, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(420, 216, id: 669, relationshipId: "rIdChart9") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 670, relationshipId: "rIdChart10") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the

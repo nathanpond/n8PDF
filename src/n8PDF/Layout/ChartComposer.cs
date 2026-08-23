@@ -317,6 +317,29 @@ internal static class ChartComposer
     /// </remarks>
     public const double WrappedLegendInset = 12.28;
 
+    /// <summary>
+    /// The most of a chart's width a legend up its side may take, including its key and the gap
+    /// after it.
+    /// </summary>
+    /// <remarks>
+    /// A legend up a side does not simply grow to hold the longest name it carries: past a point
+    /// Word wraps the name instead, and it is the wrapped width the plot then gives way to. Nothing
+    /// had caught that because no committed fixture has a legend entry anywhere near long enough to
+    /// reach the limit.
+    ///
+    /// Measured from <c>chart-legend-room-probe</c>, which puts the alphabet in a legend on charts
+    /// of five widths. Each says the limit held the line Word kept and refused the next letter, and
+    /// together they put the share in **[0.3618, 0.3652)**: a chart 300 wide keeps nineteen letters
+    /// at 85.57 and refuses a twentieth at 88.87, and one of 360 keeps twenty-three at 105.874 and
+    /// refuses a twenty-fourth at 110.231; and a second entry on that same chart refuses a line of
+    /// 108.50, which is what closes the interval from above. Charts of 420 and 480 wrap the
+    /// alphabet not at all, which is consistent with every share in it.
+    ///
+    /// The middle is used, as it is for <see cref="WrappedLegendInset"/> and for the cell margin
+    /// this repository settles the same way.
+    /// </remarks>
+    public const double LegendWidthShare = 0.3635;
+
     /// <summary>How far apart the entries of a legend up a side are, as a share of the type.</summary>
     private const double LegendPitch = 1.8083;
 
@@ -448,7 +471,7 @@ internal static class ChartComposer
 
             var room = legend.Position switch
             {
-                "l" or "r" => LegendSide + Entries(chart, legend, measure).Max(entry => entry.Width),
+                "l" or "r" => LegendSide + SideLegendWidth(chart, legend, width, measure),
                 _ => LegendGap + ascent + descent
             };
 
@@ -592,6 +615,38 @@ internal static class ChartComposer
             _ => false
         };
 
+    /// <summary>
+    /// How wide a legend up a side is: its longest line once its names have been wrapped.
+    /// </summary>
+    /// <remarks>
+    /// Not the longest name, which is what this asked for until now. A name past
+    /// <see cref="LegendWidthShare"/> of the chart is wrapped rather than allowed to push the plot
+    /// aside, and the plot gives way to what the wrapping left.
+    /// </remarks>
+    private static double SideLegendWidth(
+        ChartDefinition chart, ChartLegend legend, double width,
+        Func<string, double, double> measure)
+    {
+        var size = legend.LabelSizePoints;
+        var head = size * LegendSwatchGap + LegendSwatchGapFixed;
+
+        var widest = 0.0;
+
+        foreach (var entry in Entries(chart, legend, measure))
+        {
+            // An entry's own head: the gap after a swatch, or the longer one a line key takes.
+            // Using one for both makes a legend of lines 13.36 too narrow, which is the difference
+            // between the two and what chart-legend-key-probe catches.
+            var lead = entry.Width - measure(entry.Text, size);
+            var room = LegendWidthShare * width - (LegendSide + lead);
+
+            foreach (var line in Wrap(entry.Text, room, size, measure))
+                widest = Math.Max(widest, lead + measure(line, size));
+        }
+
+        return widest;
+    }
+
     /// <summary>What a legend holds, in the order the chart lists its series.</summary>
     /// <remarks>
     /// A pie names its slices rather than its series, since a pie is one series divided between
@@ -671,10 +726,32 @@ internal static class ChartComposer
 
         if (legend.Position is "l" or "r")
         {
-            // Up a side: one entry to a line, the whole block centred on the middle of the frame,
-            // and the words ending a bare margin inside the edge they are set against.
-            var widest = entries.Max(entry => entry.Width);
+            // Up a side: one entry to a line unless its name is too long for the room a legend is
+            // allowed, in which case it wraps and takes several. The whole block is centred on the
+            // middle of the frame, and the words end a bare margin inside the edge they are set
+            // against.
+            //
+            // What is measured, from chart-legend-room-probe's two-entry page: the lines of one
+            // entry sit a label's line height apart, consecutive entries a legend pitch apart, and
+            // the baselines as a whole are centred on the middle plus the key drop. With one line
+            // to an entry that is exactly what this did before, which is why no existing chart
+            // moves — none of them carries a name long enough to wrap.
+            var wrapped = new List<List<string>>();
+            var widest = 0.0;
+
+            foreach (var entry in entries)
+            {
+                // The entry's own head — a line key leads with more than a swatch does.
+                var lead = entry.Width - measure(entry.Text, size);
+                var lines = Wrap(entry.Text, LegendWidthShare * width - (LegendSide + lead), size, measure);
+
+                wrapped.Add(lines);
+
+                foreach (var line in lines) widest = Math.Max(widest, lead + measure(line, size));
+            }
+
             var pitch = size * LegendPitch;
+            var step = labelHeight(size).Ascent + labelHeight(size).Descent;
 
             // Up the left it begins a bare margin inside the frame; up the right it ends 10.12pt
             // inside it, which is what the fifth page measures.
@@ -683,8 +760,13 @@ internal static class ChartComposer
                 : width - LegendEdge - widest;
 
 
+            // How far the first baseline is from the last: the extra lines each entry took, and a
+            // pitch between one entry and the next.
+            var span = pitch * (entries.Count - 1);
+            foreach (var lines in wrapped) span += step * (lines.Count - 1);
+
             var middle = titleRoom + (height - titleRoom) / 2;
-            var top = middle - pitch * entries.Count / 2;
+            var first = middle + size * LegendKeyDrop + LegendKeyDropFixed - span / 2;
 
             // Put by hand, the corner is stated outright and the entries run down from it. Only
             // where they begin changes: how they are spaced and where each word sits against its
@@ -692,22 +774,32 @@ internal static class ChartComposer
             if (legend.Layout is { } corner)
             {
                 left = corner.X * width + PlacedLegendKeyInset;
-                top = corner.Y * height;
+                first = corner.Y * height + pitch / 2 + size * LegendKeyDrop + LegendKeyDropFixed;
             }
+
+            var at = first;
 
             for (var i = 0; i < entries.Count; i++)
             {
-                var centre = top + pitch * i + pitch / 2;
+                var line = at;
 
-                var line = centre + size * LegendKeyDrop + LegendKeyDropFixed;
+                // The continuation lines of this entry, which carry no key of their own.
+                for (var extra = 1; extra < wrapped[i].Count; extra++)
+                {
+                    placed.Add(new PlacedEntry(wrapped[i][extra], left,
+                        line + step * extra - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2,
+                        0, left + head, line + step * extra, entries[i].Fill, entries[i].Series));
+                }
+
+                at += step * (wrapped[i].Count - 1) + pitch;
 
                 placed.Add(entries[i].Line
-                    ? new PlacedEntry(entries[i].Text, left,
+                    ? new PlacedEntry(wrapped[i][0], left,
                         line - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
                         left + LegendLineHead, line, entries[i].Fill, entries[i].Series, true)
-                    : new PlacedEntry(entries[i].Text,
-                        left, centre - swatch / 2, swatch, left + head, line,
-                        entries[i].Fill, entries[i].Series));
+                    : new PlacedEntry(wrapped[i][0],
+                        left, line - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2,
+                        swatch, left + head, line, entries[i].Fill, entries[i].Series));
             }
 
             return placed;
