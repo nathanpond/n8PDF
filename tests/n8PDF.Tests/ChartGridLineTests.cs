@@ -1,0 +1,323 @@
+using n8PDF.Tests.Support;
+using Xunit.Abstractions;
+
+namespace n8PDF.Tests;
+
+/// <summary>
+/// Tests the instrument that finds a chart's gridlines in a rendered page.
+/// </summary>
+/// <remarks>
+/// Checked against pages this repository draws itself, for the reason
+/// <see cref="Chart3DSilhouetteTests"/> gives at length: an instrument checked against the thing it
+/// exists to measure is not checked. <see cref="PlainPdf"/> writes them byte by byte and touches no
+/// n8PDF type.
+///
+/// The two cases that matter are the two that defeated the attempts this instrument replaced —
+/// lines that **converge**, and lines that **touch** something. Both are here with their positions
+/// known exactly.
+/// </remarks>
+public class ChartGridLineTests(ITestOutputHelper output)
+{
+    private readonly ITestOutputHelper _output = output;
+
+    private const double Scale = 8;
+    private const double Reference = 300;
+
+    private static readonly (double Left, double Top, double Right, double Bottom) Region = (60, 60, 550, 400);
+
+    /// <summary>A line of a given thickness, as the thin quad that draws it.</summary>
+    /// <remarks>
+    /// Thickened across its own direction rather than in y, so that an upright line is a real quad
+    /// and not a degenerate one. Getting that wrong once meant a border was never drawn and a test
+    /// that claimed to prove touching lines are told apart proved nothing at all.
+    /// </remarks>
+    private static IReadOnlyList<(double X, double Y)> Bar(
+        double x0, double y0, double x1, double y1, double thick = 1.0)
+    {
+        var (dx, dy) = (x1 - x0, y1 - y0);
+        var length = Math.Sqrt(dx * dx + dy * dy);
+        var (nx, ny) = (-dy / length * thick / 2, dx / length * thick / 2);
+
+        return [(x0 + nx, y0 + ny), (x1 + nx, y1 + ny), (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)];
+    }
+
+    private static bool Reddish((byte R, byte G, byte B) p) => p.R > p.G + 12 && p.R > p.B + 12;
+
+    private static IReadOnlyList<GridLines.Line>? Found(byte[] pdf)
+    {
+        if (PdfRasterizer.Render(pdf, 0, Scale) is not { } page)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _outputStatic?.WriteLine(PdfRasterizer.UnavailableMessage);
+            return null;
+        }
+
+        return GridLines.Find(page, Scale, Reddish, Region, Reference, leastPixels: 400);
+    }
+
+    private static ITestOutputHelper? _outputStatic;
+
+    /// <summary>
+    /// Parallel lines are found, and placed to better than a tenth of a point.
+    /// </summary>
+    [Fact]
+    public void Parallel_lines_are_found_and_placed_finely()
+    {
+        _outputStatic = _output;
+
+        double[] want = [120, 165, 210, 255, 300];
+
+        var pdf = PlainPdf.Of(want.Select(y =>
+            (Bar(100, y, 500, y), ((byte)200, (byte)30, (byte)30))));
+
+        if (Found(pdf) is not { } lines) return;
+
+        _output.WriteLine("wanted " + string.Join(", ", want) +
+                          "; found " + string.Join(", ", lines.Select(l => l.At.ToString("0.000"))));
+
+        Assert.Equal(want.Length, lines.Count);
+
+        for (var i = 0; i < want.Length; i++)
+        {
+            Assert.InRange(lines[i].At - want[i], -0.1, 0.1);
+            Assert.InRange(lines[i].Slope, -0.01, 0.01);
+        }
+    }
+
+    /// <summary>
+    /// Lines that converge are told apart, which is what defeated sampling down a column.
+    /// </summary>
+    /// <remarks>
+    /// A chart's floor gridlines run to a vanishing point, so their spacing changes across the plot
+    /// and no column of pixels crosses them regularly. These fan from a point off the right of the
+    /// page; at the reference column they sit where the arithmetic says and nowhere near evenly.
+    /// </remarks>
+    [Fact]
+    public void Converging_lines_are_told_apart()
+    {
+        _outputStatic = _output;
+
+        // A fan from (700, 240): each line leaves x=100 at a different height and meets there.
+        double[] from = [120, 170, 220, 270, 320];
+        var want = from.Select(y0 => y0 + (Reference - 100) * (240 - y0) / (700 - 100)).ToArray();
+
+        var pdf = PlainPdf.Of(from.Select(y0 =>
+            (Bar(100, y0, 640, y0 + 540 * (240 - y0) / 600.0), ((byte)200, (byte)30, (byte)30))));
+
+        if (Found(pdf) is not { } lines) return;
+
+        _output.WriteLine("wanted " + string.Join(", ", want.Select(v => v.ToString("0.00"))) +
+                          "; found " + string.Join(", ", lines.Select(l => l.At.ToString("0.00"))));
+
+        Assert.Equal(want.Length, lines.Count);
+
+        for (var i = 0; i < want.Length; i++)
+            Assert.InRange(lines[i].At - want[i], -0.15, 0.15);
+
+        // Genuinely converging: the gaps at the reference column are not the gaps they started with.
+        var gaps = Enumerable.Range(1, lines.Count - 1).Select(i => lines[i].At - lines[i - 1].At).ToList();
+
+        _output.WriteLine("gaps " + string.Join(", ", gaps.Select(g => g.ToString("0.00"))));
+        Assert.True(gaps.Max() - gaps.Min() < 1, "the fan should stay evenly spaced at one column");
+        Assert.True(gaps[0] < 45, "the lines have not converged, so this proves nothing");
+    }
+
+    /// <summary>
+    /// Lines that run into a border are still found separately, which is what defeated connected
+    /// components.
+    /// </summary>
+    /// <remarks>
+    /// The case that killed the obvious approach. Every gridline in a chart meets the plot's own
+    /// outline at both ends, so eight-way components join all of them into one blob and there is
+    /// nothing left to fit. Voting does not care: a pixel shared between a line and the border adds
+    /// a vote to each.
+    /// </remarks>
+    [Fact]
+    public void Lines_that_run_into_a_border_are_still_told_apart()
+    {
+        _outputStatic = _output;
+
+        double[] want = [120, 165, 210, 255, 300];
+
+        var shapes = new List<(IReadOnlyList<(double X, double Y)>, (byte, byte, byte))>
+        {
+            // A border in the same colour, which every line touches.
+            (Bar(100, 100, 100, 340, 2), ((byte)200, (byte)30, (byte)30)),
+            (Bar(500, 100, 500, 340, 2), ((byte)200, (byte)30, (byte)30))
+        };
+
+        shapes.AddRange(want.Select(y =>
+            ((IReadOnlyList<(double X, double Y)>)Bar(100, y, 500, y), ((byte)200, (byte)30, (byte)30))));
+
+        if (Found(PlainPdf.Of(shapes)) is not { } lines) return;
+
+        _output.WriteLine("wanted " + string.Join(", ", want) +
+                          "; found " + string.Join(", ", lines.Select(l => l.At.ToString("0.000"))));
+
+        // The two uprights are not lines by this instrument's lights — they lean far past what it
+        // looks for — so only the five should come back.
+        Assert.Equal(want.Length, lines.Count);
+
+        for (var i = 0; i < want.Length; i++)
+            Assert.InRange(lines[i].At - want[i], -0.1, 0.1);
+    }
+
+    /// <summary>
+    /// Nothing of that colour, and nothing is claimed.
+    /// </summary>
+    [Fact]
+    public void An_empty_page_yields_nothing()
+    {
+        _outputStatic = _output;
+
+        var pdf = PlainPdf.Of([(Bar(100, 200, 500, 200), ((byte)30, (byte)30, (byte)200))]);
+
+        if (PdfRasterizer.Render(pdf, 0, Scale) is not { } page)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        Assert.Empty(GridLines.Find(page, Scale, Reddish, Region, Reference, leastPixels: 400));
+    }
+
+    /// <summary>
+    /// Voting beats grouping the pixels, on the same page.
+    /// </summary>
+    /// <remarks>
+    /// The claim this instrument exists to make, measured rather than asserted. The alternative is
+    /// what was tried first and what anyone would try: take the pixels of the colour, join them into
+    /// connected blobs, and fit each blob. On a page whose lines touch a border that returns **one**
+    /// blob, because they all join through it — so it finds one line where there are five, and the
+    /// line it finds is a fit through the whole lot.
+    /// </remarks>
+    [Fact]
+    public void Voting_beats_joining_the_pixels_into_blobs()
+    {
+        _outputStatic = _output;
+
+        double[] want = [120, 165, 210, 255, 300];
+
+        var shapes = new List<(IReadOnlyList<(double X, double Y)>, (byte, byte, byte))>
+        {
+            (Bar(100, 100, 100, 340, 2), ((byte)200, (byte)30, (byte)30)),
+            (Bar(500, 100, 500, 340, 2), ((byte)200, (byte)30, (byte)30))
+        };
+
+        shapes.AddRange(want.Select(y =>
+            ((IReadOnlyList<(double X, double Y)>)Bar(100, y, 500, y), ((byte)200, (byte)30, (byte)30))));
+
+        var pdf = PlainPdf.Of(shapes);
+
+        if (PdfRasterizer.Render(pdf, 0, Scale) is not { } page)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var voted = GridLines.Find(page, Scale, Reddish, Region, Reference, leastPixels: 400);
+
+        // The same pixels, joined into blobs instead.
+        var lit = new List<(double X, double Y)>();
+
+        for (var y = Region.Top; y < Region.Bottom; y += 1 / Scale)
+        for (var x = Region.Left; x < Region.Right; x += 1 / Scale)
+            if (Reddish(page.At(x, y, Scale))) lit.Add((x, y));
+
+        var blobs = Blobs(lit);
+
+        _output.WriteLine($"voting finds {voted.Count} lines; joining the pixels finds {blobs} blob(s)");
+
+        Assert.Equal(want.Length, voted.Count);
+        Assert.Equal(1, blobs);
+    }
+
+    /// <summary>How many connected blobs a set of pixels forms, eight ways.</summary>
+    private static int Blobs(List<(double X, double Y)> lit)
+    {
+        var cells = lit.Select(p => ((int)Math.Round(p.X * Scale), (int)Math.Round(p.Y * Scale))).ToHashSet();
+        var seen = new HashSet<(int, int)>();
+        var blobs = 0;
+
+        foreach (var start in cells)
+        {
+            if (!seen.Add(start)) continue;
+
+            blobs++;
+
+            var stack = new Stack<(int X, int Y)>();
+            stack.Push(start);
+
+            while (stack.Count > 0)
+            {
+                var (x, y) = stack.Pop();
+
+                for (var dy = -1; dy <= 1; dy++)
+                for (var dx = -1; dx <= 1; dx++)
+                {
+                    var next = (x + dx, y + dy);
+
+                    if (cells.Contains(next) && seen.Add(next)) stack.Push(next);
+                }
+            }
+        }
+
+        return blobs;
+    }
+
+    /// <summary>
+    /// Word's own floor gridlines, read as a regular sequence at several tilts.
+    /// </summary>
+    /// <remarks>
+    /// The demonstration rather than the check — there is no ground truth in Word's output to
+    /// assert positions against, so what is asserted is the property that both earlier attempts
+    /// could not produce: **a regular sequence.**
+    ///
+    /// Floor gridlines run to a vanishing point, so their spacings grow steadily across the plot.
+    /// Sampling down a column gave 2.500, 13.125, 13.000, 12.625, 21.375, 10.500 — no sequence at
+    /// all. Connected components gave one blob and so no lines. This gives four gaps that rise
+    /// monotonically, at every tilt from 10 degrees to 40.
+    ///
+    /// That is what #98 needs and could not get: a length in the picture whose ratio to another
+    /// does not depend on the scene's own scaling.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(2, 20)]
+    [InlineData(4, 30)]
+    [InlineData(6, 40)]
+    public void Words_floor_gridlines_come_back_as_a_regular_sequence(int page, double rotX)
+    {
+        _outputStatic = _output;
+
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-gridline-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), page, Scale) is not { } r)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
+            (147, 95, 357, 212), 250, leastPixels: 120);
+
+        var gaps = Enumerable.Range(1, floor.Count - 1).Select(i => floor[i].At - floor[i - 1].At).ToList();
+
+        _output.WriteLine($"rotX {rotX}: {floor.Count} lines, gaps " +
+                          string.Join(", ", gaps.Select(g => g.ToString("0.000"))));
+
+        // Five lines for five series' worth of floor.
+        Assert.Equal(5, floor.Count);
+
+        // Rising steadily, which is the perspective — and is what says these are really the floor's
+        // and not the wall's, whose spacings fall.
+        for (var i = 1; i < gaps.Count; i++)
+            Assert.True(gaps[i] > gaps[i - 1],
+                $"rotX {rotX}: the gaps do not rise, so these may not be converging lines");
+
+        // And by enough to be a convergence rather than a rounding.
+        Assert.True(gaps[^1] - gaps[0] > 2, $"rotX {rotX}: the gaps barely change across the plot");
+    }
+}

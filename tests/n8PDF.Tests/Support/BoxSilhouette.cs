@@ -235,6 +235,18 @@ internal static class BoxSilhouette
     }
 
     /// <summary>
+    /// A line through a set of points, fitted by its principal axis.
+    /// </summary>
+    /// <remarks>
+    /// Exposed for <see cref="GridLines"/>, which wants a gridline placed the same way a
+    /// silhouette's edge is and for the same reason: a line a point wide on a 300 dpi raster is
+    /// several pixels of nothing very definite, and where it lies is far better recovered from all
+    /// of them at once than from any one of them.
+    /// </remarks>
+    public static ((double X, double Y) On, (double X, double Y) Along) FitLine(
+        IReadOnlyList<(double X, double Y)> points, (double X, double Y) roughly) => Fit(points, roughly);
+
+    /// <summary>
     /// A line through a set of points, fitted by its principal axis rather than as y against x.
     /// </summary>
     /// <remarks>
