@@ -28,7 +28,15 @@ internal static class GridLines
     /// <param name="At">Its y where x is the reference column.</param>
     /// <param name="Slope">How much y changes for each point of x.</param>
     /// <param name="Pixels">How many pixels were fitted to place it.</param>
-    internal readonly record struct Line(double At, double Slope, int Pixels);
+    /// <param name="From">The leftmost x of those pixels.</param>
+    /// <param name="To">The rightmost x of those pixels.</param>
+    /// <remarks>
+    /// The extent is where the line's own ink begins and ends. It is what says whether a reading
+    /// taken at some column is a measurement or an extrapolation: a gridline across a floor stops
+    /// at the floor's edges, and the five of them stop at five different places, so a column that
+    /// suits one can be past the end of another.
+    /// </remarks>
+    internal readonly record struct Line(double At, double Slope, int Pixels, double From, double To);
 
     /// <summary>
     /// The lines of a given colour within a region.
@@ -174,7 +182,8 @@ internal static class GridLines
 
             if (scatter > 0.5) continue;
 
-            found.Add(new Line(on.Y + (referenceX - on.X) * slope, slope, mine.Count));
+            found.Add(new Line(on.Y + (referenceX - on.X) * slope, slope, mine.Count,
+                mine.Min(q => q.X), mine.Max(q => q.X)));
         }
 
         // One line can win at more than one slope, and the refit moves it, so near-duplicates are
@@ -343,7 +352,8 @@ internal static class GridLines
 
                 var slope = uy / ux;
 
-                next.Add(new Line(vy + (referenceX - vx) * slope, slope, mine[i].Count));
+                next.Add(new Line(vy + (referenceX - vx) * slope, slope, mine[i].Count,
+                    mine[i].Min(q => q.X), mine[i].Max(q => q.X)));
             }
 
             current = next;
