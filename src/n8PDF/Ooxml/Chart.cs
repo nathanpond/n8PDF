@@ -565,8 +565,12 @@ internal static class ChartReader
 
         if (plot.Element(Main + "upDownBars") is { } bars)
         {
-            var up = bars.Element(Main + "upBars")?.Element(W.Drawing + "spPr");
-            var down = bars.Element(Main + "downBars")?.Element(W.Drawing + "spPr");
+            // c:spPr, not a:spPr. The element belongs to the chart namespace and only the a:ln
+            // inside it belongs to the drawing one — the same mistake this file made for
+            // hiLowLines and dropLines, fixed in #75. Looking for the wrong one finds nothing and
+            // falls silently back to the default colours.
+            var up = bars.Element(Main + "upBars")?.Element(Main + "spPr");
+            var down = bars.Element(Main + "downBars")?.Element(Main + "spPr");
 
             definition.UpDownBars = new ChartUpDownBars(
                 Integer(bars.Element(Main + "gapWidth")) ?? 150,

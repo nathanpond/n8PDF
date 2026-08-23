@@ -1839,6 +1839,80 @@ public static class Fixtures
     /// Three for high, low and close; four for open, high, low and close, which is the one that
     /// draws a bar between the opening and the closing as well.
     /// </param>
+    /// <summary>
+    /// A stock chart whose up and down bars are painted in colours the fallback would not choose.
+    /// </summary>
+    /// <remarks>
+    /// The point of the colours. <see cref="StockChart"/> states white for a rising bar and black
+    /// for a falling one, which are exactly what the composer fills in when the document says
+    /// nothing — so a reader that fails to read the colours draws the same picture, and no fixture
+    /// using it can tell the two apart. That is how the wrong-namespace lookup behind #80 survived
+    /// the suite.
+    ///
+    /// Green and red are chosen because nothing else on the page is either, which turns "were the
+    /// stated colours read" into a count of pixels that belong to nothing else.
+    /// </remarks>
+    private static string UpDownBarProbeChart(string up, string down) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.7"/><c:h val="0.7"/>
+              </c:manualLayout>
+            </c:layout>
+            <c:stockChart>
+              {DocxBuilder.ChartStockSeries(0, "Open", ["One", "Two", "Three", "Four"], [28, 40, 22, 50])}
+              {DocxBuilder.ChartStockSeries(1, "High", ["One", "Two", "Three", "Four"], [40, 52, 33, 58])}
+              {DocxBuilder.ChartStockSeries(2, "Low", ["One", "Two", "Three", "Four"], [20, 30, 15, 35])}
+              {DocxBuilder.ChartStockSeries(3, "Close", ["One", "Two", "Three", "Four"], [35, 33, 28, 45], marker: "none")}
+              <c:hiLowLines/>
+              <c:upDownBars>
+                <c:gapWidth val="150"/>
+                <c:upBars><c:spPr><a:solidFill><a:srgbClr val="{up}"/></a:solidFill>
+                  <a:ln w="9525"><a:solidFill><a:srgbClr val="{up}"/></a:solidFill></a:ln>
+                </c:spPr></c:upBars>
+                <c:downBars><c:spPr><a:solidFill><a:srgbClr val="{down}"/></a:solidFill>
+                  <a:ln w="9525"><a:solidFill><a:srgbClr val="{down}"/></a:solidFill></a:ln>
+                </c:spPr></c:downBars>
+              </c:upDownBars>
+              <c:axId val="111111111"/><c:axId val="222222222"/>
+            </c:stockChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string StockChart(
         int series = 3, bool manualLayout = true, int gapWidth = 150, bool stated = true,
         string closeMarker = "", string? legend = null)
@@ -4612,6 +4686,28 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 597, relationshipId: "rIdChart7") +
+                                 "</w:p>"),
+
+            // Whether a stock chart's up and down bars are painted in the colours the document
+            // states. Two pages, differing only in which colour goes which way, so that a reader
+            // that ignores the statement altogether cannot pass both:
+            //
+            //   page 1  rising green, falling red
+            //   page 2  the two exchanged
+            //
+            // Neither colour is what the composer fills in when the document says nothing, which
+            // is what the existing stock fixture states and why it could not see #80.
+            ["chart-updown-bar-probe"] = () => new DocxBuilder()
+                .WithChart(UpDownBarProbeChart(up: "00B050", down: "C00000"))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(UpDownBarProbeChart(up: "C00000", down: "00B050")),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 601) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 602, relationshipId: "rIdChart2") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the
