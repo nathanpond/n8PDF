@@ -6183,9 +6183,14 @@ public static class Fixtures
             // floor's own gridlines converge as rotX moves — a ratio of two lengths in one picture,
             // which no rescaling can touch.
             //
-            // Four more hold the tilt at 25 and sweep c:depthPercent instead, which is the same
+            // Eight more hold the tilt at 25 and sweep c:depthPercent instead, which is the same
             // question asked of the depth: how much of the box the depth really is, measured by
             // something the fitting cannot absorb.
+            //
+            // Most of them are shallow. A deep box crowds its far gridlines past what can be
+            // resolved — at 200 the convergence moves by a twelfth depending on where the detector's
+            // threshold is put, which is not a measurement — so the law is pinned at the end where
+            // the lines are far apart and the two deep pages are kept only to show where that stops.
             ["chart-3d-gridline-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DGrid(10))
                 .WithPart("word/charts/chart2.xml",
@@ -6237,6 +6242,26 @@ public static class Fixtures
                     "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
                     ChartPart(ChartPart3DGrid(25, 400)),
                     fromDocument: ("rIdChart11",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart12.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 20)),
+                    fromDocument: ("rIdChart12",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart13.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 30)),
+                    fromDocument: ("rIdChart13",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart14.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 35)),
+                    fromDocument: ("rIdChart14",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart15.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 75)),
+                    fromDocument: ("rIdChart15",
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 1040) +
@@ -6292,7 +6317,28 @@ public static class Fixtures
                                  DocxBuilder.ChartDrawing(360, 216, id: 1050, relationshipId: "rIdChart11") +
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
-                                 "<w:r><w:t>rotX 25, depth 400</w:t></w:r></w:p>"),
+                                 "<w:r><w:t>rotX 25, depth 400</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1050, relationshipId: "rIdChart12") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 20</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1051, relationshipId: "rIdChart13") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 30</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1052, relationshipId: "rIdChart14") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 35</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1053, relationshipId: "rIdChart15") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 75</w:t></w:r></w:p>"),
+
 
             ["chart-3d-geometry-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3D(0.200000, 0.100000, 0.600000, 0.550000, 15, 20))
