@@ -2396,10 +2396,12 @@ public static class Fixtures
     /// being measured is partly whether a hand-placed title or legend still takes room off the
     /// plot, and stating the plot would answer that question by fiat.
     ///
-    /// The title states <c>b="1"</c> outright, which is not decoration. Word sets a chart title
-    /// bold by default where the part says nothing, and this does not — #82 — which makes our
-    /// title 1.91pt narrower and, since it is centred, starts it 0.96pt to the right. Saying the
-    /// weight here keeps that out of a fixture whose business is where a title is *put*.
+    /// The title states <c>b="1"</c> outright. That was originally to keep #82 out of a fixture
+    /// whose business is where a title is *put* — Word sets a chart title bold where the part says
+    /// nothing and this did not, which made our title 1.91pt narrower and, since it is centred,
+    /// started it 0.96pt to the right. #82 is fixed and the weight would now be right either way,
+    /// but stating it is still the better fixture: it measures placement against a weight that
+    /// cannot drift, and <c>chart-title-weight-probe</c> is where the default itself is measured.
     /// </remarks>
     private static string PlacementProbeChart(
         (double X, double Y)? title = null, (double X, double Y)? legend = null,
@@ -2461,6 +2463,83 @@ public static class Fixtures
             <c:overlay val="{(overlayLegend ? "1" : "0")}"/>
             <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1000"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>
           </c:legend>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
+    /// <summary>
+    /// A chart whose titles state a weight, or state none, for measuring what Word defaults to.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here is placed by hand: the titles sit where the chart puts them, so the whole of
+    /// what varies between the pages is the weight and what it does to a title's width. A bold
+    /// title is wider, and because the chart's own title is centred, wider means it also starts
+    /// further left — which is what makes a weight measurable from a text position at all.
+    /// </remarks>
+    private static string TitleWeightProbeChart(string? weight, string? axisWeight) => $"""
+        <c:chart>
+          <c:title>
+            <c:tx><c:rich>
+              <a:bodyPr/><a:lstStyle/>
+              <a:p><a:pPr><a:defRPr sz="1400"{(weight is null ? string.Empty : $" b=\"{weight}\"")}/></a:pPr>
+                <a:r><a:rPr lang="en-GB" sz="1400"{(weight is null ? string.Empty : $" b=\"{weight}\"")}/><a:t>Regional totals</a:t></a:r>
+              </a:p>
+            </c:rich></c:tx>
+            <c:layout/>
+            <c:overlay val="0"/>
+          </c:title>
+          <c:autoTitleDeleted val="0"/>
+          <c:plotArea>
+            <c:layout/>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, "Units", ["North", "South", "East", "West"],
+                  [30, 45, 20, 55], "4472C4")}
+              <c:gapWidth val="150"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:title>
+                <c:tx><c:rich>
+                  <a:bodyPr/><a:lstStyle/>
+                  <a:p><a:pPr><a:defRPr sz="1000"{(axisWeight is null ? string.Empty : $" b=\"{axisWeight}\"")}/></a:pPr>
+                    <a:r><a:rPr lang="en-GB" sz="1000"{(axisWeight is null ? string.Empty : $" b=\"{axisWeight}\"")}/><a:t>Region</a:t></a:r>
+                  </a:p>
+                </c:rich></c:tx>
+                <c:layout/>
+                <c:overlay val="0"/>
+              </c:title>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
           <c:plotVisOnly val="1"/>
           <c:dispBlanksAs val="gap"/>
         </c:chart>
@@ -4708,6 +4787,44 @@ public static class Fixtures
                                  DocxBuilder.ChartDrawing(360, 216, id: 601) + "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 602, relationshipId: "rIdChart2") +
+                                 "</w:p>"),
+
+            // What weight a chart's titles take when the part does not say. Four pages:
+            //
+            //   page 1  neither title states a weight -> the default, for both kinds of title
+            //   page 2  both state b="1"              -> the control, agreeing by construction
+            //   page 3  both state b="0"              -> is a stated regular honoured, or overridden?
+            //   page 4  the chart's title bold, the axis title regular -> that the two are separate
+            //
+            // A weight is measurable from a position because the chart's own title is centred: a
+            // bolder title is wider, so it also begins further left.
+            ["chart-title-weight-probe"] = () => new DocxBuilder()
+                .WithChart(TitleWeightProbeChart(weight: null, axisWeight: null))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TitleWeightProbeChart(weight: "1", axisWeight: "1")),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TitleWeightProbeChart(weight: "0", axisWeight: "0")),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(TitleWeightProbeChart(weight: "1", axisWeight: "0")),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 611) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 612, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 613, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 614, relationshipId: "rIdChart4") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the

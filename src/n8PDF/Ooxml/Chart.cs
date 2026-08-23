@@ -606,6 +606,35 @@ internal static class ChartReader
     }
 
     /// <summary>A title's text, or null where there is none to draw.</summary>
+    /// <summary>
+    /// Gives a title's runs the weight Word gives them where the part states none.
+    /// </summary>
+    /// <remarks>
+    /// A chart title is **bold** unless it says otherwise, and so is an axis title — both measured
+    /// from <c>chart-title-weight-probe</c>, whose first page states no weight at all: Word's own
+    /// title of fourteen characters comes out 86.26pt wide against the 84.35 the same text
+    /// measures regular, and its axis title 28.65 against 27.93. Nothing in the part carries that;
+    /// it comes from Word's own styling of a chart, which a document does not ship.
+    ///
+    /// It is a default and not an override, which the probe's third page settles: a title stating
+    /// <c>b="0"</c> is left regular by Word, and the axis title there agrees with ours to five
+    /// hundredths of a point. So this fills in only what was never said — which is why
+    /// <see cref="RunProperties.Bold"/> being nullable matters, and why this could not be done by
+    /// setting the weight unconditionally.
+    ///
+    /// Applied here rather than in <c>DrawingText.Parse</c>, which also serves diagrams, shapes
+    /// and text boxes — none of which wants a chart title's default.
+    /// </remarks>
+    private static void Embolden(IEnumerable<BlockElement> paragraphs)
+    {
+        foreach (var block in paragraphs)
+        {
+            if (block is not Paragraph paragraph) continue;
+
+            foreach (var run in paragraph.Runs) run.Properties.Bold ??= true;
+        }
+    }
+
     private static ChartTitle? ReadTitle(XElement? element)
     {
         var rich = element?.Element(Main + "tx")?.Element(Main + "rich");
@@ -613,6 +642,8 @@ internal static class ChartReader
 
         var paragraphs = DrawingText.Parse(rich);
         if (paragraphs.Count == 0) return null;
+
+        Embolden(paragraphs);
 
         return new ChartTitle
         {
