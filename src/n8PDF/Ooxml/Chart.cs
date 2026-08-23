@@ -248,11 +248,18 @@ internal sealed class ChartTitle
 
     /// <summary>Whether it is drawn over the plotting rather than given room of its own.</summary>
     public bool Overlay { get; init; }
+
+    /// <summary>Where it is put by hand, as fractions of the chart, or null where it is not.</summary>
+    public ChartLayout? Layout { get; init; }
 }
 
 /// <summary>Where a legend goes, and how its entries are set.</summary>
 /// <param name="Position">"b", "t", "l", "r" or "tr".</param>
-internal sealed record ChartLegend(string Position, bool Overlay, double LabelSizePoints);
+internal sealed record ChartLegend(string Position, bool Overlay, double LabelSizePoints)
+{
+    /// <summary>Where it is put by hand, as fractions of the chart, or null where it is not.</summary>
+    public ChartLayout? Layout { get; init; }
+}
 
 /// <summary>What is written at each point, and where.</summary>
 /// <param name="Position">
@@ -479,7 +486,10 @@ internal static class ChartReader
             definition.Legend = new ChartLegend(
                 legend.Element(Main + "legendPos")?.Attribute("val")?.Value ?? "r",
                 legend.Element(Main + "overlay")?.Attribute("val")?.Value is "1" or "true",
-                LabelSize(legend) ?? 10);
+                LabelSize(legend) ?? 10)
+            {
+                Layout = ReadPlacement(legend.Element(Main + "layout"))
+            };
         }
 
         var plot = plotArea.Element(Main + "barChart")
@@ -603,7 +613,8 @@ internal static class ChartReader
         return new ChartTitle
         {
             Paragraphs = paragraphs,
-            Overlay = element!.Element(Main + "overlay")?.Attribute("val")?.Value is "1" or "true"
+            Overlay = element!.Element(Main + "overlay")?.Attribute("val")?.Value is "1" or "true",
+            Layout = ReadPlacement(element.Element(Main + "layout"))
         };
     }
 
@@ -830,6 +841,33 @@ internal static class ChartReader
     /// plotting itself, without the axis labels around it, and is the only one that says where the
     /// bars go rather than where everything does.
     /// </summary>
+    /// <summary>
+    /// Where a title or a legend is put by hand, as fractions of the chart's own width and height.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="ReadLayout"/>, which serves the plot area and cannot serve these. That one
+    /// insists on <c>layoutTarget="inner"</c>, an element only a plot area has, and on all four of
+    /// x, y, w and h; a hand-placed title or legend states x and y and commonly lets its own size
+    /// stand. Asking the plot area's reader for one of these returns null every time.
+    /// </remarks>
+    private static ChartLayout? ReadPlacement(XElement? layout)
+    {
+        var manual = layout?.Element(Main + "manualLayout");
+        if (manual is null) return null;
+
+        var x = Number(manual.Element(Main + "x"));
+        var y = Number(manual.Element(Main + "y"));
+
+        // Without both there is nowhere to put it, and the automatic placement is the better
+        // answer than a corner.
+        if (x is null || y is null) return null;
+
+        return new ChartLayout(
+            x.Value, y.Value,
+            Number(manual.Element(Main + "w")) ?? 0,
+            Number(manual.Element(Main + "h")) ?? 0);
+    }
+
     private static ChartLayout? ReadLayout(XElement? layout)
     {
         var manual = layout?.Element(Main + "manualLayout");

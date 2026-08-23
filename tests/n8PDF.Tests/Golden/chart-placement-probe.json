@@ -1,0 +1,656 @@
+{
+  "pageCount": 7,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 92.64,
+          "height": 17.09,
+          "runs": [
+            {"x": 208.636, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 195.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 400.654, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 237.84,
+          "height": 17.09,
+          "runs": [
+            {"x": 93, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 195.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 400.654, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 92.64,
+          "height": 17.09,
+          "runs": [
+            {"x": 208.636, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 140.16,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.863, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 237.84,
+          "height": 17.09,
+          "runs": [
+            {"x": 93, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 140.16,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.863, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 92.64,
+          "height": 17.09,
+          "runs": [
+            {"x": 208.636, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 140.16,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.863, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 126.39, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 207.208, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 291.376, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 370.048, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 108.24,
+          "height": 17.09,
+          "runs": [
+            {"x": 255, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 195.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 400.654, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 92.64,
+          "height": 17.09,
+          "runs": [
+            {"x": 208.636, "width": 86.728, "font": "Calibri", "size": 14, "bold": true, "text": "Regional totals"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 192,
+          "height": 12.207,
+          "runs": [
+            {"x": 300.863, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 214.32,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 111.84,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    }
+  ]
+}

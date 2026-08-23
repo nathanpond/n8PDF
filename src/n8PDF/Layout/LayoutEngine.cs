@@ -4634,12 +4634,27 @@ internal sealed class LayoutEngine(
         if (chart.Title is { Overlay: false, Paragraphs.Count: > 0 } title)
         {
             var box = Math.Max(1, width * ChartComposer.TitleWidth);
-            var flow = MeasureInside(Centred(title.Paragraphs), box);
+
+            // Put by hand, the title is set from its own stated corner rather than centred on the
+            // frame — and it is set flush there, since centring it in a box it was never given
+            // would move it. See ChartComposer.PlacedTitleAcross.
+            var flow = title.Layout is null
+                ? MeasureInside(Centred(title.Paragraphs), box)
+                : MeasureInside(title.Paragraphs, box);
 
             var (ascent, _) = BlockBox(title.Paragraphs);
 
-            flow.PlaceOnto(page, (width - box) / 2,
-                ChartComposer.TitleTop + ascent - flow.FirstAscent);
+            if (title.Layout is { } corner)
+            {
+                flow.PlaceOnto(page,
+                    corner.X * width + ChartComposer.PlacedTitleAcross,
+                    corner.Y * height + ChartComposer.PlacedTitleDown + ascent - flow.FirstAscent);
+            }
+            else
+            {
+                flow.PlaceOnto(page, (width - box) / 2,
+                    ChartComposer.TitleTop + ascent - flow.FirstAscent);
+            }
         }
 
         // And the title under the foot, which ends a fixed distance inside the frame instead.
