@@ -1,0 +1,353 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 112.8,
+          "height": 12.207,
+          "runs": [
+            {"x": 158.065, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 188.4,
+          "height": 12.207,
+          "runs": [
+            {"x": 302.065, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 128.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 194.065, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.865, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 190.631, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 263.747, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 331.367, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 94.8,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.863, "width": 21.226, "font": "Calibri", "size": 10, "text": "Units"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 112.8,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.863, "width": 27.598, "font": "Calibri", "size": 10, "text": "Others"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 265.44,
+          "height": 12.207,
+          "runs": [
+            {"x": 83.568, "width": 5.068, "font": "Calibri", "size": 10, "text": "0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 205.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "20"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 145.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "40"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 85.68,
+          "height": 12.207,
+          "runs": [
+            {"x": 78.5, "width": 10.137, "font": "Calibri", "size": 10, "text": "60"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 120.068, "width": 23.818, "font": "Calibri", "size": 10, "text": "North"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 188.241, "width": 23.726, "font": "Calibri", "size": 10, "text": "South"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 259.764, "width": 16.934, "font": "Calibri", "size": 10, "text": "East"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 278.88,
+          "height": 12.207,
+          "runs": [
+            {"x": 325.791, "width": 21.133, "font": "Calibri", "size": 10, "text": "West"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        }
+      ]
+    }
+  ]
+}
