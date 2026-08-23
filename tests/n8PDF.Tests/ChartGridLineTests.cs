@@ -372,4 +372,53 @@ public class ChartGridLineTests(ITestOutputHelper output)
 
         Assert.InRange(convergence - want, -0.01, 0.01);
     }
+
+    /// <summary>
+    /// The depth of the scene is **not** proportional to <c>c:depthPercent</c>.
+    /// </summary>
+    /// <remarks>
+    /// #98 measured that coefficient at 0.993 and again at 0.988 and took it as settled. Both were
+    /// got by fitting a whole picture, which is now known to absorb an error in one term by
+    /// adjusting another — it is how a measured inset disappeared into the viewing distance and
+    /// nothing moved.
+    ///
+    /// The floor's convergence cannot do that: it is a ratio of two lengths in one picture, so no
+    /// scale, placement or inset is in it. Solving for the depth each of these pages implies, at a
+    /// tilt held at 25 degrees, gives ratios of **1.81** and **2.81** where a depth proportional to
+    /// the stated percentage requires 2 and 4.
+    ///
+    /// The ratios are the same to three decimals at every viewing distance tried from 20 to 200, and
+    /// the same again whether the perspective divides by the depth component or by the distance to
+    /// the eye. So this is a property of Word's drawing and not of any parameter still being
+    /// guessed at.
+    /// </remarks>
+    [Theory]
+    [InlineData(7, 25, 0.888)]
+    [InlineData(8, 50, 0.806)]
+    [InlineData(3, 100, 0.716)]
+    public void The_scenes_depth_does_not_follow_the_stated_percentage(int page, int depthPercent, double want)
+    {
+        _outputStatic = _output;
+
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-gridline-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), page, Scale) is not { } r)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
+            (150, 84, 354, 256), 250, leastPixels: 200);
+
+        Assert.Equal(5, floor.Count);
+
+        var gaps = Enumerable.Range(1, floor.Count - 1).Select(i => floor[i].At - floor[i - 1].At).ToList();
+        var convergence = gaps[0] / gaps[^1];
+
+        _output.WriteLine($"depthPercent {depthPercent}: convergence {convergence:0.0000}, wanted {want:0.000}");
+
+        Assert.InRange(convergence - want, -0.01, 0.01);
+    }
 }

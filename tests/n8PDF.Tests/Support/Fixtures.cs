@@ -2355,10 +2355,10 @@ public static class Fixtures
     /// Five series with the gaps at their widest and values of one, so the bars are slivers and the
     /// floor they stand on is left in view. They are near-white for the same reason.
     /// </remarks>
-    private static string ChartPart3DGrid(double rotX) => $$"""
+    private static string ChartPart3DGrid(double rotX, int depthPercent = 100) => $$"""
           <c:chart>
             <c:view3D><c:rotX val="{{rotX}}"/><c:rotY val="20"/><c:rAngAx val="0"/>
-              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+              <c:perspective val="30"/><c:depthPercent val="{{depthPercent}}"/></c:view3D>
             <c:plotArea>
               <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
                 <c:xMode val="edge"/><c:yMode val="edge"/>
@@ -6179,8 +6179,13 @@ public static class Fixtures
             // each in its own colour, for #120's instrument to read. The bars are shrunk to nothing
             // and left nearly white so the floor is not covered.
             //
-            // The tilt sweeps, because what #98 wants from these is how the spacings on the wall
-            // compare with those on the floor as rotX moves.
+            // The tilt sweeps over seven pages, because what #98 wants from these is how the
+            // floor's own gridlines converge as rotX moves — a ratio of two lengths in one picture,
+            // which no rescaling can touch.
+            //
+            // Four more hold the tilt at 25 and sweep c:depthPercent instead, which is the same
+            // question asked of the depth: how much of the box the depth really is, measured by
+            // something the fitting cannot absorb.
             ["chart-3d-gridline-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DGrid(10))
                 .WithPart("word/charts/chart2.xml",
@@ -6212,6 +6217,26 @@ public static class Fixtures
                     "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
                     ChartPart(ChartPart3DGrid(40)),
                     fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 25)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 50)),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart10.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 200)),
+                    fromDocument: ("rIdChart10",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart11.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DGrid(25, 400)),
+                    fromDocument: ("rIdChart11",
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 1040) +
@@ -6247,7 +6272,28 @@ public static class Fixtures
                                  DocxBuilder.ChartDrawing(360, 216, id: 1046, relationshipId: "rIdChart7") +
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
-                                 "<w:r><w:t>rotX 40</w:t></w:r></w:p>"),
+                                 "<w:r><w:t>rotX 40</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1047, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 25</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1048, relationshipId: "rIdChart9") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 50</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1049, relationshipId: "rIdChart10") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 200</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1050, relationshipId: "rIdChart11") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>rotX 25, depth 400</w:t></w:r></w:p>"),
+
             ["chart-3d-geometry-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3D(0.200000, 0.100000, 0.600000, 0.550000, 15, 20))
                 .WithPart("word/charts/chart2.xml",
