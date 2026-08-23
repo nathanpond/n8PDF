@@ -265,6 +265,38 @@ internal static class ChartComposer
 
     private const double LegendEdge = 10.12;
 
+    /// <summary>
+    /// How far inside a hand-placed title's own corner its first letter is set, across and down.
+    /// </summary>
+    /// <remarks>
+    /// A manual layout names a corner as a fraction of the chart, and the text sits a little
+    /// inside it. Measured from <c>chart-placement-probe</c> at two placements, which is what says
+    /// the offset is a constant rather than a share of anything: a title asked for at 0.05 of a
+    /// 360pt frame starts at 93 where the fraction alone gives 90, and one asked for at 0.5 starts
+    /// at 255 where the fraction gives 252. Three points both times.
+    ///
+    /// Down, the same two placements put the first baseline 14.88 below the stated corner against
+    /// an ascent of 13.45, so the inset is 1.43 and the rest is the ascent — which is why it is
+    /// written as an inset rather than as the 14.88 that was measured.
+    /// </remarks>
+    public const double PlacedTitleAcross = 3.0;
+
+    public const double PlacedTitleDown = 1.43;
+
+    /// <summary>
+    /// How far inside a hand-placed legend's own corner its first key begins.
+    /// </summary>
+    /// <remarks>
+    /// The word is measured rather than the key, since the word is what a PDF records: at both of
+    /// the probe's placements the first entry's word begins 12.86 inside the stated corner, and
+    /// the gap between a key and its word is already known to be 7.863 at ten point. What is left
+    /// is five points, which is this — and the rest of the entry's arithmetic, the pitch down and
+    /// the key's drop, is the automatic layout's own and is reused rather than restated. Down, the
+    /// automatic arithmetic gives 11.84 from the corner against a measured 11.76, which is a
+    /// twelfth of a point and needs nothing said about it.
+    /// </remarks>
+    public const double PlacedLegendKeyInset = 5.0;
+
     /// <summary>How far apart the entries of a legend up a side are, as a share of the type.</summary>
     private const double LegendPitch = 1.8083;
 
@@ -587,7 +619,11 @@ internal static class ChartComposer
         Func<double, (double Ascent, double Descent)> labelHeight,
         double titleRoom = 0)
     {
-        if (chart.Legend is not { Overlay: false } legend) return [];
+        // Overlay says the plot is not to give up room for it, not that it is not to be drawn.
+        // Room already reads it that way; this did not, and an overlaid legend was being dropped
+        // from the picture altogether — measured against the probe's fifth page, where Word draws
+        // one and this drew nothing.
+        if (chart.Legend is not { } legend) return [];
 
         var entries = Entries(chart, legend, measure);
         if (entries.Count == 0) return [];
@@ -611,8 +647,18 @@ internal static class ChartComposer
                 ? BareMargin
                 : width - LegendEdge - widest;
 
-            var middle = height / 2;
+
+            var middle = titleRoom + (height - titleRoom) / 2;
             var top = middle - pitch * entries.Count / 2;
+
+            // Put by hand, the corner is stated outright and the entries run down from it. Only
+            // where they begin changes: how they are spaced and where each word sits against its
+            // key is the same arithmetic, which is what the probe's measurements come to.
+            if (legend.Layout is { } corner)
+            {
+                left = corner.X * width + PlacedLegendKeyInset;
+                top = corner.Y * height;
+            }
 
             for (var i = 0; i < entries.Count; i++)
             {

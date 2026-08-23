@@ -1735,8 +1735,24 @@ a legend on any of the four sides; and a number written at every point, in the f
 for and where the kind of chart puts it; and the trendlines a series carries, of all six kinds the
 format allows — straight, polynomial, exponential, logarithmic, power and a moving average — run
 forward or back past the data and forced through an intercept where the chart asks for it. What is
-not: three-dimensional charts of any kind, and a legend or a title placed by hand rather than by
-side.
+not: three-dimensional charts of any kind.
+
+A title or a legend placed by hand is put where the chart asks. A `c:manualLayout` names a corner
+as fractions of the chart's own width and height, and what sits at that corner was measured at two
+placements each — which is what says the offsets are constants rather than shares of anything. A
+title's first letter is **3pt** across and its first baseline an ascent plus **1.43pt** down; a
+legend's first key is **5pt** across, and the pitch and key drop of its entries are the automatic
+layout's own arithmetic reused. A hand-placed one still takes its room off the plot, which the
+probe's own axis labels confirm: they do not move.
+
+Two things were wrong in the automatic placement and were found by the same probe. A legend up a
+side was centred on the middle of the **frame** rather than of the room below the title, which put
+it half a title's height too high — 12.96pt on the probe, now exact. And `c:overlay` was read as
+"do not draw" where it means "do not take room", so an overlaid legend was being dropped from the
+picture altogether; Word draws one and now so does this.
+
+What a stated `c:w` and `c:h` do to a hand-placed legend is not settled: Word moves it again, and
+one placement was not enough to say how.
 
 The lines a chart hangs from its points are drawn too — a drop line from each point down to the
 axis, and a high-low line from the lowest of a category's series to the highest. The second was

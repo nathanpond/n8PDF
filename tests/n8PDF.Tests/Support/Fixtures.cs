@@ -2314,6 +2314,84 @@ public static class Fixtures
         </c:ser>
         """;
 
+    /// <summary>
+    /// A chart whose title and legend may be put by hand, for measuring where Word puts them.
+    /// </summary>
+    /// <remarks>
+    /// The plot area is left to Word rather than stated, unlike the other chart probes: what is
+    /// being measured is partly whether a hand-placed title or legend still takes room off the
+    /// plot, and stating the plot would answer that question by fiat.
+    ///
+    /// The title states <c>b="1"</c> outright, which is not decoration. Word sets a chart title
+    /// bold by default where the part says nothing, and this does not — #82 — which makes our
+    /// title 1.91pt narrower and, since it is centred, starts it 0.96pt to the right. Saying the
+    /// weight here keeps that out of a fixture whose business is where a title is *put*.
+    /// </remarks>
+    private static string PlacementProbeChart(
+        (double X, double Y)? title = null, (double X, double Y)? legend = null,
+        bool overlayTitle = false, bool overlayLegend = false,
+        string legendPosition = "r", (double W, double H)? legendSize = null) => $"""
+        <c:chart>
+          <c:title>
+            <c:tx><c:rich>
+              <a:bodyPr/><a:lstStyle/>
+              <a:p><a:pPr><a:defRPr sz="1400" b="1"/></a:pPr><a:r><a:rPr lang="en-GB" sz="1400" b="1"/><a:t>Regional totals</a:t></a:r></a:p>
+            </c:rich></c:tx>
+            {(title is { } t ? $"<c:layout><c:manualLayout><c:xMode val=\"edge\"/><c:yMode val=\"edge\"/><c:x val=\"{t.X.ToString(CultureInfo.InvariantCulture)}\"/><c:y val=\"{t.Y.ToString(CultureInfo.InvariantCulture)}\"/></c:manualLayout></c:layout>" : "<c:layout/>")}
+            <c:overlay val="{(overlayTitle ? "1" : "0")}"/>
+          </c:title>
+          <c:autoTitleDeleted val="0"/>
+          <c:plotArea>
+            <c:layout/>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, "Units", ["North", "South", "East", "West"],
+                  [30, 45, 20, 55], "4472C4")}
+              <c:gapWidth val="150"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:legend>
+            <c:legendPos val="{legendPosition}"/>
+            {(legend is { } l ? $"<c:layout><c:manualLayout><c:xMode val=\"edge\"/><c:yMode val=\"edge\"/><c:x val=\"{l.X.ToString(CultureInfo.InvariantCulture)}\"/><c:y val=\"{l.Y.ToString(CultureInfo.InvariantCulture)}\"/>{(legendSize is { } z ? $"<c:w val=\"{z.W.ToString(CultureInfo.InvariantCulture)}\"/><c:h val=\"{z.H.ToString(CultureInfo.InvariantCulture)}\"/>" : string.Empty)}</c:manualLayout></c:layout>" : "<c:layout/>")}
+            <c:overlay val="{(overlayLegend ? "1" : "0")}"/>
+            <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1000"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>
+          </c:legend>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string ColumnChart() => $"""
         <c:chart>
           <c:autoTitleDeleted val="1"/>
@@ -4460,6 +4538,80 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 585, relationshipId: "rIdChart5") +
+                                 "</w:p>"),
+
+            // Where Word puts a title and a legend that the chart places by hand. Seven pages, the
+            // first being the control.
+            //
+            // The placements are chosen to keep every baseline more than two points clear of the
+            // chart's other text. That is not fussiness: the reference check groups runs into
+            // lines at a two-point tolerance and then compares the whole document's text in order,
+            // so a title landing a point and a half from an axis label merges with it in one file
+            // and not in the other over a difference of 0.24 — one step of Word's own grid, and
+            // well inside what the position comparison allows. Placing them clear measures the
+            // same rule without turning a rounding into a failure.
+            //
+            //   page 1  neither placed            -> the automatic placement, for comparison
+            //   page 2  the title placed          -> what x and y name, and whether the plot moves
+            //   page 3  the legend placed         -> the same for a legend, keys and words together
+            //   page 4  both placed
+            //   page 5  the legend placed and told to overlay -> which of the two frees the room
+            //   page 6  the title placed somewhere else  -> a constant offset, or a proportional one
+            //   page 7  the legend placed somewhere else -> the same question for a legend
+            //
+            // A page stating a legend's w and h was written and taken out again: Word moves the
+            // legend when it is given a size, and one placement is not enough to say how. See #83.
+            ["chart-placement-probe"] = () => new DocxBuilder()
+                .WithChart(PlacementProbeChart())
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(PlacementProbeChart(title: (0.05, 0.7))),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(PlacementProbeChart(legend: (0.1, 0.26))),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(PlacementProbeChart(title: (0.05, 0.7), legend: (0.1, 0.26))),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(PlacementProbeChart(legend: (0.1, 0.26), overlayLegend: true)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(PlacementProbeChart(title: (0.5, 0.1))),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(PlacementProbeChart(legend: (0.6, 0.5))),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 591) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 592, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 593, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 594, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 595, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 596, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 597, relationshipId: "rIdChart7") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the
