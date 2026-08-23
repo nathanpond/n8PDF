@@ -141,10 +141,29 @@ or have a clean tree to read or file them. The repo only needs its GitHub remote
 2. `gh issue develop <n> --checkout`. Use this rather than naming a branch by hand; GitHub
    records the link and it survives across machines. `ci.yml` runs on every branch, so pushing
    gets you the hosted tier for free.
+
+   **A linked branch closes its issue when a PR from it merges.** That is GitHub's doing, not a
+   keyword's, and nothing in the commit or the PR body can prevent it — see the note under step 4.
 3. Comment a one-line plan on the issue **before** writing code.
 4. Implement. Reference the issue in commits as `Refs #<n>` — **never** `Fixes #<n>` or any
    auto-closing keyword. Those only fire on the default branch, so on a feature branch they
    silently do nothing.
+
+   That rule is about keywords and it does **not** cover the other way an issue closes itself.
+   `gh issue develop` records the branch as a *linked branch*, and GitHub closes the linked issue
+   the moment a PR from that branch merges — no keyword involved, and `Refs #<n>` will not save
+   you. The issue's timeline shows it as a `connected` event when the PR opens and a `closed`
+   event at the merge.
+
+   So **merging work that does not finish an issue will close it anyway.** When that happens:
+
+   ```
+   gh issue reopen <n> --comment "Reopened: closed by the linked branch on merge, not by me. <what is left>"
+   ```
+
+   Check it after every merge — `gh issue view <n> --json state` — rather than assuming, because
+   the close is silent and an issue wrongly marked done is worse than one left open. Partial work
+   is normal on the harder stories and is the case this bites.
 5. Verify: the build is warning-clean and the suite passes, with the three checkers on. A change
    to layout, metrics or font handling needs its golden trace reviewed, not merely regenerated —
    a golden updated to match new output proves nothing.
