@@ -821,7 +821,11 @@ its highest stands where a line chart's point would; the bar from what the day o
 closed at is as wide as one bar of a bar chart holding a single series, so a category 63 points wide
 gives 25.2 at the gap of 150 a chart means by saying nothing and 42 at a gap of 50. A day that
 closed higher than it opened is drawn white and one that closed lower black, both outlined, where
-the chart says nothing about either. The close of a chart with no opening is shown by whatever the
+the chart says nothing about either — and where it does say, it is obeyed, which for a while it was
+not: the colours were being looked for one namespace out and quietly ignored. Nothing caught it
+because the fixture stating them stated white and black, the very colours the fallback fills in, so
+a reader that ignored the document drew the same picture. `chart-updown-bar-probe` states green and
+red instead, and exchanges them between its two pages. The close of a chart with no opening is shown by whatever the
 series marks its points with, and a series marking them with nothing shows nothing: Word draws no
 tick of its own.
 
