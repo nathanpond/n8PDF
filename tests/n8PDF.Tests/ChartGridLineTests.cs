@@ -41,7 +41,18 @@ public class ChartGridLineTests(ITestOutputHelper output)
         return [(x0 + nx, y0 + ny), (x1 + nx, y1 + ny), (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)];
     }
 
-    private static bool Reddish((byte R, byte G, byte B) p) => p.R > p.G + 12 && p.R > p.B + 12;
+    /// <summary>How red a pixel is, as a degree rather than a verdict.</summary>
+    /// <remarks>
+    /// A line a point wide is drawn over several pixels, none of them the stated colour and each a
+    /// different way towards it. Returning how far towards it a pixel has come — rather than
+    /// whether it has passed a line drawn somewhere — is what lets the detector's answer stay put
+    /// when that line moves.
+    /// </remarks>
+    private static double Reddish((byte R, byte G, byte B) p) =>
+        Math.Clamp((Math.Min(p.R - p.G, p.R - p.B) - 6) / 60.0, 0, 1);
+
+    private static double Bluish((byte R, byte G, byte B) p) =>
+        Math.Clamp((Math.Min(p.B - p.R, p.B - p.G) - 6) / 60.0, 0, 1);
 
     private static IReadOnlyList<GridLines.Line>? Found(byte[] pdf)
     {
@@ -222,7 +233,7 @@ public class ChartGridLineTests(ITestOutputHelper output)
 
         for (var y = Region.Top; y < Region.Bottom; y += 1 / Scale)
         for (var x = Region.Left; x < Region.Right; x += 1 / Scale)
-            if (Reddish(page.At(x, y, Scale))) lit.Add((x, y));
+            if (Reddish(page.At(x, y, Scale)) > 0.02) lit.Add((x, y));
 
         var blobs = Blobs(lit);
 
@@ -304,8 +315,8 @@ public class ChartGridLineTests(ITestOutputHelper output)
 
         // The whole of the plot, which is 172.8 points tall in this probe — a region sized for a
         // shorter one silently cuts the last lines off and the count comes back wrong.
-        var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
-            (150, 84, 354, 256), 250, leastPixels: 200);
+        var floor = GridLines.Find(r, Scale, Bluish,
+            (150, 84, 354, 256), 250, expect: 5);
 
         var gaps = Enumerable.Range(1, floor.Count - 1).Select(i => floor[i].At - floor[i - 1].At).ToList();
 
@@ -338,14 +349,14 @@ public class ChartGridLineTests(ITestOutputHelper output)
     /// the detector still loses one at four tilts out of seven even with them thickened. This wants
     /// only the floor, which now reads five lines at every tilt.
     ///
-    /// Recorded here so #98 has it as a measurement rather than as a note: 0.584, 0.651, 0.660,
-    /// 0.716, 0.749, 0.769, 0.794 for tilts of ten to forty degrees.
+    /// Recorded here so #98 has it as a measurement rather than as a note: 0.583, 0.622, 0.691,
+    /// 0.715, 0.747, 0.766, 0.791 for tilts of ten to forty degrees.
     /// </remarks>
     [Theory]
-    [InlineData(0, 10, 0.584)]
-    [InlineData(2, 20, 0.660)]
-    [InlineData(4, 30, 0.749)]
-    [InlineData(6, 40, 0.794)]
+    [InlineData(0, 10, 0.583)]
+    [InlineData(2, 20, 0.691)]
+    [InlineData(4, 30, 0.747)]
+    [InlineData(6, 40, 0.791)]
     public void The_floors_convergence_moves_with_the_tilt_and_with_nothing_else(
         int page, double rotX, double want)
     {
@@ -360,8 +371,8 @@ public class ChartGridLineTests(ITestOutputHelper output)
             return;
         }
 
-        var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
-            (150, 84, 354, 256), 250, leastPixels: 200);
+        var floor = GridLines.Find(r, Scale, Bluish,
+            (150, 84, 354, 256), 250, expect: 5);
 
         Assert.Equal(5, floor.Count);
 
@@ -402,9 +413,9 @@ public class ChartGridLineTests(ITestOutputHelper output)
     /// fitting went wrong in the first place.
     /// </remarks>
     [Theory]
-    [InlineData(11, 20, 0.907)]
+    [InlineData(11, 20, 0.909)]
     [InlineData(7, 25, 0.888)]
-    [InlineData(8, 50, 0.806)]
+    [InlineData(8, 50, 0.802)]
     [InlineData(14, 75, 0.757)]
     public void The_scenes_depth_does_not_follow_the_stated_percentage(int page, int depthPercent, double want)
     {
@@ -419,8 +430,8 @@ public class ChartGridLineTests(ITestOutputHelper output)
             return;
         }
 
-        var floor = GridLines.Find(r, Scale, q => q.B > q.R + 12 && q.B > q.G + 12,
-            (150, 84, 354, 256), 250, leastPixels: 200);
+        var floor = GridLines.Find(r, Scale, Bluish,
+            (150, 84, 354, 256), 250, expect: 5);
 
         Assert.Equal(5, floor.Count);
 
@@ -430,5 +441,63 @@ public class ChartGridLineTests(ITestOutputHelper output)
         _output.WriteLine($"depthPercent {depthPercent}: convergence {convergence:0.0000}, wanted {want:0.000}");
 
         Assert.InRange(convergence - want, -0.01, 0.01);
+    }
+
+    /// <summary>
+    /// The reading does not move when the caller's settings do.
+    /// </summary>
+    /// <remarks>
+    /// The property this instrument was rewritten for, and it is asserted rather than assumed
+    /// because assuming it is what went wrong on #98. That story derived a depth from these numbers,
+    /// and the derivation multiplies an error by five to eight — so a reading that moved by a
+    /// twentieth when a threshold moved was producing depths that moved by a third, and a residual
+    /// was chased that was smaller than the error bars on the thing it sat in.
+    ///
+    /// Twelve settings: two rendering scales, three slope ranges, two search regions. All twelve
+    /// must find five lines and agree on the convergence to within a sixteenth.
+    ///
+    /// A sixteenth is not tight enough for what #98 wants and is not pretended to be. It is what
+    /// this instrument does, measured, so that the next thing built on it knows what it is standing
+    /// on.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(2, 20)]
+    [InlineData(4, 30)]
+    [InlineData(6, 40)]
+    public void The_reading_holds_still_when_the_settings_move(int page, double rotX)
+    {
+        _outputStatic = _output;
+
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-gridline-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        var pdf = File.ReadAllBytes(path);
+        var seen = new List<double>();
+
+        foreach (var scale in new[] { 8.0, 10.0 })
+        foreach (var slope in new[] { 0.6, 0.9, 1.3 })
+        foreach (var region in new[] { (150.0, 84.0, 354.0, 256.0), (147.0, 83.0, 357.0, 257.0) })
+        {
+            if (PdfRasterizer.Render(pdf, page, scale) is not { } r)
+            {
+                Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+                return;
+            }
+
+            var found = GridLines.Find(r, scale, Bluish, region, 250, mostSlope: slope, expect: 5);
+
+            Assert.Equal(5, found.Count);
+
+            var gaps = Enumerable.Range(1, 4).Select(i => found[i].At - found[i - 1].At).ToList();
+            seen.Add(gaps[0] / gaps[^1]);
+        }
+
+        var spread = (seen.Max() - seen.Min()) / seen.Average();
+
+        _output.WriteLine($"rotX {rotX}: {seen.Count} settings, {seen.Min():0.0000} to {seen.Max():0.0000}, " +
+                          $"spread {spread * 100:0.00}%");
+
+        Assert.True(spread < 0.0625, $"rotX {rotX}: the reading moves by {spread * 100:0.0}% across settings");
     }
 }
