@@ -1602,6 +1602,9 @@ internal static class ChartComposer
         // which is the order Word writes them in.
         if (chart.Kind is ChartKind.Line or ChartKind.Scatter or ChartKind.Stock)
         {
+            // Under the lines they hang from, which is where Word puts them.
+            operations.AddRange(HangingLines(chart, plan, theme));
+
             operations.AddRange(Lines(chart, plan, theme));
 
             // A stock chart's own drawing goes between the lines and the marks: the marks are
@@ -2579,32 +2582,78 @@ internal static class ChartComposer
     /// Which series is which is said by nothing but their order: three of them are the high, the
     /// low and the close, and four are the open, the high, the low and the close.
     /// </remarks>
-    private static IEnumerable<DrawingOperation> Trading(
+    /// <summary>
+    /// The lines a chart hangs from its points: down to the axis, and from the lowest of a
+    /// category's series to the highest.
+    /// </summary>
+    /// <remarks>
+    /// Both belong to the plot rather than to a series, and both are read from the plot element
+    /// whatever kind of chart it is — so a line chart carries them as readily as the stock chart
+    /// they are usually seen on. The high-low line was drawn only for a stock chart until now,
+    /// which was the gap: it was always being read.
+    ///
+    /// A drop line stops at the **category axis** rather than at the floor of the plot. The two
+    /// are the same thing until the scale runs below nought, which is what the probe's second page
+    /// is for: with a minimum of −20 Word's lines stop at the nought and not at the bottom.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> HangingLines(
         ChartDefinition chart, Plan plan, DocumentTheme theme)
     {
         var categories = Math.Max(1, chart.Categories.Count);
         var spanning = Spanning(chart);
 
-        if (chart.HighLowLines)
+        if (chart.DropLines)
         {
-            var colour = chart.HighLowLine is null
-                ? new DrawingColor(0, 0, 0)
-                : Resolve(chart.HighLowLine, theme);
+            var colour = chart.DropLine is null
+                ? new DrawingColor(0x89, 0x89, 0x89)
+                : Resolve(chart.DropLine, theme);
 
             for (var i = 0; i < categories; i++)
             {
-                var day = Day(chart, i);
-                if (day.Count < 2) continue;
+                var here = Day(chart, i);
+                if (here.Count == 0) continue;
 
                 var x = plan.PointAt(i, categories, spanning);
 
+                // One line to a category, from the point furthest from the axis rather than one
+                // per series: the lower ones would be drawn over by it and Word draws only the one.
+                var from = here.Max();
+                if (Math.Abs(here.Min()) > Math.Abs(from)) from = here.Min();
+
                 yield return new PathOperation(
                 [
-                    new PathStep(PathStepKind.Move, [(x, plan.PositionOf(day.Max()))]),
-                    new PathStep(PathStepKind.Line, [(x, plan.PositionOf(day.Min()))])
-                ], null, colour, chart.HighLowLineWidthPoints, EvenOdd: false);
+                    new PathStep(PathStepKind.Move, [(x, plan.PositionOf(from))]),
+                    new PathStep(PathStepKind.Line, [(x, plan.Crossing)])
+                ], null, colour, chart.DropLineWidthPoints, EvenOdd: false, RoundCap: true);
             }
         }
+
+        if (!chart.HighLowLines) yield break;
+
+        var highLow = chart.HighLowLine is null
+            ? new DrawingColor(0, 0, 0)
+            : Resolve(chart.HighLowLine, theme);
+
+        for (var i = 0; i < categories; i++)
+        {
+            var day = Day(chart, i);
+            if (day.Count < 2) continue;
+
+            var x = plan.PointAt(i, categories, spanning);
+
+            yield return new PathOperation(
+            [
+                new PathStep(PathStepKind.Move, [(x, plan.PositionOf(day.Max()))]),
+                new PathStep(PathStepKind.Line, [(x, plan.PositionOf(day.Min()))])
+            ], null, highLow, chart.HighLowLineWidthPoints, EvenOdd: false, RoundCap: true);
+        }
+    }
+
+    private static IEnumerable<DrawingOperation> Trading(
+        ChartDefinition chart, Plan plan, DocumentTheme theme)
+    {
+        var categories = Math.Max(1, chart.Categories.Count);
+        var spanning = Spanning(chart);
 
         // The bar between the opening and the closing, which only a chart holding both draws.
         if (chart.UpDownBars is not { } bars || chart.Series.Count < 4) yield break;

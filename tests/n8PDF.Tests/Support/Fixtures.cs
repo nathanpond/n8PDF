@@ -2219,6 +2219,101 @@ public static class Fixtures
         </c:chart>
         """;
 
+    /// <summary>
+    /// A line chart carrying drop lines, high-low lines or both, for measuring what Word draws.
+    /// </summary>
+    /// <remarks>
+    /// Painted the same red the trendline and error-bar probes use, and for the same reason: it
+    /// is what makes a thin line measurable against Word's, since nothing else on the page is red.
+    ///
+    /// A second series is written where <paramref name="two"/> asks for one, because a high-low
+    /// line needs two values in a category to span anything, and because it is what says which
+    /// point a drop line hangs from.
+    /// </remarks>
+    private static string DropLineProbeChart(
+        bool drop, bool highLow, bool two = false, double minimum = 0, double maximum = 80) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/>
+                <c:w val="0.7"/><c:h val="0.7"/>
+              </c:manualLayout>
+            </c:layout>
+            <c:lineChart>
+              <c:grouping val="standard"/>
+              <c:varyColors val="0"/>
+              {(drop ? """<c:dropLines><c:spPr><a:ln w="12700"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill></a:ln></c:spPr></c:dropLines>""" : string.Empty)}
+              {(highLow ? """<c:hiLowLines><c:spPr><a:ln w="12700"><a:solidFill><a:srgbClr val="C00000"/></a:solidFill></a:ln></c:spPr></c:hiLowLines>""" : string.Empty)}
+              {DropLineSeries(0, "Units", [30, 45, 20, 55], "4472C4")}
+              {(two ? DropLineSeries(1, "Others", [10, 25, 60, 15], "ED7D31") : string.Empty)}
+              <c:marker val="1"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:lineChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling>
+                <c:orientation val="minMax"/>
+                <c:max val="{maximum.ToString(CultureInfo.InvariantCulture)}"/>
+                <c:min val="{minimum.ToString(CultureInfo.InvariantCulture)}"/>
+              </c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
+    /// <summary>One series of the drop-line probe, drawn thin so the red stands clear of it.</summary>
+    private static string DropLineSeries(
+        int index, string name, IReadOnlyList<double> values, string hex) => $"""
+        <c:ser>
+          <c:idx val="{index}"/>
+          <c:order val="{index}"/>
+          <c:tx><c:strRef><c:f>Sheet1!$B${index + 1}</c:f>
+            <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>{name}</c:v></c:pt></c:strCache>
+          </c:strRef></c:tx>
+          <c:spPr><a:ln w="19050"><a:solidFill><a:srgbClr val="{hex}"/></a:solidFill></a:ln></c:spPr>
+          <c:marker><c:symbol val="none"/></c:marker>
+          <c:cat><c:strRef><c:f>Sheet1!$A$2:$A$5</c:f>
+            <c:strCache><c:ptCount val="4"/><c:pt idx="0"><c:v>North</c:v></c:pt><c:pt idx="1"><c:v>South</c:v></c:pt><c:pt idx="2"><c:v>East</c:v></c:pt><c:pt idx="3"><c:v>West</c:v></c:pt></c:strCache>
+          </c:strRef></c:cat>
+          <c:val><c:numRef><c:f>Sheet1!$B$2:$B$5</c:f>
+            <c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="4"/>
+              {string.Concat(values.Select((v, i) => $"<c:pt idx=\"{i}\"><c:v>{v.ToString(CultureInfo.InvariantCulture)}</c:v></c:pt>"))}
+            </c:numCache>
+          </c:numRef></c:val>
+          <c:smooth val="0"/>
+        </c:ser>
+        """;
+
     private static string ColumnChart() => $"""
         <c:chart>
           <c:autoTitleDeleted val="1"/>
@@ -4321,6 +4416,50 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 578, relationshipId: "rIdChart8") +
+                                 "</w:p>"),
+
+            // What Word draws for the lines a chart hangs from its points, one question to a page:
+            //
+            //   page 1  drop lines, one series             -> the line itself
+            //   page 2  drop lines, the scale below nought -> the axis, or the floor of the plot?
+            //   page 3  drop lines, two series             -> which point does it hang from?
+            //   page 4  high-low lines, two series         -> a line chart, not a stock one
+            //   page 5  both together                      -> that neither displaces the other
+            ["chart-drop-line-probe"] = () => new DocxBuilder()
+                .WithChart(DropLineProbeChart(drop: true, highLow: false))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(DropLineProbeChart(drop: true, highLow: false, minimum: -20)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(DropLineProbeChart(drop: true, highLow: false, two: true)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(DropLineProbeChart(drop: false, highLow: true, two: true)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(DropLineProbeChart(drop: true, highLow: true, two: true)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 581) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 582, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 583, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 584, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 585, relationshipId: "rIdChart5") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the

@@ -32,6 +32,9 @@ internal sealed class ContentStreamBuilder
 
     public ContentStreamBuilder SetLineWidth(double width) => Op($"{N(width)} w");
 
+    /// <summary>How a stroke ends: 0 square at the point, 1 rounded off past it.</summary>
+    public ContentStreamBuilder SetLineCap(int cap) => Op($"{cap} J");
+
     // ----- paths -----
 
     public ContentStreamBuilder MoveTo(double x, double y) => Op($"{N(x)} {N(y)} m");

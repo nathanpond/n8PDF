@@ -1735,8 +1735,18 @@ a legend on any of the four sides; and a number written at every point, in the f
 for and where the kind of chart puts it; and the trendlines a series carries, of all six kinds the
 format allows — straight, polynomial, exponential, logarithmic, power and a moving average — run
 forward or back past the data and forced through an intercept where the chart asks for it. What is
-not: drop lines, three-dimensional charts of any kind, and a legend or a title placed by hand
-rather than by side.
+not: three-dimensional charts of any kind, and a legend or a title placed by hand rather than by
+side.
+
+The lines a chart hangs from its points are drawn too — a drop line from each point down to the
+axis, and a high-low line from the lowest of a category's series to the highest. The second was
+always being *read*, and from the plot element whatever kind of chart it was; it was only ever
+drawn for a stock chart, so a line chart asking for one got nothing. Three things about them were
+measured. A drop line stops at the **category axis** rather than at the floor of the plot, which
+only shows once the scale runs below nought. Where a category holds several series the line hangs
+from the point furthest from the axis, not one line per series. And both are stroked with a
+**round cap**, which is what Word writes (`1 J`) and what makes a short line reach half its own
+width past each end.
 
 Error bars are drawn too, of all five kinds the format allows — a fixed amount, a share of each
 point, a multiple of the series' deviation, its standard error, and a distance stated for every
