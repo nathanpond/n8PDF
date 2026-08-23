@@ -1771,6 +1771,23 @@ corners, within six hundredths of a point. What is centred is the entry **less i
 centres a block 23.72 wide where the entry's own extent is 29.09, and the difference is a swatch.
 Down, the baseline sits at the middle of the box plus the same key drop used everywhere else here.
 
+A name too long for the box it is given is **wrapped**, not cut short. It breaks at a space where
+there is one and inside a word only where a single word will not fit — `alpha beta gamma delta
+epsilon` in a box of 64.8 points comes back as three lines and the alphabet in the same box as
+three of its own, broken wherever they had to be. The lines are centred across by the widest of
+them, and down it is the **baselines** that are centred rather than the line boxes: the first sits
+half the distance between the outermost baselines above the middle of the box, plus the same key
+drop used everywhere else, which for a single line is exactly the rule above. Where the box is too
+short to hold every line, the last one Word draws ends in an ellipsis. `chart-legend-cut-probe`
+settles all of it over nine pages.
+
+What a line is broken against is the box's width less **12.28**, which cannot be measured directly
+— where a line starts depends on the wrapping already done, since Word breaks first and centres
+what it broke. It is measured by its consequences instead: each page says the room held the line
+Word kept and refused the next thing it would have taken, and together they put the figure in
+(12.059, 12.5]. The middle is used, the way the cell margin Word puts in a table declaring none is
+settled at ten twips out of a possible seven to twelve.
+
 A legend of several entries in a sized box is laid out differently again — packed across a row with
 a gap that is not the one used along a foot, and sharing one left edge down a column rather than
 each row centring itself. Both are measured and neither is settled: every correction that fitted
