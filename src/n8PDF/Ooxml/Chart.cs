@@ -390,15 +390,42 @@ internal sealed record ChartLayout(double X, double Y, double Width, double Heig
 /// <see cref="Perspective"/> counts for nothing when <see cref="RightAngleAxes"/> is true, which is
 /// measured too: 30 and 0 draw the same picture there.
 /// </remarks>
+/// <param name="HeightPercent">
+/// How tall the box is as a percentage of its width, or **null** where the document does not say —
+/// which is not the same as any number.
+/// </param>
 internal sealed record ChartScene(
     double RotationX,
     double RotationY,
     int DepthPercent,
     bool RightAngleAxes,
-    double Perspective)
+    double Perspective,
+    double? HeightPercent = null)
 {
     /// <summary>The scene of a chart carrying no <c>c:view3D</c> at all.</summary>
     public static ChartScene Unstated { get; } = new(15, 20, 100, false, 30);
+
+    /// <summary>
+    /// How tall the box is against its width, given the plot area it is drawn in.
+    /// </summary>
+    /// <param name="plotWidth">How wide the plot area is.</param>
+    /// <param name="plotHeight">And how tall.</param>
+    /// <remarks>
+    /// **The absent element has no numeric default**, which is why <see cref="HeightPercent"/> is
+    /// nullable rather than defaulted to a hundred. Where the document says nothing, Word makes the
+    /// box as tall relative to its width as the **plot area** is — so what it falls back to depends
+    /// on the chart and cannot be written as a constant. A hundred is the schema's default and the
+    /// obvious guess, and it is a third out: it draws a box 114pt wide where Word draws one 172pt
+    /// wide on <c>chart-3d-height-probe</c>'s baseline.
+    ///
+    /// Measured by solving for the ratio from Word's own drawing: 0.507, 1.027 and 2.012 where the
+    /// element states 50, 100 and 200, and 2.007 for 200 in a plot area half again as tall — which
+    /// is what says it replaces the plot area's shape rather than scaling it.
+    /// </remarks>
+    public double HeightOverWidth(double plotWidth, double plotHeight) =>
+        HeightPercent is { } stated ? stated / 100
+        : plotWidth > 0 ? plotHeight / plotWidth
+        : 1;
 }
 
 internal sealed class ChartDefinition
@@ -976,7 +1003,10 @@ internal static class ChartReader
             // right-angle axes, and a picture 37% different from one refusing them.
             view.Element(Main + "rAngAx")?.Attribute("val")?.Value is not ("0" or "false"),
 
-            Number(view.Element(Main + "perspective")) ?? 30);
+            Number(view.Element(Main + "perspective")) ?? 30,
+
+            // Null where it is absent, and null is not a hundred: see ChartScene.HeightOverWidth.
+            Number(view.Element(Main + "hPercent")));
     }
 
     private static ChartAxis ReadAxis(XElement element, bool isValue)

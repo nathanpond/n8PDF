@@ -243,4 +243,54 @@ public class Chart3DSceneTests
         // And a flat chart has none, so nothing downstream has to ask whether it applies.
         Assert.Null(ChartReader.Parse(Part("barChart"))?.DepthAxis);
     }
+
+    /// <summary>
+    /// <c>c:hPercent</c> is read, and its absence is kept as an absence.
+    /// </summary>
+    /// <remarks>
+    /// The one child of <c>c:view3D</c> with no numeric default at all — see #109 and
+    /// <see cref="ChartScene.HeightOverWidth"/>. Where the document says nothing, Word makes the box
+    /// as tall relative to its width as the plot area is, which no constant reproduces because the
+    /// plot area can be any shape. So it is kept as null rather than defaulted, and the two cases
+    /// are asserted apart here as well as through the drawing.
+    ///
+    /// A hundred is the schema's default and the obvious wrong answer: it draws a box a third
+    /// narrower than Word's on <c>chart-3d-height-probe</c>'s baseline.
+    /// </remarks>
+    [Fact]
+    public void The_height_percentage_is_read_and_its_absence_is_kept_as_one()
+    {
+        Assert.Equal(250, Scene("bar3DChart",
+            "<c:view3D><c:hPercent val=\"250\"/></c:view3D>").HeightPercent);
+
+        // Absent in both of the ways a chart can be silent about it, and null in both.
+        Assert.Null(Scene("bar3DChart").HeightPercent);
+        Assert.Null(Scene("bar3DChart", "<c:view3D/>").HeightPercent);
+        Assert.Null(ChartScene.Unstated.HeightPercent);
+    }
+
+    /// <summary>
+    /// What the box's shape comes out as, stated and unstated.
+    /// </summary>
+    /// <remarks>
+    /// Stated, it is the percentage and the plot area has no say. Unstated, it is the plot area's
+    /// own shape and nothing else — which is the whole of why the absence cannot be written as a
+    /// number.
+    /// </remarks>
+    [Theory]
+    // Stated: the same answer whatever the plot area is.
+    [InlineData(200.0, 216, 118.8, 2.0)]
+    [InlineData(200.0, 216, 172.8, 2.0)]
+    [InlineData(50.0,  216, 118.8, 0.5)]
+    // Unstated: the plot area's shape, and it moves with it.
+    [InlineData(null,  216, 118.8, 0.55)]
+    [InlineData(null,  216, 172.8, 0.80)]
+    [InlineData(null,  288, 118.8, 0.4125)]
+    public void The_boxs_shape_follows_the_element_where_there_is_one_and_the_plot_area_where_not(
+        double? stated, double plotWidth, double plotHeight, double expected)
+    {
+        var scene = ChartScene.Unstated with { HeightPercent = stated };
+
+        Assert.Equal(expected, scene.HeightOverWidth(plotWidth, plotHeight), 6);
+    }
 }
