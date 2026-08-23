@@ -1771,6 +1771,18 @@ corners, within six hundredths of a point. What is centred is the entry **less i
 centres a block 23.72 wide where the entry's own extent is 29.09, and the difference is a swatch.
 Down, the baseline sits at the middle of the box plus the same key drop used everywhere else here.
 
+A legend up a side does not simply grow to hold the longest name it carries: past **0.3635 of the
+chart's width**, counting its key and the gap after it, Word wraps the name instead, and it is the
+wrapped width the plot gives way to. That share cannot be read off one chart — it was measured on
+five, from 240 points wide to 480, each saying the limit held the line Word kept and refused the
+next letter; together they put it in [0.3618, 0.3652) and the middle is used. Nothing had caught
+this because no fixture here carries a legend name anywhere near long enough to reach the limit,
+and the alphabet at ten point only just does.
+
+The lines of one entry sit a label's line height apart, consecutive entries a legend pitch apart,
+and the baselines as a whole are centred on the middle of the frame plus the key drop — which with
+one line to an entry is exactly what a side legend did before, so no ordinary chart moves.
+
 A name too long for the box it is given is **wrapped**, not cut short. It breaks at a space where
 there is one and inside a word only where a single word will not fit — `alpha beta gamma delta
 epsilon` in a box of 64.8 points comes back as three lines and the alphabet in the same box as
