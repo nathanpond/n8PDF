@@ -297,6 +297,26 @@ internal static class ChartComposer
     /// </remarks>
     public const double PlacedLegendKeyInset = 5.0;
 
+    /// <summary>
+    /// How much of a sized legend's width is not available to the words of a wrapped entry.
+    /// </summary>
+    /// <remarks>
+    /// A line is broken against the box's width less this. It cannot be measured directly, because
+    /// where a line *starts* depends on the wrapping that has already happened — Word breaks
+    /// against a width and only then centres what it broke. So it is measured by its consequences:
+    /// each of <c>chart-legend-cut-probe</c>'s nine pages says the room was at least enough for the
+    /// line Word kept and not enough for the next thing it would have taken, and together they put
+    /// this in **(12.059, 12.5]**. The box of 50.4 gives the upper end of the lower bound — it
+    /// keeps eight letters at 37.461 and refuses a ninth at 39.762 — and the page whose name has
+    /// spaces gives the tighter upper bound, keeping <c>delta epsilon</c> at 52.30 in a box of
+    /// 64.8.
+    ///
+    /// The middle of that interval is used, which is what this repository does elsewhere when a
+    /// value is bounded rather than pinned — the cell margin Word puts in a table that declares
+    /// none is settled the same way, "somewhere between seven and twelve twips; ten is used".
+    /// </remarks>
+    public const double WrappedLegendInset = 12.28;
+
     /// <summary>How far apart the entries of a legend up a side are, as a share of the type.</summary>
     private const double LegendPitch = 1.8083;
 
@@ -456,6 +476,10 @@ internal static class ChartComposer
     {
         foreach (var entry in Legend(chart, width, height, measure, labelHeight, titleRoom))
         {
+            // A line of a wrapped entry carries no key of its own — the entry's key belongs to
+            // its first line. See BoxedLegend.
+            if (entry.Swatch <= 0) continue;
+
             var series = !chart.Round && entry.Series < chart.Series.Count
                 ? chart.Series[entry.Series]
                 : null;
@@ -643,7 +667,7 @@ internal static class ChartComposer
         // but not settled; see the issue named on BoxedLegend. A legend of several falls through
         // to the corner placement, which is where it was before and is at least coherent.
         if (legend.Layout is { Width: > 0, Height: > 0 } box && entries.Count == 1)
-            return BoxedLegend(entries, box, width, height, size, swatch, head);
+            return BoxedLegend(entries, box, width, height, size, swatch, head, measure, labelHeight);
 
         if (legend.Position is "l" or "r")
         {
@@ -732,6 +756,62 @@ internal static class ChartComposer
     }
 
     /// <summary>
+    /// A legend entry's name broken into the lines the box will hold.
+    /// </summary>
+    /// <remarks>
+    /// At a space where there is one, and inside a word only where a single word will not fit —
+    /// which is what <c>chart-legend-cut-probe</c> shows: an alphabet with no spaces in it comes
+    /// back as <c>abcd</c>, <c>efghij</c>, <c>klmn</c>, while <c>alpha beta gamma delta epsilon</c>
+    /// in a box of the same width comes back as <c>alpha beta</c>, <c>gamma</c>,
+    /// <c>delta epsilon</c>. Word does not break a word it does not have to.
+    /// </remarks>
+    private static List<string> Wrap(
+        string text, double room, double size, Func<string, double, double> measure)
+    {
+        var lines = new List<string>();
+        if (text.Length == 0 || room <= 0) return [text];
+
+        var rest = text;
+
+        while (rest.Length > 0)
+        {
+            if (measure(rest, size) <= room)
+            {
+                lines.Add(rest);
+                break;
+            }
+
+            // The longest beginning that fits, then back to the last space within it.
+            var kept = rest.Length - 1;
+            while (kept > 1 && measure(rest[..kept], size) > room) kept--;
+
+            var space = rest.LastIndexOf(' ', Math.Min(kept, rest.Length - 1));
+
+            var cut = space > 0 ? space : kept;
+
+            lines.Add(rest[..cut]);
+            rest = rest[cut..].TrimStart();
+
+            // A room too narrow for even one character would otherwise never finish.
+            if (cut == 0) break;
+        }
+
+        return lines.Count > 0 ? lines : [text];
+    }
+
+    /// <summary>A line shortened until it and an ellipsis fit, which is how Word says there was more.</summary>
+    private static string Ellipsise(
+        string line, double room, double size, Func<string, double, double> measure)
+    {
+        const string more = "\u2026";
+
+        var kept = line.Length;
+        while (kept > 0 && measure(line[..kept] + more, size) > room) kept--;
+
+        return line[..kept] + more;
+    }
+
+    /// <summary>
     /// A legend laid out into the box a manual layout gives it, rather than up a side or along a
     /// foot.
     /// </summary>
@@ -768,7 +848,9 @@ internal static class ChartComposer
     /// </remarks>
     private static List<PlacedEntry> BoxedLegend(
         IReadOnlyList<LegendEntry> entries, ChartLayout box,
-        double width, double height, double size, double swatch, double head)
+        double width, double height, double size, double swatch, double head,
+        Func<string, double, double> measure,
+        Func<double, (double Ascent, double Descent)> labelHeight)
     {
         var placed = new List<PlacedEntry>();
 
@@ -779,19 +861,57 @@ internal static class ChartComposer
 
         var entry = entries[0];
 
-        var x = left + (across - (entry.Width - swatch)) / 2;
+        var room = across - WrappedLegendInset;
 
-        // The middle of the box, and then the drop from a key's middle to the baseline beside it,
-        // which is the same everywhere else in this file.
-        var baseline = top + down / 2 + size * LegendKeyDrop + LegendKeyDropFixed;
+        var (ascent, descent) = labelHeight(size);
+        var pitch = ascent + descent;
+        _ = ascent;
 
-        placed.Add(entry.Line
-            ? new PlacedEntry(entry.Text, x,
-                baseline - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
-                x + LegendLineHead, baseline, entry.Fill, entry.Series, true)
-            : new PlacedEntry(entry.Text,
-                x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2, swatch,
-                x + head, baseline, entry.Fill, entry.Series));
+        var lines = Wrap(entry.Text, room, size, measure);
+
+        // Only as many lines as the box is tall enough for, and the last of those says there was
+        // more by ending in an ellipsis.
+        var most = Math.Max(1, (int)Math.Floor(down / pitch));
+
+        if (lines.Count > most)
+        {
+            var last = lines[most - 1];
+            lines = lines.Take(most).ToList();
+            lines[most - 1] = Ellipsise(last, room, size, measure);
+        }
+
+        var widest = 0.0;
+        foreach (var line in lines) widest = Math.Max(widest, measure(line, size));
+
+        // Across, the block is centred by its widest line — the single-line rule said of several.
+        //
+        // Down, it is the **baselines** that are centred rather than the line boxes: the first sits
+        // half the distance between the outermost baselines above the middle of the box, and then
+        // the key drop. For one line that is the middle of the box plus the drop, which is exactly
+        // what the single-line case already did, so this generalises it rather than replacing it.
+        // Measured: three lines land on 100.32 against Word's 100.32, one on 112.56 against
+        // 112.56, and two and four within half a grid step.
+        var x = left + (across - (head + widest - swatch)) / 2;
+
+        var first = top + (down - (lines.Count - 1) * pitch) / 2 +
+                    size * LegendKeyDrop + LegendKeyDropFixed;
+
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var baseline = first + i * pitch;
+
+            // The key belongs to the entry, not to each of its lines, so only the first carries
+            // one. A swatch of nothing is what says so; Keys passes over it.
+            var carries = i == 0;
+
+            placed.Add(entry.Line && carries
+                ? new PlacedEntry(lines[i], x,
+                    baseline - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
+                    x + LegendLineHead, baseline, entry.Fill, entry.Series, true)
+                : new PlacedEntry(lines[i],
+                    x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2,
+                    carries ? swatch : 0, x + head, baseline, entry.Fill, entry.Series));
+        }
 
         return placed;
     }

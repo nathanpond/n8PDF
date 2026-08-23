@@ -2412,6 +2412,87 @@ public static class Fixtures
     /// the size and the number of entries, which is what a rule about a *box* has to be measured
     /// against. There is no title, so nothing but the legend and the plot can move.
     /// </remarks>
+    /// <summary>
+    /// A chart with one long-named series and a sized legend, for measuring where Word cuts it.
+    /// </summary>
+    /// <remarks>
+    /// One entry a page on purpose. The evidence that started this came from legends of two and
+    /// three, where the packing of a row and the dropping of an entry that will not fit are
+    /// confounded with the cutting; a single entry leaves only the cutting.
+    ///
+    /// The name is the alphabet because the drawn text then says outright where the cut fell. A
+    /// repeated letter would give a width and leave the count to be worked out; this gives the
+    /// count directly and the width as a check on it.
+    ///
+    /// The plot is stated rather than left to Word, unlike the first draft of this probe. How much
+    /// room a legend given a size takes off the plot is a question of its own — and one this does
+    /// not answer, since the answer turned out not to depend on the size at all. Stating the plot
+    /// keeps that out of a fixture whose business is where the words break. See #91.
+    /// </remarks>
+    private static string LegendCutProbeChart(double boxWidth, string name = "abcdefghijklmnopqrstuvwxyz") => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout>
+              <c:manualLayout>
+                <c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.12"/><c:y val="0.1"/><c:w val="0.5"/><c:h val="0.7"/>
+              </c:manualLayout>
+            </c:layout>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, name,
+                  ["One", "Two", "Three", "Four"], [30, 45, 20, 55], "4472C4")}
+              <c:gapWidth val="150"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:legend>
+            <c:legendPos val="r"/>
+            <c:layout><c:manualLayout>
+              <c:xMode val="edge"/><c:yMode val="edge"/>
+              <c:x val="0.1"/><c:y val="0.05"/>
+              <c:w val="{boxWidth.ToString(CultureInfo.InvariantCulture)}"/><c:h val="0.25"/>
+            </c:manualLayout></c:layout>
+            <c:overlay val="0"/>
+            <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1000"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>
+          </c:legend>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string LegendSizeProbeChart(
         (double X, double Y) corner, (double W, double H)? size, bool two) => $"""
         <c:chart>
@@ -4943,6 +5024,83 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 624, relationshipId: "rIdChart4") +
+                                 "</w:p>"),
+
+            // Where Word cuts a legend's name when the box a manual layout gives it is too
+            // narrow to hold the whole of it. One entry a page, the alphabet as the name so the
+            // drawn text says where the cut fell, and eight box widths so the rule is read off
+            // several points rather than fitted to one.
+            //
+            //   pages 1-8: boxes of 0.1, 0.14, 0.18, 0.22, 0.26, 0.3, 0.45, 0.75 of the chart's width
+            //   page 9:    the same box as page 3, with a name that has spaces in it, since where
+            //              a name breaks cannot be read off an alphabet that has none
+            ["chart-legend-cut-probe"] = () => new DocxBuilder()
+                .WithChart(LegendCutProbeChart(0.1))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.14)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.18)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.22)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.26)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.3)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.45)),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.75)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendCutProbeChart(0.18, "alpha beta gamma delta epsilon")),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 641) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 642, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 643, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 644, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 645, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 646, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 647, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 648, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 649, relationshipId: "rIdChart9") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the
