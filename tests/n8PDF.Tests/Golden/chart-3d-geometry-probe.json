@@ -1,0 +1,236 @@
+{
+  "pageCount": 11,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 20.824, "font": "Calibri", "size": 11, "text": "base"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.606, "font": "Calibri", "size": 11, "text": "rect wider"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 61.821, "font": "Calibri", "size": 11, "text": "rect narrower"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 43.441, "font": "Calibri", "size": 11, "text": "rect taller"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 52.841, "font": "Calibri", "size": 11, "text": "rect shorter"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 50.939, "font": "Calibri", "size": 11, "text": "rect moved"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 331.2,
+          "height": 259.2,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 341.76,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 53.673, "font": "Calibri", "size": 11, "text": "chart bigger"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 372,
+          "height": 300,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 382.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 59.979, "font": "Calibri", "size": 11, "text": "chart squarer"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 16,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 63.787, "font": "Calibri", "size": 11, "text": "another scene"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 18,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 63.755, "font": "Calibri", "size": 11, "text": "that one taller"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 20,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 82.135, "font": "Calibri", "size": 11, "text": "that one narrower"}
+          ]
+        }
+      ]
+    }
+  ]
+}
