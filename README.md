@@ -1800,12 +1800,37 @@ Word kept and refused the next thing it would have taken, and together they put 
 (12.059, 12.5]. The middle is used, the way the cell margin Word puts in a table declaring none is
 settled at ten twips out of a possible seven to twelve.
 
-A legend of several entries in a sized box is laid out differently again — packed across a row with
-a gap that is not the one used along a foot, and sharing one left edge down a column rather than
-each row centring itself. Both are measured and neither is settled: every correction that fitted
-one broke the other, which is what a guessed rule looks like. Such a legend keeps the corner
-placement instead, which is where it was before. `chart-legend-size-probe` holds the settled cases
-and the open one is written down with its numbers.
+A legend of **several** entries in a sized box is settled too, and it took a probe that moved one
+dimension at a time to do it — the earlier attempts moved both, so a rule fitted to one page kept
+moving another. They go in a single row where the row fits across the box and one to a row where it
+does not, all or none: three entries coming to 144.27 across make one row in boxes 180, 198 and 306
+wide, and three rows in boxes 54 and 108. Height has no part in that choice, which is what four
+pages holding the width at 180 and taking the height from 21.6 to 172.8 are there to say.
+
+Along a row, what the box has left over is **shared out** between the two margins and the gaps, all
+equal: the same three entries sit 14.20 apart in a box 198 wide and 41.20 apart in one 306 wide, so
+a constant gap fits neither. The one wrinkle is that the left margin is measured to the key and the
+right to the end of the words, which leaves them a swatch apart on the page; where that swatch
+splits is the only fitted number here, and a legend of one entry — where the split has no room to
+hide — pins its total.
+
+Down a column the entries share **one** left edge, centred by the widest of them rather than each
+centring itself. And every row's first baseline sits the same distance into its share, set by the
+**tallest** entry in the legend rather than by its own: three entries in a box 129.6 tall get
+shares of 43.2 and first baselines 12.24 into each — including the two that are a single line,
+where centring those on themselves would put them at 24.24. A box whose entries are all one line
+does put them at 24.24. So the offset is a property of the legend, not of the entry.
+
+A box too short for what it holds neither overflows nor shrinks anything: it stops drawing the
+**last** entry, and asks again of what is left, so dropping one makes the remaining shares larger.
+A box 54 wide gives the third entry three lines, and taking the height down through 108, 86.4, 64.8
+and 36.72 makes Word draw three, two, two and one. What each entry needs is the tallest entry's
+block and half a line besides — bounded by those pages to above two pitches and a bit over a third
+and at most two and two thirds, with the middle used. The dropped entry still counts: two survivors
+in a box 86.4 tall are spaced around the three-line entry that is not there. Yet across, the
+survivors are centred on themselves alone — the box that keeps only the first entry centres that
+entry on its own words. The asymmetry is Word's, and reproducing Word is the point.
+`chart-legend-box-probe` settles all of it over twelve pages.
 
 The lines a chart hangs from its points are drawn too — a drop line from each point down to the
 axis, and a high-low line from the lowest of a category's series to the highest. The second was

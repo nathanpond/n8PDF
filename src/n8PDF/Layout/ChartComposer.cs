@@ -318,6 +318,50 @@ internal static class ChartComposer
     public const double WrappedLegendInset = 12.28;
 
     /// <summary>
+    /// How much of a swatch sits left of where a boxed legend's spacing is measured to.
+    /// </summary>
+    /// <remarks>
+    /// A legend laid out into a box shares the width it has left over equally between the margins
+    /// and the gaps — but the left margin is measured to the key and the right one to the end of
+    /// the words, so the two are not equal on the page: the left is longer by exactly a swatch.
+    /// This is where that swatch is split. It is not a free constant: a legend of one entry pins
+    /// the sum at a whole swatch (that is the #83 measurement, which centres the block on the
+    /// key-to-words extent), and one of three pins the difference, so the split follows.
+    ///
+    /// Measured on <c>chart-legend-box-probe</c>, whose three entries are laid across boxes 180,
+    /// 198 and 306 wide. Those give gaps of 9.70, 14.20 and 41.20 and first keys 15.36, 15.36 and
+    /// 42.36 inside the box, all of which this reproduces to within a twentieth of a point — and
+    /// a hundredth on the two that are not rounded. Nought or a half in place of it misses the
+    /// first word by one and a half points, which the position comparison would not pass.
+    /// </remarks>
+    public const double BoxedLegendLeadIn = 0.2214;
+
+    /// <summary>
+    /// How much of a line, over and above the ones between its baselines, a boxed legend's entries
+    /// each need before the legend gives up its last one.
+    /// </summary>
+    /// <remarks>
+    /// A legend in a box too short for its entries does not overflow and does not shrink them: it
+    /// stops drawing the last one, and asks again of what is left. So a box takes three entries or
+    /// two or one, and the ones it drops are simply absent from the picture.
+    ///
+    /// What each entry needs is the tallest entry's block — the distance between its outermost
+    /// baselines — and this much of a line besides. Measured on <c>chart-legend-box-probe</c>'s
+    /// last four pages, where a box 54 wide gives the third entry three lines and the height is
+    /// then taken down: at shares of 36.00 and 32.40 Word draws them and at 28.80 and below it
+    /// does not, so the need is above two pitches and a bit over a third and at most two and two
+    /// thirds. Two and a half is the middle of that — two pitches for the block and the half a
+    /// pitch this constant is — the same way the cell margin in README's table is put at ten twips
+    /// for being the middle of seven to twelve.
+    ///
+    /// The tallest is over **all** the entries, the dropped ones included. That reads as a mistake
+    /// and is not: dropping the third entry of a box 86.4 tall leaves two, and Word sets those two
+    /// 12.24 below their share tops rather than the 24.36 that centring a single line would give —
+    /// the absent entry is still what the survivors are spaced around.
+    /// </remarks>
+    public const double BoxedLegendCrowding = 0.5;
+
+    /// <summary>
     /// The most of a chart's width a legend up its side may take, including its key and the gap
     /// after it.
     /// </summary>
@@ -717,11 +761,7 @@ internal static class ChartComposer
         // side or along a foot: as many entries to a row as the width holds, the rows shared out
         // evenly down the height, and each row's block centred across. Measured from
         // chart-legend-size-probe — see BoxedLegend.
-        // Only a legend of one entry. What Word does with several in a box is a different layout
-        // again — it packs them across the row and shares a left edge down it — and is measured
-        // but not settled; see the issue named on BoxedLegend. A legend of several falls through
-        // to the corner placement, which is where it was before and is at least coherent.
-        if (legend.Layout is { Width: > 0, Height: > 0 } box && entries.Count == 1)
+        if (legend.Layout is { Width: > 0, Height: > 0 } box)
             return BoxedLegend(entries, box, width, height, size, swatch, head, measure, labelHeight);
 
         if (legend.Position is "l" or "r")
@@ -929,14 +969,24 @@ internal static class ChartComposer
     /// difference is a swatch. With that, all three of the probe's one-entry pages land within six
     /// hundredths of a point.
     ///
-    /// **Only one entry.** A legend of several in a box is laid out differently again: two entries
-    /// in a box 108 wide go side by side, and in a box 54 wide they stack — but with a gap between
-    /// them along a row that is not the gap this file uses along a foot, and sharing one left edge
-    /// down a column rather than each row centring itself. Both are measured on
-    /// <c>chart-legend-size-probe</c>'s own pages and neither is settled: every correction that
-    /// fitted one of them broke the other, which is the shape of a rule being guessed rather than
-    /// measured. See #87. A legend of several entries therefore keeps the corner placement #76
-    /// gave it.
+    /// **Several entries.** They go in one row if the row fits across the box, and one to a row if
+    /// it does not — all or none, never two across and a third below. Measured on
+    /// <c>chart-legend-box-probe</c>, whose three entries come to 144.27 across: in boxes 180, 198
+    /// and 306 wide Word draws one row, and in boxes 54 and 108 wide it draws three. The threshold
+    /// is therefore somewhere in 108..180 and the box's own width is the natural reading of it,
+    /// but it is bounded rather than pinned — nothing here sits near enough the edge to say.
+    ///
+    /// The rows then share the height evenly, and every row's first baseline sits the same way
+    /// inside its share, set by the **tallest** entry in the legend rather than by its own. That
+    /// is the odd one and it is what the probe's fourth page shows: three entries in a box 129.6
+    /// tall get shares of 43.2 and first baselines 12.24 into each, including the two that are a
+    /// single line — where centring each on its own line would put those at 24.24. The fifth page,
+    /// whose entries are all one line, does put them at 24.24. So the offset is a property of the
+    /// legend, not of the entry, and this reproduces that.
+    ///
+    /// Across a row, see <see cref="BoxedLegendLeadIn"/>. Down a column, the entries share one
+    /// left edge, centred by the widest of them — which lands within a hundredth of Word on both
+    /// of the probe's stacked pages.
     /// </remarks>
     private static List<PlacedEntry> BoxedLegend(
         IReadOnlyList<LegendEntry> entries, ChartLayout box,
@@ -944,6 +994,8 @@ internal static class ChartComposer
         Func<string, double, double> measure,
         Func<double, (double Ascent, double Descent)> labelHeight)
     {
+        _ = head;
+
         var placed = new List<PlacedEntry>();
 
         var left = box.X * width;
@@ -951,61 +1003,126 @@ internal static class ChartComposer
         var across = box.Width * width;
         var down = box.Height * height;
 
-        var entry = entries[0];
-
-        var room = across - WrappedLegendInset;
-
         var (ascent, descent) = labelHeight(size);
         var pitch = ascent + descent;
-        _ = ascent;
+        var drop = size * LegendKeyDrop + LegendKeyDropFixed;
+        var leadIn = swatch * BoxedLegendLeadIn;
 
-        var lines = Wrap(entry.Text, room, size, measure);
+        // Each entry's own head, since a line key leads with more than a swatch does, and the row
+        // this would make of them all.
+        var leads = new double[entries.Count];
+        var content = 0.0;
 
-        // Only as many lines as the box is tall enough for, and the last of those says there was
-        // more by ending in an ellipsis.
-        var most = Math.Max(1, (int)Math.Floor(down / pitch));
-
-        if (lines.Count > most)
+        for (var i = 0; i < entries.Count; i++)
         {
-            var last = lines[most - 1];
-            lines = lines.Take(most).ToList();
-            lines[most - 1] = Ellipsise(last, room, size, measure);
+            leads[i] = entries[i].Width - measure(entries[i].Text, size);
+            content += entries[i].Width;
         }
 
-        var widest = 0.0;
-        foreach (var line in lines) widest = Math.Max(widest, measure(line, size));
-
-        // Across, the block is centred by its widest line — the single-line rule said of several.
-        //
-        // Down, it is the **baselines** that are centred rather than the line boxes: the first sits
-        // half the distance between the outermost baselines above the middle of the box, and then
-        // the key drop. For one line that is the middle of the box plus the drop, which is exactly
-        // what the single-line case already did, so this generalises it rather than replacing it.
-        // Measured: three lines land on 100.32 against Word's 100.32, one on 112.56 against
-        // 112.56, and two and four within half a grid step.
-        var x = left + (across - (head + widest - swatch)) / 2;
-
-        var first = top + (down - (lines.Count - 1) * pitch) / 2 +
-                    size * LegendKeyDrop + LegendKeyDropFixed;
-
-        for (var i = 0; i < lines.Count; i++)
+        if (content <= across)
         {
-            var baseline = first + i * pitch;
+            // One row. What the box has left over is shared between the two margins and the gaps
+            // between entries, all equal — measured to the key on the left and to the end of the
+            // words on the right, which is the swatch BoxedLegendLeadIn splits.
+            var gap = (across - content + swatch - 2 * leadIn) / (entries.Count + 1);
+            var baseline = top + down / 2 + drop;
+            var x = left + gap + leadIn;
 
-            // The key belongs to the entry, not to each of its lines, so only the first carries
-            // one. A swatch of nothing is what says so; Keys passes over it.
-            var carries = i == 0;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                placed.Add(Place(entries[i], entries[i].Text, x, leads[i], baseline, true));
+                x += entries[i].Width + gap;
+            }
 
-            placed.Add(entry.Line && carries
-                ? new PlacedEntry(lines[i], x,
-                    baseline - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
-                    x + LegendLineHead, baseline, entry.Fill, entry.Series, true)
-                : new PlacedEntry(lines[i],
-                    x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2,
-                    carries ? swatch : 0, x + head, baseline, entry.Fill, entry.Series));
+            return placed;
+        }
+
+        // One entry to a row. Each wraps into the box's width first, since how many lines it takes
+        // is what the shares are then laid out around.
+        var room = across - WrappedLegendInset;
+
+        var wrapped = new List<List<string>>(entries.Count);
+        var tallest = 1;
+
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var lines = Wrap(entries[i].Text, room, size, measure);
+
+            wrapped.Add(lines);
+            tallest = Math.Max(tallest, lines.Count);
+        }
+
+        // How many are drawn at all. A share too short for the tallest entry costs the legend its
+        // last entry rather than overflowing, and it is asked again of what is left — a box that
+        // will not take three may still take two. See the remarks: the tallest is over all of them,
+        // the dropped included, which is why this is not simply a matter of what fits.
+        var need = (tallest - 1 + BoxedLegendCrowding) * pitch;
+        var drawn = entries.Count;
+
+        while (drawn > 1 && down / drawn < need) drawn--;
+
+        var share = down / drawn;
+
+        // A legend of one keeps the ellipsis #83 measured for it: only as many lines as the box is
+        // tall enough for, the last of them saying there was more. Several do not — Word draws a
+        // three-line entry whole in a share of 36 that holds only two, which is the eighth page.
+        if (entries.Count == 1)
+        {
+            var most = Math.Max(1, (int)Math.Floor(down / pitch));
+
+            if (wrapped[0].Count > most)
+            {
+                var last = wrapped[0][most - 1];
+                wrapped[0] = wrapped[0].Take(most).ToList();
+                wrapped[0][most - 1] = Ellipsise(last, room, size, measure);
+
+                tallest = most;
+            }
+        }
+
+        // The widest is over the entries that are actually drawn, where the tallest above was over
+        // all of them. That asymmetry is Word's and it is what the twelfth page shows: a box that
+        // keeps only the first entry centres that entry on its own words, while still spacing it
+        // as though the two it dropped were there.
+        var widest = 0.0;
+
+        for (var i = 0; i < drawn; i++)
+        foreach (var line in wrapped[i])
+            widest = Math.Max(widest, leads[i] + measure(line, size));
+
+        // The shared left edge. One entry drawn keeps the half-swatch #83 measured for it against
+        // chart-legend-size-probe, and the twelfth page here agrees with it to within a
+        // sixteenth of a point — which is worth saying, since that page reaches one entry by
+        // dropping two rather than by having one. Several take the lead-in instead. The two
+        // disagree by a point and a half and both are exact where they were read, so both are
+        // kept rather than one being averaged away.
+        var edge = left + (across - widest) / 2 + (drawn == 1 ? swatch / 2 : leadIn);
+
+        // The baselines, not the line boxes, are what is centred: the first sits half the distance
+        // between the outermost baselines of the tallest entry above the middle of the share, and
+        // then the key drop.
+        var block = (tallest - 1) * pitch;
+
+        for (var i = 0; i < drawn; i++)
+        {
+            var first = top + i * share + (share - block) / 2 + drop;
+
+            for (var j = 0; j < wrapped[i].Count; j++)
+            {
+                // The key belongs to the entry, not to each of its lines, so only the first
+                // carries one. A swatch of nothing is what says so; Keys passes over it.
+                placed.Add(Place(entries[i], wrapped[i][j], edge, leads[i], first + j * pitch, j == 0));
+            }
         }
 
         return placed;
+
+        PlacedEntry Place(LegendEntry entry, string text, double x, double lead, double baseline, bool carries)
+            => entry.Line && carries
+                ? new PlacedEntry(text, x, baseline - (size * LegendLineDrop + LegendLineDropFixed),
+                    LegendLineKey, x + lead, baseline, entry.Fill, entry.Series, true)
+                : new PlacedEntry(text, x, baseline - drop - swatch / 2,
+                    carries ? swatch : 0, x + lead, baseline, entry.Fill, entry.Series);
     }
 
     /// <summary>One number written at a point, and where it goes.</summary>
