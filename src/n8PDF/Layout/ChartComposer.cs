@@ -634,6 +634,17 @@ internal static class ChartComposer
 
         var placed = new List<PlacedEntry>();
 
+        // A legend given a size as well as a corner is laid out into that box rather than up a
+        // side or along a foot: as many entries to a row as the width holds, the rows shared out
+        // evenly down the height, and each row's block centred across. Measured from
+        // chart-legend-size-probe — see BoxedLegend.
+        // Only a legend of one entry. What Word does with several in a box is a different layout
+        // again — it packs them across the row and shares a left edge down it — and is measured
+        // but not settled; see the issue named on BoxedLegend. A legend of several falls through
+        // to the corner placement, which is where it was before and is at least coherent.
+        if (legend.Layout is { Width: > 0, Height: > 0 } box && entries.Count == 1)
+            return BoxedLegend(entries, box, width, height, size, swatch, head);
+
         if (legend.Position is "l" or "r")
         {
             // Up a side: one entry to a line, the whole block centred on the middle of the frame,
@@ -716,6 +727,71 @@ internal static class ChartComposer
 
             x += entry.Width + gap;
         }
+
+        return placed;
+    }
+
+    /// <summary>
+    /// A legend laid out into the box a manual layout gives it, rather than up a side or along a
+    /// foot.
+    /// </summary>
+    /// <remarks>
+    /// A corner alone leaves the entries running down it the way they always did — that is #76.
+    /// A corner **and a size** is a different thing: Word fits the entries to the box.
+    ///
+    /// Three rules, all from <c>chart-legend-size-probe</c>:
+    ///
+    /// **Across, the row is centred in the stated width.** One entry in a box 108 wide starts its
+    /// word at 50 inside the corner, and the same entry in a box 180 wide starts it at 86 — which
+    /// is one block width of 33.72 centred in each, the same block both times.
+    ///
+    /// **Down, the rows share the stated height evenly.** Each row sits in the middle of its own
+    /// share: one row in a box 54 tall puts its baseline 29.76 below the corner, which is half of
+    /// 54 plus the key drop this file already uses everywhere else; two rows in the same box put
+    /// theirs at 16.08 and 43.2, which is half of 27 and one and a half of 27, plus the same drop.
+    /// The pitch that follows — 27.12 measured — is not the pitch of a legend up a side; it is
+    /// whatever the box divides into.
+    ///
+    /// **What is centred is the entry less its key.** The block Word centres is 23.72 wide for an
+    /// entry whose own extent — the gap before its word plus the word — is 29.09, and the
+    /// difference is a swatch. With that, all three of the probe's one-entry pages land within six
+    /// hundredths of a point.
+    ///
+    /// **Only one entry.** A legend of several in a box is laid out differently again: two entries
+    /// in a box 108 wide go side by side, and in a box 54 wide they stack — but with a gap between
+    /// them along a row that is not the gap this file uses along a foot, and sharing one left edge
+    /// down a column rather than each row centring itself. Both are measured on
+    /// <c>chart-legend-size-probe</c>'s own pages and neither is settled: every correction that
+    /// fitted one of them broke the other, which is the shape of a rule being guessed rather than
+    /// measured. See #87. A legend of several entries therefore keeps the corner placement #76
+    /// gave it.
+    /// </remarks>
+    private static List<PlacedEntry> BoxedLegend(
+        IReadOnlyList<LegendEntry> entries, ChartLayout box,
+        double width, double height, double size, double swatch, double head)
+    {
+        var placed = new List<PlacedEntry>();
+
+        var left = box.X * width;
+        var top = box.Y * height;
+        var across = box.Width * width;
+        var down = box.Height * height;
+
+        var entry = entries[0];
+
+        var x = left + (across - (entry.Width - swatch)) / 2;
+
+        // The middle of the box, and then the drop from a key's middle to the baseline beside it,
+        // which is the same everywhere else in this file.
+        var baseline = top + down / 2 + size * LegendKeyDrop + LegendKeyDropFixed;
+
+        placed.Add(entry.Line
+            ? new PlacedEntry(entry.Text, x,
+                baseline - (size * LegendLineDrop + LegendLineDropFixed), LegendLineKey,
+                x + LegendLineHead, baseline, entry.Fill, entry.Series, true)
+            : new PlacedEntry(entry.Text,
+                x, baseline - size * LegendKeyDrop - LegendKeyDropFixed - swatch / 2, swatch,
+                x + head, baseline, entry.Fill, entry.Series));
 
         return placed;
     }

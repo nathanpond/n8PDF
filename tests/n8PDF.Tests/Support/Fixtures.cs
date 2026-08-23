@@ -2403,6 +2403,81 @@ public static class Fixtures
     /// but stating it is still the better fixture: it measures placement against a weight that
     /// cannot drift, and <c>chart-title-weight-probe</c> is where the default itself is measured.
     /// </remarks>
+    /// <summary>
+    /// A chart whose legend is placed by hand and given a size, for measuring what the size does.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="PlacementProbeChart"/> because the question is different. That one
+    /// settled where a stated corner puts a legend, and its pages state no size at all; this varies
+    /// the size and the number of entries, which is what a rule about a *box* has to be measured
+    /// against. There is no title, so nothing but the legend and the plot can move.
+    /// </remarks>
+    private static string LegendSizeProbeChart(
+        (double X, double Y) corner, (double W, double H)? size, bool two) => $"""
+        <c:chart>
+          <c:autoTitleDeleted val="1"/>
+          <c:plotArea>
+            <c:layout/>
+            <c:barChart>
+              <c:barDir val="col"/>
+              <c:grouping val="clustered"/>
+              <c:varyColors val="0"/>
+              {DocxBuilder.ChartSeries(0, "Units", ["North", "South", "East", "West"],
+                  [30, 45, 20, 55], "4472C4")}
+              {(two
+                  ? DocxBuilder.ChartSeries(1, "Others", ["North", "South", "East", "West"],
+                      [10, 25, 40, 15], "ED7D31")
+                  : string.Empty)}
+              <c:gapWidth val="150"/>
+              <c:axId val="111111111"/>
+              <c:axId val="222222222"/>
+            </c:barChart>
+            <c:catAx>
+              <c:axId val="111111111"/>
+              <c:scaling><c:orientation val="minMax"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="b"/>
+              <c:crossAx val="222222222"/>
+              <c:crosses val="autoZero"/>
+              <c:auto val="1"/>
+              <c:lblAlgn val="ctr"/>
+              <c:lblOffset val="100"/>
+              <c:noMultiLvlLbl val="0"/>
+            </c:catAx>
+            <c:valAx>
+              <c:axId val="222222222"/>
+              <c:scaling><c:orientation val="minMax"/><c:max val="60"/><c:min val="0"/></c:scaling>
+              <c:delete val="0"/>
+              <c:axPos val="l"/>
+              <c:majorGridlines/>
+              <c:numFmt formatCode="General" sourceLinked="1"/>
+              <c:majorTickMark val="none"/>
+              <c:minorTickMark val="none"/>
+              <c:tickLblPos val="nextTo"/>
+              <c:crossAx val="111111111"/>
+              <c:crosses val="autoZero"/>
+              <c:crossBetween val="between"/>
+              <c:majorUnit val="20"/>
+            </c:valAx>
+          </c:plotArea>
+          <c:legend>
+            <c:legendPos val="r"/>
+            <c:layout><c:manualLayout>
+              <c:xMode val="edge"/><c:yMode val="edge"/>
+              <c:x val="{corner.X.ToString(CultureInfo.InvariantCulture)}"/>
+              <c:y val="{corner.Y.ToString(CultureInfo.InvariantCulture)}"/>
+              {(size is { } z
+                  ? $"<c:w val=\"{z.W.ToString(CultureInfo.InvariantCulture)}\"/><c:h val=\"{z.H.ToString(CultureInfo.InvariantCulture)}\"/>"
+                  : string.Empty)}
+            </c:manualLayout></c:layout>
+            <c:overlay val="0"/>
+            <c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1000"/></a:pPr><a:endParaRPr lang="en-GB"/></a:p></c:txPr>
+          </c:legend>
+          <c:plotVisOnly val="1"/>
+          <c:dispBlanksAs val="gap"/>
+        </c:chart>
+        """;
+
     private static string PlacementProbeChart(
         (double X, double Y)? title = null, (double X, double Y)? legend = null,
         bool overlayTitle = false, bool overlayLegend = false,
@@ -4825,6 +4900,49 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 614, relationshipId: "rIdChart4") +
+                                 "</w:p>"),
+
+            // What a stated size does to a legend that is also placed by hand. #76 settled the
+            // corner with no size; this varies the size, the corner and the number of entries,
+            // because a rule about a box cannot be told from a coincidence on one measurement.
+            //
+            //   page 1  one entry,  corner (0.1, 0.05), size (0.3, 0.25)  -> the known point
+            //   page 2  one entry,  corner (0.5, 0.40), size (0.3, 0.25)  -> the corner, or the box?
+            //   page 3  one entry,  corner (0.1, 0.05), size (0.5, 0.40)  -> what the size changes
+            //   page 4  two entries, corner (0.1, 0.05), no size          -> the control
+            //
+            // Two pages measuring a *sized* legend of several entries were written and taken out
+            // again: Word lays those into the box differently — packed across a row with a gap
+            // that is not the one used along a foot, and sharing a left edge down a column rather
+            // than each row centring itself — and neither rule is settled. See #87, which carries
+            // both measurements.
+            ["chart-legend-size-probe"] = () => new DocxBuilder()
+                .WithChart(LegendSizeProbeChart((0.1, 0.05), (0.3, 0.25), two: false))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendSizeProbeChart((0.5, 0.4), (0.3, 0.25), two: false)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendSizeProbeChart((0.1, 0.05), (0.5, 0.4), two: false)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(LegendSizeProbeChart((0.1, 0.05), null, two: true)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 621) + "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 622, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 623, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 624, relationshipId: "rIdChart4") +
                                  "</w:p>"),
 
             // What Word draws for a trendline, one kind to a page so that a divergence names the

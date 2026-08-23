@@ -1764,8 +1764,19 @@ it half a title's height too high — 12.96pt on the probe, now exact. And `c:ov
 "do not draw" where it means "do not take room", so an overlaid legend was being dropped from the
 picture altogether; Word draws one and now so does this.
 
-What a stated `c:w` and `c:h` do to a hand-placed legend is not settled: Word moves it again, and
-one placement was not enough to say how.
+A stated `c:w` and `c:h` alongside the corner is a different thing again: the legend is laid into
+that box rather than run down from the corner. For a legend of **one** entry that is settled and
+exact — the entry is centred in the box across and down, at two widths, two heights and two
+corners, within six hundredths of a point. What is centred is the entry **less its key**: Word
+centres a block 23.72 wide where the entry's own extent is 29.09, and the difference is a swatch.
+Down, the baseline sits at the middle of the box plus the same key drop used everywhere else here.
+
+A legend of several entries in a sized box is laid out differently again — packed across a row with
+a gap that is not the one used along a foot, and sharing one left edge down a column rather than
+each row centring itself. Both are measured and neither is settled: every correction that fitted
+one broke the other, which is what a guessed rule looks like. Such a legend keeps the corner
+placement instead, which is where it was before. `chart-legend-size-probe` holds the settled cases
+and the open one is written down with its numbers.
 
 The lines a chart hangs from its points are drawn too — a drop line from each point down to the
 axis, and a high-low line from the lowest of a category's series to the highest. The second was
