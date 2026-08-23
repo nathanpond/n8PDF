@@ -1749,6 +1749,15 @@ legend's first key is **5pt** across, and the pitch and key drop of its entries 
 layout's own arithmetic reused. A hand-placed one still takes its room off the plot, which the
 probe's own axis labels confirm: they do not move.
 
+A title says nothing about its weight and is **bold** all the same: Word's own styling of a chart
+gives one to its title and to each axis title, and a document does not carry that styling. Measured
+from `chart-title-weight-probe`, whose first page states no weight at all — Word's fourteen-character
+title comes out 86.26pt wide against the 84.35 the same text measures regular, and its axis title
+28.65 against 27.93. It is a default rather than an override, which the same probe's third page
+settles: a title stating `b="0"` is left regular, and ours agrees with Word's there to five
+hundredths of a point. Since the chart's own title is centred, getting the weight wrong moved it as
+well as thinning it — 0.96pt on that title, and more on a longer one.
+
 Two things were wrong in the automatic placement and were found by the same probe. A legend up a
 side was centred on the middle of the **frame** rather than of the room below the title, which put
 it half a title's height too high — 12.96pt on the probe, now exact. And `c:overlay` was read as
