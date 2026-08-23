@@ -316,7 +316,7 @@ public class ChartGridLineTests(ITestOutputHelper output)
         // The whole of the plot, which is 172.8 points tall in this probe — a region sized for a
         // shorter one silently cuts the last lines off and the count comes back wrong.
         var floor = GridLines.Find(r, Scale, Bluish,
-            (150, 84, 354, 256), 250, expect: 5);
+            (150, 84, 354, 256), 250, expect: 5, concur: true);
 
         var gaps = Enumerable.Range(1, floor.Count - 1).Select(i => floor[i].At - floor[i - 1].At).ToList();
 
@@ -349,14 +349,24 @@ public class ChartGridLineTests(ITestOutputHelper output)
     /// the detector still loses one at four tilts out of seven even with them thickened. This wants
     /// only the floor, which now reads five lines at every tilt.
     ///
-    /// Recorded here so #98 has it as a measurement rather than as a note: 0.583, 0.622, 0.691,
-    /// 0.715, 0.747, 0.766, 0.791 for tilts of ten to forty degrees.
+    /// Recorded here so #98 has it as a measurement rather than as a note: 0.597, 0.638, 0.683,
+    /// 0.700, 0.744, 0.752, 0.784 for tilts of ten to forty degrees.
+    ///
+    /// Those moved when the lines were made to concur — see <c>GridLines.Concurring</c> — and the
+    /// earlier figures are wrong rather than merely differently measured. Fitting each line on its
+    /// own let one of the five lean independently of its fellows, which lines running away from the
+    /// reader cannot do: the old slopes at ten degrees ran 0.081, 0.083, 0.098, 0.102, 0.110, a
+    /// sequence with a step four times its neighbours', and they now run 0.080, 0.086, 0.093,
+    /// 0.102, 0.113. The wandering line moved half a point where the rest held to a tenth, and
+    /// since it bounds the smallest gap it took two percent of the ratio with it. Eighteen of the
+    /// twenty settings in <see cref="The_convergence_is_the_same_however_it_is_measured"/> now
+    /// agree to half a percent, against five and a half before.
     /// </remarks>
     [Theory]
-    [InlineData(0, 10, 0.583)]
-    [InlineData(2, 20, 0.691)]
-    [InlineData(4, 30, 0.747)]
-    [InlineData(6, 40, 0.791)]
+    [InlineData(0, 10, 0.597)]
+    [InlineData(2, 20, 0.683)]
+    [InlineData(4, 30, 0.744)]
+    [InlineData(6, 40, 0.784)]
     public void The_floors_convergence_moves_with_the_tilt_and_with_nothing_else(
         int page, double rotX, double want)
     {
@@ -372,7 +382,7 @@ public class ChartGridLineTests(ITestOutputHelper output)
         }
 
         var floor = GridLines.Find(r, Scale, Bluish,
-            (150, 84, 354, 256), 250, expect: 5);
+            (150, 84, 354, 256), 250, expect: 5, concur: true);
 
         Assert.Equal(5, floor.Count);
 
@@ -415,8 +425,8 @@ public class ChartGridLineTests(ITestOutputHelper output)
     [Theory]
     [InlineData(11, 20, 0.909)]
     [InlineData(7, 25, 0.888)]
-    [InlineData(8, 50, 0.802)]
-    [InlineData(14, 75, 0.757)]
+    [InlineData(8, 50, 0.790)]
+    [InlineData(14, 75, 0.741)]
     public void The_scenes_depth_does_not_follow_the_stated_percentage(int page, int depthPercent, double want)
     {
         _outputStatic = _output;
@@ -431,7 +441,7 @@ public class ChartGridLineTests(ITestOutputHelper output)
         }
 
         var floor = GridLines.Find(r, Scale, Bluish,
-            (150, 84, 354, 256), 250, expect: 5);
+            (150, 84, 354, 256), 250, expect: 5, concur: true);
 
         Assert.Equal(5, floor.Count);
 
@@ -453,8 +463,15 @@ public class ChartGridLineTests(ITestOutputHelper output)
     /// twentieth when a threshold moved was producing depths that moved by a third, and a residual
     /// was chased that was smaller than the error bars on the thing it sat in.
     ///
-    /// Twelve settings: two rendering scales, three slope ranges, two search regions. All twelve
-    /// must find five lines and agree on the convergence to within a sixteenth.
+    /// Twenty settings: five rendering scales, two slope ranges, two search regions. All twenty
+    /// must find five lines and agree on the convergence to within a fortieth.
+    ///
+    /// Eighteen of the twenty agree far closer than that — to about half a percent. The two that
+    /// do not move the **first** line by half a point while the other four hold to a tenth, and
+    /// since that line bounds the smallest of the four gaps, half a point of it is two percent of
+    /// the ratio. The bound is set on the full range rather than on the eighteen, because a test
+    /// that quietly dropped its two worst readings would be reporting the instrument it wished it
+    /// had.
     ///
     /// A sixteenth is not tight enough for what #98 wants and is not pretended to be. It is what
     /// this instrument does, measured, so that the next thing built on it knows what it is standing
@@ -475,8 +492,8 @@ public class ChartGridLineTests(ITestOutputHelper output)
         var pdf = File.ReadAllBytes(path);
         var seen = new List<double>();
 
-        foreach (var scale in new[] { 8.0, 10.0 })
-        foreach (var slope in new[] { 0.6, 0.9, 1.3 })
+        foreach (var scale in new[] { 6.0, 7.0, 8.0, 9.0, 10.0 })
+        foreach (var slope in new[] { 0.6, 0.9 })
         foreach (var region in new[] { (150.0, 84.0, 354.0, 256.0), (147.0, 83.0, 357.0, 257.0) })
         {
             if (PdfRasterizer.Render(pdf, page, scale) is not { } r)
@@ -485,7 +502,8 @@ public class ChartGridLineTests(ITestOutputHelper output)
                 return;
             }
 
-            var found = GridLines.Find(r, scale, Bluish, region, 250, mostSlope: slope, expect: 5);
+            var found = GridLines.Find(r, scale, Bluish, region, 250, mostSlope: slope, expect: 5,
+                concur: true);
 
             Assert.Equal(5, found.Count);
 
@@ -498,6 +516,6 @@ public class ChartGridLineTests(ITestOutputHelper output)
         _output.WriteLine($"rotX {rotX}: {seen.Count} settings, {seen.Min():0.0000} to {seen.Max():0.0000}, " +
                           $"spread {spread * 100:0.00}%");
 
-        Assert.True(spread < 0.0625, $"rotX {rotX}: the reading moves by {spread * 100:0.0}% across settings");
+        Assert.True(spread < 0.025, $"rotX {rotX}: the reading moves by {spread * 100:0.0}% across settings");
     }
 }
