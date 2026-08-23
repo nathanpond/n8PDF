@@ -36,9 +36,11 @@ internal static class GridLines
     /// <param name="page">The rendered page.</param>
     /// <param name="scale">What it was rendered at, in pixels to the point.</param>
     /// <param name="belongs">
-    /// Whether a colour is part of a line. A line a point wide is never drawn saturated — Word's
-    /// raster turns a stated <c>FF0000</c> into <c>FFBFBF</c> — so this has to test the hue rather
-    /// than match a colour.
+    /// How much of a colour is part of a line, from nought to one. A line a point wide is never
+    /// drawn saturated — Word's raster turns a stated <c>FF0000</c> into <c>FFBFBF</c> — and where
+    /// the edge of one lies is a matter of degree rather than of yes and no. Returning the degree
+    /// rather than a verdict is what keeps the answer still when a threshold moves: a pixel that is
+    /// half the hue votes half as loudly instead of switching sides.
     /// </param>
     /// <param name="within">The region to look in, in points.</param>
     /// <param name="referenceX">The column each line's position is reported at.</param>
@@ -47,23 +49,34 @@ internal static class GridLines
     /// and a chart's gridlines are never far off.
     /// </param>
     /// <param name="leastPixels">
-    /// How many pixels a line needs before it is believed. Set from how long a line is expected to
-    /// be, since the point of this is to tell a line from a stray.
+    /// How many pixels a line needs before it is believed, where <paramref name="expect"/> is not
+    /// given. Set from how long a line is expected to be.
+    /// </param>
+    /// <param name="expect">
+    /// How many lines there are, where that is known — and for a chart's gridlines it is, from the
+    /// axis that draws them. Given it, the strongest that many are taken and no threshold enters
+    /// the answer at all, which is what makes the result the same whatever the caller asks for.
+    /// Leave it null where the count is not known.
     /// </param>
     public static IReadOnlyList<Line> Find(
         RenderedPage page, double scale,
-        Func<(byte R, byte G, byte B), bool> belongs,
+        Func<(byte R, byte G, byte B), double> belongs,
         (double Left, double Top, double Right, double Bottom) within,
-        double referenceX, double mostSlope = 0.6, int leastPixels = 200)
+        double referenceX, double mostSlope = 0.6, int leastPixels = 200, int? expect = null)
     {
-        var lit = new List<(double X, double Y)>();
+        var lit = new List<(double X, double Y, double Weight)>();
 
         for (var y = within.Top; y < within.Bottom; y += 1 / scale)
         for (var x = within.Left; x < within.Right; x += 1 / scale)
-            if (belongs(page.At(x, y, scale)))
-                lit.Add((x, y));
+        {
+            var much = belongs(page.At(x, y, scale));
 
-        if (lit.Count < leastPixels) return [];
+            if (much > 0.02) lit.Add((x, y, much));
+        }
+
+        var lot = lit.Sum(p => p.Weight);
+
+        if (lot < leastPixels && expect is null) return [];
 
         // The vote. A pixel at (x,y) lies on the line of slope m that crosses the reference column
         // at y - m(x - referenceX), so each pixel adds one vote to that place for every slope tried.
@@ -72,30 +85,31 @@ internal static class GridLines
         var lowest = within.Top - mostSlope * (within.Right - within.Left);
         var places = (int)((within.Bottom - lowest + mostSlope * (within.Right - within.Left)) / step) + 2;
 
-        var votes = new int[slopes, places];
+        var votes = new double[slopes, places];
 
         for (var s = 0; s < slopes; s++)
         {
             var m = -mostSlope + 2 * mostSlope * s / (slopes - 1.0);
 
-            foreach (var (x, y) in lit)
+            foreach (var (x, y, weight) in lit)
             {
                 var at = (int)((y - m * (x - referenceX) - lowest) / step);
 
-                if (at >= 0 && at < places) votes[s, at]++;
+                if (at >= 0 && at < places) votes[s, at] += weight;
             }
         }
 
         // Peaks: a place that beats everything near it, in slope as well as in position. The window
         // has to be wide enough that one line does not answer twice at neighbouring slopes.
-        var peaks = new List<(int S, int At, int Votes)>();
+        var peaks = new List<(int S, int At, double Votes)>();
 
         for (var s = 0; s < slopes; s++)
         for (var a = 0; a < places; a++)
         {
             var v = votes[s, a];
 
-            if (v < leastPixels / 3) continue;
+            if (expect is null && v < leastPixels / 3.0) continue;
+            if (v < 12) continue;
 
             var best = true;
 
@@ -123,10 +137,12 @@ internal static class GridLines
             var at = lowest + a * step;
 
             // The pixels near this line, fitted the way an edge is.
-            var mine = lit.Where(p => Math.Abs(p.Y - (at + m * (p.X - referenceX))) < 1.5).ToList();
+            var near = lit.Where(p => Math.Abs(p.Y - (at + m * (p.X - referenceX))) < 1.5).ToList();
 
-            if (mine.Count < leastPixels) continue;
+            if (expect is null && near.Sum(p => p.Weight) < leastPixels) continue;
+            if (near.Count < 12) continue;
 
+            var mine = near.Select(p => (p.X, p.Y)).ToList();
             var (on, along) = BoxSilhouette.FitLine(mine, (1.0, m));
 
             if (Math.Abs(along.X) < 1e-9) continue;
@@ -155,6 +171,11 @@ internal static class GridLines
         foreach (var line in found.OrderByDescending(l => l.Pixels))
             if (!kept.Any(k => Math.Abs(k.At - line.At) < 4))
                 kept.Add(line);
+
+        // Where the count is known, the strongest that many are the answer and nothing is thrown
+        // away by a threshold — which is what keeps this still when the caller's settings move.
+        if (expect is { } many)
+            kept = [.. kept.OrderByDescending(l => l.Pixels).Take(many)];
 
         return [.. kept.OrderBy(l => l.At)];
     }
