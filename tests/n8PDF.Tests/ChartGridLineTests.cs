@@ -518,4 +518,126 @@ public class ChartGridLineTests(ITestOutputHelper output)
 
         Assert.True(spread < 0.025, $"rotX {rotX}: the reading moves by {spread * 100:0.0}% across settings");
     }
+    /// <summary>
+    /// The convergence does not depend on which column it is read at, and that is exact rather
+    /// than approximate.
+    /// </summary>
+    /// <remarks>
+    /// Worth pinning because a great deal of reasoning on the projection story went the other way.
+    /// The reading is the first gap over the last **at a reference column**, gaps between converging
+    /// lines plainly change as you move across them, and so the column looked like a free choice that
+    /// had been made carelessly — a page coordinate cutting a scene.
+    ///
+    /// It is not a choice at all once the lines are made to concur. Through a common point,
+    /// <c>y_i(x) = V_y + s_i (x - V_x)</c>, so every gap is <c>(s_{i+1} - s_i)(x - V_x)</c> and the
+    /// ratio of any two of them is a ratio of slope differences with the <c>x</c> cancelled. Read at
+    /// the near edge of the box or the far one, the answer is the same to every decimal that is
+    /// printed.
+    ///
+    /// So the reading is not sensitive to the section. It is sensitive to the **slopes**, and to
+    /// their differences, which is a much worse place to be — see
+    /// <see cref="What_the_convergence_costs_in_slope_error"/>.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(2, 20)]
+    [InlineData(4, 30)]
+    [InlineData(6, 40)]
+    public void The_convergence_does_not_depend_on_the_column_it_is_read_at(int page, double rotX)
+    {
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-gridline-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), page, Scale) is not { } r)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var floor = GridLines.Find(r, Scale, Bluish, (150, 84, 354, 256), 250, expect: 5, concur: true);
+
+        Assert.Equal(5, floor.Count);
+
+        var readings = new List<double>();
+
+        // Right across the box, and past both ends of it for good measure.
+        foreach (var column in new[] { 120.0, 180.0, 250.0, 320.0, 380.0 })
+        {
+            var at = floor.Select(line => line.At + line.Slope * (column - 250)).ToArray();
+            var gaps = Enumerable.Range(1, 4).Select(i => at[i] - at[i - 1]).ToArray();
+
+            readings.Add(gaps[0] / gaps[^1]);
+        }
+
+        _output.WriteLine($"rotX {rotX}: " + string.Join("  ", readings.Select(v => v.ToString("0.000000"))));
+
+        Assert.InRange(readings.Max() - readings.Min(), 0, 1e-9);
+    }
+
+    /// <summary>
+    /// What the convergence actually costs: it multiplies a slope's error by about twenty.
+    /// </summary>
+    /// <remarks>
+    /// This is the reason the reading is worth 1.8% (measured on
+    /// <see cref="Chart3DSizeTests.The_gap_ratio_moves_between_scenes_that_are_the_same"/>) while the
+    /// lines under it are worth 0.068%.
+    ///
+    /// The five slopes at twenty degrees run 0.1375, 0.1447, 0.1528, 0.1620, 0.1725. The reading is
+    /// <c>(s1 - s0) / (s4 - s3)</c> — a ratio of two **differences**, 0.0072 and 0.0105, taken
+    /// between numbers of about 0.15. A difference is therefore some twenty times smaller than the
+    /// numbers it is taken between, so a relative error in a slope comes out about twenty times
+    /// larger in the reading, and the ratio carries two such differences.
+    ///
+    /// Measured below: moving one slope by a thousandth of itself moves the reading by 1.9%. Read
+    /// the other way, the 1.8% the reading is worth across identical scenes is what a slope error of
+    /// about a **ten-thousandth** looks like once amplified — which is why better line fitting has
+    /// had so little purchase on it.
+    ///
+    /// That is a property of the measure and not of the detector, and no amount of better line
+    /// fitting will remove it — halving the slope error only halves the amplified error. Getting
+    /// materially past it needs a scene whose gridlines differ in slope by more, or more of them to
+    /// average over.
+    ///
+    /// Injected here so the figure is a demonstration rather than an assertion: one slope is moved
+    /// by a thousandth of itself and the reading is watched.
+    /// </remarks>
+    [Fact]
+    public void What_the_convergence_costs_in_slope_error()
+    {
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-gridline-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), 2, Scale) is not { } r)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var floor = GridLines.Find(r, Scale, Bluish, (150, 84, 354, 256), 250, expect: 5, concur: true);
+
+        Assert.Equal(5, floor.Count);
+
+        var slopes = floor.Select(line => line.Slope).ToArray();
+
+        static double Reading(double[] s) => (s[1] - s[0]) / (s[4] - s[3]);
+
+        var honest = Reading(slopes);
+
+        // A thousandth of one slope — far finer than the fitting can be held to.
+        var nudged = (double[])slopes.Clone();
+        nudged[0] += slopes[0] / 1000;
+
+        var moved = Math.Abs(Reading(nudged) - honest) / honest;
+
+        _output.WriteLine($"slopes {string.Join(" ", slopes.Select(v => v.ToString("0.0000")))}");
+        _output.WriteLine($"differences {slopes[1] - slopes[0]:0.0000} and {slopes[4] - slopes[3]:0.0000}");
+        _output.WriteLine($"a thousandth of one slope moves the reading by {moved * 100:0.0}%");
+
+        // The amplification is the finding: a part in a thousand of a slope is percents of the answer.
+        Assert.True(moved > 0.01,
+            $"a thousandth of a slope moved the reading only {moved * 100:0.00}%, so the amplification " +
+            "this test records has gone — which would be good news worth understanding, not a passing test");
+    }
 }
