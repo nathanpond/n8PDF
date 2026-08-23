@@ -339,6 +339,68 @@ internal sealed class ChartAxis
 internal sealed record ChartLayout(double X, double Y, double Width, double Height);
 
 /// <summary>A chart, as its part describes it.</summary>
+/// <summary>
+/// Where the eye is, for a chart drawn in three dimensions.
+/// </summary>
+/// <param name="RotationX">
+/// How far the scene is tilted towards the viewer, in degrees. Word calls this the X rotation and
+/// it raises the floor into view.
+/// </param>
+/// <param name="RotationY">How far it is turned about the upright, in degrees.</param>
+/// <param name="DepthPercent">
+/// How deep the scene runs, as a percentage of its width.
+/// </param>
+/// <param name="RightAngleAxes">
+/// True where the axes are held at right angles to one another, which flattens the scene into an
+/// oblique projection and makes <paramref name="Perspective"/> count for nothing.
+/// </param>
+/// <param name="Perspective">
+/// How strongly the far side of the scene is foreshortened, in degrees, where the axes are not
+/// held at right angles.
+/// </param>
+/// <remarks>
+/// **The defaults are measured, and there are two sets of them.** Which set applies turns on
+/// whether the document carries a <c>c:view3D</c> element at all, not on which child of it is
+/// missing — so a chart stating nothing and a chart stating an empty <c>c:view3D</c> are drawn
+/// differently by Word, and by this.
+///
+/// | | <c>c:view3D</c> absent | present, the child absent |
+/// |---|---|---|
+/// | <c>rotX</c> | 15 | 0 |
+/// | <c>rotY</c> | 20 | 0 |
+/// | <c>rAngAx</c> | false | true |
+/// | <c>perspective</c> | 30 | 30 |
+/// | <c>depthPercent</c> | 100 | 100 |
+///
+/// Measured rather than read off the schema, over four rounds against Word: a document whose pages
+/// state nothing beside pages stating candidates, exported by Word and compared as rendered
+/// pictures, since Word rasterises a three-dimensional plot and there is no geometry to read. The
+/// page stating nothing came out pixel for pixel identical to the one stating 15, 20 and false, and
+/// differed from 20 for <c>rotX</c> by 38% of its ink, from 30 for <c>rotY</c> by 62%, from 0 for
+/// <c>perspective</c> by 41% and from 50 for <c>depthPercent</c> by 35%. An empty <c>c:view3D</c>
+/// came out identical to one stating 0, 0 and **true**, and differed from 0, 0 and false by 37%.
+///
+/// Two things fell out of the same measurement that the issue this was built for had wrong. The
+/// split is not by chart kind — a three-dimensional pie takes the same absent-element scene as a
+/// bar, not a scene of its own. And a pie **ignores** <see cref="RotationY"/> and
+/// <see cref="RightAngleAxes"/> altogether: turning it a further seventy degrees, or holding its
+/// axes square, changed not one pixel. Its <see cref="RotationX"/> and <see cref="Perspective"/>
+/// both count.
+///
+/// <see cref="Perspective"/> counts for nothing when <see cref="RightAngleAxes"/> is true, which is
+/// measured too: 30 and 0 draw the same picture there.
+/// </remarks>
+internal sealed record ChartScene(
+    double RotationX,
+    double RotationY,
+    int DepthPercent,
+    bool RightAngleAxes,
+    double Perspective)
+{
+    /// <summary>The scene of a chart carrying no <c>c:view3D</c> at all.</summary>
+    public static ChartScene Unstated { get; } = new(15, 20, 100, false, 30);
+}
+
 internal sealed class ChartDefinition
 {
     public ChartKind Kind { get; set; } = ChartKind.Column;
@@ -432,6 +494,30 @@ internal sealed class ChartDefinition
     public ChartLayout? PlotArea { get; set; }
 
     /// <summary>
+    /// Where the eye is, for a chart drawn in three dimensions, and null for one that is not.
+    /// </summary>
+    /// <remarks>
+    /// This doubles as what says the chart *is* three-dimensional: <see cref="Kind"/> carries the
+    /// nearest flat equivalent so that everything reading it goes on working, and a scene beside it
+    /// is what distinguishes a <c>c:bar3DChart</c> from a <c>c:barChart</c>.
+    /// </remarks>
+    public ChartScene? Scene { get; set; }
+
+    /// <summary>The axis the series are arranged along, which only a three-dimensional chart has.</summary>
+    public ChartAxis? DepthAxis { get; set; }
+
+    /// <summary>
+    /// How deep the gap between one series' row and the next is, as a percentage of one row.
+    /// </summary>
+    public int GapDepth { get; set; } = 150;
+
+    /// <summary>
+    /// What a three-dimensional bar is shaped like: "box", "cylinder", "cone", "pyramid", or the
+    /// truncated forms "coneToMax" and "pyramidToMax".
+    /// </summary>
+    public string Shape { get; set; } = "box";
+
+    /// <summary>
     /// How wide the gap between one category's bars and the next is, as a percentage of one bar.
     /// </summary>
     public int GapWidth { get; set; } = 150;
@@ -500,7 +586,18 @@ internal static class ChartReader
                    ?? plotArea.Element(Main + "doughnutChart")
                    ?? plotArea.Element(Main + "bubbleChart")
                    ?? plotArea.Element(Main + "radarChart")
-                   ?? plotArea.Element(Main + "stockChart");
+                   ?? plotArea.Element(Main + "stockChart")
+
+                   // The three-dimensional plots. Their children are the same as the flat ones' —
+                   // c:ser, c:cat, c:val, c:barDir, c:grouping — so everything below reads them
+                   // without knowing the difference, and the scene read beside them is what says
+                   // there is one.
+                   ?? plotArea.Element(Main + "bar3DChart")
+                   ?? plotArea.Element(Main + "line3DChart")
+                   ?? plotArea.Element(Main + "pie3DChart")
+                   ?? plotArea.Element(Main + "area3DChart")
+                   ?? plotArea.Element(Main + "surface3DChart")
+                   ?? plotArea.Element(Main + "surfaceChart");
 
         if (plot is null) return null;
 
@@ -514,10 +611,29 @@ internal static class ChartReader
             "bubbleChart" => ChartKind.Bubble,
             "radarChart" => ChartKind.Radar,
             "stockChart" => ChartKind.Stock,
+
+            // The nearest flat equivalent, which is what the rest of the reader and everything
+            // downstream works in. A surface has none — it is a mesh over a grid rather than a
+            // series of points — so it takes Line to keep its series readable and is told apart by
+            // the scene, not by this.
+            "line3DChart" => ChartKind.Line,
+            "pie3DChart" => ChartKind.Pie,
+            "area3DChart" => ChartKind.Area,
+            "surface3DChart" or "surfaceChart" => ChartKind.Line,
             _ => plot.Element(Main + "barDir")?.Attribute("val")?.Value == "bar"
                 ? ChartKind.Bar
                 : ChartKind.Column
         };
+
+        // Three-dimensional or not, and where the eye is if it is. The scene is read from the
+        // chart rather than the plot, since c:view3D is a child of c:chart.
+        if (plot.Name.LocalName.Contains("3D", StringComparison.Ordinal) ||
+            plot.Name.LocalName == "surfaceChart")
+        {
+            definition.Scene = ReadScene(chart.Element(Main + "view3D"));
+            definition.GapDepth = Integer(plot.Element(Main + "gapDepth")) ?? 150;
+            definition.Shape = plot.Element(Main + "shape")?.Attribute("val")?.Value ?? "box";
+        }
 
         definition.ScatterStyle =
             plot.Element(Main + "scatterStyle")?.Attribute("val")?.Value ?? "lineMarker";
@@ -599,6 +715,12 @@ internal static class ChartReader
                 // the one along the foot stands where a chart of categories keeps its categories.
                 if (definition.Paired && read.Position is "b" or "t") definition.CategoryAxis = read;
                 else definition.ValueAxis = read;
+            }
+            else if (axis.Name == Main + "serAx")
+            {
+                // The axis the series are arranged along, which only a three-dimensional chart
+                // has. It is a category axis in everything but where it points.
+                definition.DepthAxis = ReadAxis(axis, isValue: false);
             }
         }
 
@@ -829,6 +951,32 @@ internal static class ChartReader
             line?.Attribute("w")?.Value is { } width && long.TryParse(width, out var emu)
                 ? Units.EmuToPoints(emu)
                 : 0.75);
+    }
+
+    /// <summary>
+    /// Where the eye is, from a <c>c:view3D</c> that may not be there.
+    /// </summary>
+    /// <remarks>
+    /// The two sets of defaults are the whole of why this is a method rather than five null
+    /// coalescings at the call site: an absent element is not the same as an element whose children
+    /// are absent, and Word draws the two differently. See <see cref="ChartScene"/> for the numbers
+    /// and how they were measured.
+    /// </remarks>
+    private static ChartScene ReadScene(XElement? view)
+    {
+        if (view is null) return ChartScene.Unstated;
+
+        return new ChartScene(
+            Number(view.Element(Main + "rotX")) ?? 0,
+            Number(view.Element(Main + "rotY")) ?? 0,
+            Integer(view.Element(Main + "depthPercent")) ?? 100,
+
+            // True where the element says nothing, which is the opposite of what an absent
+            // c:view3D gives. Measured: an empty c:view3D draws the same picture as one stating
+            // right-angle axes, and a picture 37% different from one refusing them.
+            view.Element(Main + "rAngAx")?.Attribute("val")?.Value is not ("0" or "false"),
+
+            Number(view.Element(Main + "perspective")) ?? 30);
     }
 
     private static ChartAxis ReadAxis(XElement element, bool isValue)
