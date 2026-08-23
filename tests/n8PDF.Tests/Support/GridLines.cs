@@ -58,11 +58,17 @@ internal static class GridLines
     /// the answer at all, which is what makes the result the same whatever the caller asks for.
     /// Leave it null where the count is not known.
     /// </param>
+    /// <param name="concur">
+    /// Whether the lines are known to meet at one point, as a plot's gridlines running away from
+    /// the reader do. See <see cref="Concurring"/> for what it buys and why it does not prejudge
+    /// what is being measured.
+    /// </param>
     public static IReadOnlyList<Line> Find(
         RenderedPage page, double scale,
         Func<(byte R, byte G, byte B), double> belongs,
         (double Left, double Top, double Right, double Bottom) within,
-        double referenceX, double mostSlope = 0.6, int leastPixels = 200, int? expect = null)
+        double referenceX, double mostSlope = 0.6, int leastPixels = 200, int? expect = null,
+        bool concur = false)
     {
         var lit = new List<(double X, double Y, double Weight)>();
 
@@ -80,7 +86,13 @@ internal static class GridLines
 
         // The vote. A pixel at (x,y) lies on the line of slope m that crosses the reference column
         // at y - m(x - referenceX), so each pixel adds one vote to that place for every slope tried.
-        const int slopes = 121;
+        // The slope grid is fixed in **resolution**, not in count, so that widening the search
+        // does not coarsen it. A fixed count made the answer depend on `mostSlope`: asking for a
+        // wider range spread the same 121 slopes further apart, and a line whose slope fell between
+        // two of them gathered a lop-sided set of pixels.
+        const double leaning = 0.004;
+
+        var slopes = 2 * (int)Math.Ceiling(mostSlope / leaning) + 1;
         var step = 0.25 / scale;                       // a quarter pixel of position
         var lowest = within.Top - mostSlope * (within.Right - within.Left);
         var places = (int)((within.Bottom - lowest + mostSlope * (within.Right - within.Left)) / step) + 2;
@@ -89,7 +101,7 @@ internal static class GridLines
 
         for (var s = 0; s < slopes; s++)
         {
-            var m = -mostSlope + 2 * mostSlope * s / (slopes - 1.0);
+            var m = (s - (slopes - 1) / 2) * leaning;
 
             foreach (var (x, y, weight) in lit)
             {
@@ -102,6 +114,7 @@ internal static class GridLines
         // Peaks: a place that beats everything near it, in slope as well as in position. The window
         // has to be wide enough that one line does not answer twice at neighbouring slopes.
         var peaks = new List<(int S, int At, double Votes)>();
+        var window = (int)Math.Ceiling(0.024 / leaning);
 
         for (var s = 0; s < slopes; s++)
         for (var a = 0; a < places; a++)
@@ -113,7 +126,7 @@ internal static class GridLines
 
             var best = true;
 
-            for (var ds = -6; ds <= 6 && best; ds++)
+            for (var ds = -window; ds <= window && best; ds++)
             for (var da = -12; da <= 12; da++)
             {
                 var (ns, na) = (s + ds, a + da);
@@ -133,7 +146,7 @@ internal static class GridLines
 
         foreach (var (s, a, _) in peaks.OrderByDescending(p => p.Votes))
         {
-            var m = -mostSlope + 2 * mostSlope * s / (slopes - 1.0);
+            var m = (s - (slopes - 1) / 2) * leaning;
             var at = lowest + a * step;
 
             // The pixels near this line, fitted the way an edge is.
@@ -169,14 +182,173 @@ internal static class GridLines
         var kept = new List<Line>();
 
         foreach (var line in found.OrderByDescending(l => l.Pixels))
-            if (!kept.Any(k => Math.Abs(k.At - line.At) < 4))
+            if (!kept.Any(k => Math.Abs(k.At - line.At) < 2.5))
                 kept.Add(line);
 
         // Where the count is known, the strongest that many are the answer and nothing is thrown
         // away by a threshold — which is what keeps this still when the caller's settings move.
-        if (expect is { } many)
-            kept = [.. kept.OrderByDescending(l => l.Pixels).Take(many)];
+        if (expect is { } many) kept = Strongest(kept, many);
+
+        // The refit moves pixels between lines, so a stray that was merely the weakest of the five
+        // can become one that nothing is really on. Weighed again on the far side of it.
+        if (concur && kept.Count >= 3)
+        {
+            kept = Concurring(kept, lit, referenceX);
+
+            if (expect is { } still) kept = Strongest(kept, still);
+        }
 
         return [.. kept.OrderBy(l => l.At)];
+    }
+
+    /// <summary>
+    /// The strongest so many lines, less any that the rest outnumber.
+    /// </summary>
+    /// <remarks>
+    /// Where the count is known the strongest that many are the answer, and no threshold enters
+    /// it — which is what keeps the result the same when a caller's settings move.
+    ///
+    /// What the count alone does not settle is whether there really were that many to find. A
+    /// gridline drawn like its fellows is inked like them, so one placed on a fraction of their
+    /// evidence is not a gridline measured badly: it is something else of the colour standing in
+    /// for one that was missed. Left in, it puts the answer out by a factor rather than a percent —
+    /// a stray at the end of a crowded plot turned a ratio of 0.91 into one of 22, and one two
+    /// points from a real line turned 0.49 into 0.05.
+    ///
+    /// So a line the middle of the others outnumbers two to one is dropped, and fewer lines come
+    /// back than were asked for. That is the honest answer: a caller who wanted five and got four
+    /// can see that it failed, where one who wanted five and got five cannot.
+    /// </remarks>
+    private static List<Line> Strongest(List<Line> lines, int many)
+    {
+        var strongest = lines.OrderByDescending(l => l.Pixels).Take(many).ToList();
+        var typical = strongest[strongest.Count / 2].Pixels;
+
+        return [.. strongest.Where(l => 2 * l.Pixels >= typical)];
+    }
+
+    /// <summary>
+    /// The same lines, refitted so that they meet at one point.
+    /// </summary>
+    /// <remarks>
+    /// Lines that run away from the reader converge, and five of them are therefore not ten free
+    /// numbers: they are a point they all pass through and an angle apiece. Fitting each on its own
+    /// spends the three parameters that are not there on noise, and it shows — a line whose slope
+    /// falls between the vote's slopes gathers a lop-sided set of pixels and its refit follows them,
+    /// moving that one line by half a point while its neighbours hold to a tenth.
+    ///
+    /// What makes this worth doing rather than merely tidy is that the constraint falls entirely on
+    /// the part that is **not** being measured. Each line keeps a free parameter and so keeps its
+    /// own position at the reference column; what it loses is the freedom to lean independently of
+    /// the others, which nothing here wants it to have. The spacings the caller goes on to compare
+    /// are as free after this as before.
+    ///
+    /// Two steps alternate, each exact given the other: the meeting point that lies closest to all
+    /// the lines, and then each line refitted through that point from the pixels nearest it. The
+    /// reassignment matters as much as the constraint, since it is a slope taken from the vote's
+    /// grid that gathered the wrong pixels to begin with.
+    ///
+    /// Lines that do not converge have their meeting point at infinity, which shows up as a
+    /// singular system; that is left alone rather than forced, so a caller who asks for this on
+    /// parallel lines gets the unconstrained answer rather than a wrong one.
+    /// </remarks>
+    private static List<Line> Concurring(
+        List<Line> lines, List<(double X, double Y, double Weight)> lit, double referenceX)
+    {
+        var current = lines.ToList();
+
+        for (var round = 0; round < 6; round++)
+        {
+            // Where the lines meet: the point whose summed squared distance to all of them is
+            // least, each weighted by how much evidence placed it.
+            double xx = 0, xy = 0, yy = 0, bx = 0, by = 0;
+
+            foreach (var line in current)
+            {
+                var length = Math.Sqrt(1 + line.Slope * line.Slope);
+                var (nx, ny) = (-line.Slope / length, 1 / length);
+                var d = nx * referenceX + ny * line.At;
+                var w = line.Pixels;
+
+                xx += w * nx * nx;
+                xy += w * nx * ny;
+                yy += w * ny * ny;
+                bx += w * nx * d;
+                by += w * ny * d;
+            }
+
+            var determinant = xx * yy - xy * xy;
+
+            // Parallel, or near enough that the meeting point is not a real thing to fit through.
+            if (Math.Abs(determinant) < 1e-9 * (xx + yy) * (xx + yy)) return current;
+
+            var (vx, vy) = ((yy * bx - xy * by) / determinant, (xx * by - xy * bx) / determinant);
+
+            // Each pixel to the line it lies nearest, so a slope taken from the vote's grid stops
+            // deciding which pixels are whose.
+            var mine = current.Select(_ => new List<(double X, double Y)>()).ToList();
+
+            foreach (var (x, y, _) in lit)
+            {
+                var (best, nearest) = (-1, 1.5);
+
+                for (var i = 0; i < current.Count; i++)
+                {
+                    var off = Math.Abs(y - (current[i].At + current[i].Slope * (x - referenceX)))
+                              / Math.Sqrt(1 + current[i].Slope * current[i].Slope);
+
+                    if (off >= nearest) continue;
+
+                    (best, nearest) = (i, off);
+                }
+
+                if (best >= 0) mine[best].Add((x, y));
+            }
+
+            var next = new List<Line>(current.Count);
+
+            for (var i = 0; i < current.Count; i++)
+            {
+                if (mine[i].Count < 12)
+                {
+                    next.Add(current[i]);
+                    continue;
+                }
+
+                // The direction through the meeting point that those pixels lie along: the leading
+                // eigenvector of their scatter about it, which is the least-squares fit of a line
+                // pinned at one end.
+                double a = 0, b = 0, c = 0;
+
+                foreach (var (x, y) in mine[i])
+                {
+                    var (dx, dy) = (x - vx, y - vy);
+
+                    a += dx * dx;
+                    b += dx * dy;
+                    c += dy * dy;
+                }
+
+                var largest = (a + c + Math.Sqrt((a - c) * (a - c) + 4 * b * b)) / 2;
+
+                var (ux, uy) = Math.Abs(largest - a) > Math.Abs(largest - c)
+                    ? (b, largest - a)
+                    : (largest - c, b);
+
+                if (Math.Abs(ux) < 1e-9)
+                {
+                    next.Add(current[i]);
+                    continue;
+                }
+
+                var slope = uy / ux;
+
+                next.Add(new Line(vy + (referenceX - vx) * slope, slope, mine[i].Count));
+            }
+
+            current = next;
+        }
+
+        return current;
     }
 }
