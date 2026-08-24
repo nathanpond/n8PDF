@@ -253,6 +253,12 @@ internal static class Chart3DComposer
         }
 
 
+        // A surface chart stops here, by decision (#104): its mesh is a different plot from
+        // anything below, and the flat kind it parses to would draw it as a 3-D line — a wrong
+        // picture presented as the right one. The reader keeps the room and gets no mesh, the
+        // same honest answer the whole family gave before its own stories landed.
+        if (chart.Surface) yield break;
+
         if (chart.Kind is ChartKind.Line or ChartKind.Area)
         {
             foreach (var operation in Ribbons(chart, plan, arrangement, projection, theme))
