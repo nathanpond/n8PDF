@@ -149,8 +149,25 @@ internal sealed class OpcPackage : IDisposable
         // network and pipe streams, so buffer when needed.
         if (!stream.CanSeek)
         {
+            // A non-seekable stream is buffered through a cap rather than copied whole, so the
+            // caller's limits apply to this path too and a sender cannot drive gigabytes of
+            // managed heap past them (#203). A valid package's compressed size cannot exceed its
+            // decompressed budget by much.
             var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
+            var chunk = new byte[81920];
+            int read;
+            while ((read = stream.Read(chunk, 0, chunk.Length)) > 0)
+            {
+                if (buffer.Length + read > limits.MaximumTotalBytes)
+                {
+                    throw new PackageTooLargeException(
+                        $"The stream holds more than the {limits.MaximumTotalBytes:N0} bytes allowed.",
+                        wholePackage: true);
+                }
+
+                buffer.Write(chunk, 0, read);
+            }
+
             buffer.Position = 0;
             return new OpcPackage(new ZipArchive(buffer, ZipArchiveMode.Read), buffer, ownsStream: true, limits);
         }
@@ -159,8 +176,22 @@ internal sealed class OpcPackage : IDisposable
             new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen), null, ownsStream: false, limits);
     }
 
-    public static OpcPackage Open(string path, PackageLimits? limits = null) =>
-        Open(File.OpenRead(path), leaveOpen: false, limits);
+    public static OpcPackage Open(string path, PackageLimits? limits = null)
+    {
+        // If the ZipArchive or this package's construction throws — a malformed zip, an oversized
+        // package — the file handle would leak, one per hostile file, until the finalizer ran
+        // (#151). Disposed here so a caller looping over many does not exhaust its handles.
+        var stream = File.OpenRead(path);
+        try
+        {
+            return Open(stream, leaveOpen: false, limits);
+        }
+        catch
+        {
+            stream.Dispose();
+            throw;
+        }
+    }
 
     public IEnumerable<string> PartNames => _entries.Keys;
 

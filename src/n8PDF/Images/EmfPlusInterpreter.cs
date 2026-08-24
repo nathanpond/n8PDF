@@ -29,18 +29,6 @@ internal static class EmfPlusInterpreter
         data[at] == 0x45 && data[at + 1] == 0x4D && data[at + 2] == 0x46 && data[at + 3] == 0x2B;
 
     /// <summary>
-    /// Reads a run of records, which is every EMF+ comment of a file joined together: a record may
-    /// begin in one comment and end in the next.
-    /// </summary>
-    public static List<DrawingOperation> Read(byte[] records, double unitsToPoints)
-    {
-        var state = new Interpreter(unitsToPoints, [], ImageLimits.DefaultMaximumPixels, 0);
-        state.Feed(records, 0, records.Length);
-
-        return state.Operations;
-    }
-
-    /// <summary>
     /// Begins reading, a comment at a time, so that the records of both formats can be replayed in
     /// the one order the file puts them in.
     /// </summary>
