@@ -61,6 +61,11 @@ internal sealed class PdfNumber : PdfObject
 
     internal static string Format(double value, bool isInteger = false)
     {
+        // NaN and infinity have no PDF number token; written literally they make the content
+        // stream malformed. They are reachable — a font size of nought divides to NaN — and are
+        // written as nought, a harmless number (#156).
+        if (!double.IsFinite(value)) return "0";
+
         if (isInteger || value == Math.Floor(value) && Math.Abs(value) < 1e15)
             return ((long)Math.Round(value)).ToString(CultureInfo.InvariantCulture);
 

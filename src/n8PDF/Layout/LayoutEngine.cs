@@ -6093,6 +6093,11 @@ internal sealed class LayoutEngine(
         var count = (int)Math.Floor((to - start) / width + 0.001);
         if (count <= 0) return;
 
+        // A tab leader over a huge tab stop set in a tiny font would fill the gap with a
+        // tens-of-megabyte string; no real leader is more than a line wide, so it is bounded
+        // (#155).
+        count = Math.Min(count, 100_000);
+
         line.Texts.Add(new PositionedText
         {
             X = start,

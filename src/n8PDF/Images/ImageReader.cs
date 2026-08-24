@@ -121,11 +121,17 @@ internal static class ImageReader
                 var width = (data[position + 5] << 8) | data[position + 6];
                 var components = data[position + 7];
 
+                // Only the three component counts that map to a real PDF colour space are
+                // carried; any other (2, or 5 and up) would produce an image dictionary that
+                // contradicts its own DCTDecode stream, so the picture is refused rather than
+                // written wrong (#44).
                 var colorSpace = components switch
                 {
                     1 => ImageColorSpace.Gray,
+                    3 => ImageColorSpace.Rgb,
                     4 => ImageColorSpace.Cmyk,
-                    _ => ImageColorSpace.Rgb
+                    _ => throw new ImageFormatException(
+                        $"A JPEG of {components} components has no PDF colour space.")
                 };
 
                 if (width <= 0 || height <= 0)

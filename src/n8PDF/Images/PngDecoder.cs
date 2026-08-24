@@ -48,12 +48,19 @@ internal static class PngDecoder
             var type = System.Text.Encoding.ASCII.GetString(data, position + 4, 4);
             var body = position + 8;
 
-            if (length < 0 || body + length > data.Length)
+            // Overflow-safe: body is within the buffer, so data.Length - body is a non-negative
+            // int, where body + length overflows negative for a length near int.MaxValue and
+            // passes a naive check (#3).
+            if (length < 0 || length > data.Length - body)
                 throw new ImageFormatException($"PNG chunk '{type}' runs past the end of the file.");
 
             switch (type)
             {
                 case "IHDR":
+                    // IHDR is thirteen fixed bytes; a chunk declaring fewer would read the next
+                    // chunk's bytes or past the file (#4).
+                    if (length < 13) throw new ImageFormatException("PNG IHDR is too short.");
+
                     width = ReadInt32(data, body);
                     height = ReadInt32(data, body + 4);
                     ImageLimits.Check(width, height, maximumPixels, "PNG");
@@ -116,16 +123,25 @@ internal static class PngDecoder
         // is checked as it grows and a bomb is refused after one block over the bound rather than
         // after it has all been held in memory (#2).
         var buffer = new byte[81920];
-        int read;
-        while ((read = inflate.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            if (output.Length + read > maxBytes)
-            {
-                throw new ImageFormatException(
-                    $"PNG image data decompresses past what its dimensions allow ({maxBytes:N0} bytes).");
-            }
 
-            output.Write(buffer, 0, read);
+        try
+        {
+            int read;
+            while ((read = inflate.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (output.Length + read > maxBytes)
+                {
+                    throw new ImageFormatException(
+                        $"PNG image data decompresses past what its dimensions allow ({maxBytes:N0} bytes).");
+                }
+
+                output.Write(buffer, 0, read);
+            }
+        }
+        catch (InvalidDataException)
+        {
+            // A corrupt zlib stream is a picture this cannot read, not a fault in the reader (#7).
+            throw new ImageFormatException("PNG image data is not a valid zlib stream.");
         }
 
         return output.ToArray();
@@ -160,8 +176,19 @@ internal static class PngDecoder
         if (bitDepth < 8 && colorType is not (0 or 3))
             throw new ImageFormatException($"Unsupported PNG bit depth {bitDepth} for colour type {colorType}.");
 
+        // A palette index is at most eight bits; a palette declared at sixteen makes the packed
+        // reader's 8/bitDepth per-byte count nought and divides by zero (#6).
+        if (colorType == 3 && bitDepth > 8)
+            throw new ImageFormatException("PNG palette images cannot exceed eight bits a sample.");
+
         var bitsPerPixel = channels * bitDepth;
-        var rowBytes = (width * bitsPerPixel + 7) / 8;
+
+        // A wide 16-bit RGBA row (up to 64 bits a pixel) overflows the stride computed in int even
+        // for a width the pixel-area limit allows; computed in long and bounded (#5).
+        var rowBytesLong = ((long)width * bitsPerPixel + 7) / 8;
+        if (rowBytesLong > int.MaxValue || rowBytesLong * height > int.MaxValue)
+            throw new ImageFormatException("PNG row stride is larger than could be held.");
+        var rowBytes = (int)rowBytesLong;
 
         var raw = interlaced
             ? Weave(samples, width, height, bitsPerPixel)

@@ -83,4 +83,51 @@ public class PngHostileTests(ITestOutputHelper output)
         Assert.Equal(2, image.Width);
         Assert.Equal(2, image.Height);
     }
+
+    [Fact]
+    public void A_short_ihdr_fails_cleanly()   // #4
+    {
+        var png = new List<byte> { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        Chunk(png, "IHDR", new byte[5]);   // fewer than the 13 IHDR bytes
+        Assert.IsType<ImageFormatException>(Record.Exception(() => PngDecoder.Decode(png.ToArray())));
+    }
+
+    [Fact]
+    public void A_palette_at_sixteen_bits_does_not_divide_by_zero()   // #6
+    {
+        var png = new List<byte> { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        var ihdr = new List<byte>();
+        Be32(ihdr, 2); Be32(ihdr, 2);
+        ihdr.Add(16); ihdr.Add(3); ihdr.Add(0); ihdr.Add(0); ihdr.Add(0);   // 16-bit palette
+        Chunk(png, "IHDR", ihdr.ToArray());
+        Chunk(png, "PLTE", new byte[3]);
+        Chunk(png, "IDAT", ZlibOfZeros(64));
+        Chunk(png, "IEND", []);
+        Assert.IsType<ImageFormatException>(Record.Exception(() => PngDecoder.Decode(png.ToArray())));
+    }
+
+    [Fact]
+    public void A_corrupt_idat_fails_cleanly()   // #7
+    {
+        var png = new List<byte> { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        var ihdr = new List<byte>();
+        Be32(ihdr, 2); Be32(ihdr, 2);
+        ihdr.Add(8); ihdr.Add(6); ihdr.Add(0); ihdr.Add(0); ihdr.Add(0);
+        Chunk(png, "IHDR", ihdr.ToArray());
+        Chunk(png, "IDAT", [0x78, 0x9c, 0xFF, 0xFF, 0xFF, 0xFF]);   // zlib header then garbage
+        Chunk(png, "IEND", []);
+        var ex = Record.Exception(() => PngDecoder.Decode(png.ToArray()));
+        Assert.IsType<ImageFormatException>(ex);
+        Assert.Null(ImageReader.TryRead(png.ToArray()));
+    }
+
+    [Fact]
+    public void A_chunk_length_near_int_max_does_not_pass_the_bounds_check()   // #3
+    {
+        var png = new List<byte> { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        Be32(png, 0x7FFFFFFF);                          // chunk length near int.MaxValue
+        png.AddRange("IDAT"u8.ToArray());
+        png.AddRange(new byte[8]);
+        Assert.IsType<ImageFormatException>(Record.Exception(() => PngDecoder.Decode(png.ToArray())));
+    }
 }
