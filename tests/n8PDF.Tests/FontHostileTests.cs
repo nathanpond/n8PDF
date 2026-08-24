@@ -89,4 +89,35 @@ public class FontHostileTests(ITestOutputHelper output)
         Assert.Null(shaped);
         _output.WriteLine("shaping the scrambled font returned without throwing");
     }
+
+    private static void U16(List<byte> b, int v) { b.Add((byte)(v >> 8)); b.Add((byte)v); }
+    private static void U32(List<byte> b, long v) { b.Add((byte)(v >> 24)); b.Add((byte)(v >> 16)); b.Add((byte)(v >> 8)); b.Add((byte)v); }
+
+    [Fact]
+    public void A_cmap_format12_with_a_huge_group_count_does_not_oom_or_hang()   // #157
+    {
+        // A cmap table: version, one subtable record pointing at a format-12 subtable whose
+        // numGroups claims a billion. Before, groupCount*4 sized a Dictionary (overflowing to a
+        // negative capacity → ArgumentOutOfRangeException) or the fill ran unbounded.
+        var sub = new List<byte>();
+        U16(sub, 12); U16(sub, 0);      // format 12, reserved
+        U32(sub, 16);                    // length
+        U32(sub, 0);                     // language
+        U32(sub, 0x40000000);            // numGroups — a billion
+
+        var cmap = new List<byte>();
+        U16(cmap, 0); U16(cmap, 1);      // version, numTables
+        U16(cmap, 3); U16(cmap, 10);     // platform 3, encoding 10 (full Unicode)
+        U32(cmap, 12);                    // subtable at offset 12
+        cmap.AddRange(sub);
+
+        var thread = new Thread(() =>
+        {
+            try { CharacterMap.Parse(cmap.ToArray(), 0); } catch (FontFormatException) { }
+        });
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(15)), "cmap format-12 parse did not finish — not bounded");
+        _output.WriteLine("cmap format-12 with a billion groups returned without OOM or hang");
+    }
+
 }
