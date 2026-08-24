@@ -322,6 +322,39 @@ internal static class PdfRenderer
                         content.Clip();
                     }
 
+                    // The clips a metafile had in force when it drew this (#69): each written as
+                    // a clip path of its own, which is how PDF composes their intersection.
+                    foreach (var shape in path.Clips ?? [])
+                    {
+                        foreach (var step in shape.Steps)
+                        {
+                            switch (step.Kind)
+                            {
+                                case Images.PathStepKind.Move:
+                                    content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                                    break;
+
+                                case Images.PathStepKind.Line:
+                                    content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                                    break;
+
+                                case Images.PathStepKind.Curve:
+                                    content.CurveTo(
+                                        X(step.Points[0].X), Y(step.Points[0].Y),
+                                        X(step.Points[1].X), Y(step.Points[1].Y),
+                                        X(step.Points[2].X), Y(step.Points[2].Y));
+                                    break;
+
+                                case Images.PathStepKind.Close:
+                                    content.ClosePath();
+                                    break;
+                            }
+                        }
+
+                        if (shape.EvenOdd) content.ClipEvenOdd();
+                        else content.Clip();
+                    }
+
                     if (path.Fill is { } fill)
                         content.SetFillColor(fill.Red / 255.0, fill.Green / 255.0, fill.Blue / 255.0);
 

@@ -15,8 +15,9 @@ namespace n8PDF.Images;
 ///
 /// What is handled is what a picture in a document is made of: paths and the shapes that are
 /// shorthand for them, the pens and brushes that colour them, text, and the bitmaps a drawing can
-/// carry. What is not is the rest of an interface designed to drive a screen: raster operations,
-/// clipping regions and palettes.
+/// carry. What is handled beside them is the clipping a drawing keeps its ink
+/// inside (#69). What is not is the rest of an interface designed to drive a screen: raster
+/// operations and palettes.
 ///
 /// A metafile written by anything modern carries the newer format's records as well, inside the
 /// comments of this one. Where a file has them they are what draws it: that is what they are for,
@@ -149,6 +150,9 @@ internal static class EmfDecoder
             public double ScaleX { get; init; } = 1;
 
             public double ScaleY { get; init; } = 1;
+
+            /// <summary>The clips in force, innermost last — every one applies at once (#69).</summary>
+            public IReadOnlyList<ClipShape>? Clips { get; init; }
         }
 
         private sealed record LogicalFont(string Family, double Size, bool Bold, bool Italic, double Angle);
@@ -275,6 +279,69 @@ internal static class EmfDecoder
                 case 23: // SETSTRETCHBLTMODE
                 case 24: // SETTEXTALIGN
                     break;
+
+                // ----- the clips (#69) -----
+
+                case 30: // INTERSECTCLIPRECT
+                {
+                    var (x0, y0) = Point(at + 8);
+                    var (x1, y1) = Point(at + 16);
+
+                    AppendClip(new ClipShape(RectSteps(x0, y0, x1, y1), EvenOdd: false));
+                    break;
+                }
+
+                case 29: // EXCLUDECLIPRECT
+                {
+                    // Everything but the rectangle: a path of the whole plane and the rectangle,
+                    // decided even-odd, which is the same subtraction in PDF's terms.
+                    var (x0, y0) = Point(at + 8);
+                    var (x1, y1) = Point(at + 16);
+
+                    var steps = RectSteps(-Beyond, -Beyond, Beyond, Beyond);
+                    steps.AddRange(RectSteps(x0, y0, x1, y1));
+
+                    AppendClip(new ClipShape(steps, EvenOdd: true));
+                    break;
+                }
+
+                case 67: // SELECTCLIPPATH
+                    if (_path.Count > 0)
+                        CombineClip(ReadUInt32(at + 8), new ClipShape([.. _path], _state.EvenOdd));
+
+                    _recording = false;
+                    _path = [];
+                    break;
+
+                case 75: // EXTSELECTCLIPRGN
+                {
+                    // The region rides as RGNDATA: a 32-byte header naming how many rectangles,
+                    // then the rectangles, whose union is the region. RGN_COPY with no data at
+                    // all is how a metafile clears its clip.
+                    var mode = ReadUInt32(at + 12);
+
+                    if (ReadUInt32(at + 8) == 0)
+                    {
+                        if (mode == 5) _state = _state with { Clips = null };
+                        break;
+                    }
+
+                    var count = (int)Math.Min(ReadUInt32(at + 24), 256);
+                    var steps = new List<PathStep>();
+
+                    for (var i = 0; i < count; i++)
+                    {
+                        var o = at + 16 + 32 + i * 16;
+                        if (o + 16 > data.Length) break;
+
+                        var (x0, y0) = Point(o);
+                        var (x1, y1) = Point(o + 8);
+                        steps.AddRange(RectSteps(x0, y0, x1, y1));
+                    }
+
+                    if (steps.Count > 0) CombineClip(mode, new ClipShape(steps, EvenOdd: false));
+                    break;
+                }
 
                 case 19: // SETPOLYFILLMODE
                     _state = _state with { EvenOdd = ReadUInt32(at + 8) == 1 };
@@ -757,8 +824,36 @@ internal static class EmfDecoder
 
             Add(new PathOperation(
                 [.. steps], fillColor, strokeColor,
-                Math.Max(0.24, _state.StrokeWidth * _scale), _state.EvenOdd));
+                Math.Max(0.24, _state.StrokeWidth * _scale), _state.EvenOdd,
+                Clips: _state.Clips));
         }
+
+        /// <summary>Far past any drawing, for the path that stands for the whole plane (#69).</summary>
+        private const double Beyond = 1e6;
+
+        private static List<PathStep> RectSteps(double x0, double y0, double x1, double y1) =>
+        [
+            new PathStep(PathStepKind.Move, [(x0, y0)]),
+            new PathStep(PathStepKind.Line, [(x1, y0)]),
+            new PathStep(PathStepKind.Line, [(x1, y1)]),
+            new PathStep(PathStepKind.Line, [(x0, y1)]),
+            new PathStep(PathStepKind.Close, [])
+        ];
+
+        private void AppendClip(ClipShape shape) =>
+            _state = _state with { Clips = [.. _state.Clips ?? [], shape] };
+
+        /// <summary>
+        /// How a selected region or path joins the clip in force. Copy replaces it and And
+        /// intersects, which the renderer composes by clipping to each in turn; the other three
+        /// modes need a union or a symmetric difference of arbitrary regions, which nothing
+        /// yet drawn by Office asks of a document's picture — they take the new shape alone,
+        /// which errs toward clipping less rather than more.
+        /// </summary>
+        private void CombineClip(uint mode, ClipShape shape) =>
+            _state = mode == 1 // RGN_AND
+                ? _state with { Clips = [.. _state.Clips ?? [], shape] }
+                : _state with { Clips = [shape] };
 
         /// <summary>A point of the metafile's own, in the drawing's points.</summary>
         private (double X, double Y) Point(int at) =>

@@ -56,6 +56,8 @@ internal sealed class ContentStreamBuilder
     /// </summary>
     public ContentStreamBuilder Clip() => Op("W n");
 
+    public ContentStreamBuilder ClipEvenOdd() => Op("W* n");
+
     public ContentStreamBuilder Fill() => Op("f");
 
     /// <summary>Fills by the even-odd rule rather than by the winding the path was drawn with.</summary>
