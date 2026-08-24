@@ -107,8 +107,20 @@ internal sealed class StyleDefinitions
     /// Walks a style's inheritance chain from the most general ancestor to the style itself.
     /// A malformed document can contain a cycle, so visited ids are tracked.
     /// </summary>
+    // A style's chain is invariant once styles.xml is parsed, and ResolveRun walks it twice per
+    // run over a document's whole run count; recomputing it — a fresh List and HashSet each time —
+    // was pure churn (#221). Memoize by id. GetInheritanceChain is only ever called after Parse,
+    // so the definitions the cache closes over are already final.
+    private readonly Dictionary<string, IReadOnlyList<Style>> _chainCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly IReadOnlyList<Style> EmptyChain = new List<Style>();
+
     public IReadOnlyList<Style> GetInheritanceChain(string? styleId)
     {
+        if (styleId is null) return EmptyChain;
+        if (_chainCache.TryGetValue(styleId, out var cached)) return cached;
+
         var chain = new List<Style>();
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var current = Find(styleId);
@@ -120,6 +132,7 @@ internal sealed class StyleDefinitions
         }
 
         chain.Reverse();
+        _chainCache[styleId] = chain;
         return chain;
     }
 }

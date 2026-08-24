@@ -268,7 +268,11 @@ public static class Converter
         var bookmarks = BookmarkText.Collect(document);
         environment.TextOfBookmark = name => bookmarks.GetValueOrDefault(name);
 
-        var engine = new LayoutEngine(fonts, resolver, options.Layout, options.Limits) { Fields = environment };
+        // One decode cache spans both pagination passes so an image is decoded once, not per pass (#217).
+        var decodedImages = new Dictionary<string, Images.ImageData?>();
+
+        var engine = new LayoutEngine(fonts, resolver, options.Layout, options.Limits, decodedImages)
+            { Fields = environment };
         var laidOut = engine.Layout(document);
 
         // A page number cannot be known while the page it is on is still being filled, so a
@@ -283,7 +287,7 @@ public static class Converter
             ? laidOut.Pages[found.PageIndex].PageNumber
             : 0;
 
-        var second = new LayoutEngine(fonts, resolver, options.Layout, options.Limits)
+        var second = new LayoutEngine(fonts, resolver, options.Layout, options.Limits, decodedImages)
         {
             Fields = environment,
             Pagination = pagination
@@ -304,6 +308,10 @@ public static class Converter
     /// </remarks>
     private static void LoadHeadersAndFooters(OpcPackage package, string mainPartName, WordDocument document)
     {
+        // One parse per header/footer part: a section that points two references at the same part
+        // otherwise re-parses it and re-runs its image/hyperlink/diagram/chart loading each time (#224).
+        var byPart = new Dictionary<string, HeaderFooter>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var relationship in package.GetRelationships(mainPartName))
         {
             if (relationship.IsExternal) continue;
@@ -318,6 +326,12 @@ public static class Converter
                 var partName = package.ResolveTarget(mainPartName, relationship.Target);
                 if (!package.HasPart(partName)) continue;
 
+                if (byPart.TryGetValue(partName, out var already))
+                {
+                    document.HeadersAndFooters[relationship.Id] = already;
+                    continue;
+                }
+
                 var root = package.ReadPartAsXml(partName).Root;
                 if (root is null) continue;
 
@@ -329,6 +343,7 @@ public static class Converter
                 }
 
                 document.HeadersAndFooters[relationship.Id] = content;
+                byPart[partName] = content;
                 LoadHyperlinks(package, partName, partName, content.Body, document);
                 LoadPartImages(package, partName, content.Body, document);
                 LoadDiagrams(package, partName, content.Body);
@@ -476,6 +491,10 @@ public static class Converter
     /// </remarks>
     private static void LoadDiagrams(OpcPackage package, string partName, List<BlockElement> blocks)
     {
+        // One read per diagram relationship: many drawings sharing an id otherwise re-parse the
+        // same data part and re-walk it with Descendants (#224).
+        var byId = new Dictionary<string, List<DiagramShape>>(StringComparer.Ordinal);
+
         foreach (var run in EnumerateRuns(blocks))
         foreach (var content in run.Content)
         {
@@ -488,7 +507,8 @@ public static class Converter
 
             if (id is null) continue;
 
-            var shapes = ReadDiagram(package, partName, id);
+            if (!byId.TryGetValue(id, out var shapes))
+                byId[id] = shapes = ReadDiagram(package, partName, id);
             if (shapes.Count == 0) continue;
 
             switch (content)
@@ -507,6 +527,10 @@ public static class Converter
     /// <summary>Reads the chart part every chart in a run of blocks names.</summary>
     private static void LoadCharts(OpcPackage package, string partName, List<BlockElement> blocks)
     {
+        // One parse per chart part: many drawings naming the same chart otherwise each rebuild the
+        // identical XDocument and re-parse it (#224).
+        var chartByPart = new Dictionary<string, ChartDefinition?>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var run in EnumerateRuns(blocks))
         foreach (var content in run.Content)
         {
@@ -533,8 +557,12 @@ public static class Converter
                 {
                     var chartPart = package.ResolveTarget(partName, reference.Target);
 
-                    if (package.HasPart(chartPart))
+                    if (package.HasPart(chartPart) &&
+                        !chartByPart.TryGetValue(chartPart, out chart))
+                    {
                         chart = ChartReader.Parse(package.ReadPartAsXml(chartPart));
+                        chartByPart[chartPart] = chart;
+                    }
                 }
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException

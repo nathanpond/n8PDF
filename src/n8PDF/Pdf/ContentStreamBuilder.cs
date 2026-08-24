@@ -188,9 +188,8 @@ internal sealed class ContentStreamBuilder
     public ContentStreamBuilder ShowGlyphs(ReadOnlySpan<byte> encoded)
     {
         EnsureInText();
-        WriteRaw("<");
-        foreach (var b in encoded)
-            WriteRaw(b.ToString("X2", CultureInfo.InvariantCulture));
+        _buffer.WriteByte((byte)'<');
+        WriteHex(encoded);
 
         return Op("> Tj");
     }
@@ -208,10 +207,9 @@ internal sealed class ContentStreamBuilder
         {
             if (encoded.Length > 0)
             {
-                WriteRaw("<");
-                foreach (var b in encoded)
-                    WriteRaw(b.ToString("X2", CultureInfo.InvariantCulture));
-                WriteRaw(">");
+                _buffer.WriteByte((byte)'<');
+                WriteHex(encoded);
+                _buffer.WriteByte((byte)'>');
             }
 
             if (adjustment != 0) WriteRaw(N(adjustment));
@@ -256,6 +254,22 @@ internal sealed class ContentStreamBuilder
     {
         var bytes = Encoding.ASCII.GetBytes(text);
         _buffer.Write(bytes, 0, bytes.Length);
+    }
+
+    private static readonly byte[] Hex = "0123456789ABCDEF"u8.ToArray();
+
+    // Two hex bytes per glyph byte, written straight into the buffer: the old form allocated a
+    // two-char string and a byte[] per glyph, millions over a large document (#222). Same
+    // uppercase digits, so the bytes are identical.
+    private void WriteHex(ReadOnlySpan<byte> encoded)
+    {
+        Span<byte> pair = stackalloc byte[2];
+        foreach (var b in encoded)
+        {
+            pair[0] = Hex[b >> 4];
+            pair[1] = Hex[b & 0xF];
+            _buffer.Write(pair);
+        }
     }
 
     private static string N(double value) => PdfNumber.Format(value);
