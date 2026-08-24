@@ -138,7 +138,7 @@ public static class TestFonts
     [
         "chart-area-scatter", "chart-axis-probe", "chart-bar-scale-probe", "chart-bar-stacked",
         "chart-doughnut-bubble", "chart-kinds-probe", "chart-kinds-probe-two",
-        "chart-drop-line-probe", "chart-error-bar-probe", "chart-placement-probe", "chart-legend-key-probe", "chart-3d-geometry-probe", "chart-3d-height-probe", "chart-3d-gridline-probe", "chart-3d-size-probe", "chart-3d-condition-probe", "chart-3d-footprint-probe", "chart-3d-count-probe", "chart-3d-slot-probe", "chart-3d-height-count-probe", "chart-3d-depth-probe", "chart-3d-rotation-probe", "chart-3d-projection-probe", "chart-3d-wall-probe", "chart-3d-depth-axis-probe", "chart-3d-box-probe", "chart-3d-pie-probe", "chart-3d-ribbon-probe", "chart-3d-perspective-probe", "chart-3d-camera-probe", "chart-3d-eye-probe", "chart-3d-eye2-probe", "chart-3d-branch-probe", "chart-3d-floor-probe", "chart-3d-deep-probe", "chart-3d-inset-probe", "chart-3d-shading-probe", "chart-3d-value-probe",
+        "chart-drop-line-probe", "chart-error-bar-probe", "chart-placement-probe", "chart-legend-key-probe", "chart-3d-geometry-probe", "chart-3d-height-probe", "chart-3d-gridline-probe", "chart-3d-size-probe", "chart-3d-condition-probe", "chart-3d-footprint-probe", "chart-3d-count-probe", "chart-3d-slot-probe", "chart-3d-height-count-probe", "chart-3d-depth-probe", "chart-3d-rotation-probe", "chart-3d-projection-probe", "chart-3d-wall-probe", "chart-3d-depth-axis-probe", "chart-3d-box-probe", "chart-3d-pie-probe", "chart-3d-ribbon-probe", "chart-3d-perspective-probe", "chart-3d-camera-probe", "chart-3d-eye-probe", "chart-3d-eye2-probe", "chart-3d-branch-probe", "chart-3d-floor-probe", "chart-3d-deep-probe", "hangul-jamo-probe", "chart-3d-inset-probe", "chart-3d-shading-probe", "chart-3d-value-probe",
         "chart-legend-box-probe", "chart-legend-cut-probe", "chart-legend-room-probe", "chart-legend-size-probe", "chart-radar-stock", "chart-title-weight-probe", "chart-trendline-probe", "chart-updown-bar-probe",
         "merged-indent-probe",
         "brochure", "emphasis-mark-probe", "minutes", "notes",
@@ -258,6 +258,7 @@ public static class TestFonts
         string[] office =
         [
             CalibriPath, CalibriBoldPath, CambriaMathPath, Mincho, Gothic, Kaiti, MingLiu,
+            Path.Combine(OfficeFonts, "malgun.ttf"),
             Path.Combine(OfficeFonts, "symbol.ttf")
         ];
 

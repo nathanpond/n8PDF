@@ -9190,6 +9190,14 @@ public static class Fixtures
                                  "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
                                  "</w:rPr><w:t>On the second page</w:t></w:r></w:p>"),
 
+            ["hangul-jamo-probe"] = () => new DocxBuilder()
+                .AddParagraph(
+                    "\u1112\u1161\u11AB\u1100\u1173\u11AF \u1112\u1161\u11AB\u1100\u1173\u11AF\u110B\u1161",
+                    ZeroSpacing, DocxBuilder.RunProperties(font: "Malgun Gothic", halfPoints: 32))
+                .AddParagraph("\uD55C\uAE00 \uD55C\uAE00\uC544",
+                    ZeroSpacing, DocxBuilder.RunProperties(font: "Malgun Gothic", halfPoints: 32))
+                .AddParagraph("A control line in the usual face.", ZeroSpacing, Times()),
+
             ["chart-3d-deep-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 0, 60, 100, 15, 20, 110, 0))
                 .WithPart("word/charts/chart2.xml",

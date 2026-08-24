@@ -1,0 +1,35 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 92.64,
+          "height": 27.664,
+          "runs": [
+            {"x": 72, "width": 229.625, "font": "Malgun Gothic", "size": 16, "text": "한글 한글아"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 120.48,
+          "height": 27.664,
+          "runs": [
+            {"x": 72, "width": 85.625, "font": "Malgun Gothic", "size": 16, "text": "한글 한글아"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 138.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 150.949, "font": "Times New Roman", "size": 12, "text": "A control line in the usual face."}
+          ]
+        }
+      ]
+    }
+  ]
+}
