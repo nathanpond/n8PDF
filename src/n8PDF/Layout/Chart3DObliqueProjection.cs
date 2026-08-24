@@ -82,16 +82,23 @@ internal sealed class Chart3DObliqueProjection : IChart3DProjection
     /// <param name="rotY">The stated turn, in degrees.</param>
     /// <param name="depthPercent">The stated <c>c:depthPercent</c>.</param>
     /// <param name="hPercent">The stated <c>c:hPercent</c>, or null for the absence (#109).</param>
-    /// <param name="categories">How many categories the plot draws.</param>
-    /// <param name="series">How many series.</param>
+    /// <param name="categories">The box's width in slot units — the category count, until a
+    /// grouping says otherwise (see <c>Chart3DArrangement</c>).</param>
+    /// <param name="series">Its depth in slot units, before <paramref name="depthPercent"/>.</param>
+    /// <param name="heightUnits">
+    /// The box's height in units where the document states no <c>hPercent</c>, or null for the
+    /// standard rule, <c>floor((width + depth)/2)</c>. A grouping that collapses the rows can
+    /// make the height count something other than what stands in the scene (#100).
+    /// </param>
     /// <param name="rectLeft">The plot rectangle, in page points.</param>
     /// <param name="rectTop">Its top.</param>
     /// <param name="rectWidth">Its width.</param>
     /// <param name="rectHeight">Its height.</param>
     public Chart3DObliqueProjection(
         double rotX, double rotY, double depthPercent, double? hPercent,
-        int categories, int series,
-        double rectLeft, double rectTop, double rectWidth, double rectHeight)
+        double categories, double series,
+        double rectLeft, double rectTop, double rectWidth, double rectHeight,
+        double? heightUnits = null)
     {
         _sinA = Math.Sin(rotX * Math.PI / 180);
         _sinB = Math.Sin(rotY * Math.PI / 180);
@@ -100,7 +107,7 @@ internal sealed class Chart3DObliqueProjection : IChart3DProjection
         _hz = series * depthPercent / 100 / 2;
         _hy = hPercent is { } stated
             ? categories * stated / 100 / 2
-            : Math.Floor((categories + series) / 2.0) * (rectHeight / rectWidth) / 2;
+            : (heightUnits ?? Math.Floor((categories + series) / 2.0)) * (rectHeight / rectWidth) / 2;
 
         var xMin = -_hx - _hz * _sinB - 2 * _hx * LeftPad;
         var xMax = _hx + _hz * _sinB + 2 * _hx * (RightPad + RightLean * _sinB);
