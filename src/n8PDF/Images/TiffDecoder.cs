@@ -41,6 +41,11 @@ internal static class TiffDecoder
         ImageLimits.Check(width, height, maximumPixels, "TIFF");
 
         var samples = (int)Value(reader, tags, 277, 1);
+
+        // A picture has a handful of channels; an unbounded SamplesPerPixel overflows the row
+        // stride negative or sizes the raw buffer in gigabytes (#29).
+        if (samples is < 1 or > 16)
+            throw new ImageFormatException($"TIFF declares {samples} samples a pixel, which is not a picture.");
         var bits = tags.TryGetValue(258, out var bitsTag) ? (int)Numbers(reader, bitsTag)[0] : 1;
         var compression = (int)Value(reader, tags, 259, 1);
         var photometric = (int)Value(reader, tags, 262, bits == 1 ? 0 : 1);
@@ -165,11 +170,18 @@ internal static class TiffDecoder
     private static List<long> Numbers(Reader reader, Tag tag)
     {
         var size = tag.Type switch { 1 or 2 or 6 or 7 => 1, 3 or 8 => 2, _ => 4 };
-        var total = size * tag.Count;
+        var total = (long)size * tag.Count;
 
-        var values = new List<long>(tag.Count);
+        // The count is a raw 32-bit field. The values must lie within the file — inline in the
+        // four-byte entry, or at an offset the file's own length bounds — so the number read is
+        // bounded by that rather than pre-sizing a list from the word of the file (#27).
+        var count = total <= 4
+            ? Math.Min(Math.Max(0, tag.Count), 4 / size)
+            : Math.Min(Math.Max(0, tag.Count), Math.Max(0, (reader.Length - tag.Offset) / size));
 
-        for (var i = 0; i < tag.Count; i++)
+        var values = new List<long>(count);
+
+        for (var i = 0; i < count; i++)
         {
             var at = total <= 4 ? i * size : tag.Offset + i * size;
             var source = total <= 4 ? tag.Inline : null;
@@ -195,6 +207,10 @@ internal static class TiffDecoder
         tags.TryGetValue(id, out var tag) && tag.Count > 0
             ? tag.Type switch
             {
+                // A single BYTE/SBYTE sits in the first of the four inline bytes whichever way the
+                // file runs; taken as the whole field it reads value<<24 in a big-endian file and
+                // a count of 3 becomes fifty million (#28).
+                1 or 6 when tag.Inline.Length > 0 => tag.Inline[0],
                 3 or 8 => reader.UInt16(tag.Inline, 0),
                 _ => tag.Offset
             }
@@ -525,18 +541,30 @@ internal static class TiffDecoder
             1 => data[offset..(offset + length)],
             5 => Lzw(data, offset, length, expected),
             32773 => PackBits(data, offset, length, expected),
-            8 or 32946 => Inflate(data, offset, length),
+            8 or 32946 => Inflate(data, offset, length, expected),
             _ => throw new ImageFormatException(
                 $"TIFF is packed with method {compression}, which is not handled.")
         };
 
-    private static byte[] Inflate(byte[] data, int offset, int length)
+    private static byte[] Inflate(byte[] data, int offset, int length, int expected)
     {
         using var input = new MemoryStream(data, offset, length);
         using var stream = new ZLibStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
 
-        stream.CopyTo(output);
+        // A strip decompresses to the rows it covers, no more; reading it a block at a time and
+        // stopping past that bound is what refuses a small Deflate strip that inflates to
+        // gigabytes (#30). A little slack over the expected size absorbs a final partial block.
+        var cap = (long)Math.Max(0, expected) + 65536;
+        var buffer = new byte[81920];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (output.Length + read > cap)
+                throw new ImageFormatException("TIFF strip decompresses past the size its rows allow.");
+
+            output.Write(buffer, 0, read);
+        }
 
         return output.ToArray();
     }

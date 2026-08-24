@@ -51,19 +51,27 @@ internal static class BmpDecoder
         var pixels = new byte[width * height * 3];
         byte[]? alpha = null;
 
+        // The scanlines are read into one flat buffer of height*rowBytes rather than a jagged
+        // array of one object per row: the flat cost is bounded by the area the pixel limit
+        // already checks, where the object count of the jagged form scaled with height alone and
+        // turned a 55-byte bitmap declaring itself one pixel wide and fifty million tall into
+        // fifty million allocations (#10).
+        var rowBytes = (width * bits + 31) / 32 * 4;
+
         var rows = compression is 1 or 2
-            ? DecodeRuns(data, pixelOffset, width, height, bits)
-            : ReadRows(data, pixelOffset, width, height, bits);
+            ? DecodeRuns(data, pixelOffset, width, height, bits, rowBytes)
+            : ReadRows(data, pixelOffset, width, height, bits, rowBytes);
 
         for (var y = 0; y < height; y++)
         {
             // The rows are written from the foot of the picture upwards unless it says otherwise.
             var row = topDown ? y : height - 1 - y;
+            var line = rows.AsSpan(row * rowBytes, rowBytes);
 
             for (var x = 0; x < width; x++)
             {
                 var target = (y * width + x) * 3;
-                var (r, g, b, a) = Sample(rows, row, x, width, bits, palette, masks);
+                var (r, g, b, a) = Sample(line, x, bits, palette, masks);
 
                 pixels[target] = r;
                 pixels[target + 1] = g;
@@ -142,19 +150,15 @@ internal static class BmpDecoder
     }
 
     /// <summary>The pixel rows, each padded out to a multiple of four bytes.</summary>
-    private static byte[][] ReadRows(byte[] data, int offset, int width, int height, int bits)
+    private static byte[] ReadRows(byte[] data, int offset, int width, int height, int bits, int rowBytes)
     {
-        var rowBytes = (width * bits + 31) / 32 * 4;
-        var rows = new byte[height][];
+        var rows = new byte[(long)height * rowBytes <= int.MaxValue ? height * rowBytes : 0];
 
         for (var y = 0; y < height; y++)
         {
-            var row = new byte[rowBytes];
             var start = offset + y * rowBytes;
-
-            if (start < data.Length) Array.Copy(data, start, row, 0, Math.Min(rowBytes, data.Length - start));
-
-            rows[y] = row;
+            if (start < data.Length)
+                Array.Copy(data, start, rows, y * rowBytes, Math.Min(rowBytes, data.Length - start));
         }
 
         return rows;
@@ -165,11 +169,9 @@ internal static class BmpDecoder
     /// pixels. A run is a count and an index; a count of nothing introduces either the end of a
     /// line, the end of the picture, a jump, or a run of pixels written out one by one.
     /// </summary>
-    private static byte[][] DecodeRuns(byte[] data, int offset, int width, int height, int bits)
+    private static byte[] DecodeRuns(byte[] data, int offset, int width, int height, int bits, int rowBytes)
     {
-        var rowBytes = (width * bits + 31) / 32 * 4;
-        var rows = new byte[height][];
-        for (var y = 0; y < height; y++) rows[y] = new byte[rowBytes];
+        var rows = new byte[(long)height * rowBytes <= int.MaxValue ? height * rowBytes : 0];
 
         var x = 0;
         var line = 0;
@@ -184,7 +186,7 @@ internal static class BmpDecoder
             if (count > 0)
             {
                 for (var i = 0; i < count && x < width; i++, x++)
-                    Put(rows[line], x, bits, bits == 4 ? Nibble(value, i) : value);
+                    Put(rows.AsSpan(line * rowBytes, rowBytes), x, bits, bits == 4 ? Nibble(value, i) : value);
 
                 continue;
             }
@@ -219,7 +221,7 @@ internal static class BmpDecoder
                             ? Nibble(data[Math.Min(at + i / 2, data.Length - 1)], i)
                             : data[Math.Min(at + i, data.Length - 1)];
 
-                        Put(rows[line], x, bits, index);
+                        Put(rows.AsSpan(line * rowBytes, rowBytes), x, bits, index);
                     }
 
                     at += used + (used & 1);
@@ -233,7 +235,7 @@ internal static class BmpDecoder
 
     private static int Nibble(byte value, int index) => (index & 1) == 0 ? value >> 4 : value & 0x0f;
 
-    private static void Put(byte[] row, int x, int bits, int value)
+    private static void Put(Span<byte> row, int x, int bits, int value)
     {
         if (bits == 8)
         {
@@ -250,10 +252,8 @@ internal static class BmpDecoder
     }
 
     private static (byte R, byte G, byte B, byte A) Sample(
-        byte[][] rows, int row, int x, int width, int bits, byte[]? palette, ChannelMasks masks)
+        ReadOnlySpan<byte> line, int x, int bits, byte[]? palette, ChannelMasks masks)
     {
-        var line = rows[row];
-
         switch (bits)
         {
             case 1 or 4 or 8:
@@ -312,7 +312,7 @@ internal static class BmpDecoder
         return (byte)(top == 0 ? 0 : raw * 255 / top);
     }
 
-    private static int Packed(byte[] row, int x, int bits)
+    private static int Packed(ReadOnlySpan<byte> row, int x, int bits)
     {
         if (bits == 8) return x < row.Length ? row[x] : 0;
 

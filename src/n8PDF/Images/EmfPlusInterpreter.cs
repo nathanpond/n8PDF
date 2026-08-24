@@ -119,9 +119,25 @@ internal static class EmfPlusInterpreter
         /// Reads what has arrived. A record may begin in one comment and end in the next, so
         /// whatever is left over at the end of a run waits for the run that completes it.
         /// </summary>
+        /// <summary>
+        /// The most that may wait for a record to complete across comments. A single EMF+ record
+        /// is small; a pending buffer past this is a record that declares a size it never fills,
+        /// re-copied whole on every comment that follows (#19), so it is abandoned rather than
+        /// carried.
+        /// </summary>
+        private const int MaxPending = 16 * 1024 * 1024;
+
         public void Feed(byte[] arrived, int from, int to)
         {
             if (to <= from) return;
+
+            // Abandon a leftover that has grown past what any real record needs, rather than
+            // append to it and re-copy it again (#19).
+            if ((long)data.Length + (to - from) > MaxPending)
+            {
+                data = [];
+                return;
+            }
 
             data = data.Length == 0 ? arrived[from..to] : [.. data, .. arrived[from..to]];
 
@@ -141,7 +157,7 @@ internal static class EmfPlusInterpreter
                     return;
                 }
 
-                if (at + size > data.Length) break;
+                if (size > data.Length - at) break;  // overflow-safe (#18)
 
                 Record(type, flags, at + 12, at + size);
 
@@ -600,7 +616,13 @@ internal static class EmfPlusInterpreter
 
         private List<(double X, double Y)> ReadPoints(int at, int count, int flags, int end)
         {
-            var points = new List<(double, double)>(Math.Max(0, count));
+            // A point is at least two bytes (the relative form), so the record's own remaining
+            // bytes bound how many there can be; the list is pre-sized from that rather than from
+            // the raw count field (#22).
+            var room = Math.Max(0, (end - at) / 2);
+            count = Math.Min(Math.Max(0, count), room);
+
+            var points = new List<(double, double)>(count);
             var compressed = (flags & 0x4000) != 0;
             var relative = (flags & 0x0800) != 0;
 

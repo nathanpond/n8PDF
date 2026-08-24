@@ -4312,14 +4312,26 @@ internal sealed class LayoutEngine(
     {
         floors = null;
 
+        // A table has columns in the tens; a summed w:gridSpan can claim billions and size four
+        // parallel double[] arrays from it. The per-row count is accumulated with a cap so the
+        // sum cannot overflow, and the column count is bounded before anything is allocated from
+        // it (#152).
+        const int maxColumns = 10_000;
+
         var columnCount = 0;
         foreach (var row in table.Rows)
         {
-            var count = row.Cells.Sum(cell => Math.Max(1, cell.GridSpan));
+            var count = 0;
+            foreach (var cell in row.Cells)
+            {
+                count += Math.Max(1, cell.GridSpan);
+                if (count >= maxColumns) { count = maxColumns; break; }
+            }
+
             columnCount = Math.Max(columnCount, count);
         }
 
-        columnCount = Math.Max(columnCount, table.Grid.Count);
+        columnCount = Math.Min(Math.Max(columnCount, table.Grid.Count), maxColumns);
         if (columnCount == 0) return [availableWidth];
 
         var minimums = new double[columnCount];

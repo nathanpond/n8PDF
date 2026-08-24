@@ -445,6 +445,11 @@ internal sealed class Metamorphosis
         {
             if (at < 0 || at > buffer.Count) return;
 
+            // The buffer is capped across all of shaping: an insertion subtable that keeps adding
+            // glyphs faster than the cursor advances stops here rather than exhausting memory
+            // (#184).
+            if (buffer.Count >= ShapingLimits.MaxGlyphs) return;
+
             var neighbour = buffer[Math.Min(at, buffer.Count - 1)];
 
             for (var i = 0; i < count; i++)

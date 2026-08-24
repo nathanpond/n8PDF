@@ -26,7 +26,8 @@ namespace n8PDF.Images;
 /// </remarks>
 internal static class JpegDecoder
 {
-    public static ImageData Decode(byte[] data) => new Reader(data).Run();
+    public static ImageData Decode(byte[] data, long maximumPixels = ImageLimits.DefaultMaximumPixels) =>
+        new Reader(data, maximumPixels).Run();
 
     private sealed class Component
     {
@@ -108,7 +109,7 @@ internal static class JpegDecoder
         }
     }
 
-    private sealed class Reader(byte[] data)
+    private sealed class Reader(byte[] data, long maximumPixels)
     {
         private readonly List<Component> _components = [];
         private readonly int[]?[] _quantization = new int[4][];
@@ -342,6 +343,10 @@ internal static class JpegDecoder
             }
 
             if (_width <= 0 || _height <= 0) throw new ImageFormatException("JPEG declares an empty image.");
+
+            // The frame's two 16-bit dimensions can declare a 4-billion-pixel image in a 20-byte
+            // header; checked here before the component buffers are sized from them (#40).
+            ImageLimits.Check(_width, _height, maximumPixels, "JPEG");
 
             if (_components.Count is not (1 or 3 or 4))
                 throw new ImageFormatException($"A JPEG of {_components.Count} channels is not handled.");

@@ -95,17 +95,39 @@ internal static class PngDecoder
         if (width <= 0 || height <= 0)
             throw new ImageFormatException("PNG has no valid IHDR.");
 
-        var samples = Inflate(compressed.ToArray());
+        // What the header's dimensions imply the decompressed data can be: one filter byte per
+        // row and at most eight bytes a pixel (16-bit RGBA), with slack for the extra rows an
+        // interlaced layout splits into. The dimensions were already checked against the pixel
+        // limit, so this is bounded; capping the inflate against it is what stops a few hundred
+        // bytes of IDAT that decompress to gigabytes (#2).
+        var maxSamples = (long)width * height * 8 + (long)height * 2 + 4096;
+        var samples = Inflate(compressed.ToArray(), maxSamples);
 
         return Unfilter(samples, width, height, bitDepth, colorType, palette, paletteAlpha, interlaced);
     }
 
-    private static byte[] Inflate(byte[] compressed)
+    private static byte[] Inflate(byte[] compressed, long maxBytes)
     {
         using var input = new MemoryStream(compressed);
         using var inflate = new ZLibStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
-        inflate.CopyTo(output);
+
+        // Read the decompressed stream a block at a time rather than copying it whole, so the cap
+        // is checked as it grows and a bomb is refused after one block over the bound rather than
+        // after it has all been held in memory (#2).
+        var buffer = new byte[81920];
+        int read;
+        while ((read = inflate.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (output.Length + read > maxBytes)
+            {
+                throw new ImageFormatException(
+                    $"PNG image data decompresses past what its dimensions allow ({maxBytes:N0} bytes).");
+            }
+
+            output.Write(buffer, 0, read);
+        }
+
         return output.ToArray();
     }
 

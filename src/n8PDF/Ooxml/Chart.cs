@@ -1203,13 +1203,18 @@ internal static class ChartReader
     /// </summary>
     private static List<string?> Points(XElement cache)
     {
-        var count = Integer(cache.Element(Main + "ptCount")) ?? 0;
-        var values = new List<string?>(new string?[Math.Max(0, count)]);
+        // A series has points in the hundreds or thousands, not the billions c:ptCount can claim;
+        // the count that pre-sizes the list and the idx that grows it are both bounded so a tiny
+        // chart cannot allocate gigabytes (#147).
+        const int maxPoints = 1_000_000;
+
+        var count = Math.Min(Math.Max(0, Integer(cache.Element(Main + "ptCount")) ?? 0), maxPoints);
+        var values = new List<string?>(new string?[count]);
 
         foreach (var point in cache.Elements(Main + "pt"))
         {
             if (!int.TryParse(point.Attribute("idx")?.Value, out var index)) continue;
-            if (index < 0) continue;
+            if (index is < 0 or >= maxPoints) continue;
 
             while (values.Count <= index) values.Add(null);
 

@@ -71,7 +71,10 @@ internal static class EmfDecoder
             var type = (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
             var size = data[at + 4] | (data[at + 5] << 8) | (data[at + 6] << 16) | (data[at + 7] << 24);
 
-            if (size < 8 || at + size > data.Length) break;
+            // Overflow-safe: at is within the buffer, so data.Length - at is a non-negative int,
+            // where at + size overflows to negative for a size near int.MaxValue and passes a
+            // naive check, after which the cursor moves backwards and the walk never ends (#17).
+            if (size < 8 || size > data.Length - at) break;
 
             if (type == 70 && at + 16 <= data.Length)
             {
@@ -176,7 +179,10 @@ internal static class EmfDecoder
                 var type = ReadUInt32(at);
                 var size = (int)ReadUInt32(at + 4);
 
-                if (size < 8 || at + size > data.Length) break;
+                // Overflow-safe: at is within the buffer, so data.Length - at is a non-negative int,
+            // where at + size overflows to negative for a size near int.MaxValue and passes a
+            // naive check, after which the cursor moves backwards and the walk never ends (#17).
+            if (size < 8 || size > data.Length - at) break;
 
                 Record(type, at, size);
 
@@ -654,7 +660,13 @@ internal static class EmfDecoder
             var bitsSize = (int)ReadUInt32(at + 60);
 
             if (headerAt <= 0 || bitsAt <= 0 || headerSize <= 0 || bitsSize <= 0) return;
-            if (at + bitsAt + bitsSize > data.Length) return;
+
+            // The header's offset and size are validated the same way the bits' are, and both
+            // overflow-safe: only the bits were checked, so a crafted header offset or size read
+            // past the end or sized a gigabyte-long copy (#23). data.Length - X is non-negative
+            // because X (= at, an in-range cursor) is; the subtractions cannot overflow.
+            if (headerAt > data.Length - at || headerSize > data.Length - at - headerAt) return;
+            if (bitsAt > data.Length - at || bitsSize > data.Length - at - bitsAt) return;
 
             // A device-independent bitmap is a bitmap without its file header, so one is put back
             // in front of it and the same reader used.
@@ -693,6 +705,14 @@ internal static class EmfDecoder
             var count = (int)ReadUInt32(at + 24);
             var start = at + 28;
 
+            if (count <= 0) return;
+
+            // The count is a raw 32-bit field; a point must fit within the record's own bytes, so
+            // it is bounded by what remains after the header rather than read to the end of the
+            // file, and the list is pre-sized from the bounded value (#20, #21).
+            var pointSize = small ? 4 : 8;
+            var room = Math.Max(0, (size - 28) / pointSize);
+            count = Math.Min(count, room);
             if (count <= 0) return;
 
             var points = new List<(double X, double Y)>(count);
@@ -745,6 +765,11 @@ internal static class EmfDecoder
             var points = (int)ReadUInt32(at + 28);
 
             if (polygons <= 0 || points <= 0) return;
+
+            // Both counts are raw 32-bit fields. The per-polygon count array and the points both
+            // have to fit within the record, so each is bounded by what the record's own size
+            // leaves rather than allocated from the file's word (#20).
+            if (polygons > (size - 32) / 4) return;
 
             var counts = new int[polygons];
             for (var i = 0; i < polygons; i++) counts[i] = (int)ReadUInt32(at + 32 + i * 4);
