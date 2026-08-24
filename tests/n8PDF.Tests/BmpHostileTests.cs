@@ -56,4 +56,24 @@ public class BmpHostileTests(ITestOutputHelper output)
         Assert.Equal(8, image.Width);
         Assert.Equal(8, image.Height);
     }
+
+    [Fact]
+    public void A_biHeight_of_int_min_value_fails_cleanly()   // #11
+    {
+        var bmp = Bitmap(8, unchecked((int)0x80000000), 24);   // biHeight = int.MinValue
+        Assert.IsType<ImageFormatException>(Record.Exception(() => BmpDecoder.Decode(bmp)));
+        Assert.Null(ImageReader.TryRead(bmp));
+    }
+
+    [Fact]
+    public void A_negative_header_size_fails_cleanly()   // #12
+    {
+        var b = new List<byte> { (byte)'B', (byte)'M' };
+        Le32(b, 0); Le32(b, 0); Le32(b, 54);
+        Le32(b, -100);                     // BITMAPINFOHEADER size, negative
+        Le32(b, 8); Le32(b, 8);
+        b.Add(1); b.Add(0); b.Add(24); b.Add(0);
+        for (var i = 0; i < 6; i++) Le32(b, 0);
+        Assert.IsType<ImageFormatException>(Record.Exception(() => BmpDecoder.Decode(b.ToArray())));
+    }
 }

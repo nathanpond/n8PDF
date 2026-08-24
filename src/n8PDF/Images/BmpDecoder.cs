@@ -36,6 +36,11 @@ internal static class BmpDecoder
         var bits = core ? ReadUInt16(data, 24) : ReadUInt16(data, 28);
         var compression = core ? 0 : ReadInt32(data, 30);
 
+        // int.MinValue has no positive counterpart, so Math.Abs throws on it; refused before
+        // that (#11). A negative header size would seat the palette before the buffer (#12).
+        if (rawHeight == int.MinValue || headerSize < 0)
+            throw new ImageFormatException("Bitmap header is malformed.");
+
         var height = Math.Abs(rawHeight);
         var topDown = rawHeight < 0;
 
@@ -131,6 +136,8 @@ internal static class BmpDecoder
         if (bits > 8) return null;
 
         var start = 14 + headerSize;
+        if (start < 0 || start >= data.Length) return null;  // a bad header size seats it wild (#12)
+
         var entrySize = core ? 3 : 4;
         var count = Math.Min(1 << bits, Math.Max(0, (data.Length - start) / entrySize));
 
@@ -156,9 +163,11 @@ internal static class BmpDecoder
 
         for (var y = 0; y < height; y++)
         {
-            var start = offset + y * rowBytes;
-            if (start < data.Length)
-                Array.Copy(data, start, rows, y * rowBytes, Math.Min(rowBytes, data.Length - start));
+            // The pixel offset is a raw 32-bit field; computed in long it cannot overflow to a
+            // small positive that reaches Array.Copy, and a negative start is skipped (#13).
+            var start = (long)offset + (long)y * rowBytes;
+            if (start >= 0 && start < data.Length)
+                Array.Copy(data, (int)start, rows, y * rowBytes, (int)Math.Min(rowBytes, data.Length - start));
         }
 
         return rows;
@@ -177,7 +186,9 @@ internal static class BmpDecoder
         var line = 0;
         var at = offset;
 
-        while (at + 1 < data.Length && line < height)
+        // at >= 0 guards a negative pixel offset, which would otherwise index the array below its
+        // start on the first read (#14).
+        while (at >= 0 && at + 1 < data.Length && line < height)
         {
             var count = data[at];
             var value = data[at + 1];

@@ -77,6 +77,11 @@ internal static class GifDecoder
         byte[] data, int at, int screenWidth, int screenHeight, byte[]? globalPalette, int? transparent,
         long maximumPixels)
     {
+        // The ten-byte image descriptor and the code-size byte after the colour table must be
+        // present; a truncated file would otherwise index past its end (#9).
+        if (at + 10 > data.Length)
+            throw new ImageFormatException("GIF image descriptor runs past the end of the file.");
+
         var left = data[at + 1] | (data[at + 2] << 8);
         var top = data[at + 3] | (data[at + 4] << 8);
         var width = data[at + 5] | (data[at + 6] << 8);
@@ -102,6 +107,8 @@ internal static class GifDecoder
         ImageLimits.Check(width, height, maximumPixels, "GIF");
 
         var interlaced = (packed & 0x40) != 0;
+
+        if (at >= data.Length) throw new ImageFormatException("GIF ends before its image data.");  // (#9)
 
         var minimumCodeSize = data[at];
         at++;

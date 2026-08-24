@@ -46,7 +46,11 @@ internal static class TiffDecoder
         // stride negative or sizes the raw buffer in gigabytes (#29).
         if (samples is < 1 or > 16)
             throw new ImageFormatException($"TIFF declares {samples} samples a pixel, which is not a picture.");
-        var bits = tags.TryGetValue(258, out var bitsTag) ? (int)Numbers(reader, bitsTag)[0] : 1;
+        // A BitsPerSample tag may declare no values at all, or point outside the file, and then
+        // Numbers hands back an empty list (#32).
+        var bits = tags.TryGetValue(258, out var bitsTag) && Numbers(reader, bitsTag) is { Count: > 0 } bitsList
+            ? (int)bitsList[0]
+            : 1;
         var compression = (int)Value(reader, tags, 259, 1);
         var photometric = (int)Value(reader, tags, 262, bits == 1 ? 0 : 1);
 
@@ -57,6 +61,10 @@ internal static class TiffDecoder
         var predictor = (int)Value(reader, tags, 317, 1);
         var fillOrder = (int)Value(reader, tags, 266, 1);
         var rowsPerStrip = (int)Value(reader, tags, 278, height);
+
+        // The tag is unsigned, and 0xFFFFFFFF — read here as -1 — means the whole image in one
+        // strip; nought divides by zero counting the strips (#33). Both fall back to the height.
+        if (rowsPerStrip <= 0) rowsPerStrip = height;
 
         // What a fax strip says about how it was written: whether its lines are written against
         // the ones above them, and whether each begins on a byte.
@@ -240,7 +248,7 @@ internal static class TiffDecoder
         var wholeAt = (int)Value(reader, tags, 513, 0);
         var wholeLength = (int)Value(reader, tags, 514, 0);
 
-        if (wholeAt > 0 && wholeLength > 0 && wholeAt + wholeLength <= data.Length)
+        if (wholeAt > 0 && wholeLength > 0 && wholeLength <= data.Length - wholeAt)
             return Whole(data[wholeAt..(wholeAt + wholeLength)], maximumPixels, nesting);
 
         var offsets = tags.TryGetValue(tiled ? 324 : 273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
@@ -340,7 +348,12 @@ internal static class TiffDecoder
                 throw new ImageFormatException("The pieces of the TIFF's JPEG are not alike.");
 
             var left = tiled ? piece % across * tileWidth : 0;
-            var top = tiled ? piece / across * tileHeight : piece * rowsPerStrip;
+
+            // The row origin is an index times a size, both from tags; with enough pieces the
+            // product overflows negative and slips under the top + y < height guard (#38).
+            var origin = tiled ? (long)(piece / across) * tileHeight : (long)piece * rowsPerStrip;
+            if (origin < 0 || origin >= height) continue;
+            var top = (int)origin;
 
             for (var y = 0; y < part.Height && top + y < height; y++)
             {
@@ -404,8 +417,9 @@ internal static class TiffDecoder
             var offset = (int)offsets[index];
             if (offset < 0 || offset >= data.Length) break;
 
-            var length = Math.Min(
-                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset);
+            // A byte count of 0xFFFFFFFF reads as -1, and unfloored it slices backwards (#34).
+            var length = Math.Max(0, Math.Min(
+                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset));
 
             var rows = Math.Min(rowsPerStrip, height - strip * rowsPerStrip);
             if (rows <= 0) break;
@@ -445,7 +459,14 @@ internal static class TiffDecoder
 
         var across = (width + tileWidth - 1) / tileWidth;
         var down = (height + tileHeight - 1) / tileHeight;
-        var tileRowBytes = (tileWidth * perPlane * bits + 7) / 8;
+
+        // A tile's stride and size come from tags, not from the picture; a declared width in the
+        // billions overflows the stride negative, and a negative stride reaches Array.Copy as a
+        // negative source index (#36).
+        var wideRowBytes = ((long)tileWidth * perPlane * bits + 7) / 8;
+        if (wideRowBytes > int.MaxValue || wideRowBytes * tileHeight > int.MaxValue)
+            throw new ImageFormatException("TIFF declares tiles larger than could be held.");
+        var tileRowBytes = (int)wideRowBytes;
 
         var raw = new byte[rowBytes * height];
 
@@ -458,8 +479,9 @@ internal static class TiffDecoder
             var offset = (int)offsets[index];
             if (offset < 0 || offset >= data.Length) continue;
 
-            var length = Math.Min(
-                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset);
+            // A byte count of 0xFFFFFFFF reads as -1, and unfloored it slices backwards (#34).
+            var length = Math.Max(0, Math.Min(
+                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset));
 
             var unpacked = unpack(offset, length, tileHeight, tileRowBytes);
 
@@ -866,13 +888,13 @@ internal static class TiffDecoder
     {
         public int Length => data.Length;
 
-        public byte Byte(int at) => at < data.Length ? data[at] : (byte)0;
+        public byte Byte(int at) => at >= 0 && at < data.Length ? data[at] : (byte)0;
 
         public int UInt16(int at) => UInt16(data, at);
 
         public int UInt16(byte[] source, int at)
         {
-            if (at + 1 >= source.Length) return 0;
+            if (at < 0 || at > source.Length - 2) return 0;
 
             return little
                 ? source[at] | (source[at + 1] << 8)
@@ -883,7 +905,7 @@ internal static class TiffDecoder
 
         public int Int32(byte[] source, int at)
         {
-            if (at + 3 >= source.Length) return 0;
+            if (at < 0 || at > source.Length - 4) return 0;
 
             return little
                 ? source[at] | (source[at + 1] << 8) | (source[at + 2] << 16) | (source[at + 3] << 24)
@@ -893,9 +915,9 @@ internal static class TiffDecoder
         public byte[] Slice(int at, int length)
         {
             var slice = new byte[length];
-            var available = Math.Max(0, Math.Min(length, data.Length - at));
+            if (at < 0 || at >= data.Length) return slice;
 
-            Array.Copy(data, at, slice, 0, available);
+            Array.Copy(data, at, slice, 0, Math.Min(length, data.Length - at));
 
             return slice;
         }
