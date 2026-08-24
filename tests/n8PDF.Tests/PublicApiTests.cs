@@ -27,6 +27,7 @@ public class PublicApiTests(ITestOutputHelper output)
             .ctor()
             Boolean ApplyWordBuiltInStyleDefaults { get; set; }
             Boolean DropFontHinting { get; set; }
+            Boolean PdfA { get; set; }
             DateTimeOffset? CreationDate { get; set; }
             DateTimeOffset? FieldsAsOf { get; set; }
             FontLibrary Fonts { get; set; }

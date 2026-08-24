@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace n8PDF.Pdf;
 
@@ -23,6 +25,15 @@ internal sealed class PdfDocument
         _catalog.Set("Type", "Catalog").Set("Pages", _pagesRef);
         _catalogRef = Add(_catalog);
     }
+
+    /// <summary>
+    /// Claim and honour PDF/A-2b (#68): an XMP metadata packet agreeing with the information
+    /// dictionary, an sRGB output intent, and a file identifier derived from the body itself.
+    /// </summary>
+    public bool PdfA { get; set; }
+
+    private PdfReference? _metadataRef;
+    private PdfReference? _intentProfileRef;
 
     /// <summary>Optional document information dictionary values.</summary>
     public string? Title { get; set; }
@@ -81,6 +92,23 @@ internal sealed class PdfDocument
 
     public void Save(Stream stream)
     {
+        // PDF/A's extra objects are reserved once, so the catalogue can point at them and a
+        // second save lands on the same numbers; their contents are built per save into the
+        // local copy below, so saving still does not change what a later save writes (#68).
+        if (PdfA && _metadataRef is null)
+        {
+            _metadataRef = Reserve();
+            _intentProfileRef = Reserve();
+
+            _catalog.Set("Metadata", _metadataRef);
+            _catalog.Set("OutputIntents", new PdfArray().Add(new PdfDictionary()
+                .Set("Type", "OutputIntent")
+                .Set("S", "GTS_PDFA1")
+                .Set("OutputConditionIdentifier", PdfString.FromText("sRGB"))
+                .Set("Info", PdfString.FromText("sRGB IEC61966-2.1"))
+                .Set("DestOutputProfile", _intentProfileRef)));
+        }
+
         // Saving must not mutate the document, so the info dictionary is appended to a local
         // copy of the object pool rather than to the pool itself.
         var objects = new List<PdfObject?>(_objects);
@@ -92,7 +120,22 @@ internal sealed class PdfDocument
             infoRef = new PdfReference(objects.Count);
         }
 
+        if (PdfA)
+        {
+            // The metadata packet must be readable by something that does not decompress (#68).
+            var metadata = new PdfStream(BuildXmp()) { Compress = false };
+            metadata.Set("Type", "Metadata");
+            metadata.Set("Subtype", "XML");
+            objects[_metadataRef!.ObjectNumber - 1] = metadata;
+
+            var profile = new PdfStream(SrgbIccProfile.Bytes);
+            profile.Set("N", new PdfNumber(3));
+            objects[_intentProfileRef!.ObjectNumber - 1] = profile;
+        }
+
         var writer = new PdfWriter(stream);
+        using var bodyHash = PdfA ? IncrementalHash.CreateHash(HashAlgorithmName.MD5) : null;
+        writer.Hash = bodyHash;
 
         // Header. The binary comment line marks the file as containing binary data so that
         // transfer tools do not mangle it.
@@ -112,6 +155,8 @@ internal sealed class PdfDocument
             writer.WriteAscii("\nendobj\n");
         }
 
+        writer.Hash = null;
+
         var xrefOffset = writer.Position;
         WriteXref(writer, offsets);
 
@@ -119,6 +164,14 @@ internal sealed class PdfDocument
             .Set("Size", objects.Count + 1)
             .Set("Root", _catalogRef);
         if (infoRef is not null) trailer.Set("Info", infoRef);
+
+        // The identifier PDF/A requires, derived from the body just written so that identical
+        // input keeps giving byte-identical output (#68).
+        if (bodyHash is not null)
+        {
+            var id = new PdfString(bodyHash.GetHashAndReset());
+            trailer.Set("ID", new PdfArray().Add(id).Add(id));
+        }
 
         writer.WriteAscii("trailer\n");
         trailer.Write(writer);
@@ -139,6 +192,57 @@ internal sealed class PdfDocument
             info.Set("CreationDate", new PdfString(System.Text.Encoding.ASCII.GetBytes(FormatDate(created))));
 
         return info.Count == 0 ? null : info;
+    }
+
+    /// <summary>
+    /// The XMP packet PDF/A carries (#68), agreeing with the information dictionary: the same
+    /// title, author, producer and date, plus the conformance claim itself.
+    /// </summary>
+    private byte[] BuildXmp()
+    {
+        static string Escape(string value) => value
+            .Replace("&", "&amp;", StringComparison.Ordinal)
+            .Replace("<", "&lt;", StringComparison.Ordinal)
+            .Replace(">", "&gt;", StringComparison.Ordinal);
+
+        var builder = new StringBuilder();
+        builder.Append("<?xpacket begin=\"\uFEFF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n");
+        builder.Append("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n");
+        builder.Append("<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n");
+        builder.Append("<rdf:Description rdf:about=\"\" xmlns:pdfaid=\"http://www.aiim.org/pdfa/ns/id/\" " +
+                       "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " +
+                       "xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\">\n");
+        builder.Append("<pdfaid:part>2</pdfaid:part>\n<pdfaid:conformance>B</pdfaid:conformance>\n");
+
+        if (!string.IsNullOrEmpty(Producer))
+            builder.Append("<pdf:Producer>").Append(Escape(Producer)).Append("</pdf:Producer>\n");
+
+        if (Title is not null)
+        {
+            builder.Append("<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">")
+                .Append(Escape(Title)).Append("</rdf:li></rdf:Alt></dc:title>\n");
+        }
+
+        if (Author is not null)
+        {
+            builder.Append("<dc:creator><rdf:Seq><rdf:li>").Append(Escape(Author))
+                .Append("</rdf:li></rdf:Seq></dc:creator>\n");
+        }
+
+        if (CreationDate is { } created)
+        {
+            builder.Append("<xmp:CreateDate>")
+                .Append(created.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture))
+                .Append("</xmp:CreateDate>\n");
+        }
+
+        builder.Append("</rdf:Description>\n</rdf:RDF>\n</x:xmpmeta>\n");
+
+        // The padding the specification asks writers to leave, so a tool can edit in place.
+        builder.Append(' ', 2048);
+        builder.Append("<?xpacket end=\"w\"?>");
+
+        return Encoding.UTF8.GetBytes(builder.ToString());
     }
 
     private static void WriteXref(PdfWriter writer, long[] offsets)

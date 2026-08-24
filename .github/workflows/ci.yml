@@ -34,7 +34,7 @@ jobs:
       # suite and required here, because a tier that is skipped in CI is a tier nobody runs.
       - name: Install the checking tools
         run: |
-          brew install qpdf fribidi
+          brew install qpdf fribidi verapdf
           python3 -m pip install --break-system-packages fonttools
 
       # The faces this pins live at fixed paths in macOS. A runner image that ships a different
@@ -64,6 +64,7 @@ jobs:
           N8PDF_REQUIRE_QPDF: '1'
           N8PDF_REQUIRE_FONTTOOLS: '1'
           N8PDF_REQUIRE_FRIBIDI: '1'
+          N8PDF_REQUIRE_VERAPDF: '1'
         run: >
           dotnet test n8PDF.sln --configuration Release --no-build
           --logger "trx;LogFileName=results.trx"
