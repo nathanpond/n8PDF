@@ -96,6 +96,15 @@ internal sealed class OpcPackage : IDisposable
     private readonly Dictionary<string, string> _defaultContentTypes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _overrideContentTypes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, IReadOnlyList<OpcRelationship>> _relationshipCache = new(StringComparer.OrdinalIgnoreCase);
+
+    // A part's relationships indexed by id and by type, built once, so a document with N
+    // references against N relationships is O(N) rather than the O(N*N) a linear scan per lookup
+    // cost — a few-MB docx of hundreds of thousands of references would otherwise hang for hours
+    // (#192).
+    private readonly Dictionary<string, Dictionary<string, OpcRelationship>> _relationshipById =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, OpcRelationship>> _relationshipByType =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly bool _ownsStream;
     private readonly Stream? _stream;
     private readonly PackageLimits _limits;
@@ -119,7 +128,8 @@ internal sealed class OpcPackage : IDisposable
         if (count > limits.MaximumPartCount)
         {
             throw new PackageTooLargeException(
-                $"The package declares {count:N0} parts, and the limit is {limits.MaximumPartCount:N0}.");
+                $"The package declares {count:N0} parts, and the limit is {limits.MaximumPartCount:N0}.",
+                wholePackage: true);
         }
 
         foreach (var entry in archive.Entries)
@@ -222,7 +232,8 @@ internal sealed class OpcPackage : IDisposable
             {
                 throw new PackageTooLargeException(
                     $"The package decompressed to more than the {package._limits.MaximumTotalBytes:N0} " +
-                    $"bytes allowed in total, reading part '{partName}'.");
+                    $"bytes allowed in total, reading part '{partName}'.",
+                    wholePackage: true);
             }
 
             return read;
@@ -299,11 +310,32 @@ internal sealed class OpcPackage : IDisposable
         return result;
     }
 
-    public OpcRelationship? GetRelationshipById(string partName, string id) =>
-        GetRelationships(partName).FirstOrDefault(r => r.Id == id);
+    public OpcRelationship? GetRelationshipById(string partName, string id)
+    {
+        var normalized = Normalize(partName);
+        if (!_relationshipById.TryGetValue(normalized, out var byId))
+        {
+            byId = new Dictionary<string, OpcRelationship>(StringComparer.Ordinal);
+            foreach (var relationship in GetRelationships(partName)) byId.TryAdd(relationship.Id, relationship);
+            _relationshipById[normalized] = byId;
+        }
 
-    public OpcRelationship? GetRelationshipByType(string partName, string type) =>
-        GetRelationships(partName).FirstOrDefault(r => r.Type == type);
+        return byId.GetValueOrDefault(id);
+    }
+
+    public OpcRelationship? GetRelationshipByType(string partName, string type)
+    {
+        var normalized = Normalize(partName);
+        if (!_relationshipByType.TryGetValue(normalized, out var byType))
+        {
+            byType = new Dictionary<string, OpcRelationship>(StringComparer.Ordinal);
+            // First wins, matching the previous FirstOrDefault.
+            foreach (var relationship in GetRelationships(partName)) byType.TryAdd(relationship.Type, relationship);
+            _relationshipByType[normalized] = byType;
+        }
+
+        return byType.GetValueOrDefault(type);
+    }
 
     /// <summary>
     /// Resolves a relationship target against the part that declared it, producing an absolute

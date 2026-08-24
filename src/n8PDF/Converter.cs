@@ -334,7 +334,8 @@ public static class Converter
                 LoadDiagrams(package, partName, content.Body);
                 LoadCharts(package, partName, content.Body);
             }
-            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
             {
             }
         }
@@ -366,7 +367,8 @@ public static class Converter
                 LoadHyperlinks(package, partName, partName, note.Body, document);
             }
         }
-        catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+        catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+            or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
         {
         }
     }
@@ -445,7 +447,8 @@ public static class Converter
                     var image = package.ResolveTarget(partName, target);
                     if (package.HasPart(image)) document.Images[key] = package.ReadPart(image);
                 }
-                catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+                catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
                 {
                 }
             }
@@ -532,7 +535,8 @@ public static class Converter
                 }
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
-                                         or System.Xml.XmlException)
+                                         or System.Xml.XmlException
+                                         or Packaging.PackageTooLargeException { WholePackage: false })
             {
             }
 
@@ -589,7 +593,8 @@ public static class Converter
             return [];
         }
         catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
-                                     or System.Xml.XmlException)
+                                     or System.Xml.XmlException
+                                     or Packaging.PackageTooLargeException { WholePackage: false })
         {
             return [];
         }
@@ -632,7 +637,8 @@ public static class Converter
                 if (package.HasPart(partName))
                     document.Images[relationship.Id] = package.ReadPart(partName);
             }
-            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
             {
             }
         }

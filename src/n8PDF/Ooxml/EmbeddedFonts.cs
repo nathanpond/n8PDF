@@ -51,7 +51,20 @@ internal static class EmbeddedFonts
             var partName = package.ResolveTarget(tablePart, relationship.Target);
             if (!package.HasPart(partName)) continue;
 
-            var data = package.ReadPart(partName);
+            byte[] data;
+            try
+            {
+                // A font part larger than the per-part cap throws before the font-size check can
+                // even run; and any read failure is that one face's cost, not the conversion's
+                // (#199). A whole-package breach is not caught here — it is fatal by design.
+                data = package.ReadPart(partName);
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException
+                or PackageTooLargeException { WholePackage: false })
+            {
+                continue;
+            }
+
             if (data.Length > limits.MaximumFontBytes) continue;
 
             if (embed.Attribute(W + "fontKey")?.Value is { } fontKey)
