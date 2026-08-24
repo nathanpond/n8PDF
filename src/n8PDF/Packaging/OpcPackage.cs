@@ -132,8 +132,11 @@ internal sealed class OpcPackage : IDisposable
                 wholePackage: true);
         }
 
+        // First wins, matching how ZipArchive itself resolves a name — two members that
+        // normalise to one part name are a parser differential a validator and this reader must
+        // not disagree on, or content hides behind a duplicate (#150).
         foreach (var entry in archive.Entries)
-            _entries[Normalize(entry.FullName)] = entry;
+            _entries.TryAdd(Normalize(entry.FullName), entry);
 
         ReadContentTypes();
     }

@@ -261,6 +261,11 @@ internal static class CcittDecoder
 
             total += run;
 
+            // A make-up-code chain has no terminator in a crafted strip, and each adds at least
+            // sixty-four, so an uncapped total overflows int; a run past any real image width is
+            // malformed, so it stops there (#47).
+            if (total > 100_000_000) return total;
+
             // A makeup code is followed by a terminating one, which is any run under sixty-four.
             if (run < 64 || run % 64 != 0) return total;
         }

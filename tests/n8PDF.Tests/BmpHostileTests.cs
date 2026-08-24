@@ -76,4 +76,29 @@ public class BmpHostileTests(ITestOutputHelper output)
         for (var i = 0; i < 6; i++) Le32(b, 0);
         Assert.IsType<ImageFormatException>(Record.Exception(() => BmpDecoder.Decode(b.ToArray())));
     }
+
+    [Fact]
+    public void An_unhandled_compression_is_refused_not_read_as_raw()   // #15
+    {
+        // BI_JPEG (4) — must not fall through to the raw-scanline path.
+        var b = new List<byte> { (byte)'B', (byte)'M' };
+        Le32(b, 0); Le32(b, 0); Le32(b, 54);
+        Le32(b, 40); Le32(b, 8); Le32(b, 8);
+        b.Add(1); b.Add(0); b.Add(24); b.Add(0);
+        Le32(b, 4);            // BI_JPEG
+        for (var i = 0; i < 5; i++) Le32(b, 0);
+        Assert.IsType<ImageFormatException>(Record.Exception(() => BmpDecoder.Decode(b.ToArray())));
+    }
+
+    [Fact]
+    public void Rle8_at_the_wrong_depth_is_refused()   // #15
+    {
+        var b = new List<byte> { (byte)'B', (byte)'M' };
+        Le32(b, 0); Le32(b, 0); Le32(b, 54);
+        Le32(b, 40); Le32(b, 8); Le32(b, 8);
+        b.Add(1); b.Add(0); b.Add(24); b.Add(0);   // 24-bit
+        Le32(b, 1);            // BI_RLE8 — needs 8-bit
+        for (var i = 0; i < 5; i++) Le32(b, 0);
+        Assert.IsType<ImageFormatException>(Record.Exception(() => BmpDecoder.Decode(b.ToArray())));
+    }
 }
