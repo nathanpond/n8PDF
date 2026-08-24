@@ -106,6 +106,29 @@ internal sealed record BookmarkDestination(int PageIndex, double X, double Y);
 /// <summary>A heading the document outline lists (#66): its depth, its text, and where it landed.</summary>
 internal sealed record OutlineHeading(int Level, string Title, int PageIndex, double X, double Y);
 
+/// <summary>What a structure element stands for in the tagged tree (#67).</summary>
+internal enum StructureKind
+{
+    Paragraph,
+    Heading,
+    List,
+    ListItem,
+    Table,
+    TableRow,
+    TableCell,
+    Figure
+}
+
+/// <summary>
+/// One element of the document's structure tree (#67), allocated during layout in reading order —
+/// which is document order, the same order the drawing itself is asserted to follow.
+/// </summary>
+/// <param name="Kind">What it is.</param>
+/// <param name="Parent">Index of its parent in the document's structure list, -1 for the root.</param>
+/// <param name="Level">A heading's depth, 1..6, and nought for everything else.</param>
+/// <param name="Alt">A figure's alternative text, from <c>wp:docPr/@descr</c>.</param>
+internal sealed record StructureElement(StructureKind Kind, int Parent, int Level = 0, string? Alt = null);
+
 /// <summary>A horizontal rule drawn for an underline or strikethrough.</summary>
 internal sealed class PositionedRule
 {
@@ -152,6 +175,13 @@ internal sealed class LaidOutLine
 
     /// <summary>Index of the paragraph this line came from, for diagnostics.</summary>
     public int ParagraphIndex { get; init; }
+
+    /// <summary>
+    /// The structure element this line's text belongs to (#67), as an index into the document's
+    /// structure list — or -1 for what is decoration rather than content: a line number in the
+    /// gutter, a running head, anything a screen reader should pass over as an artifact.
+    /// </summary>
+    public int StructureIndex { get; init; } = -1;
 }
 
 /// <summary>
@@ -190,6 +220,9 @@ internal sealed class PositionedImage
     public required double Height { get; init; }
 
     public required Images.ImageData Image { get; init; }
+
+    /// <summary>The Figure element this picture is (#67), or -1 where it is decoration.</summary>
+    public int StructureIndex { get; init; } = -1;
 }
 
 internal sealed class LaidOutPage
@@ -246,6 +279,12 @@ internal sealed class LaidOutDocument
 
     /// <summary>The headings the PDF outline lists, in document order (#66).</summary>
     public List<OutlineHeading> Headings { get; } = [];
+
+    /// <summary>The structure tree's elements, in reading order (#67).</summary>
+    public List<StructureElement> Structure { get; } = [];
+
+    /// <summary>The document's stated language, for the PDF's <c>/Lang</c> (#67).</summary>
+    public string? Language { get; set; }
 
     /// <summary>
     /// The document's final section. Page geometry comes from <see cref="LaidOutPage.Section"/>

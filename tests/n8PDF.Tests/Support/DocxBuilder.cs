@@ -548,7 +548,7 @@ public sealed class DocxBuilder
     public DocxBuilder AddImageParagraph(
         string relationshipId, double widthPoints, double heightPoints,
         string? paragraphProperties = null, string? leadingText = null,
-        string? leadingRunProperties = null)
+        string? leadingRunProperties = null, string? description = null)
     {
         var cx = (long)Math.Round(widthPoints * 12700);
         var cy = (long)Math.Round(heightPoints * 12700);
@@ -567,7 +567,7 @@ public sealed class DocxBuilder
             <w:r><w:drawing>
               <wp:inline distT="0" distB="0" distL="0" distR="0">
                 <wp:extent cx="{cx}" cy="{cy}"/>
-                <wp:docPr id="{_images.Count}" name="Picture {_images.Count}"/>
+                <wp:docPr id="{_images.Count}" name="Picture {_images.Count}"{(description is null ? "" : $" descr=\"{Escape(description)}\"")}/>
                 <a:graphic>
                   <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
                     <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">

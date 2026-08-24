@@ -92,6 +92,9 @@ internal sealed class StyleDefinitions
 
     public Dictionary<string, Style> ById { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>The language the document defaults state (<c>w:lang/@w:val</c>), or null (#67).</summary>
+    public string? Language { get; set; }
+
     /// <summary>Id of the style marked as the default paragraph style, usually "Normal".</summary>
     public string? DefaultParagraphStyleId { get; set; }
 
@@ -192,6 +195,9 @@ internal static class StylesParser
             var rPr = docDefaults.Element(W.Main + "rPrDefault")?.Element(W.Main + "rPr");
             if (rPr is not null)
                 definitions.DefaultRunProperties = DocumentParser.ParseRunProperties(rPr);
+
+            // The document's own language, for the PDF's /Lang (#67).
+            definitions.Language = rPr?.Element(W.Main + "lang")?.Attr("val");
         }
 
         foreach (var element in xml.Root.Elements(W.Main + "style"))

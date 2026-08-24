@@ -234,6 +234,16 @@ internal sealed class LayoutEngine(
     // by its position, since both passes lay out the same document.
     private readonly Dictionary<Paragraph, LaidOutPage> _headingPages = [];
 
+    // The structure element new lines belong to (#67): -1 outside content, an index into the
+    // result's structure list within a paragraph. The parent is what a newly allocated element
+    // hangs from - the root, or the table cell being measured - and the open list is what lets
+    // consecutive numbered paragraphs share one L element.
+    private int _currentStructure = -1;
+    private int _structureParent = -1;
+    private int _openList = -1;
+    private int _openListParent = -1;
+    private bool _artifactContent;
+
     // The body being laid out, which a table of contents reads to find the headings. It is the
     // document rather than the section, since a table gathers the whole of it.
     private IReadOnlyList<BlockElement> _body = [];
@@ -299,6 +309,7 @@ internal sealed class LayoutEngine(
 
         var result = new LaidOutDocument { Section = document.Section };
         _result = result;
+        result.Language = _styles.Styles.Language;
         _pagesInSection = 0;
 
         // The first section's numbering begins where it says, or at one.
@@ -1093,6 +1104,10 @@ internal sealed class LayoutEngine(
         // Anchored drawings are placed before the paragraph's own text is composed, so that its
         // very first line already flows around them.
         PlaceAnchoredDrawings(cursor, paragraph, cursor.Y - stoodAt);
+
+        // The paragraph's place in the structure tree (#67): a heading by its outline level, a
+        // list item under the list its numbering opens or continues, a plain paragraph else.
+        _currentStructure = AllocateParagraphStructure(format);
 
         _pendingBookmarks.Clear();
         _pendingMarks.Clear();
@@ -2065,7 +2080,13 @@ internal sealed class LayoutEngine(
                 Y = y,
                 Width = width,
                 Height = height,
-                Image = image
+                Image = image,
+
+                // A picture is a figure to a reader, with the document's own description for it;
+                // a drawn frame whose text is its content is not (#67).
+                StructureIndex = anchored.Description is not null || anchored.RelationshipId is not null
+                    ? AllocateFigure(anchored.Description)
+                    : -1
             });
 
             composed?.Content?.PlaceOnto(cursor.Page, x + composed.Value.Left, y + composed.Value.Top);
@@ -2218,7 +2239,8 @@ internal sealed class LayoutEngine(
             BaselineY = line.BaselineY + delta,
             Height = line.Height,
             Ascent = line.Ascent,
-            ParagraphIndex = line.ParagraphIndex
+            ParagraphIndex = line.ParagraphIndex,
+            StructureIndex = line.StructureIndex
         };
 
         foreach (var text in line.Texts)
@@ -2312,6 +2334,10 @@ internal sealed class LayoutEngine(
         }
 
         _totalPages = result.Pages.Count;
+
+        // Running heads are pagination rather than content: everything measured from here on is
+        // an artifact to a reader (#67), and nothing content-bearing lays out after them.
+        _artifactContent = true;
 
         for (var index = 0; index < result.Pages.Count; index++)
         {
@@ -2447,7 +2473,8 @@ internal sealed class LayoutEngine(
                 BaselineY = line.BaselineY + delta,
                 Height = line.Height,
                 Ascent = line.Ascent,
-                ParagraphIndex = line.ParagraphIndex
+                ParagraphIndex = line.ParagraphIndex,
+                StructureIndex = line.StructureIndex
             };
 
             foreach (var text in line.Texts) moved.Texts.Add(text.Translate(0, delta));
@@ -2496,7 +2523,8 @@ internal sealed class LayoutEngine(
                 Y = image.Y + shift(image.Y),
                 Width = image.Width,
                 Height = image.Height,
-                Image = image.Image
+                Image = image.Image,
+                StructureIndex = image.StructureIndex
             });
         }
     }
@@ -3893,6 +3921,7 @@ internal sealed class LayoutEngine(
             // known while its content is being laid out.
             var outer = Fields.Cells;
             Fields.Cells = new TableCells(table, rowIndex, column);
+            var outerStructure = EnterCellStructure(table, rowIndex);
 
             // A cell continuing a vertical merge draws no content of its own; the cell that
             // started the merge owns it.
@@ -3900,6 +3929,7 @@ internal sealed class LayoutEngine(
                 ? DetachedFlow.Empty
                 : MeasureInside(cell.Content, Math.Max(1, inside - marginLeft - marginRight));
 
+            LeaveCellStructure(outerStructure);
             Fields.Cells = outer;
 
             placed.Add(new PlacedCell(cell, x, width, column, span, content,
@@ -3925,12 +3955,14 @@ internal sealed class LayoutEngine(
 
             var outer = Fields.Cells;
             Fields.Cells = new TableCells(table, rowIndex, cell.Column);
+            var outerStructure = EnterCellStructure(table, rowIndex);
 
             placed[i] = cell with
             {
                 Content = MeasureInside(cell.Source.Content, Math.Max(1, along))
             };
 
+            LeaveCellStructure(outerStructure);
             Fields.Cells = outer;
         }
 
@@ -5286,6 +5318,88 @@ internal sealed class LayoutEngine(
         return (frame, content, left, top);
     }
 
+    /// <summary>
+    /// The structure element a paragraph's lines belong to (#67): -1 for decoration, a heading
+    /// by its resolved outline level, a list item under the list its numbering continues, a
+    /// plain paragraph otherwise. Allocation order is reading order.
+    /// </summary>
+    private int AllocateParagraphStructure(ResolvedParagraphFormat format)
+    {
+        if (_artifactContent || _result is null) return -1;
+
+        if (format.OutlineLevel is { } outline and < 9)
+        {
+            _openList = -1;
+            _result.Structure.Add(new StructureElement(
+                StructureKind.Heading, _structureParent, Math.Min(outline + 1, 6)));
+            return _result.Structure.Count - 1;
+        }
+
+        if (format.NumberingId is not null)
+        {
+            if (_openList < 0 || _openListParent != _structureParent)
+            {
+                _result.Structure.Add(new StructureElement(StructureKind.List, _structureParent));
+                _openList = _result.Structure.Count - 1;
+                _openListParent = _structureParent;
+            }
+
+            _result.Structure.Add(new StructureElement(StructureKind.ListItem, _openList));
+            return _result.Structure.Count - 1;
+        }
+
+        _openList = -1;
+        _result.Structure.Add(new StructureElement(StructureKind.Paragraph, _structureParent));
+        return _result.Structure.Count - 1;
+    }
+
+    // A table's and its rows' elements, allocated when their first cell is measured (#67).
+    private readonly Dictionary<object, int> _tableStructure = [];
+    private readonly Dictionary<(object Table, int Row), int> _rowStructure = [];
+
+    /// <summary>
+    /// Enters a table cell for structure purposes (#67): the cell's TD is allocated under its
+    /// row's TR under its table, and becomes the parent of the paragraphs measured inside.
+    /// Returns what to hand back to <see cref="LeaveCellStructure"/>.
+    /// </summary>
+    /// <summary>A picture's Figure element (#67), with its alternative text along.</summary>
+    private int AllocateFigure(string? alt, int? parent = null)
+    {
+        if (_artifactContent || _result is null) return -1;
+
+        _result.Structure.Add(new StructureElement(
+            StructureKind.Figure, parent ?? _structureParent, Alt: alt));
+        return _result.Structure.Count - 1;
+    }
+
+    private (int Parent, int OpenList, int OpenListParent) EnterCellStructure(object table, int rowIndex)
+    {
+        var saved = (_structureParent, _openList, _openListParent);
+
+        if (_artifactContent || _result is null) return saved;
+
+        if (!_tableStructure.TryGetValue(table, out var tableElement))
+        {
+            _result.Structure.Add(new StructureElement(StructureKind.Table, -1));
+            _tableStructure[table] = tableElement = _result.Structure.Count - 1;
+        }
+
+        if (!_rowStructure.TryGetValue((table, rowIndex), out var rowElement))
+        {
+            _result.Structure.Add(new StructureElement(StructureKind.TableRow, tableElement));
+            _rowStructure[(table, rowIndex)] = rowElement = _result.Structure.Count - 1;
+        }
+
+        _result.Structure.Add(new StructureElement(StructureKind.TableCell, rowElement));
+        _structureParent = _result.Structure.Count - 1;
+        _openList = -1;
+
+        return saved;
+    }
+
+    private void LeaveCellStructure((int Parent, int OpenList, int OpenListParent) saved) =>
+        (_structureParent, _openList, _openListParent) = saved;
+
     /// <summary>The blocks again with every run's size scaled, for a box that shrinks its text (#64).</summary>
     private static List<BlockElement> ScaledBlocks(IReadOnlyList<BlockElement> blocks, double scale)
     {
@@ -5562,7 +5676,8 @@ internal sealed class LayoutEngine(
             BaselineY = baselineY,
             Height = line.Height,
             Ascent = line.Ascent,
-            ParagraphIndex = paragraphIndex
+            ParagraphIndex = paragraphIndex,
+            StructureIndex = _currentStructure
         };
 
         // A guided word is written where it stands in the line rather than after everything else
@@ -5808,7 +5923,12 @@ internal sealed class LayoutEngine(
                     Y = restingY - image.Height,
                     Width = image.Width,
                     Height = image.Height,
-                    Image = picture
+                    Image = picture,
+
+                    // A picture in the line is a figure inside its paragraph (#67).
+                    StructureIndex = image.Picture || image.Description is not null
+                        ? AllocateFigure(image.Description, _currentStructure)
+                        : -1
                 });
             }
 
@@ -7565,6 +7685,7 @@ internal sealed class LayoutEngine(
 
             atoms.Add(new ImageAtom
             {
+                Description = drawing.Description,
                 Image = composed.Frame,
                 Width = width,
                 Height = height,
@@ -7586,6 +7707,8 @@ internal sealed class LayoutEngine(
 
         atoms.Add(new ImageAtom
         {
+                Picture = true,
+                Description = drawing.Description,
             Image = image,
             Width = width,
             Height = height,
@@ -8316,7 +8439,8 @@ internal sealed class LayoutEngine(
                     BaselineY = line.BaselineY - cut,
                     Height = line.Height,
                     Ascent = line.Ascent,
-                    ParagraphIndex = line.ParagraphIndex
+                    ParagraphIndex = line.ParagraphIndex,
+                    StructureIndex = line.StructureIndex
                 };
 
                 foreach (var text in line.Texts) moved.Texts.Add(text.Translate(0, -cut));
@@ -8350,7 +8474,8 @@ internal sealed class LayoutEngine(
                 else remaining.Images.Add(new PositionedImage
                 {
                     X = image.X, Y = image.Y - cut, Width = image.Width,
-                    Height = image.Height, Image = image.Image
+                    Height = image.Height, Image = image.Image,
+                    StructureIndex = image.StructureIndex
                 });
             }
 
@@ -8396,7 +8521,8 @@ internal sealed class LayoutEngine(
                     BaselineY = Grid.Snap(up ? left + across : right - across),
                     Height = line.Height,
                     Ascent = line.Ascent,
-                    ParagraphIndex = line.ParagraphIndex
+                    ParagraphIndex = line.ParagraphIndex,
+                    StructureIndex = line.StructureIndex
                 };
 
                 foreach (var text in line.Texts)
@@ -8476,7 +8602,8 @@ internal sealed class LayoutEngine(
                     BaselineY = line.BaselineY + shift,
                     Height = line.Height,
                     Ascent = line.Ascent,
-                    ParagraphIndex = line.ParagraphIndex
+                    ParagraphIndex = line.ParagraphIndex,
+                    StructureIndex = line.StructureIndex
                 };
 
                 foreach (var text in line.Texts)
@@ -8505,7 +8632,8 @@ internal sealed class LayoutEngine(
                     Y = image.Y + dy,
                     Width = image.Width,
                     Height = image.Height,
-                    Image = image.Image
+                    Image = image.Image,
+                    StructureIndex = image.StructureIndex
                 });
             }
 
@@ -8929,6 +9057,12 @@ internal sealed class LayoutEngine(
         public required double Width { get; init; }
 
         public required double Height { get; init; }
+
+        /// <summary>True for a picture proper, which is a figure to a reader (#67).</summary>
+        public bool Picture { get; init; }
+
+        /// <summary>The document's description of it (wp:docPr/@descr), for /Alt (#67).</summary>
+        public string? Description { get; init; }
 
         /// <summary>
         /// What a shape holds, already laid out, or null for a picture. It is placed onto the

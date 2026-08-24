@@ -26,8 +26,8 @@ public static class VeraPdfTool
     public static string UnavailableMessage =>
         "veraPDF is not installed; PDF/A validation skipped. brew install verapdf";
 
-    /// <summary>Validates a file against the PDF/A-2b profile.</summary>
-    public static VeraPdfResult Validate(string filePath)
+    /// <summary>Validates a file against a profile — PDF/A-2b unless another flavour is named.</summary>
+    public static VeraPdfResult Validate(string filePath, string flavour = "2b")
     {
         var executable = ExecutablePath.Value
             ?? throw new InvalidOperationException("veraPDF is not installed.");
@@ -41,7 +41,7 @@ public static class VeraPdfTool
         };
 
         startInfo.ArgumentList.Add("--flavour");
-        startInfo.ArgumentList.Add("2b");
+        startInfo.ArgumentList.Add(flavour);
         startInfo.ArgumentList.Add("--format");
         startInfo.ArgumentList.Add("text");
         startInfo.ArgumentList.Add(filePath);
