@@ -3175,6 +3175,39 @@ internal static class ChartComposer
         for (var i = 0; i <= steps; i++) yield return minimum + i * unit;
     }
 
+    /// <summary>
+    /// The depth axis's labels — the series names, one against each receding row.
+    /// </summary>
+    /// <remarks>
+    /// Measured from <c>chart-3d-depth-axis-probe</c>'s undeleted axis: each name's first glyph
+    /// begins 11.76pt right of the row's centre on the box's right depth edge, its baseline
+    /// 3.66pt below it, constant across the rows to a tenth of a point. The recorded suspicion
+    /// that Word drew these labels as raster did not reproduce: they are real text, Calibri at
+    /// the axis's stated size.
+    /// </remarks>
+    public static IEnumerable<(string Text, double X, double Baseline)> DepthAxisLabels(
+        ChartDefinition chart, Plan plan)
+    {
+        if (chart.Scene is null) yield break;
+        if (chart.DepthAxis is not { Deleted: false, TickLabelPosition: not "none" }) yield break;
+
+        var arrangement = Chart3DArrangement.For(chart);
+        if (arrangement.Rows < 2) yield break;
+
+        var projection = Chart3DComposer.Projection(chart.Scene,
+            arrangement.WidthUnits, arrangement.DepthUnits,
+            plan.Left, plan.Top, plan.Width, plan.Height, arrangement.HeightUnits);
+
+        for (var row = 0; row < arrangement.Rows; row++)
+        {
+            if (row >= chart.Series.Count) yield break;
+
+            var (px, py) = projection.Project(1, 0, (row + 0.5) / arrangement.Rows);
+
+            yield return (chart.Series[row].Name ?? "", px + 11.76, py + 3.66);
+        }
+    }
+
     private static PathOperation Stroke(IReadOnlyList<(double X, double Y)> points) =>
         new([
             new PathStep(PathStepKind.Move, [points[0]]),

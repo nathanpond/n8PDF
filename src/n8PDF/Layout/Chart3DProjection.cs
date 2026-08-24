@@ -70,8 +70,9 @@ internal sealed class Chart3DProjection : IChart3DProjection
     /// <param name="rectHeight">Its height.</param>
     public Chart3DProjection(
         double rotX, double rotY, double perspective, double depthPercent, double? hPercent,
-        int categories, int series,
-        double rectLeft, double rectTop, double rectWidth, double rectHeight)
+        double categories, double series,
+        double rectLeft, double rectTop, double rectWidth, double rectHeight,
+        double? heightUnits = null)
     {
         var a = rotX * Math.PI / 180;
         var b = rotY * Math.PI / 180;
@@ -82,7 +83,7 @@ internal sealed class Chart3DProjection : IChart3DProjection
         _hz = series * depthPercent / 100 / 2;
         _hy = hPercent is { } stated
             ? categories * stated / 100 / 2
-            : Math.Floor((categories + series) / 2.0) * (rectHeight / rectWidth) / 2;
+            : (heightUnits ?? Math.Floor((categories + series) / 2.0)) * (rectHeight / rectWidth) / 2;
 
         _tan = Math.Tan(perspective / 4 * Math.PI / 180);
         var aspect = rectWidth / rectHeight;

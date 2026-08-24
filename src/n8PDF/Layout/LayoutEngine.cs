@@ -4685,6 +4685,16 @@ internal sealed class LayoutEngine(
             flow.PlaceOnto(page, entry.TextX, entry.Baseline - flow.FirstAscent);
         }
 
+        // The depth axis's labels, one against each receding row (#100).
+        foreach (var (text, x, baseline) in ChartComposer.DepthAxisLabels(chart, plan))
+        {
+            var size = chart.DepthAxis?.LabelSizePoints ?? 10;
+            var label = ChartLabel(text, Justification.Left, size);
+            var flow = MeasureInside([label], Math.Max(1, MeasureLabel(text, size) + 1));
+
+            flow.PlaceOnto(page, x, baseline - flow.FirstAscent);
+        }
+
         // And what is written at the points themselves.
         foreach (var written in ChartComposer.DataLabels(chart, plan, LabelBox))
         {

@@ -56,10 +56,20 @@ internal static class Chart3DComposer
 
     private const double DefaultLineWidth = 0.5;
 
+    /// <summary>The grey of the floor's outline and the depth axis's ticks, sampled from
+    /// Word's raster — (137,137,137) at its core on every probe page.</summary>
+    private static readonly DrawingColor FloorOutline = new(137, 137, 137);
+
+    private const double FloorOutlineWidth = 0.33;
+
+    /// <summary>How far a depth-axis tick reaches, matching the flat axes' ticks.</summary>
+    private const double TickLength = 3.1733;
+
     /// <summary>The projection the scene asks for, mirrored where <c>rotY</c> passes 180.</summary>
     public static IChart3DProjection Projection(
-        ChartScene scene, int categories, int series,
-        double rectLeft, double rectTop, double rectWidth, double rectHeight)
+        ChartScene scene, double categories, double series,
+        double rectLeft, double rectTop, double rectWidth, double rectHeight,
+        double? heightUnits = null)
     {
         var rotY = ((scene.RotationY % 360) + 360) % 360;
         var mirrored = rotY > 180;
@@ -67,9 +77,11 @@ internal static class Chart3DComposer
 
         IChart3DProjection projection = scene.RightAngleAxes
             ? new Chart3DObliqueProjection(scene.RotationX, rotY, scene.DepthPercent,
-                scene.HeightPercent, categories, series, rectLeft, rectTop, rectWidth, rectHeight)
+                scene.HeightPercent, categories, series, rectLeft, rectTop, rectWidth, rectHeight,
+                heightUnits)
             : new Chart3DProjection(scene.RotationX, rotY, scene.Perspective, scene.DepthPercent,
-                scene.HeightPercent, categories, series, rectLeft, rectTop, rectWidth, rectHeight);
+                scene.HeightPercent, categories, series, rectLeft, rectTop, rectWidth, rectHeight,
+                heightUnits);
 
         return mirrored
             ? new MirroredProjection(projection, rectLeft + rectWidth / 2)
@@ -96,10 +108,36 @@ internal static class Chart3DComposer
     {
         var scene = chart.Scene!;
         var categories = Math.Max(1, chart.Categories.Count);
-        var series = Math.Max(1, chart.Series.Count);
+        var arrangement = Chart3DArrangement.For(chart);
 
-        var projection = Projection(scene, categories, series,
-            plan.Left, plan.Top, plan.Width, plan.Height);
+        var projection = Projection(scene, arrangement.WidthUnits, arrangement.DepthUnits,
+            plan.Left, plan.Top, plan.Width, plan.Height, arrangement.HeightUnits);
+
+        // The floor's outline is drawn whether or not the floor is filled — every page of every
+        // probe shows it, a hairline in a grey nothing else uses.
+        yield return new PathOperation([
+            new PathStep(PathStepKind.Move, [projection.Project(0, 0, 0)]),
+            new PathStep(PathStepKind.Line, [projection.Project(1, 0, 0)]),
+            new PathStep(PathStepKind.Line, [projection.Project(1, 0, 1)]),
+            new PathStep(PathStepKind.Line, [projection.Project(0, 0, 1)]),
+            new PathStep(PathStepKind.Close, [])
+        ], null, FloorOutline, FloorOutlineWidth, EvenOdd: false);
+
+        // The depth axis's tick marks, at each row boundary along the box's right depth edge,
+        // reaching outward the way a flat axis's "out" ticks do. Its labels are text and are
+        // placed with the rest of the chart's text — see ChartComposer.DepthAxisLabels.
+        if (chart.DepthAxis is { Deleted: false, MajorTickMark: not "none" })
+        {
+            for (var k = 0; k <= arrangement.Rows; k++)
+            {
+                var (px, py) = projection.Project(1, 0, (double)k / arrangement.Rows);
+
+                yield return new PathOperation([
+                    new PathStep(PathStepKind.Move, [(px, py)]),
+                    new PathStep(PathStepKind.Line, [(px + TickLength, py)])
+                ], null, FloorOutline, FloorOutlineWidth, EvenOdd: false);
+            }
+        }
 
         // The surfaces, only where stated. The side wall is always drawn at x nought: past
         // rotY 180 the projection itself is mirrored, which is what moves the wall across.
@@ -158,9 +196,9 @@ internal static class Chart3DComposer
         // The depth axis rules the side wall and the floor at each row boundary.
         if (chart.DepthAxis is { MajorGridlines: true } depth)
         {
-            for (var k = 0; k <= series; k++)
+            for (var k = 0; k <= arrangement.Rows; k++)
             {
-                var t = (double)k / series;
+                var t = (double)k / arrangement.Rows;
 
                 yield return Polyline(projection, [(0, 1, t), (0, 0, t), (1, 0, t)],
                     Style(depth.MajorGridlineColor, depth.MajorGridlineWidth, theme));

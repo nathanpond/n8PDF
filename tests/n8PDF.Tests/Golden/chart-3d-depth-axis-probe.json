@@ -1,0 +1,155 @@
+{
+  "pageCount": 6,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 62.31, "font": "Calibri", "size": 11, "text": "stacked union"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 69.652, "font": "Calibri", "size": 11, "text": "clustered union"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.654, "font": "Calibri", "size": 11, "text": "clustered mid red"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 207.36,
+          "height": 12.207,
+          "runs": [
+            {"x": 273.406, "width": 9.663, "font": "Calibri", "size": 10, "text": "S0"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 191.04,
+          "height": 12.207,
+          "runs": [
+            {"x": 294.781, "width": 9.663, "font": "Calibri", "size": 10, "text": "S1"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 174.96,
+          "height": 12.207,
+          "runs": [
+            {"x": 316.157, "width": 9.663, "font": "Calibri", "size": 10, "text": "S2"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 55.752, "font": "Calibri", "size": 11, "text": "serAx drawn"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 92.243, "font": "Calibri", "size": 11, "text": "clustered 2c3s union"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 92.243, "font": "Calibri", "size": 11, "text": "clustered 1c2s union"}
+          ]
+        }
+      ]
+    }
+  ]
+}
