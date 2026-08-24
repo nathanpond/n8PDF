@@ -54,6 +54,12 @@ internal static class Chart3DComposer
     /// <summary>The side wall's: a side-facing surface, [0.625, 0.646].</summary>
     private const double SideShade = 0.6355;
 
+    /// <summary>
+    /// A left-facing side's share: past rotY 180 the mirror shows the bars' other flank, and
+    /// Word lights it darker — sampled at exactly 102/255 on the box probe's 340 page.
+    /// </summary>
+    private const double FarSideShade = 0.400;
+
     private const double DefaultLineWidth = 0.5;
 
     /// <summary>The grey of the floor's outline and the depth axis's ticks, sampled from
@@ -65,11 +71,15 @@ internal static class Chart3DComposer
     /// <summary>How far a depth-axis tick reaches, matching the flat axes' ticks.</summary>
     private const double TickLength = 3.1733;
 
+    /// <summary>Whether a turn mirrors the picture — past 180, the scene is drawn as its
+    /// reflection (#99), but the data axes re-anchor: categories still run left to right.</summary>
+    public static bool Mirrors(ChartScene scene) => (scene.RotationY % 360 + 360) % 360 > 180;
+
     /// <summary>The projection the scene asks for, mirrored where <c>rotY</c> passes 180.</summary>
     public static IChart3DProjection Projection(
         ChartScene scene, double categories, double series,
         double rectLeft, double rectTop, double rectWidth, double rectHeight,
-        double? heightUnits = null)
+        double? heightUnits = null, double? marginUnits = null, bool statedHeight = true)
     {
         var rotY = ((scene.RotationY % 360) + 360) % 360;
         var mirrored = rotY > 180;
@@ -77,11 +87,11 @@ internal static class Chart3DComposer
 
         IChart3DProjection projection = scene.RightAngleAxes
             ? new Chart3DObliqueProjection(scene.RotationX, rotY, scene.DepthPercent,
-                scene.HeightPercent, categories, series, rectLeft, rectTop, rectWidth, rectHeight,
-                heightUnits)
+                statedHeight ? scene.HeightPercent : null, categories, series,
+                rectLeft, rectTop, rectWidth, rectHeight, heightUnits, marginUnits)
             : new Chart3DProjection(scene.RotationX, rotY, scene.Perspective, scene.DepthPercent,
-                scene.HeightPercent, categories, series, rectLeft, rectTop, rectWidth, rectHeight,
-                heightUnits);
+                statedHeight ? scene.HeightPercent : null, categories, series,
+                rectLeft, rectTop, rectWidth, rectHeight, heightUnits, marginUnits);
 
         return mirrored
             ? new MirroredProjection(projection, rectLeft + rectWidth / 2)
@@ -110,23 +120,39 @@ internal static class Chart3DComposer
         var categories = Math.Max(1, chart.Categories.Count);
         var arrangement = Chart3DArrangement.For(chart);
 
-        var projection = Projection(scene, arrangement.WidthUnits, arrangement.DepthUnits,
-            plan.Left, plan.Top, plan.Width, plan.Height, arrangement.HeightUnits);
+        // Lying, the scene transposes: the categories stand one unit each on a vertical plane,
+        // the values run across the page, and the box's length takes the standing height rule
+        // with the aspect the other way up — measured on the box probe's lying pages. The lean
+        // stays exactly where it stands: sin rotY rightward, sin rotX upward, in page space.
+        var projection = chart.Lying
+            ? Projection(scene,
+                (scene.HeightPercent is { } stated ? categories * stated / 100 : arrangement.HeightUnits)
+                    * (plan.Width / plan.Height),
+                arrangement.DepthUnits, plan.Left, plan.Top, plan.Width, plan.Height,
+                heightUnits: categories * (plan.Width / plan.Height),
+                marginUnits: categories, statedHeight: false)
+            : Projection(scene, arrangement.WidthUnits, arrangement.DepthUnits,
+                plan.Left, plan.Top, plan.Width, plan.Height, arrangement.HeightUnits);
 
-        // The floor's outline is drawn whether or not the floor is filled — every page of every
-        // probe shows it, a hairline in a grey nothing else uses.
+        // The value-origin plane's outline is drawn whether or not it is filled — every page of
+        // every probe shows it, a hairline in a grey nothing else uses. Standing that plane is
+        // the floor; lying it is the wall the bars grow from.
+        var outline = chart.Lying
+            ? new[] { (0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 1.0, 1.0), (0.0, 0.0, 1.0) }
+            : new[] { (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (1.0, 0.0, 1.0), (0.0, 0.0, 1.0) };
+
         yield return new PathOperation([
-            new PathStep(PathStepKind.Move, [projection.Project(0, 0, 0)]),
-            new PathStep(PathStepKind.Line, [projection.Project(1, 0, 0)]),
-            new PathStep(PathStepKind.Line, [projection.Project(1, 0, 1)]),
-            new PathStep(PathStepKind.Line, [projection.Project(0, 0, 1)]),
+            new PathStep(PathStepKind.Move, [projection.Project(outline[0].Item1, outline[0].Item2, outline[0].Item3)]),
+            new PathStep(PathStepKind.Line, [projection.Project(outline[1].Item1, outline[1].Item2, outline[1].Item3)]),
+            new PathStep(PathStepKind.Line, [projection.Project(outline[2].Item1, outline[2].Item2, outline[2].Item3)]),
+            new PathStep(PathStepKind.Line, [projection.Project(outline[3].Item1, outline[3].Item2, outline[3].Item3)]),
             new PathStep(PathStepKind.Close, [])
         ], null, FloorOutline, FloorOutlineWidth, EvenOdd: false);
 
         // The depth axis's tick marks, at each row boundary along the box's right depth edge,
         // reaching outward the way a flat axis's "out" ticks do. Its labels are text and are
         // placed with the rest of the chart's text — see ChartComposer.DepthAxisLabels.
-        if (chart.DepthAxis is { Deleted: false, MajorTickMark: not "none" })
+        if (!chart.Lying && chart.DepthAxis is { Deleted: false, MajorTickMark: not "none" })
         {
             for (var k = 0; k <= arrangement.Rows; k++)
             {
@@ -141,15 +167,16 @@ internal static class Chart3DComposer
 
         // The surfaces, only where stated. The side wall is always drawn at x nought: past
         // rotY 180 the projection itself is mirrored, which is what moves the wall across.
-        if (Resolve(chart.FloorFill, theme) is { } floor)
+        // Lying, the room beyond the outline is unmeasured and nothing more is drawn of it.
+        if (!chart.Lying && Resolve(chart.FloorFill, theme) is { } floor)
             yield return Quad(projection,
                 (0, 0, 0), (1, 0, 0), (1, 0, 1), (0, 0, 1), Shade(floor, FloorShade));
 
-        if (Resolve(chart.BackWallFill, theme) is { } back)
+        if (!chart.Lying && Resolve(chart.BackWallFill, theme) is { } back)
             yield return Quad(projection,
                 (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1), back);
 
-        if (Resolve(chart.SideWallFill, theme) is { } side)
+        if (!chart.Lying && Resolve(chart.SideWallFill, theme) is { } side)
             yield return Quad(projection,
                 (0, 0, 0), (0, 1, 0), (0, 1, 1), (0, 0, 1), Shade(side, SideShade));
 
@@ -158,7 +185,7 @@ internal static class Chart3DComposer
         // wall's base it covers the value line at nought, and comes back green in Word's raster
         // where the reverse order would leave it red.
         // The value axis rules the side wall and the back wall at each mark, ends included.
-        if (chart.ValueAxis is { } value)
+        if (!chart.Lying && chart.ValueAxis is { } value)
         {
             var span = plan.Maximum - plan.Minimum;
 
@@ -194,7 +221,7 @@ internal static class Chart3DComposer
             }
         }
         // The depth axis rules the side wall and the floor at each row boundary.
-        if (chart.DepthAxis is { MajorGridlines: true } depth)
+        if (!chart.Lying && chart.DepthAxis is { MajorGridlines: true } depth)
         {
             for (var k = 0; k <= arrangement.Rows; k++)
             {
@@ -206,7 +233,7 @@ internal static class Chart3DComposer
         }
 
         // The category axis rules the back wall and the floor at each slot boundary.
-        if (chart.CategoryAxis is { MajorGridlines: true } category)
+        if (!chart.Lying && chart.CategoryAxis is { MajorGridlines: true } category)
         {
             for (var k = 0; k <= categories; k++)
             {
@@ -217,6 +244,173 @@ internal static class Chart3DComposer
             }
         }
 
+
+        foreach (var operation in Bars(chart, plan, arrangement, projection, theme))
+            yield return operation;
+    }
+
+    /// <summary>
+    /// The boxes themselves: three visible faces each, painted far row to near, and within a
+    /// row in ascending slot order so a later bar covers the lean of the one before it.
+    /// </summary>
+    /// <remarks>
+    /// The shades are the walls' (#110): the front keeps the series colour, the top takes three
+    /// quarters of it, the side five eighths. The top stops the measured 0.0061 of the box short
+    /// of its value. A negative value is drawn the way the flat chart draws one — white, and
+    /// outlined in black even though the series asks for no outline — hanging from nought;
+    /// #113's "no ink of the series' colour" was exactly right, because the ink is white.
+    /// Stacked and percent-stacked segments pile bottom to top, each from where the last ended.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Bars(
+        ChartDefinition chart, ChartComposer.Plan plan, Chart3DArrangement arrangement,
+        IChart3DProjection projection, DocumentTheme theme)
+    {
+        var categories = Math.Max(1, chart.Categories.Count);
+        var span = plan.Maximum - plan.Minimum;
+        if (span <= 0) yield break;
+
+        var stacked = chart.Grouping is ChartGrouping.Stacked or ChartGrouping.PercentStacked;
+
+        // Past rotY 180 the room is drawn mirrored, but the data axes re-anchor rather than
+        // riding the mirror — measured on the box probe's 340 page, whose unequal bars a full
+        // mirror puts on the wrong sides and whose front row Word tucks behind: categories
+        // still run left to right on the page, and the first series moves to the far row. So
+        // the spans flip inside the mirrored scene, and the painting runs in page order.
+        var mirrored = Mirrors(chart.Scene!) && !chart.Lying;
+
+        double At(double value) => Math.Clamp((value - plan.Minimum) / span, 0, 1);
+
+        // Far rows first. Within a row, ascending page position; a clustered row ascends by
+        // series inside each category, and a stack ascends from its floor.
+        for (var walkRow = 0; walkRow < arrangement.Rows; walkRow++)
+        for (var step = 0; step < categories; step++)
+        {
+            // Far row under, near row over. Past 180 Word's own painting is stranger than any
+            // whole-bar order — the probe's 340 page shows a far bar and a near bar cutting
+            // into each other, which only a face-level depth sort produces — and the follow-up
+            // issue holds those measurements; the ordinary order is kept here, which the ink
+            // comparison bounds at about a tenth of the overlapped bars' ink.
+            var row = arrangement.Rows - 1 - walkRow;
+            var category = mirrored ? categories - 1 - step : step;
+            var running = 0.0;
+            var total = stacked
+                ? chart.Series.Sum(entry =>
+                    category < entry.Values.Count ? Math.Max(0, entry.Values[category] ?? 0) : 0)
+                : 0;
+
+            for (var walk = 0; walk < chart.Series.Count; walk++)
+            {
+                var index = mirrored && arrangement.Rows == 1 && !stacked
+                    ? chart.Series.Count - 1 - walk
+                    : walk;
+                if (arrangement.Rows > 1 && index != row) continue;
+
+                var series = chart.Series[index];
+                if (category >= series.Values.Count || series.Values[category] is not { } value)
+                    continue;
+
+                // Under the mirror a clustered row re-anchors too, the first series keeping
+                // the left of its cluster — consistent with the categories, though no probe
+                // page pins it.
+                var across = mirrored && arrangement.Rows == 1 && !stacked
+                    ? chart.Series.Count - 1 - index
+                    : index;
+                var (x0, x1) = arrangement.Across(chart, category, across);
+                if (mirrored) (x0, x1) = (1 - x1, 1 - x0);
+                var (z0, z1) = arrangement.Depth(chart, index);
+
+                double from, to;
+                var inverted = false;
+
+                if (stacked)
+                {
+                    if (value <= 0) continue;
+                    var share = chart.Grouping == ChartGrouping.PercentStacked && total > 0
+                        ? value / total * (plan.Maximum - Math.Max(plan.Minimum, 0)) + 0.0
+                        : value;
+                    from = At(Math.Max(plan.Minimum, 0) + running);
+                    running += share;
+                    to = At(Math.Max(plan.Minimum, 0) + running);
+                }
+                else if (value >= 0)
+                {
+                    from = At(Math.Max(plan.Minimum, 0));
+                    to = At(value);
+                }
+                else
+                {
+                    inverted = true;
+                    to = At(Math.Min(plan.Maximum, 0));
+                    from = At(value);
+                }
+
+                if (to - from <= 0) continue;
+
+                // The measured shortfall comes off the value end.
+                if (inverted) from += Chart3DObliqueProjection.BarTopShortfall;
+                else to -= Chart3DObliqueProjection.BarTopShortfall;
+                if (to - from <= 0) continue;
+
+                var colour = inverted
+                    ? new DrawingColor(255, 255, 255)
+                    : ResolveSeries(series, category, theme);
+                var stroke = inverted ? new DrawingColor(0, 0, 0) : (DrawingColor?)null;
+                var width = inverted ? 0.75 : DefaultLineWidth;
+
+                // The faces, painted far to near on the box itself: top first standing (it is
+                // never in front of the front face), then side, then front.
+                foreach (var face in Faces(chart.Lying, mirrored, x0, x1, from, to, z0, z1))
+                {
+                    var fill = Shade(colour, face.Factor);
+                    var corners = face.Corners
+                        .Select(q => projection.Project(q.Item1, q.Item2, q.Item3)).ToArray();
+
+                    yield return new PathOperation([
+                        new PathStep(PathStepKind.Move, [corners[0]]),
+                        new PathStep(PathStepKind.Line, [corners[1]]),
+                        new PathStep(PathStepKind.Line, [corners[2]]),
+                        new PathStep(PathStepKind.Line, [corners[3]]),
+                        new PathStep(PathStepKind.Close, [])
+                    ], fill, stroke, width, EvenOdd: false);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// A bar's three visible faces, each with its orientation's shade: standing, the value runs
+    /// up and the top face takes three quarters; lying, the value runs across, the categories'
+    /// upper face is the top and the value end is the side.
+    /// </summary>
+    private static IEnumerable<((double, double, double)[] Corners, double Factor)> Faces(
+        bool lying, bool mirrored, double x0, double x1, double from, double to, double z0, double z1)
+    {
+        // The mirror shows the bars' other flank, and a left-facing side is lit darker.
+        var side = mirrored ? FarSideShade : SideShade;
+
+        if (lying)
+        {
+            // Scene coordinates: x is the value, y the category (0 at the page's foot).
+            yield return ([(from, x1, z0), (from, x1, z1), (to, x1, z1), (to, x1, z0)], FloorShade);
+            yield return ([(to, x0, z0), (to, x1, z0), (to, x1, z1), (to, x0, z1)], side);
+            yield return ([(from, x0, z0), (to, x0, z0), (to, x1, z0), (from, x1, z0)], 1);
+        }
+        else
+        {
+            yield return ([(x0, to, z0), (x1, to, z0), (x1, to, z1), (x0, to, z1)], FloorShade);
+            yield return ([(x1, from, z0), (x1, to, z0), (x1, to, z1), (x1, from, z1)], side);
+            yield return ([(x0, from, z0), (x1, from, z0), (x1, to, z0), (x0, to, z0)], 1);
+        }
+    }
+
+    /// <summary>A bar's stated colour: the point's own fill where one is stated, else the series'.</summary>
+    private static DrawingColor ResolveSeries(ChartSeries series, int category, DocumentTheme theme)
+    {
+        var stated = series.PointFills.TryGetValue(category, out var point) && point is not null
+            ? point
+            : series.Fill;
+
+        return Resolve(stated, theme) ?? new DrawingColor(0x44, 0x72, 0xC4);
     }
 
     /// <summary>The marks of a scale, counted rather than added up so they do not drift.</summary>

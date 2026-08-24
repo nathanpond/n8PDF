@@ -2846,6 +2846,68 @@ public static class Fixtures
         """;
     }
 
+
+    /// <summary>
+    /// A three-dimensional chart for the box-drawing story: series in stated colours and values,
+    /// under a stated grouping, direction, turn and arm — so that draw order, negatives and the
+    /// lying direction can each be read off a page.
+    /// </summary>
+    private static string ChartPart3DBox(
+        string grouping, string barDir, int rotY, int rightAngled,
+        (string Colour, double[] Values)[] series, int min = 0, int max = 100)
+    {
+        var categories = series[0].Values.Length;
+        var cats = string.Concat(Enumerable.Range(0, categories)
+            .Select(i => $"""<c:pt idx="{i}"><c:v>K{i}</c:v></c:pt>"""));
+
+        var built = string.Concat(series.Select((entry, j) => $$"""
+            <c:ser><c:idx val="{{j}}"/><c:order val="{{j}}"/>
+              <c:tx><c:strRef><c:f>Sheet1!${{(char)('B' + j)}}$1</c:f><c:strCache><c:ptCount val="1"/>
+                <c:pt idx="0"><c:v>S{{j}}</c:v></c:pt></c:strCache></c:strRef></c:tx>
+              <c:spPr><a:solidFill><a:srgbClr val="{{entry.Colour}}"/></a:solidFill>
+                <a:ln><a:noFill/></a:ln></c:spPr>
+              <c:cat><c:strRef><c:f>Sheet1!$A$2:$A${{categories + 1}}</c:f><c:strCache><c:ptCount val="{{categories}}"/>
+                {{cats}}</c:strCache></c:strRef></c:cat>
+              <c:val><c:numRef><c:f>Sheet1!${{(char)('B' + j)}}$2:${{(char)('B' + j)}}${{categories + 1}}</c:f><c:numCache>
+                <c:formatCode>General</c:formatCode><c:ptCount val="{{categories}}"/>
+                {{string.Concat(entry.Values.Select((v, i) =>
+                    $"""<c:pt idx="{i}"><c:v>{v}</c:v></c:pt>"""))}}</c:numCache></c:numRef></c:val>
+            </c:ser>
+            """));
+
+        return $$"""
+          <c:chart>
+            <c:view3D><c:rotX val="15"/><c:rotY val="{{rotY}}"/><c:rAngAx val="{{rightAngled}}"/>
+              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.55"/>
+              </c:manualLayout></c:layout>
+              <c:bar3DChart>
+                <c:barDir val="{{barDir}}"/><c:grouping val="{{grouping}}"/><c:varyColors val="0"/>
+                {{built}}
+                <c:gapWidth val="150"/><c:gapDepth val="150"/><c:shape val="box"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:bar3DChart>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="{{max}}"/><c:min val="{{min}}"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+    }
+
     private static string ChartPart3DGrid(double rotX, int depthPercent = 100) => $$"""
           <c:chart>
             <c:view3D><c:rotX val="{{rotX}}"/><c:rotY val="20"/><c:rAngAx val="0"/>
@@ -8597,6 +8659,94 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  "<w:r><w:t>clustered 1c2s union</w:t></w:r></w:p>"),
+
+            ["chart-3d-box-probe"] = () => new DocxBuilder()
+                .WithChart(ChartPart3DBox("standard", "col", 20, 1, [("FF0000", [30.0, 60.0]), ("0000FF", [90.0, 45.0])]))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("standard", "col", 340, 1, [("FF0000", [30.0, 60.0]), ("0000FF", [90.0, 45.0])])),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("standard", "col", 110, 1, [("FF0000", [30.0, 60.0]), ("0000FF", [90.0, 45.0])])),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("clustered", "col", 20, 1, [("FF0000", [60.0]), ("0000FF", [80.0]), ("00C000", [40.0])])),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("stacked", "col", 20, 1, [("FF0000", [30.0]), ("0000FF", [30.0]), ("00C000", [30.0])])),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("standard", "col", 20, 1, [("FF0000", [-60.0])], -100, 100)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("standard", "bar", 20, 1, [("FF0000", [60.0])])),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("standard", "col", 20, 0, [("FF0000", [30.0, 60.0]), ("0000FF", [90.0, 45.0])])),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DBox("standard", "bar", 20, 1, [("FF0000", [30.0, 60.0]), ("0000FF", [90.0, 45.0])])),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1900, relationshipId: "rIdChart") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>order 20</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1901, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>order 340</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1902, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>order 110</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1903, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>cluster order</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1904, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>stack order</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1905, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>negative</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1906, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>lying</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1907, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>order camera</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1908, relationshipId: "rIdChart9") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>lying order</w:t></w:r></w:p>"),
 
             ["chart-3d-height-count-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 1, 60))
