@@ -209,4 +209,72 @@ public class ImageDecoderHostileTests(ITestOutputHelper output)
 
         Timed("CCITT zero-run strip", () => ImageReader.TryRead(tiff));
     }
+
+    [Fact]
+    public void Gif_truncated_after_the_descriptor_marker_fails_cleanly()   // #9
+    {
+        // GIF89a, a 1x1 screen, then the 0x2C image-descriptor marker and nothing after it.
+        var gif = new List<byte>();
+        gif.AddRange("GIF89a"u8.ToArray());
+        gif.AddRange([1, 0, 1, 0, 0, 0, 0]);
+        gif.Add(0x2C);      // descriptor marker with no descriptor bytes following
+        Assert.IsType<ImageFormatException>(Record.Exception(() => GifDecoder.Decode(gif.ToArray())));
+        Assert.Null(ImageReader.TryRead(gif.ToArray()));
+    }
+
+    [Fact]
+    public void Jpeg_out_of_range_spectral_selection_does_not_throw_out_of_range()   // #41
+    {
+        // A progressive frame then a scan whose Ss/Se bytes are 0xFF (past the 64 coefficients).
+        var jpeg = new List<byte> { 0xFF, 0xD8 };
+        jpeg.AddRange([0xFF, 0xC2, 0x00, 0x0B]);          // SOF2 progressive
+        jpeg.AddRange([8, 0, 8, 0, 8]);                    // precision, 8x8, 1 component
+        jpeg.AddRange([1, 0x11, 0]);
+        jpeg.AddRange([0xFF, 0xDA, 0x00, 0x08]);          // SOS
+        jpeg.AddRange([1, 1, 0, 0xFF, 0xFF, 0x00]);        // 1 comp, then Ss=FF, Se=FF, Ah/Al
+        jpeg.AddRange([0xFF, 0xD9]);
+        var ex = Record.Exception(() => JpegDecoder.Decode(jpeg.ToArray()));
+        Assert.True(ex is null or ImageFormatException,
+            $"a runtime exception escaped: {ex?.GetType().Name}");
+    }
+
+    [Fact]
+    public void Tiff_rows_per_strip_zero_does_not_divide_by_zero()   // #33
+    {
+        var tiff = new TiffBuilder()
+            .Tag(256, 3, 1, 8).Tag(257, 3, 1, 8).Tag(258, 3, 1, 8)
+            .Tag(259, 3, 1, 1).Tag(277, 3, 1, 1)
+            .Tag(278, 4, 1, 0)                          // RowsPerStrip = 0
+            .Tag(273, 4, 1, 8).Tag(279, 4, 1, 8)
+            .Build();
+        var ex = Record.Exception(() => ImageReader.TryRead(tiff));
+        Assert.True(ex is null, $"a runtime exception escaped: {ex?.GetType().Name}");
+    }
+
+    [Fact]
+    public void Tiff_bits_per_sample_zero_count_does_not_index_an_empty_list()   // #32
+    {
+        var tiff = new TiffBuilder()
+            .Tag(256, 3, 1, 8).Tag(257, 3, 1, 8)
+            .Tag(258, 3, 0, 0)                          // BitsPerSample with a zero value count
+            .Tag(259, 3, 1, 1).Tag(277, 3, 1, 1)
+            .Tag(273, 4, 1, 8).Tag(279, 4, 1, 8)
+            .Build();
+        var ex = Record.Exception(() => ImageReader.TryRead(tiff));
+        Assert.True(ex is null, $"a runtime exception escaped: {ex?.GetType().Name}");
+    }
+
+    [Fact]
+    public void Tiff_strip_byte_count_of_max_uint_does_not_slice_backwards()   // #34
+    {
+        var b = new TiffBuilder().Tags(8);
+        var stripAt = b.Blob(new byte[64]);
+        var tiff = b
+            .Tag(256, 3, 1, 8).Tag(257, 3, 1, 8).Tag(258, 3, 1, 8)
+            .Tag(259, 3, 1, 1).Tag(277, 3, 1, 1)
+            .Tag(273, 4, 1, stripAt).Tag(279, 4, 1, unchecked((int)0xFFFFFFFF))   // count = -1
+            .Build();
+        var ex = Record.Exception(() => ImageReader.TryRead(tiff));
+        Assert.True(ex is null, $"a runtime exception escaped: {ex?.GetType().Name}");
+    }
 }

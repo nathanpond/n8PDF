@@ -765,16 +765,29 @@ internal static class EmfPlusInterpreter
         private DrawingColor Color(uint value) =>
             new((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
 
-        private Matrix ReadMatrix(int at) => new(
-            ReadFloat(at), ReadFloat(at + 4), ReadFloat(at + 8),
-            ReadFloat(at + 12), ReadFloat(at + 16), ReadFloat(at + 20));
+        private Matrix ReadMatrix(int at)
+        {
+            var m = new Matrix(
+                ReadFloat(at), ReadFloat(at + 4), ReadFloat(at + 8),
+                ReadFloat(at + 12), ReadFloat(at + 16), ReadFloat(at + 20));
 
+            // A NaN or infinite component would be written as the literal token "NaN" into the PDF
+            // content stream, making it malformed; an unusable transform is dropped (#26).
+            return double.IsFinite(m.M11) && double.IsFinite(m.M12) && double.IsFinite(m.M21) &&
+                   double.IsFinite(m.M22) && double.IsFinite(m.Dx) && double.IsFinite(m.Dy)
+                ? m
+                : Matrix.Identity;
+        }
+
+        // at >= 0 as well as the upper bound: a pen's optional-field counts advance the cursor by
+        // an unvalidated 32-bit count that overflows it negative, and a negative index would read
+        // below the buffer's start (#24).
         private uint ReadUInt32(int at) =>
-            at + 3 < data.Length
+            at >= 0 && at + 3 < data.Length
                 ? (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24))
                 : 0;
 
-        private int ReadUInt16(int at) => at + 1 < data.Length ? data[at] | (data[at + 1] << 8) : 0;
+        private int ReadUInt16(int at) => at >= 0 && at + 1 < data.Length ? data[at] | (data[at + 1] << 8) : 0;
 
         private short ReadInt16(int at) => (short)ReadUInt16(at);
 

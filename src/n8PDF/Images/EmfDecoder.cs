@@ -591,7 +591,9 @@ internal static class EmfDecoder
         {
             // A logical font's height is in the metafile's own units, and is negative where it
             // names the height of the characters rather than of the whole line.
-            var height = Math.Abs(ReadInt32(at)) * _scale * _state.ScaleY;
+            // int.MinValue has no positive counterpart, so Math.Abs throws on it (#25).
+            var rawFontHeight = ReadInt32(at);
+            var height = (rawFontHeight == int.MinValue ? 0 : Math.Abs(rawFontHeight)) * _scale * _state.ScaleY;
             var escapement = ReadInt32(at + 8);
             var weight = ReadInt32(at + 16);
             var italic = data[at + 20] != 0;
