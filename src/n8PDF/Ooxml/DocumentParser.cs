@@ -803,7 +803,21 @@ internal static class DocumentParser
 
         var shape = new ShapeFrame();
 
-        if (wsp.Descendants(W.Shape + "spPr").FirstOrDefault() is { } spPr)
+        // Bind spPr, bodyPr and txbxContent in one traversal rather than three independent
+        // Descendants scans, each of which walked the whole subtree when its element was absent
+        // (#220). Stop as soon as all three are found.
+        XElement? spPr = null, bodyPr = null, content = null;
+
+        foreach (var el in wsp.Descendants())
+        {
+            if (spPr is null && el.Name == W.Shape + "spPr") spPr = el;
+            else if (bodyPr is null && el.Name == W.Shape + "bodyPr") bodyPr = el;
+            else if (content is null && el.Name == W.Main + "txbxContent") content = el;
+
+            if (spPr is not null && bodyPr is not null && content is not null) break;
+        }
+
+        if (spPr is not null)
         {
             shape.Geometry = spPr.Element(W.Drawing + "prstGeom")?.Attribute("prst")?.Value ?? "rect";
             shape.Fill = ReadDrawingFill(spPr);
@@ -835,7 +849,7 @@ internal static class DocumentParser
             }
         }
 
-        if (wsp.Descendants(W.Shape + "bodyPr").FirstOrDefault() is { } bodyPr)
+        if (bodyPr is not null)
         {
             shape.InsetLeftPoints = Inset(bodyPr, "lIns", shape.InsetLeftPoints);
             shape.InsetTopPoints = Inset(bodyPr, "tIns", shape.InsetTopPoints);
@@ -859,7 +873,6 @@ internal static class DocumentParser
             };
         }
 
-        var content = wsp.Descendants(W.Main + "txbxContent").FirstOrDefault();
         if (content is not null)
         {
             foreach (var child in Blocks(content))

@@ -33,7 +33,8 @@ internal sealed class LayoutEngine(
     FontLibrary fonts,
     StyleResolver styles,
     LayoutOptions? options = null,
-    Packaging.PackageLimits? limits = null)
+    Packaging.PackageLimits? limits = null,
+    Dictionary<string, Images.ImageData?>? decodedImages = null)
 {
     private readonly FontLibrary _fonts = fonts;
 
@@ -58,9 +59,17 @@ internal sealed class LayoutEngine(
     // Bookmarks seen while building a paragraph's atoms, recorded once the paragraph is placed.
     private readonly List<string> _pendingBookmarks = [];
 
-    // Decoded images, keyed by relationship id. A picture used several times is decoded once and
-    // yields the same instance every time, which is what lets the writer embed it once.
-    private readonly Dictionary<string, Images.ImageData?> _decodedImages = [];
+    // Decoded images, keyed by relationship id (plus any wash). A picture used several times is
+    // decoded once and yields the same instance every time, which is what lets the writer embed it
+    // once. The decode is a pure function of the part bytes, so the cache is shared across the two
+    // pagination passes — the second pass would otherwise re-decode every image from scratch (#217).
+    private readonly Dictionary<string, Images.ImageData?> _decodedImages = decodedImages ?? [];
+
+    // Intrinsic total width of a nested table, memoized by reference for one pass. Autofit probes a
+    // nested table's intrinsic width once per ancestor level, so a d-deep chain re-measured its
+    // deepest content O(d^2) times without this (#218). The total is the unconstrained column sum,
+    // a pure function of the table, so caching it by reference is sound.
+    private readonly Dictionary<Table, double> _nestedTableIntrinsic = new(ReferenceEqualityComparer.Instance);
 
     // List counters, which advance as paragraphs are laid out. A list item's number depends on
     // every item before it, so this is per-document state rather than per-paragraph.
@@ -289,7 +298,7 @@ internal sealed class LayoutEngine(
         _footnotesContinue = false;
         _separatorFlows.Clear();
         _currentNoteLabel = null;
-        _decodedImages.Clear();
+        _nestedTableIntrinsic.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
         _fieldOccurrence = 0;
         _fieldPages.Clear();
@@ -3196,10 +3205,21 @@ internal sealed class LayoutEngine(
         if (_currentPage > 0)
         {
             var page = _currentPage - 1;
-            var onPage = _styledParagraphs.Where(p => p.StyleId == styleId && p.Page == page).ToList();
 
-            if (onPage.Count > 0)
-                return instruction.HasSwitch('l') ? onPage[^1].Text : onPage[0].Text;
+            // The first or the last styled paragraph on the page — scan to it and stop, rather
+            // than materialising every match into a list only to read one end of it (#227).
+            if (instruction.HasSwitch('l'))
+            {
+                for (var i = _styledParagraphs.Count - 1; i >= 0; i--)
+                    if (_styledParagraphs[i].StyleId == styleId && _styledParagraphs[i].Page == page)
+                        return _styledParagraphs[i].Text;
+            }
+            else
+            {
+                for (var i = 0; i < _styledParagraphs.Count; i++)
+                    if (_styledParagraphs[i].StyleId == styleId && _styledParagraphs[i].Page == page)
+                        return _styledParagraphs[i].Text;
+            }
 
             for (var i = _styledParagraphs.Count - 1; i >= 0; i--)
             {
@@ -4659,9 +4679,14 @@ internal sealed class LayoutEngine(
 
                 case Table nested:
                 {
-                    // A nested table needs at least the sum of its own columns.
-                    var widths = ComputeAutofitColumnWidths(nested, double.MaxValue / 4, out _);
-                    var total = widths.Sum();
+                    // A nested table needs at least the sum of its own columns — computed once per
+                    // table, not once per ancestor that measures through it (#218).
+                    if (!_nestedTableIntrinsic.TryGetValue(nested, out var total))
+                    {
+                        total = ComputeAutofitColumnWidths(nested, double.MaxValue / 4, out _).Sum();
+                        _nestedTableIntrinsic[nested] = total;
+                    }
+
                     min = Math.Max(min, total);
                     max = Math.Max(max, total);
                     break;

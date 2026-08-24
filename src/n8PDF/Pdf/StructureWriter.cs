@@ -124,6 +124,7 @@ internal sealed class StructureWriter(LaidOutDocument document, PdfBuilder build
             parent >= 0 && refs[parent] is { } kept ? kept : documentRef;
 
         var childrenOf = new Dictionary<PdfReference, PdfArray>();
+        var kidsByIndex = new PdfArray[keep.Length];
 
         for (var i = 0; i < keep.Length; i++)
         {
@@ -161,6 +162,7 @@ internal sealed class StructureWriter(LaidOutDocument document, PdfBuilder build
 
             dictionary.Set("K", kids);
             pdf.Assign(elementRef, dictionary);
+            kidsByIndex[i] = kids;
 
             if (!childrenOf.TryGetValue(parentRef, out var siblings))
                 childrenOf[parentRef] = siblings = new PdfArray();
@@ -171,41 +173,14 @@ internal sealed class StructureWriter(LaidOutDocument document, PdfBuilder build
         }
 
         // Children arrays: an element that got children carries them after its marked kids.
+        // The dictionary and its marked kids were built once above; here we only append the child
+        // refs to that same array, which the assigned dictionary still holds (#223).
         for (var i = 0; i < keep.Length; i++)
         {
             if (refs[i] is not { } elementRef) continue;
             if (!childrenOf.TryGetValue(elementRef, out var children)) continue;
 
-            var dictionary = new PdfDictionary()
-                .Set("Type", "StructElem")
-                .Set("S", i >= elements.Count ? "Link" : Role(elements[i].Kind, elements[i].Level))
-                .Set("P", ParentRef(i >= elements.Count
-                    ? linkParents[i - elements.Count]
-                    : elements[i].Parent));
-
-            if (i < elements.Count && elements[i].Alt is { } alt)
-                dictionary.Set("Alt", PdfString.FromText(alt));
-
-            var kids = new PdfArray();
-            foreach (var kid in i >= elements.Count ? linkKids[i - elements.Count] : _kids[i])
-            {
-                kids.Add(kid switch
-                {
-                    MarkedKid marked => new PdfDictionary()
-                        .Set("Type", "MCR")
-                        .Set("Pg", pdf.GetPageReference(marked.PageIndex))
-                        .Set("MCID", marked.Mcid),
-                    AnnotationKid annotation => new PdfDictionary()
-                        .Set("Type", "OBJR")
-                        .Set("Obj", annotation.Annotation),
-                    _ => PdfNull.Instance
-                });
-            }
-
-            foreach (var child in Items(children)) kids.Add(child);
-
-            dictionary.Set("K", kids);
-            pdf.Assign(elementRef, dictionary);
+            foreach (var child in Items(children)) kidsByIndex[i].Add(child);
         }
 
         // The parent tree: for each page, the element of every MCID in order; for each link

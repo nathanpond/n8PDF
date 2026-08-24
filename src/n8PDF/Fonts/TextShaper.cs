@@ -68,10 +68,9 @@ internal static class TextShaper
         // The apply phase reads lookup tables lazily, at attacker-chosen offsets, and none of it
         // is otherwise guarded: a malformed embedded font could throw and abort the whole
         // conversion. Shaping that fails costs the run its shaping and no more — the run falls
-        // back to the glyphs as first mapped, unshaped (#183). The glyph and cluster of each are
-        // snapshotted for that fallback before anything mutates the buffer.
-        var unshaped = buffer.Select(item => (item.Glyph, item.Cluster, item.CodePoint)).ToList();
-
+        // back to the glyphs as first mapped, unshaped (#183). That fallback re-maps from the
+        // original text in the catch rather than snapshotting the buffer up front, which allocated
+        // a list and copied the whole buffer on every call for a path that almost never runs (#226).
         try
         {
             if (plan.DecomposesMarks) Decompose(font, buffer);
@@ -98,8 +97,19 @@ internal static class TextShaper
         {
             buffer.Clear();
 
-            foreach (var (glyph, cluster, codePoint) in unshaped)
+            for (var i = 0; i < text.Length; i++)
             {
+                var cluster = i;
+                int codePoint = text[i];
+
+                if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                {
+                    codePoint = char.ConvertToUtf32(text[i], text[i + 1]);
+                    i++;
+                }
+
+                var glyph = font.GetGlyphIndex(codePoint);
+
                 buffer.Add(new ShapeItem(glyph, cluster, ShapingPlan.Everywhere, codePoint)
                 {
                     Advance = font.GetAdvanceWidth(glyph)

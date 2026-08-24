@@ -175,17 +175,20 @@ internal static class Bidi
     /// the way the reader is going, so what is stored as an opening bracket is drawn as a closing
     /// one. This is rule L4.
     /// </summary>
-    public static char Mirror(char value)
+    // The generated table is a flat (from, to) pair list; scanning it per character cost ~180
+    // comparisons on every glyph of an RTL slice (#225). Index it once into a dictionary — the
+    // table is generator output, so the structure lives here in the consumer, not in the file.
+    private static readonly Dictionary<char, char> MirrorMap = BuildPairMap(BidiTables.Mirrored);
+    private static readonly Dictionary<char, char> BracketMap = BuildPairMap(BidiTables.BracketPairs);
+
+    private static Dictionary<char, char> BuildPairMap(int[] pairs)
     {
-        var pairs = BidiTables.Mirrored;
-
-        for (var i = 0; i < pairs.Length; i += 2)
-        {
-            if (pairs[i] == value) return (char)pairs[i + 1];
-        }
-
-        return value;
+        var map = new Dictionary<char, char>(pairs.Length / 2);
+        for (var i = 0; i < pairs.Length; i += 2) map[(char)pairs[i]] = (char)pairs[i + 1];
+        return map;
     }
+
+    public static char Mirror(char value) => MirrorMap.TryGetValue(value, out var m) ? m : value;
 
     /// <summary>The class of the character at a position, reading a surrogate pair as one.</summary>
     public static BidiClass ClassOf(string text, int at)
@@ -718,17 +721,8 @@ internal static class Bidi
     }
 
     /// <summary>The closing bracket that matches an opening one, or null where it is not one.</summary>
-    private static char? ClosingOf(char value)
-    {
-        var pairs = BidiTables.BracketPairs;
-
-        for (var i = 0; i < pairs.Length; i += 2)
-        {
-            if (pairs[i] == value) return (char)pairs[i + 1];
-        }
-
-        return null;
-    }
+    private static char? ClosingOf(char value) =>
+        BracketMap.TryGetValue(value, out var c) ? c : null;
 
     /// <summary>
     /// The two brackets Unicode says are the same as two others, which have to be matched with
