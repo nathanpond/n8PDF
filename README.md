@@ -1892,10 +1892,17 @@ geometry by the element rather than by an attribute, and defaults its fill to wh
 outline to three quarters of a point of black. Where a document offers both, in a compatibility
 wrapper, the newer is read and the older passed over so the shape is drawn once.
 
-What a shape does not do yet: turn (a rotated shape is drawn square), resize itself or its text to
-fit the other (a box holding more than it has room for overflows, which is what `noAutofit` asks
-for and what Word does with that setting), fill with anything but one flat colour, or carry a
-shadow.
+A shape turns and mirrors (`a:xfrm`'s `rot`, `flipH`, `flipV`), and the wrap region beside it
+stays the stated extent, unturned — measured: Word lets the turned corner overhang the text
+beside it rather than pushing it out to the turned bounds; it fills with a linear gradient of any number of stops or with a picture
+kept inside its path, and carries an outer shadow, drawn as the same path offset where the shadow
+falls at the shadow's own solidity. A box told to size itself to its text grows at render, and one
+told to shrink its text draws full size where the text fits — the stored scale is Word's cache of
+its own computation, applied only where full-size content overflows, which is what Word was
+measured doing. What a shape does not do yet: rotate the paragraphs laid out inside it (the
+geometry turns; flowed text within stays upright), tighten its line spacing to fit
+(`lnSpcReduction` — the font shrinks, the leading does not), fill with a pattern (declined —
+Word's own gallery no longer offers one), or blur its shadow's edge.
 
 Watermarks are drawn, of both kinds: the word, in the face and colour and half-solidity it asks for,
 turned the way it asks to be turned; or the picture, washed out to the gain and black level it

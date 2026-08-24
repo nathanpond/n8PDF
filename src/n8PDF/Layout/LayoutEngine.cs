@@ -2010,6 +2010,19 @@ internal sealed class LayoutEngine(
             var height = anchored.HeightPoints;
             if (width <= 0 || height <= 0) continue;
 
+            // A box told to size itself to its text does so at render (#64): the stated extent
+            // grows to the content plus the insets — measured on shape-autofit-probe, where a
+            // 30pt extent drew 76pt of box.
+            if (anchored.Shape is { AutofitToText: true, WordArt: null } autofit && autofit.HasText)
+            {
+                var autofitEdge = autofit.Line is null ? 0 : autofit.LineWidthPoints / 2;
+                var autofitWidth = Math.Max(1,
+                    width - autofit.InsetLeftPoints - autofit.InsetRightPoints - 2 * autofitEdge);
+
+                height = Math.Max(height, MeasureInside(autofit.Content, autofitWidth).Height
+                    + autofit.InsetTopPoints + autofit.InsetBottomPoints + 2 * autofitEdge);
+            }
+
             // Where it goes, worked out before anything else happens and kept. Breaking the lines
             // above it again can lengthen the paragraph they belong to and so move the flow, and
             // the picture does not follow: Word's own export has the picture standing where the
@@ -2084,6 +2097,9 @@ internal sealed class LayoutEngine(
         var x = ResolveHorizontalPosition(cursor, anchored, width);
         var y = ResolveVerticalPosition(cursor, anchored, height);
 
+        // A turned shape's wrap region stays the stated extent, unturned (#64) — measured, not
+        // assumed: Word starts the text beside a 30-degree box at the square extent's edge and
+        // lets the turned corner overhang it, exactly 4pt inside the turned bounds on the probe.
         var left = x - Units.EmuToPoints(anchored.DistanceLeftEmu);
         var right = x + width + Units.EmuToPoints(anchored.DistanceRightEmu);
 
@@ -5226,10 +5242,14 @@ internal sealed class LayoutEngine(
     private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeShape(
         ShapeFrame shape, double width, double height)
     {
+        var pictureFill = shape.PictureFillRelationshipId is { } picture
+            ? DecodeImage(picture, null)
+            : null;
+
         var frame = new Images.ImageData(1, 1, [],
             Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
         {
-            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme, _fonts)
+            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme, _fonts, pictureFill)
         };
 
         if (!shape.HasText || shape.WordArt is not null) return (frame, null, 0, 0);
@@ -5248,6 +5268,13 @@ internal sealed class LayoutEngine(
         // does with one too.
         var box = height - shape.InsetTopPoints - shape.InsetBottomPoints - 2 * edge;
 
+        // A box told to shrink its text re-fits at render (#64): full size where the text fits —
+        // Word ignores the stored scale then, measured on shape-autofit-probe — and the stored
+        // scale where it does not, which in a Word-authored document is the value Word itself
+        // computed the last time it laid this box out.
+        if (shape.FontScale < 1 && content.Height > box)
+            content = MeasureInside(ScaledBlocks(shape.Content, shape.FontScale), available);
+
         var top = carried + shape.Anchor switch
         {
             ShapeTextAnchor.Center => shape.InsetTopPoints + edge + Math.Max(0, (box - content.Height) / 2),
@@ -5257,6 +5284,38 @@ internal sealed class LayoutEngine(
         };
 
         return (frame, content, left, top);
+    }
+
+    /// <summary>The blocks again with every run's size scaled, for a box that shrinks its text (#64).</summary>
+    private static List<BlockElement> ScaledBlocks(IReadOnlyList<BlockElement> blocks, double scale)
+    {
+        var scaled = new List<BlockElement>(blocks.Count);
+
+        foreach (var block in blocks)
+        {
+            if (block is not Paragraph paragraph)
+            {
+                scaled.Add(block);
+                continue;
+            }
+
+            var copy = new Paragraph
+            {
+                Properties = paragraph.Properties,
+                InsideField = paragraph.InsideField
+            };
+
+            foreach (var run in paragraph.Runs)
+            {
+                var clone = new Run { Properties = run.Properties.Scaled(scale), Hyperlink = run.Hyperlink };
+                clone.Content.AddRange(run.Content);
+                copy.Runs.Add(clone);
+            }
+
+            scaled.Add(copy);
+        }
+
+        return scaled;
     }
 
     /// <summary>

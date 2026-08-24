@@ -107,6 +107,17 @@ internal sealed class RunProperties
     /// <summary>Font size in half-points (<c>w:sz</c>).</summary>
     public int? SizeHalfPoints { get; set; }
 
+    /// <summary>
+    /// A copy at a fraction of the size, for a box that shrinks its text to fit (#64). A run
+    /// that named no size scales from the 22 half-points an unstyled run is set at.
+    /// </summary>
+    internal RunProperties Scaled(double scale)
+    {
+        var copy = (RunProperties)MemberwiseClone();
+        copy.SizeHalfPoints = Math.Max(2, (int)Math.Round((SizeHalfPoints ?? 22) * scale));
+        return copy;
+    }
+
     /// <summary>Bold. A toggle property.</summary>
     public bool? Bold { get; set; }
 

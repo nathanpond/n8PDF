@@ -4043,6 +4043,39 @@ public static class Fixtures
         return data;
     }
 
+    /// <summary>
+    /// A paragraph carrying one anchored DrawingML shape (#64), written the way Word writes one:
+    /// the wps namespace, cNvSpPr then spPr then bodyPr, and the anchor around it all.
+    /// </summary>
+    internal static string ShapeAnchor(
+        int id, double widthPoints, double heightPoints, string spPrInner,
+        double offsetXPoints = 0, double offsetYPoints = 4,
+        string wrap = "<wp:wrapSquare wrapText=\"bothSides\"/>",
+        string txbx = "", string bodyPr = "")
+    {
+        var cx = (long)Math.Round(widthPoints * 12700);
+        var cy = (long)Math.Round(heightPoints * 12700);
+
+        return $"<w:p><w:pPr>{ZeroSpacing}</w:pPr><w:r><w:drawing>" +
+               "<wp:anchor distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\" simplePos=\"0\" " +
+               $"relativeHeight=\"{251658240 + id}\" behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\" allowOverlap=\"1\">" +
+               "<wp:simplePos x=\"0\" y=\"0\"/>" +
+               "<wp:positionH relativeFrom=\"column\">" +
+               $"<wp:posOffset>{(long)Math.Round(offsetXPoints * 12700)}</wp:posOffset></wp:positionH>" +
+               "<wp:positionV relativeFrom=\"paragraph\">" +
+               $"<wp:posOffset>{(long)Math.Round(offsetYPoints * 12700)}</wp:posOffset></wp:positionV>" +
+               $"<wp:extent cx=\"{cx}\" cy=\"{cy}\"/>" +
+               wrap +
+               $"<wp:docPr id=\"{id}\" name=\"Shape {id}\"/>" +
+               "<a:graphic><a:graphicData uri=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\">" +
+               "<wps:wsp xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\">" +
+               "<wps:cNvSpPr/>" +
+               $"<wps:spPr>{spPrInner}</wps:spPr>" +
+               (txbx.Length > 0 ? $"<wps:txbx><w:txbxContent>{txbx}</w:txbxContent></wps:txbx>" : "") +
+               $"<wps:bodyPr>{bodyPr}</wps:bodyPr>" +
+               "</wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p>";
+    }
+
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
         {
@@ -9227,6 +9260,121 @@ public static class Fixtures
                         offsetYPoints: 4, distancePoints: 0, paragraphProperties: ZeroSpacing,
                         runProperties: Times(), wrapPolygon: channel);
             },
+
+            // A shape turned, mirrored, and wrapped by its turned bounds (#64).
+            ["shape-rotation-probe"] = () => new DocxBuilder()
+                .AddRawParagraph(ShapeAnchor(901, 90, 40,
+                    "<a:xfrm rot=\"1800000\"><a:off x=\"0\" y=\"0\"/><a:ext cx=\"1143000\" cy=\"508000\"/></a:xfrm>" +
+                    "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                    "<a:solidFill><a:srgbClr val=\"C00000\"/></a:solidFill>",
+                    offsetXPoints: 0, offsetYPoints: 10) +
+                    "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                    "</w:rPr><w:t>" + string.Join(" ", Enumerable.Repeat("words beside the turned box", 8)) +
+                    "</w:t></w:r></w:p>")
+                .AddRawParagraph(ShapeAnchor(902, 90, 40,
+                    "<a:xfrm rot=\"5400000\"><a:off x=\"0\" y=\"0\"/><a:ext cx=\"1143000\" cy=\"508000\"/></a:xfrm>" +
+                    "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                    "<a:solidFill><a:srgbClr val=\"0050C0\"/></a:solidFill>",
+                    offsetXPoints: 230, offsetYPoints: 120) +
+                    "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                    "</w:rPr><w:t>A quarter turn stands the box on its end.</w:t></w:r></w:p>")
+                .AddRawParagraph(ShapeAnchor(903, 90, 60,
+                    "<a:xfrm flipH=\"1\"><a:off x=\"0\" y=\"0\"/><a:ext cx=\"1143000\" cy=\"762000\"/></a:xfrm>" +
+                    "<a:prstGeom prst=\"triangle\"><a:avLst/></a:prstGeom>" +
+                    "<a:solidFill><a:srgbClr val=\"00A000\"/></a:solidFill>",
+                    offsetXPoints: 0, offsetYPoints: 250) +
+                    "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                    "</w:rPr><w:t>And a mirrored triangle below.</w:t></w:r></w:p>"),
+
+            // Fills beyond one flat colour, and a shadow (#64), one to a page so nothing
+            // wraps or collides with anything else.
+            ["shape-fill-probe"] = () =>
+            {
+                var builder = new DocxBuilder();
+                var picture = builder.AddImagePart(ImageWriter.Bmp(12, 12, ImageWriter.Sample(12, 12)), "bmp");
+
+                string Xfrm(double w, double h) =>
+                    "<a:xfrm><a:off x=\"0\" y=\"0\"/>" +
+                    $"<a:ext cx=\"{(long)(w * 12700)}\" cy=\"{(long)(h * 12700)}\"/></a:xfrm>";
+
+                return builder
+                    .AddRawParagraph(ShapeAnchor(911, 180, 50,
+                        Xfrm(180, 50) +
+                        "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                        "<a:gradFill><a:gsLst>" +
+                        "<a:gs pos=\"0\"><a:srgbClr val=\"FF0000\"/></a:gs>" +
+                        "<a:gs pos=\"100000\"><a:srgbClr val=\"0000FF\"/></a:gs>" +
+                        "</a:gsLst><a:lin ang=\"0\" scaled=\"0\"/></a:gradFill>",
+                        offsetXPoints: 0, offsetYPoints: 20) +
+                        "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>A gradient runs red to blue.</w:t></w:r></w:p>")
+                    .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacingNewPage + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>Three stops run down the next shape.</w:t></w:r></w:p>")
+                    .AddRawParagraph(ShapeAnchor(912, 60, 120,
+                        Xfrm(60, 120) +
+                        "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                        "<a:gradFill><a:gsLst>" +
+                        "<a:gs pos=\"0\"><a:srgbClr val=\"FF0000\"/></a:gs>" +
+                        "<a:gs pos=\"50000\"><a:srgbClr val=\"00C000\"/></a:gs>" +
+                        "<a:gs pos=\"100000\"><a:srgbClr val=\"0000FF\"/></a:gs>" +
+                        "</a:gsLst><a:lin ang=\"5400000\" scaled=\"0\"/></a:gradFill>",
+                        offsetXPoints: 0, offsetYPoints: 20) +
+                        "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>Down it goes.</w:t></w:r></w:p>")
+                    .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacingNewPage + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>A picture kept inside an ellipse.</w:t></w:r></w:p>")
+                    .AddRawParagraph(ShapeAnchor(913, 96, 96,
+                        Xfrm(96, 96) +
+                        "<a:prstGeom prst=\"ellipse\"><a:avLst/></a:prstGeom>" +
+                        "<a:blipFill><a:blip r:embed=\"" + picture + "\"/>" +
+                        "<a:stretch><a:fillRect/></a:stretch></a:blipFill>",
+                        offsetXPoints: 0, offsetYPoints: 20) +
+                        "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>Round and pictured.</w:t></w:r></w:p>")
+                    .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacingNewPage + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>And a shadow falls south-east.</w:t></w:r></w:p>")
+                    .AddRawParagraph(ShapeAnchor(914, 120, 50,
+                        Xfrm(120, 50) +
+                        "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                        "<a:solidFill><a:srgbClr val=\"E0B000\"/></a:solidFill>" +
+                        "<a:effectLst><a:outerShdw blurRad=\"0\" dist=\"76200\" dir=\"2700000\">" +
+                        "<a:srgbClr val=\"000000\"><a:alpha val=\"50000\"/></a:srgbClr>" +
+                        "</a:outerShdw></a:effectLst>",
+                        offsetXPoints: 0, offsetYPoints: 20) +
+                        "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                        "</w:rPr><w:t>Grey behind it.</w:t></w:r></w:p>");
+            },
+
+            // What Word's render actually does with autofit (#64): a box told to fit itself to
+            // more text than its stated extent holds grows; one told to shrink its text draws
+            // full size where the text fits and shrinks only where it does not.
+            ["shape-autofit-probe"] = () => new DocxBuilder()
+                .AddRawParagraph(ShapeAnchor(921, 150, 30,
+                    "<a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"1905000\" cy=\"381000\"/></a:xfrm>" +
+                    "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                    "<a:solidFill><a:srgbClr val=\"FFF2CC\"/></a:solidFill>" +
+                    "<a:ln w=\"12700\"><a:solidFill><a:srgbClr val=\"C00000\"/></a:solidFill></a:ln>",
+                    offsetXPoints: 0, offsetYPoints: 20,
+                    txbx: "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                          "</w:rPr><w:t>The box was told to grow to its text, and this text takes " +
+                          "a good deal more than the thirty points the extent claims.</w:t></w:r></w:p>",
+                    bodyPr: "<a:spAutoFit/>") +
+                    "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                    "</w:rPr><w:t>Beside the growing box.</w:t></w:r></w:p>")
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacingNewPage + "</w:pPr><w:r><w:rPr>" + Times() +
+                    "</w:rPr><w:t>A box whose text fits keeps its size.</w:t></w:r></w:p>")
+                .AddRawParagraph(ShapeAnchor(922, 150, 70,
+                    "<a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"1905000\" cy=\"889000\"/></a:xfrm>" +
+                    "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>" +
+                    "<a:solidFill><a:srgbClr val=\"DDEBF7\"/></a:solidFill>" +
+                    "<a:ln w=\"12700\"><a:solidFill><a:srgbClr val=\"0050C0\"/></a:solidFill></a:ln>",
+                    offsetXPoints: 0, offsetYPoints: 20,
+                    txbx: "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times(48) +
+                          "</w:rPr><w:t>Shrunk to fit the box it is</w:t></w:r></w:p>",
+                    bodyPr: "<a:normAutofit fontScale=\"50000\" lnSpcReduction=\"20000\"/>") +
+                    "<w:p><w:pPr>" + ZeroSpacing + "</w:pPr><w:r><w:rPr>" + Times() +
+                    "</w:rPr><w:t>Beside the box that keeps its size.</w:t></w:r></w:p>")
+,
 
             ["chart-3d-deep-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 0, 60, 100, 15, 20, 110, 0))

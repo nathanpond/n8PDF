@@ -1,0 +1,113 @@
+{
+  "pageCount": 4,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 252, "width": 131.965, "font": "Times New Roman", "size": 12, "text": "A gradient runs red to blue."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 178.957, "font": "Times New Roman", "size": 12, "text": "Three stops run down the next shape."}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 96.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 132, "width": 66.996, "font": "Times New Roman", "size": 12, "text": "Down it goes."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 5,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 151.957, "font": "Times New Roman", "size": 12, "text": "A picture kept inside an ellipse."}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 96.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 168, "width": 97.646, "font": "Times New Roman", "size": 12, "text": "Round and pictured."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 146.971, "font": "Times New Roman", "size": 12, "text": "And a shadow falls south-east."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 96.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 10,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 192, "width": 72.316, "font": "Times New Roman", "size": 12, "text": "Grey behind it."}
+          ]
+        }
+      ]
+    }
+  ]
+}

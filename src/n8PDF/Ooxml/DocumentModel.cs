@@ -300,6 +300,16 @@ internal sealed class DrawingInline(long widthEmu, long heightEmu, string? relat
     public double HeightPoints => Units.EmuToPoints(HeightEmu);
 }
 
+/// <summary>A gradient fill: its stops in order, and the axis they run along (#64).</summary>
+/// <param name="AngleDegrees">Clockwise from three o'clock, as <c>a:lin</c> writes it.</param>
+internal sealed record ShapeGradient(
+    IReadOnlyList<(double Position, DrawingColorReference Color)> Stops, double AngleDegrees);
+
+/// <summary>An outer shadow: its colour, how solid, and where it falls (#64).</summary>
+/// <param name="DirectionDegrees">Clockwise from three o'clock, as <c>a:outerShdw</c> writes it.</param>
+internal sealed record ShapeShadow(
+    DrawingColorReference Color, double Opacity, double DistancePoints, double DirectionDegrees);
+
 /// <summary>How text behaves around a floating drawing.</summary>
 internal enum TextWrapMode
 {
@@ -466,6 +476,38 @@ internal sealed class ShapeFrame
 
     /// <summary>How far the shape is turned, clockwise, in degrees.</summary>
     public double RotationDegrees { get; set; }
+
+    /// <summary>
+    /// The gradient it is filled with, where the fill is not one flat colour (#64). Null for a
+    /// solid or absent fill; when set, <see cref="Fill"/> is null.
+    /// </summary>
+    public ShapeGradient? Gradient { get; set; }
+
+    /// <summary>The picture it is filled with, by relationship id, where the fill is one (#64).</summary>
+    public string? PictureFillRelationshipId { get; set; }
+
+    /// <summary>The outer shadow it carries, or null for none (#64).</summary>
+    public ShapeShadow? Shadow { get; set; }
+
+    /// <summary>
+    /// Whether the box sizes itself to its text (<c>a:spAutoFit</c>, #64). Word grows the stated
+    /// extent to the content plus the insets at render time — measured on shape-autofit-probe,
+    /// where a 30pt extent drew 76pt of box.
+    /// </summary>
+    public bool AutofitToText { get; set; }
+
+    /// <summary>
+    /// The stored <c>a:normAutofit</c> font scale, 0..1, or one where the box does not shrink
+    /// its text (#64). Word re-fits at render: the scale applies only where full-size content
+    /// overflows the box — measured, Word draws full size where it fits, whatever is stored.
+    /// </summary>
+    public double FontScale { get; set; } = 1;
+
+    /// <summary>Whether the shape is mirrored about its vertical centreline (#64).</summary>
+    public bool FlipHorizontal { get; set; }
+
+    /// <summary>And about its horizontal one.</summary>
+    public bool FlipVertical { get; set; }
 
     /// <summary>
     /// How solid its fill is, from nought for invisible to one for opaque. A watermark is set at
