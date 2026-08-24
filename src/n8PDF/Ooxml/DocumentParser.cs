@@ -348,6 +348,12 @@ internal static class DocumentParser
     /// </summary>
     private static void CollectRuns(XElement element, List<Run> runs)
     {
+        // Inline wrappers nest into inline wrappers, and this walks into each; a document that
+        // nests them past the bound is refused a deeper walk rather than overflowing the stack
+        // (#143). The scope also counts toward the text-box cycle's total (#146).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return;
+
         if (element.Name == W.Main + "r")
         {
             runs.Add(ParseRun(element));
@@ -787,6 +793,11 @@ internal static class DocumentParser
 
     private static ShapeFrame? ReadShape(XElement container)
     {
+        // A text box holds a paragraph that holds a drawing that holds a text box; past the bound
+        // the innermost is refused rather than overflowing the stack (#146).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return null;
+
         var wsp = container.Descendants(W.Shape + "wsp").FirstOrDefault();
         if (wsp is null) return null;
 
@@ -1315,6 +1326,11 @@ internal static class DocumentParser
     public static Table ParseTable(XElement element)
     {
         var table = new Table();
+
+        // A table can hold a table in a cell without end; past the bound the inner table is left
+        // out rather than overflowing the stack (#144).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return table;
 
         var tblPr = element.Element(W.Main + "tblPr");
         if (tblPr is not null) table.Properties = ParseTableProperties(tblPr);
