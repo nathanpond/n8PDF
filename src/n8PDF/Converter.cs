@@ -241,10 +241,16 @@ public static class Converter
                 {
                     fonts.RegisterEmbedded(data);
                 }
-                catch (FontFormatException)
+                catch (Exception e) when (e is FontFormatException
+                    or IndexOutOfRangeException or ArgumentException or OverflowException
+                    or DivideByZeroException or InvalidDataException)
                 {
                     // The document offered a face the SFNT parser refuses; the conversion
-                    // proceeds in substitutes, exactly as if it had not been carried.
+                    // proceeds in substitutes, exactly as if it had not been carried. The net
+                    // takes the malformed-input runtime types as well as FontFormatException, the
+                    // way the image reader's does (#48), so a hole the table readers miss costs
+                    // the face and not the conversion.
+                    _ = e;
                 }
             }
         }

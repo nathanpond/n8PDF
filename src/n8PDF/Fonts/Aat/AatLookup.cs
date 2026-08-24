@@ -129,8 +129,11 @@ internal static class AatLookup
         };
     }
 
-    public static ushort Read16(byte[] data, int at) => (ushort)((data[at] << 8) | data[at + 1]);
+    public static ushort Read16(byte[] data, int at) =>
+        at < 0 || at >= data.Length - 1 ? (ushort)0 : (ushort)((data[at] << 8) | data[at + 1]);  // (#186)
 
     public static uint Read32(byte[] data, int at) =>
-        ((uint)data[at] << 24) | ((uint)data[at + 1] << 16) | ((uint)data[at + 2] << 8) | data[at + 3];
+        at < 0 || at > data.Length - 4
+            ? 0u
+            : ((uint)data[at] << 24) | ((uint)data[at + 1] << 16) | ((uint)data[at + 2] << 8) | data[at + 3];  // (#186)
 }

@@ -503,10 +503,10 @@ internal sealed record MathConstants(
     }
 
     private static int ReadUShort(byte[] data, int offset) =>
-        (data[offset] << 8) | data[offset + 1];
+        offset < 0 || offset >= data.Length - 1 ? 0 : (data[offset] << 8) | data[offset + 1];  // (#186)
 
     private static short ReadShort(byte[] data, int offset) =>
-        (short)((data[offset] << 8) | data[offset + 1]);
+        offset < 0 || offset >= data.Length - 1 ? (short)0 : (short)((data[offset] << 8) | data[offset + 1]);  // (#186)
 }
 
 /// <summary>
