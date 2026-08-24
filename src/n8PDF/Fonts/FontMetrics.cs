@@ -66,7 +66,7 @@ internal sealed record FontMetrics
     /// the page, so the choice lives in one place.
     /// </summary>
     public int DefaultLineHeight => IsEastAsian
-        ? UnitsPerEm + EastAsianLeading
+        ? EastAsianHeight + EastAsianLeading
         : UseTypoMetrics && TypoAscender > 0
             ? TypoAscender - TypoDescender + TypoLineGap
             : Ascender - Descender + LineGap;
@@ -81,7 +81,7 @@ internal sealed record FontMetrics
     /// first baseline about 0.59pt high.
     /// </remarks>
     public int DefaultAscent => IsEastAsian
-        ? Ascender + (int)Math.Round(UnitsPerEm * 0.16)
+        ? Ascender + (int)Math.Round(EastAsianHeight * 0.16)
         : UseTypoMetrics && TypoAscender > 0
             ? TypoAscender + TypoLineGap
             : Ascender + LineGap;
@@ -100,8 +100,20 @@ internal sealed record FontMetrics
     /// Of the three tenths, sixteen hundredths go above the ascent and the rest below the
     /// descent. That split is measured too, and it is as close as Word's own vertical quantum of
     /// 1/300 inch allows: it puts every one of the four faces' baselines within one quantum.
+    ///
+    /// What the three tenths multiply is the **win height**, not the em. The four faces above
+    /// could not tell the two apart — their win metrics sum to exactly one em — and Malgun
+    /// Gothic is the face that split them: its win height is 1.33 em, and Word draws its lines
+    /// at 1.727 em, which is 1.3 of the win height and nothing like 1.3 of the em (the
+    /// hangul-jamo-probe fixture holds the measurement). KaiTi and MingLiU rule out the hhea
+    /// height as the multiplicand the same way: theirs are 1.14 and 1.20 em, their win heights
+    /// one em, and Word draws 1.3 em. A face with no OS/2 falls back to the em, which is what
+    /// every measured win height was before Malgun.
     /// </remarks>
-    private int EastAsianLeading => (int)Math.Round(UnitsPerEm * 0.3);
+    private int EastAsianLeading => (int)Math.Round(EastAsianHeight * 0.3);
+
+    /// <summary>The height Word's East Asian leading is proportioned to: the win metrics' sum.</summary>
+    private int EastAsianHeight => WinAscent + WinDescent > 0 ? WinAscent + WinDescent : UnitsPerEm;
 
     /// <summary>
     /// Vertical stem width. There is no table that states this, so it is estimated from the
