@@ -388,19 +388,17 @@ public static class Converter
     private static void LoadHyperlinks(
         OpcPackage package, string partName, string scope, List<BlockElement> blocks, WordDocument document)
     {
-        Dictionary<string, string>? targets = null;
-
         foreach (var run in EnumerateRuns(blocks))
         {
             if (run.Hyperlink is not { RelationshipId: { } id } link) continue;
 
-            targets ??= package.GetRelationships(partName)
-                .Where(r => r.Type == OpcPackage.HyperlinkRelationship)
-                .GroupBy(r => r.Id, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.First().Target, StringComparer.Ordinal);
-
             var key = scope + "|" + id;
-            if (targets.TryGetValue(id, out var target)) document.Hyperlinks[key] = target;
+
+            // Resolved through the by-id index (#192), one O(1) lookup per link, rather than a
+            // per-call dictionary rebuild — which, called once per note by LoadNotes, was
+            // O(notes * relationships) and hung on a document of many notes each with a link (#210).
+            if (package.GetRelationshipById(partName, id) is { Type: OpcPackage.HyperlinkRelationship } rel)
+                document.Hyperlinks[key] = rel.Target;
 
             run.Hyperlink = link with { RelationshipId = key };
         }
@@ -440,7 +438,9 @@ public static class Converter
 
             var key = partName + "|" + id;
 
-            if (targets.TryGetValue(id, out var target))
+            // Read once per key: many drawings sharing one relationship id otherwise decompress
+            // the same part once each (#219).
+            if (targets.TryGetValue(id, out var target) && !document.Images.ContainsKey(key))
             {
                 try
                 {
@@ -523,8 +523,11 @@ public static class Converter
 
             try
             {
-                var reference = package.GetRelationships(partName)
-                    .FirstOrDefault(r => r.Id == id && !r.IsExternal);
+                // The by-id index (#192), not a linear scan per drawing — a crafted document
+                // with a million drawings and a million relationships is otherwise O(N*R) (#209).
+                var reference = package.GetRelationshipById(partName, id) is { IsExternal: false } found
+                    ? found
+                    : null;
 
                 if (reference is not null)
                 {
@@ -560,8 +563,9 @@ public static class Converter
     {
         try
         {
-            var data = package.GetRelationships(partName)
-                .FirstOrDefault(r => r.Id == relationshipId && !r.IsExternal);
+            var data = package.GetRelationshipById(partName, relationshipId) is { IsExternal: false } found
+                ? found
+                : null;  // by-id index, not a per-diagram scan (#209)
 
             if (data is null) return [];
 
@@ -578,11 +582,12 @@ public static class Converter
 
             foreach (var owner in new[] { dataPart, partName })
             {
-                var drawing = package.GetRelationships(owner).FirstOrDefault(r =>
-                    !r.IsExternal &&
-                    (named is not null ? r.Id == named : r.Type == Diagram.DrawingRelationship));
+                var drawing = named is not null
+                    ? package.GetRelationshipById(owner, named)
+                    : package.GetRelationshipByType(owner, Diagram.DrawingRelationship);   // (#209)
 
-                if (drawing is null || drawing.Type != Diagram.DrawingRelationship) continue;
+                if (drawing is null || drawing.IsExternal || drawing.Type != Diagram.DrawingRelationship)
+                    continue;
 
                 var drawingPart = package.ResolveTarget(owner, drawing.Target);
 
@@ -627,6 +632,12 @@ public static class Converter
         // runs, and a drawing carries only the relationship id, not the picture. A part that is
         // missing or unreadable is skipped: a broken image should cost its own placement, not the
         // conversion.
+        // Read each image part once and share the bytes across every relationship that names it:
+        // R relationships targeting one part otherwise decompress it R times and retain R copies,
+        // and the re-reads count toward the whole-package cap and can turn an image-heavy document
+        // into a spurious failure (#219).
+        var byPart = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var relationship in package.GetRelationships(mainPartName))
         {
             if (relationship.Type != OpcPackage.ImageRelationship || relationship.IsExternal) continue;
@@ -634,8 +645,15 @@ public static class Converter
             try
             {
                 var partName = package.ResolveTarget(mainPartName, relationship.Target);
-                if (package.HasPart(partName))
-                    document.Images[relationship.Id] = package.ReadPart(partName);
+                if (!package.HasPart(partName)) continue;
+
+                if (!byPart.TryGetValue(partName, out var bytes))
+                {
+                    bytes = package.ReadPart(partName);
+                    byPart[partName] = bytes;
+                }
+
+                document.Images[relationship.Id] = bytes;
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
                 or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })

@@ -200,15 +200,21 @@ internal sealed class Positioner(LayoutTable table, GlyphClasses? classes)
         // is not a mark, however many marks are already there.
         var on = at - 1;
 
+        // The search back to the base skips over preceding marks; a run of marks all on one base
+        // makes it O(N) per mark, O(N^2) over the run. No real text stacks this many marks on one
+        // base, so the search gives up past the cap rather than scanning a crafted run (#216).
+        var scanned = 0;
+        const int maxScan = 256;
+
         if (target == MarkTarget.Mark)
         {
-            while (on >= 0 && Skipped(lookup, buffer[on])) on--;
-            if (on < 0 || Classes?.IsMark(buffer[on].Glyph) != true) return at;
+            while (on >= 0 && scanned++ < maxScan && Skipped(lookup, buffer[on])) on--;
+            if (on < 0 || scanned > maxScan || Classes?.IsMark(buffer[on].Glyph) != true) return at;
         }
         else
         {
-            while (on >= 0 && (Classes?.IsMark(buffer[on].Glyph) ?? false)) on--;
-            if (on < 0) return at;
+            while (on >= 0 && scanned++ < maxScan && (Classes?.IsMark(buffer[on].Glyph) ?? false)) on--;
+            if (on < 0 || scanned > maxScan) return at;
         }
 
         var baseIndex = LayoutReaders.CoverageIndex(data, offset + baseCoverage, buffer[on].Glyph);
@@ -286,10 +292,17 @@ internal sealed class Positioner(LayoutTable table, GlyphClasses? classes)
     /// </remarks>
     public static void Resolve(List<ShapeItem> buffer, bool rightToLeft)
     {
-        for (var i = 0; i < buffer.Count; i++) Resolve(buffer, i, rightToLeft, 0);
+        // Prefix sums of the advances, so the distance between an attached glyph and the base it
+        // hangs from is a subtraction rather than a scan; the advances do not change here, only
+        // the offsets, so one snapshot serves every glyph. A run of many marks on one base was
+        // O(N^2) without it (#211).
+        var cumulative = new int[buffer.Count + 1];
+        for (var i = 0; i < buffer.Count; i++) cumulative[i + 1] = cumulative[i] + buffer[i].Advance;
+
+        for (var i = 0; i < buffer.Count; i++) Resolve(buffer, i, rightToLeft, 0, cumulative);
     }
 
-    private static void Resolve(List<ShapeItem> buffer, int at, bool rightToLeft, int depth)
+    private static void Resolve(List<ShapeItem> buffer, int at, bool rightToLeft, int depth, int[] cumulative)
     {
         var item = buffer[at];
 
@@ -299,18 +312,20 @@ internal sealed class Positioner(LayoutTable table, GlyphClasses? classes)
         if (on < 0 || on >= buffer.Count) return;
 
         // Whatever it hangs from must have stopped moving first.
-        Resolve(buffer, on, rightToLeft, depth + 1);
+        Resolve(buffer, on, rightToLeft, depth + 1, cumulative);
 
         item.XOffset += buffer[on].XOffset;
         item.YOffset += buffer[on].YOffset;
 
         if (rightToLeft)
         {
-            for (var k = on + 1; k <= at; k++) item.XOffset += buffer[k].Advance;
+            // sum of advances (on, at] = cumulative[at + 1] - cumulative[on + 1]
+            item.XOffset += cumulative[at + 1] - cumulative[on + 1];
         }
         else
         {
-            for (var k = on; k < at; k++) item.XOffset -= buffer[k].Advance;
+            // sum of advances [on, at) = cumulative[at] - cumulative[on]
+            item.XOffset -= cumulative[at] - cumulative[on];
         }
 
         item.AttachedTo = 0;
