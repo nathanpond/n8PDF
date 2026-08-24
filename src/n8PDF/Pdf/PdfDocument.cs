@@ -76,6 +76,16 @@ internal sealed class PdfDocument
     /// <summary>Hangs the document outline off the catalogue (#66).</summary>
     public void SetOutlines(PdfReference outlines) => _catalog.Set("Outlines", outlines);
 
+    /// <summary>Hangs the structure tree off the catalogue and declares the file tagged (#67).</summary>
+    public void SetStructure(PdfReference structTreeRoot)
+    {
+        _catalog.Set("StructTreeRoot", structTreeRoot);
+        _catalog.Set("MarkInfo", new PdfDictionary().Set("Marked", PdfBoolean.True));
+    }
+
+    /// <summary>The document's language, for a reader's speech (#67).</summary>
+    public void SetLanguage(string language) => _catalog.Set("Lang", PdfString.FromText(language));
+
     /// <summary>Appends a page of the given size in points and returns its dictionary.</summary>
     public PdfDictionary AddPage(double widthPoints, double heightPoints, out PdfReference pageRef)
     {

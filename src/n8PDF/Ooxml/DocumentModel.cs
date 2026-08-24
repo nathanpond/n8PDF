@@ -263,6 +263,9 @@ internal sealed class BreakInline(BreakKind kind) : InlineElement
 /// </summary>
 internal sealed class DrawingInline(long widthEmu, long heightEmu, string? relationshipId) : InlineElement
 {
+    /// <summary>The alternative text the document gives the picture (wp:docPr/@descr, #67).</summary>
+    public string? Description { get; init; }
+
     public long WidthEmu { get; } = widthEmu;
 
     public long HeightEmu { get; } = heightEmu;
@@ -546,6 +549,9 @@ internal sealed class ShapeFrame
 /// </remarks>
 internal sealed class AnchoredDrawing : InlineElement
 {
+    /// <summary>The alternative text the document gives the picture (wp:docPr/@descr, #67).</summary>
+    public string? Description { get; init; }
+
     public required long WidthEmu { get; init; }
 
     public required long HeightEmu { get; init; }

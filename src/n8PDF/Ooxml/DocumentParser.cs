@@ -708,6 +708,7 @@ internal static class DocumentParser
 
         return new DrawingInline(width, height, ReadEmbeddedRelationship(inline))
         {
+            Description = inline.Element(W.WordDrawing + "docPr")?.Attribute("descr")?.Value,
             Shape = ReadShape(inline),
             DiagramRelationshipId = ReadDiagram(inline),
             ChartRelationshipId = ReadChart(inline)
@@ -951,6 +952,7 @@ internal static class DocumentParser
 
         return new AnchoredDrawing
         {
+            Description = anchor.Element(W.WordDrawing + "docPr")?.Attribute("descr")?.Value,
             Shape = ReadShape(anchor),
             DiagramRelationshipId = ReadDiagram(anchor),
             ChartRelationshipId = ReadChart(anchor),

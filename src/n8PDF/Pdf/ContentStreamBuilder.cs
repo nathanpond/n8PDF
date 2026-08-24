@@ -60,6 +60,15 @@ internal sealed class ContentStreamBuilder
 
     public ContentStreamBuilder PaintShading(string name) => Op($"/{name} sh");
 
+    /// <summary>Opens a marked-content sequence tied to the structure tree (#67).</summary>
+    public ContentStreamBuilder BeginMarked(string tag, int mcid) =>
+        Op($"/{tag} <</MCID {mcid.ToString(System.Globalization.CultureInfo.InvariantCulture)}>> BDC");
+
+    /// <summary>Opens a marked-content sequence for decoration a reader passes over (#67).</summary>
+    public ContentStreamBuilder BeginArtifact() => Op("/Artifact BMC");
+
+    public ContentStreamBuilder EndMarked() => Op("EMC");
+
     public ContentStreamBuilder Fill() => Op("f");
 
     /// <summary>Fills by the even-odd rule rather than by the winding the path was drawn with.</summary>

@@ -30,15 +30,20 @@ internal static class PdfRenderer
     public static void Render(LaidOutDocument document, PdfBuilder builder, FontLibrary? fonts = null)
     {
         var pages = new List<(LaidOutPage Source, PdfPage Target)>();
+        var structure = new StructureWriter(document, builder);
 
         foreach (var page in document.Pages)
         {
             var target = builder.AddPage(page.WidthPoints, page.HeightPoints);
             var content = target.Content;
             pages.Add((page, target));
+            structure.StartPage(target);
 
             // Shading and table borders go down first, in the order layout added them: fills
-            // before the borders that sit on top of them, and both before any text.
+            // before the borders that sit on top of them, and both before any text. To a reader
+            // they are decoration, marked as such (#67).
+            if (structure.Enabled && page.Rectangles.Count > 0) content.BeginArtifact();
+
             foreach (var rectangle in page.Rectangles)
             {
                 content.Save()
@@ -49,13 +54,18 @@ internal static class PdfRenderer
                     .Restore();
             }
 
+            if (structure.Enabled && page.Rectangles.Count > 0) content.EndMarked();
+
             foreach (var image in page.Images)
             {
+                if (structure.Enabled) structure.Begin(content, image.StructureIndex);
+
                 // A metafile is a drawing rather than a picture, and is written out as the PDF's
                 // own drawing commands rather than embedded as pixels.
                 if (image.Image.Drawing is { } drawing)
                 {
                     RenderDrawing(builder, content, page, image, drawing, fonts);
+                    if (structure.Enabled) content.EndMarked();
                     continue;
                 }
 
@@ -65,9 +75,13 @@ internal static class PdfRenderer
                     .Transform(image.Width, 0, 0, image.Height, image.X, Flip(page, image.Y) - image.Height)
                     .DrawXObject(builder.UseImage(image.Image).ResourceName)
                     .Restore();
+
+                if (structure.Enabled) content.EndMarked();
             }
 
-            // Rules go down next so that text sits on top of any underline.
+            // Rules go down next so that text sits on top of any underline — decoration too.
+            if (structure.Enabled && page.Rules.Count > 0) content.BeginArtifact();
+
             foreach (var rule in page.Rules)
             {
                 content.Save()
@@ -78,6 +92,8 @@ internal static class PdfRenderer
             }
 
             // And the lines a rule cannot draw: the cross in a ticked checkbox, corner to corner.
+            if (structure.Enabled && page.Strokes.Count > 0) content.BeginArtifact();
+
             foreach (var stroke in page.Strokes)
             {
                 content.Save()
@@ -89,16 +105,31 @@ internal static class PdfRenderer
                     .Restore();
             }
 
-            foreach (var text in page.Texts)
-                RenderText(builder, content, page, text);
+            if (structure.Enabled && page.Strokes.Count > 0) content.EndMarked();
+
+            if (structure.Enabled && page.Rules.Count > 0) content.EndMarked();
+
+            // Each line's runs ride one marked-content sequence tied to the line's element in
+            // the structure tree; a line that belongs to nothing content-bearing — a line
+            // number, a running head — is an artifact (#67).
+            foreach (var line in page.Lines)
+            {
+                if (structure.Enabled) structure.Begin(content, line.StructureIndex);
+
+                foreach (var text in line.Texts)
+                    RenderText(builder, content, page, text);
+
+                if (structure.Enabled) content.EndMarked();
+            }
         }
 
         // Annotations are added after every page exists, because an internal link needs a
         // reference to the page it points at and that page may come later in the document.
         foreach (var (source, target) in pages)
-            AddLinkAnnotations(document, builder, source, target);
+            AddLinkAnnotations(document, builder, source, target, structure);
 
         WriteOutline(document, builder);
+        structure.Write();
     }
 
     /// <summary>
@@ -197,7 +228,8 @@ internal static class PdfRenderer
     /// lines still gets one region per line, which is what a reader expects.
     /// </remarks>
     private static void AddLinkAnnotations(
-        LaidOutDocument document, PdfBuilder builder, LaidOutPage source, PdfPage target)
+        LaidOutDocument document, PdfBuilder builder, LaidOutPage source, PdfPage target,
+        StructureWriter structure)
     {
         foreach (var line in source.Lines)
         {
@@ -264,7 +296,14 @@ internal static class PdfRenderer
                     return;
                 }
 
-                target.Annotations.Add(builder.Document.Add(annotation));
+                var annotationRef = builder.Document.Add(annotation);
+
+                // The annotation joins the structure tree as a Link under the text's own
+                // element, and names its parent-tree key (#67).
+                if (structure.Enabled)
+                    annotation.Set("StructParent", structure.AddLink(line.StructureIndex, annotationRef));
+
+                target.Annotations.Add(annotationRef);
 
                 start = null;
                 end = null;
