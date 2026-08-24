@@ -723,6 +723,67 @@ internal static class DocumentParser
     /// the frame rather than from its <c>a:xfrm</c>: the two agree in everything Word writes, and
     /// the frame is what the text around it was laid out against.
     /// </remarks>
+    /// <summary>A gradient fill's stops and axis, or null where the fill is not one (#64).</summary>
+    private static ShapeGradient? ReadGradientFill(XElement spPr)
+    {
+        if (spPr.Element(W.Drawing + "gradFill") is not { } gradient) return null;
+
+        var stops = new List<(double Position, DrawingColorReference Color)>();
+
+        foreach (var stop in gradient.Element(W.Drawing + "gsLst")?.Elements(W.Drawing + "gs") ?? [])
+        {
+            if (!long.TryParse(stop.Attribute("pos")?.Value, out var position)) continue;
+
+            DrawingColorReference? color =
+                stop.Element(W.Drawing + "srgbClr")?.Attribute("val")?.Value is { } hex
+                    ? new DrawingColorReference(hex, null)
+                    : stop.Element(W.Drawing + "schemeClr")?.Attribute("val")?.Value is { } slot
+                        ? new DrawingColorReference(null, slot)
+                        : null;
+
+            if (color is not null) stops.Add((Math.Clamp(position / 100000.0, 0, 1), color));
+        }
+
+        if (stops.Count < 2) return null;
+
+        var angle = 0.0;
+
+        if (gradient.Element(W.Drawing + "lin")?.Attribute("ang")?.Value is { } ang &&
+            long.TryParse(ang, out var sixtieths))
+        {
+            angle = sixtieths / 60000.0;
+        }
+
+        return new ShapeGradient([.. stops.OrderBy(stop => stop.Position)], angle);
+    }
+
+    /// <summary>The outer shadow a shape carries, or null for none (#64).</summary>
+    private static ShapeShadow? ReadShadow(XElement spPr)
+    {
+        if (spPr.Element(W.Drawing + "effectLst")?.Element(W.Drawing + "outerShdw") is not { } shadow)
+            return null;
+
+        var colour = shadow.Element(W.Drawing + "srgbClr") ?? shadow.Element(W.Drawing + "schemeClr");
+        if (colour is null) return null;
+
+        var reference = colour.Name.LocalName == "srgbClr"
+            ? new DrawingColorReference(colour.Attribute("val")?.Value ?? "000000", null)
+            : new DrawingColorReference(null, colour.Attribute("val")?.Value);
+
+        var opacity = 1.0;
+
+        if (long.TryParse(colour.Element(W.Drawing + "alpha")?.Attribute("val")?.Value, out var alpha))
+            opacity = Math.Clamp(alpha / 100000.0, 0, 1);
+
+        var distance = 0.0;
+        if (long.TryParse(shadow.Attribute("dist")?.Value, out var emu)) distance = Units.EmuToPoints(emu);
+
+        var direction = 0.0;
+        if (long.TryParse(shadow.Attribute("dir")?.Value, out var dir)) direction = dir / 60000.0;
+
+        return new ShapeShadow(reference, opacity, distance, direction);
+    }
+
     private static ShapeFrame? ReadShape(XElement container)
     {
         var wsp = container.Descendants(W.Shape + "wsp").FirstOrDefault();
@@ -734,6 +795,21 @@ internal static class DocumentParser
         {
             shape.Geometry = spPr.Element(W.Drawing + "prstGeom")?.Attribute("prst")?.Value ?? "rect";
             shape.Fill = ReadDrawingFill(spPr);
+            shape.Gradient = ReadGradientFill(spPr);
+            shape.PictureFillRelationshipId = spPr.Element(W.Drawing + "blipFill")
+                ?.Element(W.Drawing + "blip")?.Attribute(W.Relationships + "embed")?.Value;
+            shape.Shadow = ReadShadow(spPr);
+
+            // The turn and the mirrors, from the shape's own transform (#64). The angle is in
+            // sixty-thousandths of a degree, clockwise, exactly as the schema writes it.
+            if (spPr.Element(W.Drawing + "xfrm") is { } xfrm)
+            {
+                if (long.TryParse(xfrm.Attribute("rot")?.Value, out var sixtieths))
+                    shape.RotationDegrees = sixtieths / 60000.0;
+
+                shape.FlipHorizontal = xfrm.Attribute("flipH")?.Value is "1" or "true";
+                shape.FlipVertical = xfrm.Attribute("flipV")?.Value is "1" or "true";
+            }
 
             if (spPr.Element(W.Drawing + "ln") is { } line)
             {
@@ -753,6 +829,15 @@ internal static class DocumentParser
             shape.InsetTopPoints = Inset(bodyPr, "tIns", shape.InsetTopPoints);
             shape.InsetRightPoints = Inset(bodyPr, "rIns", shape.InsetRightPoints);
             shape.InsetBottomPoints = Inset(bodyPr, "bIns", shape.InsetBottomPoints);
+
+            shape.AutofitToText = bodyPr.Element(W.Drawing + "spAutoFit") is not null;
+
+            if (bodyPr.Element(W.Drawing + "normAutofit") is { } autofit &&
+                long.TryParse(autofit.Attribute("fontScale")?.Value, out var fontScale) &&
+                fontScale is > 0 and < 100000)
+            {
+                shape.FontScale = fontScale / 100000.0;
+            }
 
             shape.Anchor = bodyPr.Attribute("anchor")?.Value switch
             {

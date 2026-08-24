@@ -1,0 +1,80 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 357.258, "font": "Times New Roman", "size": 12, "text": "words beside the turned box words beside the turned box words beside the"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 360.598, "font": "Times New Roman", "size": 12, "text": "turned box words beside the turned box words beside the turned box words"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 124.08,
+          "height": 13.799,
+          "runs": [
+            {"x": 162, "width": 358.582, "font": "Times New Roman", "size": 12, "text": "beside the turned box words beside the turned box words beside the turned"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 138,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 18, "font": "Times New Roman", "size": 12, "text": "box"}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 151.2,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 165.12,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 192.299, "font": "Times New Roman", "size": 12, "text": "A quarter turn stands the box on its end."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 178.32,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 192.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 148.951, "font": "Times New Roman", "size": 12, "text": "And a mirrored triangle below."}
+          ]
+        }
+      ]
+    }
+  ]
+}

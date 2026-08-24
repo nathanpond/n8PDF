@@ -304,6 +304,47 @@ internal static class PdfRenderer
         double X(double x) => placed.X + x * scaleX;
         double Y(double y) => Flip(page, placed.Y + y * scaleY);
 
+        void WritePath(IReadOnlyList<Images.PathStep> steps)
+        {
+            foreach (var step in steps)
+            {
+                switch (step.Kind)
+                {
+                    case Images.PathStepKind.Move:
+                        content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                        break;
+
+                    case Images.PathStepKind.Line:
+                        content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                        break;
+
+                    case Images.PathStepKind.Curve:
+                        content.CurveTo(
+                            X(step.Points[0].X), Y(step.Points[0].Y),
+                            X(step.Points[1].X), Y(step.Points[1].Y),
+                            X(step.Points[2].X), Y(step.Points[2].Y));
+                        break;
+
+                    case Images.PathStepKind.Close:
+                        content.ClosePath();
+                        break;
+                }
+            }
+        }
+
+        // The clips something was drawn under (#69, #64), each written as a clip path of its
+        // own, which is how PDF composes their intersection.
+        void WriteClips(IReadOnlyList<Images.ClipShape>? clips)
+        {
+            foreach (var shape in clips ?? [])
+            {
+                WritePath(shape.Steps);
+
+                if (shape.EvenOdd) content.ClipEvenOdd();
+                else content.Clip();
+            }
+        }
+
         foreach (var operation in drawing.Operations)
         {
             switch (operation)
@@ -322,37 +363,47 @@ internal static class PdfRenderer
                         content.Clip();
                     }
 
-                    // The clips a metafile had in force when it drew this (#69): each written as
-                    // a clip path of its own, which is how PDF composes their intersection.
-                    foreach (var shape in path.Clips ?? [])
+                    WriteClips(path.Clips);
+
+                    if (path.FillOpacity < 1)
+                        content.SetGraphicsState(builder.UseAlpha(path.FillOpacity));
+
+                    // A gradient is painted as an axial shading kept inside the path (#64): the
+                    // path becomes a clip, the axis runs with the stated angle across the path's
+                    // own bounds, and the outline is stroked after as its own path.
+                    if (path.Gradient is { Stops.Count: >= 2 } gradient)
                     {
-                        foreach (var step in shape.Steps)
+                        WritePath(path.Steps);
+                        content.Clip();
+
+                        var points = path.Steps.SelectMany(step => step.Points).ToList();
+                        var minX = points.Min(p => X(p.X));
+                        var maxX = points.Max(p => X(p.X));
+                        var minY = points.Min(p => Y(p.Y));
+                        var maxY = points.Max(p => Y(p.Y));
+
+                        // The angle is clockwise from three o'clock with the drawing's own axes,
+                        // which point down; the page's point up, so the sine turns over.
+                        var radians = gradient.AngleDegrees * Math.PI / 180;
+                        var (dx, dy) = (Math.Cos(radians), -Math.Sin(radians));
+                        var (cx, cy) = ((minX + maxX) / 2, (minY + maxY) / 2);
+                        var half = (Math.Abs(dx) * (maxX - minX) + Math.Abs(dy) * (maxY - minY)) / 2;
+
+                        content.PaintShading(builder.UseShading(
+                            [.. gradient.Stops.Select(stop => (stop.Position,
+                                (stop.Color.Red / 255.0, stop.Color.Green / 255.0, stop.Color.Blue / 255.0)))],
+                            cx - dx * half, cy - dy * half, cx + dx * half, cy + dy * half));
+
+                        if (path.Stroke is { } outline)
                         {
-                            switch (step.Kind)
-                            {
-                                case Images.PathStepKind.Move:
-                                    content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
-                                    break;
-
-                                case Images.PathStepKind.Line:
-                                    content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
-                                    break;
-
-                                case Images.PathStepKind.Curve:
-                                    content.CurveTo(
-                                        X(step.Points[0].X), Y(step.Points[0].Y),
-                                        X(step.Points[1].X), Y(step.Points[1].Y),
-                                        X(step.Points[2].X), Y(step.Points[2].Y));
-                                    break;
-
-                                case Images.PathStepKind.Close:
-                                    content.ClosePath();
-                                    break;
-                            }
+                            content.SetStrokeColor(outline.Red / 255.0, outline.Green / 255.0, outline.Blue / 255.0);
+                            content.SetLineWidth(Math.Max(0.24, path.StrokeWidth * scaleX));
+                            WritePath(path.Steps);
+                            content.Stroke();
                         }
 
-                        if (shape.EvenOdd) content.ClipEvenOdd();
-                        else content.Clip();
+                        content.Restore();
+                        break;
                     }
 
                     if (path.Fill is { } fill)
@@ -367,30 +418,7 @@ internal static class PdfRenderer
                         if (path.RoundCap) content.SetLineCap(1);
                     }
 
-                    foreach (var step in path.Steps)
-                    {
-                        switch (step.Kind)
-                        {
-                            case Images.PathStepKind.Move:
-                                content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
-                                break;
-
-                            case Images.PathStepKind.Line:
-                                content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
-                                break;
-
-                            case Images.PathStepKind.Curve:
-                                content.CurveTo(
-                                    X(step.Points[0].X), Y(step.Points[0].Y),
-                                    X(step.Points[1].X), Y(step.Points[1].Y),
-                                    X(step.Points[2].X), Y(step.Points[2].Y));
-                                break;
-
-                            case Images.PathStepKind.Close:
-                                content.ClosePath();
-                                break;
-                        }
-                    }
+                    WritePath(path.Steps);
 
                     if (path.Fill is not null && path.Stroke is not null) content.FillAndStroke(path.EvenOdd);
                     else if (path.Fill is not null) _ = path.EvenOdd ? content.FillEvenOdd() : content.Fill();
@@ -466,11 +494,13 @@ internal static class PdfRenderer
                     var width = picture.Width * scaleX;
                     var height = picture.Height * scaleY;
 
-                    content.Save()
-                        .Transform(width, 0, 0, height, X(picture.X), Y(picture.Y) - height)
-                        .DrawXObject(builder.UseImage(picture.Image).ResourceName)
-                        .Restore();
+                    content.Save();
+                    WriteClips(picture.Clips);
 
+                    content.Transform(width, 0, 0, height, X(picture.X), Y(picture.Y) - height)
+                        .DrawXObject(builder.UseImage(picture.Image).ResourceName);
+
+                    content.Restore();
                     break;
                 }
             }

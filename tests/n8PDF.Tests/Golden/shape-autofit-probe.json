@@ -1,0 +1,111 @@
+{
+  "pageCount": 2,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 107.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 79.7, "width": 122.982, "font": "Times New Roman", "size": 12, "text": "The box was told to grow"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 120.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 79.7, "width": 109.324, "font": "Times New Roman", "size": 12, "text": "to its text, and this text"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 134.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 79.7, "width": 134.285, "font": "Times New Roman", "size": 12, "text": "takes a good deal more than"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 148.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 79.7, "width": 125.977, "font": "Times New Roman", "size": 12, "text": "the thirty points the extent"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 162.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 79.7, "width": 34.324, "font": "Times New Roman", "size": 12, "text": "claims."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 82.56,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.48,
+          "height": 13.799,
+          "runs": [
+            {"x": 222, "width": 117.316, "font": "Times New Roman", "size": 12, "text": "Beside the growing box."}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 171.973, "font": "Times New Roman", "size": 12, "text": "A box whose text fits keeps its size."}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 132.24,
+          "height": 27.598,
+          "runs": [
+            {"x": 79.7, "width": 121.336, "font": "Times New Roman", "size": 24, "text": "Shrunk to fit"}
+          ]
+        },
+        {
+          "paragraph": 0,
+          "baselineY": 159.84,
+          "height": 27.598,
+          "runs": [
+            {"x": 79.7, "width": 112.664, "font": "Times New Roman", "size": 24, "text": "the box it is"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 96.24,
+          "height": 13.428,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 110.4,
+          "height": 13.799,
+          "runs": [
+            {"x": 222, "width": 161.631, "font": "Times New Roman", "size": 12, "text": "Beside the box that keeps its size."}
+          ]
+        }
+      ]
+    }
+  ]
+}
