@@ -112,6 +112,8 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     /// were never consulted while the laws were measured.
     /// </remarks>
     [Theory]
+    [InlineData("chart-3d-perspective-probe", 0, 15, 20, 0, 100, 0, 1, 1, false)]
+    [InlineData("chart-3d-perspective-probe", 8, 40, 45, 0, 100, 0, 1, 1, false)]
     [InlineData("chart-3d-perspective-probe", 2, 15, 20, 10, 100, 0, 1, 1, false)]
     [InlineData("chart-3d-perspective-probe", 3, 15, 20, 20, 100, 0, 1, 1, false)]
     [InlineData("chart-3d-perspective-probe", 4, 15, 20, 30, 100, 0, 1, 1, false)]

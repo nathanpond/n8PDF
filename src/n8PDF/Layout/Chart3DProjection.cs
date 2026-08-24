@@ -54,8 +54,7 @@ internal sealed class Chart3DProjection
 
     private readonly double _cosA, _sinA, _cosB, _sinB;
     private readonly double _hx, _hy, _hz;
-    private readonly double _tan, _eyeTan;
-    private readonly double _distance, _ex, _ey;
+    private readonly double _frustum, _tan, _ex, _ey;
     private readonly double _rectCentreX, _rectCentreY, _scale;
 
     /// <param name="rotX">The stated tilt, in degrees.</param>
@@ -94,31 +93,28 @@ internal sealed class Chart3DProjection
 
         // The eye backs away until the scene fills 0.9702 of the frustum, height against height
         // and width against width; at strong perspective the frustum's height at the floor's
-        // near edge binds first.
-        var byHeight = extentY / (Fill * _tan);
-        var byWidth = extentX / (Fill * 0.9862 * aspect * _tan);
-        var byFloor = FloorScale * (_hx * Math.Abs(_sinB * _cosA) + _hz * Math.Abs(_cosB * _cosA))
-                      + _hy / _tan;
-        _distance = Math.Max(byHeight, Math.Max(byWidth, byFloor));
+        // near edge binds first. Everything is carried as the frustum's half-height at the box's
+        // centre, D·tan(θ), which stays finite at perspective nought — there the divide vanishes
+        // and the projection becomes the parallel one #140 measured, with the same fill.
+        var floorPart = FloorScale * (_hx * Math.Abs(_sinB * _cosA) + _hz * Math.Abs(_cosB * _cosA));
+        var byHeight = extentY / Fill;
+        var byWidth = extentX / (Fill * 0.9862 * aspect);
+        var byFloor = floorPart * _tan + _hy;
+        _frustum = Math.Max(byHeight, Math.Max(byWidth, byFloor));
 
         // The eye offsets follow the frustum branches; where the floor constraint has taken
         // over they are clamped at the change of branch — the known gap, held by the follow-up.
-        _eyeTan = _tan;
+        var eyeTan = _tan;
         if (byFloor > byHeight && byFloor > byWidth)
-        {
-            // The tangent at which the binding frustum constraint would have met the floor one.
-            var frustum = Math.Max(extentY / Fill, extentX / (Fill * 0.9862 * aspect));
-            var floorPart = FloorScale * (_hx * Math.Abs(_sinB * _cosA) + _hz * Math.Abs(_cosB * _cosA));
-            _eyeTan = (frustum - _hy) / floorPart;
-        }
+            eyeTan = (Math.Max(byHeight, byWidth) - _hy) / floorPart;
 
-        _ex = _eyeTan * aspect * _cosA * (_hx * _sinB - _hz * _cosB);
-        _ey = -_eyeTan * FloorScale *
+        _ex = eyeTan * aspect * _cosA * (_hx * _sinB - _hz * _cosB);
+        _ey = -eyeTan * FloorScale *
               (_hx * _sinB * _cosA + Fill * _hz * _cosB * _cosA - _hy * _sinA);
 
         _rectCentreX = rectLeft + rectWidth / 2;
         _rectCentreY = rectTop + rectHeight / 2;
-        _scale = rectHeight / 2 / (_distance * _tan);
+        _scale = rectHeight / 2 / _frustum;
     }
 
     /// <summary>
@@ -137,8 +133,9 @@ internal sealed class Chart3DProjection
         (sx, sz) = (sx * _cosB + sz * _sinB, -sx * _sinB + sz * _cosB);
         (sy, sz) = (sy * _cosA + sz * _sinA, -sy * _sinA + sz * _cosA);
 
-        // The divide, from the eye at (ex, ey, -D); then the frustum is the plot rectangle.
-        var towards = _distance / (sz + _distance);
+        // The divide, from the eye at (ex, ey, -D), written through D·tan(θ) so that
+        // perspective nought divides by one everywhere; then the frustum is the plot rectangle.
+        var towards = _frustum / (sz * _tan + _frustum);
         var qx = _ex + (sx - _ex) * towards;
         var qy = _ey + (sy - _ey) * towards;
 
