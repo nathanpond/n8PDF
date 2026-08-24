@@ -98,7 +98,7 @@ internal sealed class Chart3DObliqueProjection : IChart3DProjection
         double rotX, double rotY, double depthPercent, double? hPercent,
         double categories, double series,
         double rectLeft, double rectTop, double rectWidth, double rectHeight,
-        double? heightUnits = null)
+        double? heightUnits = null, double? marginUnits = null)
     {
         _sinA = Math.Sin(rotX * Math.PI / 180);
         _sinB = Math.Sin(rotY * Math.PI / 180);
@@ -109,10 +109,14 @@ internal sealed class Chart3DObliqueProjection : IChart3DProjection
             ? categories * stated / 100 / 2
             : (heightUnits ?? Math.Floor((categories + series) / 2.0)) * (rectHeight / rectWidth) / 2;
 
-        var xMin = -_hx - _hz * _sinB - 2 * _hx * LeftPad;
-        var xMax = _hx + _hz * _sinB + 2 * _hx * (RightPad + RightLean * _sinB);
-        var yMin = -_hy - _hz * _sinA - 2 * _hx * BottomPad;
-        var yMax = _hy + _hz * _sinA + 2 * _hx * (TopPad + TopLean * _sinA);
+        // The pads are proportional to the category direction's units — the box's width when
+        // the bars stand, and still the category count when they lie (#101's lying pages).
+        var pad = marginUnits ?? categories;
+
+        var xMin = -_hx - _hz * _sinB - pad * LeftPad;
+        var xMax = _hx + _hz * _sinB + pad * (RightPad + RightLean * _sinB);
+        var yMin = -_hy - _hz * _sinA - pad * BottomPad;
+        var yMax = _hy + _hz * _sinA + pad * (TopPad + TopLean * _sinA);
 
         _scale = Math.Min(rectWidth / (xMax - xMin), rectHeight / (yMax - yMin));
         _cx = rectLeft + rectWidth / 2 - _scale * (xMin + xMax) / 2;

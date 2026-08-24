@@ -72,8 +72,10 @@ internal sealed class Chart3DProjection : IChart3DProjection
         double rotX, double rotY, double perspective, double depthPercent, double? hPercent,
         double categories, double series,
         double rectLeft, double rectTop, double rectWidth, double rectHeight,
-        double? heightUnits = null)
+        double? heightUnits = null, double? marginUnits = null)
     {
+        _ = marginUnits;
+
         var a = rotX * Math.PI / 180;
         var b = rotY * Math.PI / 180;
         (_cosA, _sinA, _cosB, _sinB) = (Math.Cos(a), Math.Sin(a), Math.Cos(b), Math.Sin(b));
