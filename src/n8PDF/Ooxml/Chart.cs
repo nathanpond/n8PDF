@@ -554,6 +554,12 @@ internal sealed class ChartDefinition
     public ChartScene? Scene { get; set; }
 
     /// <summary>
+    /// The plot was a surface chart — a mesh over a grid rather than a series of points. Declined
+    /// by decision (#104): the room is drawn and the mesh is not, so the composer needs to know.
+    /// </summary>
+    public bool Surface { get; set; }
+
+    /// <summary>
     /// What the back wall of a three-dimensional chart is filled with, or null for nothing.
     /// </summary>
     /// <remarks>
@@ -681,8 +687,8 @@ internal static class ChartReader
 
             // The nearest flat equivalent, which is what the rest of the reader and everything
             // downstream works in. A surface has none — it is a mesh over a grid rather than a
-            // series of points — so it takes Line to keep its series readable and is told apart by
-            // the scene, not by this.
+            // series of points — so it takes Line to keep its series readable and is told apart
+            // by Surface below, not by this.
             "line3DChart" => ChartKind.Line,
             "pie3DChart" => ChartKind.Pie,
             "area3DChart" => ChartKind.Area,
@@ -697,6 +703,7 @@ internal static class ChartReader
         if (plot.Name.LocalName.Contains("3D", StringComparison.Ordinal) ||
             plot.Name.LocalName == "surfaceChart")
         {
+            definition.Surface = plot.Name.LocalName is "surface3DChart" or "surfaceChart";
             definition.Scene = ReadScene(chart.Element(Main + "view3D"));
             definition.BackWallFill = SurfaceFill(chart.Element(Main + "backWall"));
             definition.SideWallFill = SurfaceFill(chart.Element(Main + "sideWall"));

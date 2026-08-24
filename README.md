@@ -1739,7 +1739,10 @@ a legend on any of the four sides; and a number written at every point, in the f
 for and where the kind of chart puts it; and the trendlines a series carries, of all six kinds the
 format allows — straight, polynomial, exponential, logarithmic, power and a moving average — run
 forward or back past the data and forced through an intercept where the chart asks for it. What is
-not: three-dimensional charts of any kind.
+not: a surface chart. That one is declined by decision rather than pending — a surface is a mesh
+over a grid, not a series of points, and shares nothing with the family above — so its page draws
+the room a 3-D chart stands in (frame, walls, gridlines, axes) and no mesh, rather than passing a
+3-D line off as one (#104).
 
 A title or a legend placed by hand is put where the chart asks. A `c:manualLayout` names a corner
 as fractions of the chart's own width and height, and what sits at that corner was measured at two
