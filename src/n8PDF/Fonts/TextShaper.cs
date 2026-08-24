@@ -65,23 +65,49 @@ internal static class TextShaper
 
         var plan = ShapingPlan.For(text);
 
-        if (plan.DecomposesMarks) Decompose(font, buffer);
+        // The apply phase reads lookup tables lazily, at attacker-chosen offsets, and none of it
+        // is otherwise guarded: a malformed embedded font could throw and abort the whole
+        // conversion. Shaping that fails costs the run its shaping and no more — the run falls
+        // back to the glyphs as first mapped, unshaped (#183). The glyph and cluster of each are
+        // snapshotted for that fallback before anything mutates the buffer.
+        var unshaped = buffer.Select(item => (item.Glyph, item.Cluster, item.CodePoint)).ToList();
 
-        // A face that describes its shaping only in Apple's tables is shaped from those. There is
-        // nothing to choose between: it carries no OpenType tables at all, and a converter that
-        // reads only those would draw its letters unjoined.
-        if (font.Metamorphosis is { } metamorphosis) metamorphosis.Apply(buffer, rightToLeft);
-        else plan.Substitute(font, text, buffer);
+        try
+        {
+            if (plan.DecomposesMarks) Decompose(font, buffer);
 
-        // Whatever the glyphs have become, they advance the pen by their own widths until
-        // positioning says otherwise.
-        foreach (var item in buffer) item.Advance = font.GetAdvanceWidth(item.Glyph);
+            // A face that describes its shaping only in Apple's tables is shaped from those. There
+            // is nothing to choose between: it carries no OpenType tables at all, and a converter
+            // that reads only those would draw its letters unjoined.
+            if (font.Metamorphosis is { } metamorphosis) metamorphosis.Apply(buffer, rightToLeft);
+            else plan.Substitute(font, text, buffer);
 
-        plan.Position(font, buffer, applyKerning, rightToLeft);
+            // Whatever the glyphs have become, they advance the pen by their own widths until
+            // positioning says otherwise.
+            foreach (var item in buffer) item.Advance = font.GetAdvanceWidth(item.Glyph);
 
-        Positioner.Resolve(buffer, rightToLeft);
+            plan.Position(font, buffer, applyKerning, rightToLeft);
 
-        if (rightToLeft) buffer.Reverse();
+            Positioner.Resolve(buffer, rightToLeft);
+
+            if (rightToLeft) buffer.Reverse();
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException
+            or OverflowException or DivideByZeroException or FontFormatException
+            or InvalidOperationException)
+        {
+            buffer.Clear();
+
+            foreach (var (glyph, cluster, codePoint) in unshaped)
+            {
+                buffer.Add(new ShapeItem(glyph, cluster, ShapingPlan.Everywhere, codePoint)
+                {
+                    Advance = font.GetAdvanceWidth(glyph)
+                });
+            }
+
+            if (rightToLeft) buffer.Reverse();
+        }
 
         var glyphs = new ShapedGlyph[buffer.Count];
 

@@ -67,7 +67,10 @@ internal struct BigEndianReader(byte[] data, int position = 0)
 
     private readonly void Require(int count)
     {
-        if (Position < 0 || Position + count > _data.Length)
+        // Position > Length - count rather than Position + count > Length: the sum overflows to
+        // a negative for a Position near int.MaxValue and passes a naive check, after which the
+        // array index throws IndexOutOfRangeException past the FontFormatException net (#181).
+        if (count < 0 || Position < 0 || Position > _data.Length - count)
             throw new FontFormatException(
                 $"Read of {count} byte(s) at offset {Position} runs past the end of the font data ({_data.Length} bytes).");
     }
