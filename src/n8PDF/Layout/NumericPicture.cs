@@ -66,7 +66,9 @@ internal static class NumericPicture
     {
         var (integerPattern, decimalPattern) = Divide(pattern);
 
-        var places = decimalPattern.Count(c => c is '0' or '#');
+        // A double carries about fifteen significant digits; Math.Round throws past fifteen
+        // places, and a picture's place count is document-stated and unbounded (#202).
+        var places = Math.Min(decimalPattern.Count(c => c is '0' or '#'), 15);
         var rounded = Math.Round(value, places, MidpointRounding.AwayFromZero);
 
         var digits = Math.Abs(rounded).ToString(

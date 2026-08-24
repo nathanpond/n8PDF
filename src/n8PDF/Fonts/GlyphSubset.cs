@@ -77,7 +77,7 @@ internal static class GlyphSubset
             var source = font.SourceData;
             var longLoca = new BigEndianReader(source, head.Offset + 50).ReadInt16() != 0;
 
-            var offsets = ReadLoca(source, loca, font.GlyphCount, longLoca);
+            var offsets = ReadLoca(source, loca, font.GlyphCount, longLoca, glyf.Length);
             if (offsets is null) return null;
 
             // The numbering: position zero is .notdef, then the glyphs as they were asked for,
@@ -120,7 +120,7 @@ internal static class GlyphSubset
             var source = font.SourceData;
             var longLoca = new BigEndianReader(source, head.Offset + 50).ReadInt16() != 0;
 
-            var offsets = ReadLoca(source, loca, font.GlyphCount, longLoca);
+            var offsets = ReadLoca(source, loca, font.GlyphCount, longLoca, glyf.Length);
             if (offsets is null) return null;
 
             var wanted = Closure(source, glyf, offsets, glyphs, font.GlyphCount);
@@ -353,7 +353,8 @@ internal static class GlyphSubset
     }
 
     /// <summary>Where each glyph's outline starts, with one extra entry marking the end.</summary>
-    private static int[]? ReadLoca(byte[] source, TrueTypeFont.TableRecord loca, int glyphCount, bool longLoca)
+    private static int[]? ReadLoca(
+        byte[] source, TrueTypeFont.TableRecord loca, int glyphCount, bool longLoca, int glyfLength)
     {
         var entries = glyphCount + 1;
         var needed = longLoca ? entries * 4 : entries * 2;
@@ -367,6 +368,13 @@ internal static class GlyphSubset
             // Short offsets are stored halved, which is why they need a font's outlines to sit on
             // even boundaries.
             offsets[i] = longLoca ? (int)reader.ReadUInt32() : reader.ReadUInt16() * 2;
+
+            // The offsets must run forward and stay inside the glyf table: a long loca offset past
+            // 0x80000000 casts negative, and offsets like [0, G, 0, G, ...] make each kept glyph
+            // copy the whole table, so a crafted loca amplifies the subset to gigabytes. Rejected
+            // here, so the font embeds whole rather than the conversion aborting (#193).
+            if (offsets[i] < 0 || offsets[i] > glyfLength || (i > 0 && offsets[i] < offsets[i - 1]))
+                return null;
         }
 
         return offsets;

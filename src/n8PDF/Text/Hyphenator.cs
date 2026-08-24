@@ -37,9 +37,17 @@ internal static class Hyphenator
     /// <summary>
     /// Where the word may be broken, as the number of letters before each break, in order.
     /// </summary>
+    // The longest hyphenation pattern; the inner search need look no further than this from each
+    // letter, which bounds a loop that otherwise ran to the whole word's length (#196).
+    private static readonly int LongestPattern = Patterns.Count == 0 ? 0 : Patterns.Keys.Max(k => k.Length);
+
     public static IReadOnlyList<int> Points(string word)
     {
         if (word.Length < Before + After) return [];
+
+        // A "word" longer than any real one is not hyphenated at all — it is a hostile run of one
+        // letter with no break, and the O(n) work below need not be spent on it (#196).
+        if (word.Length > 1000) return [];
 
         var lower = Lowered(word);
         if (lower is null) return [];
@@ -53,7 +61,7 @@ internal static class Hyphenator
         var values = new byte[padded.Length + 1];
 
         for (var i = 0; i < padded.Length; i++)
-        for (var j = i + 1; j <= padded.Length; j++)
+        for (var j = i + 1; j <= Math.Min(padded.Length, i + LongestPattern); j++)
         {
             if (!Patterns.TryGetValue(padded[i..j], out var pattern)) continue;
 

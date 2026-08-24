@@ -68,7 +68,10 @@ internal static class BookmarkText
         {
             switch (content)
             {
-                case BookmarkInline bookmark:
+                // A document may leave a bookmark open without end, and every open bookmark
+                // accumulates every run that follows; past a sane number of open bookmarks the
+                // fan-out is O(open * runs) and exhausts memory, so new ones are not opened (#197).
+                case BookmarkInline bookmark when open.Count < 10_000:
                     open[bookmark.Id] = (bookmark.Name, new StringBuilder());
                     break;
 

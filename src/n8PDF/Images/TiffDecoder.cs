@@ -261,7 +261,8 @@ internal static class TiffDecoder
         if (offsets.Count > 1 || (!tiled && rowsPerStrip < height))
         {
             return Join(
-                data, reader, tags, offsets, counts, width, height, tiled, rowsPerStrip, Rebuild);
+                data, reader, tags, offsets, counts, width, height, tiled, rowsPerStrip, Rebuild,
+                maximumPixels);
         }
 
         var offset = (int)offsets[0];
@@ -311,7 +312,8 @@ internal static class TiffDecoder
     /// </remarks>
     private static ImageData Join(
         byte[] data, Reader reader, Dictionary<int, Tag> tags, List<long> offsets, List<long> counts,
-        int width, int height, bool tiled, int rowsPerStrip, Func<byte[], byte[]> rebuild)
+        int width, int height, bool tiled, int rowsPerStrip, Func<byte[], byte[]> rebuild,
+        long maximumPixels)
     {
         var tileWidth = tiled ? (int)Value(reader, tags, 322, 0) : width;
         var tileHeight = tiled ? (int)Value(reader, tags, 323, 0) : rowsPerStrip;
@@ -320,12 +322,20 @@ internal static class TiffDecoder
             throw new ImageFormatException("TIFF holds a JPEG in pieces of no size.");
 
         var across = tiled ? (width + tileWidth - 1) / tileWidth : 1;
+        var down = tiled ? (height + tileHeight - 1) / tileHeight : (height + rowsPerStrip - 1) / rowsPerStrip;
+
+        // Each piece decodes to at most its own tile or strip, and the picture holds at most
+        // across*down of them: a crafted TIFF that declares thousands of strips, each a few-byte
+        // JPEG whose header claims eight thousand pixels square, would otherwise amplify a tiny
+        // file into thousands of full-size decodes (#198).
+        var pieces = Math.Min(offsets.Count, Math.Max(1, (long)across * down > int.MaxValue ? int.MaxValue : across * down));
+        var pieceBudget = Math.Min(maximumPixels, (long)tileWidth * tileHeight + tileWidth + tileHeight);
 
         byte[]? pixels = null;
         var components = 3;
         var colour = ImageColorSpace.Rgb;
 
-        for (var piece = 0; piece < offsets.Count; piece++)
+        for (var piece = 0; piece < pieces; piece++)
         {
             var offset = (int)offsets[piece];
             if (offset < 0 || offset >= data.Length) continue;
@@ -335,7 +345,7 @@ internal static class TiffDecoder
 
             if (length <= 0) continue;
 
-            var part = JpegDecoder.Decode(rebuild(data[offset..(offset + length)]));
+            var part = JpegDecoder.Decode(rebuild(data[offset..(offset + length)]), pieceBudget);
 
             if (pixels is null)
             {
