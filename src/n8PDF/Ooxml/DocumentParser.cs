@@ -821,6 +821,28 @@ internal static class DocumentParser
         return null;
     }
 
+    /// <summary>The polygon a tight or through wrap follows: a start point and its lines (#65).</summary>
+    private static IReadOnlyList<(long X, long Y)>? ReadWrapPolygon(XElement wrap)
+    {
+        if (wrap.Element(W.WordDrawing + "wrapPolygon") is not { } polygon) return null;
+
+        var points = new List<(long X, long Y)>();
+
+        foreach (var element in polygon.Elements())
+        {
+            if (element.Name != W.WordDrawing + "start" && element.Name != W.WordDrawing + "lineTo")
+                continue;
+
+            if (long.TryParse(element.Attribute("x")?.Value, out var x) &&
+                long.TryParse(element.Attribute("y")?.Value, out var y))
+            {
+                points.Add((x, y));
+            }
+        }
+
+        return points.Count >= 3 ? points : null;
+    }
+
     private static AnchoredDrawing? ParseAnchoredDrawing(XElement anchor)
     {
         var (width, height) = ReadExtent(anchor);
@@ -830,11 +852,17 @@ internal static class DocumentParser
         var positionV = anchor.Element(W.WordDrawing + "positionV");
 
         // Exactly one of wrapNone, wrapSquare, wrapTight, wrapThrough and wrapTopAndBottom is
-        // present. Tight and through follow a polygon; both are approximated by the bounding box,
-        // which is what wrapSquare does.
+        // present. Tight and through follow the polygon they carry (#65); one that carries none
+        // falls back to the bounding box, which is what wrapSquare does.
         var wrap = TextWrapMode.Square;
+        IReadOnlyList<(long X, long Y)>? polygon = null;
+
         if (anchor.Element(W.WordDrawing + "wrapNone") is not null) wrap = TextWrapMode.None;
         else if (anchor.Element(W.WordDrawing + "wrapTopAndBottom") is not null) wrap = TextWrapMode.TopAndBottom;
+        else if (anchor.Element(W.WordDrawing + "wrapTight") is { } tight)
+            (wrap, polygon) = (TextWrapMode.Tight, ReadWrapPolygon(tight));
+        else if (anchor.Element(W.WordDrawing + "wrapThrough") is { } through)
+            (wrap, polygon) = (TextWrapMode.Through, ReadWrapPolygon(through));
 
         return new AnchoredDrawing
         {
@@ -845,6 +873,7 @@ internal static class DocumentParser
             HeightEmu = height,
             RelationshipId = ReadEmbeddedRelationship(anchor),
             Wrap = wrap,
+            WrapPolygon = polygon,
             BehindText = anchor.Attribute("behindDoc")?.Value is "1" or "true",
 
             HorizontalFrom = positionH?.Attribute("relativeFrom")?.Value switch
