@@ -310,7 +310,13 @@ internal enum TextWrapMode
     Square,
 
     /// <summary>Text is pushed above and below; nothing sits beside it.</summary>
-    TopAndBottom
+    TopAndBottom,
+
+    /// <summary>Text follows the wrap polygon's outline, coming into its outer concavities (#65).</summary>
+    Tight,
+
+    /// <summary>Like tight, and also into the polygon's interior gaps (#65).</summary>
+    Through
 }
 
 /// <summary>What a floating drawing's horizontal position is measured from.</summary>
@@ -524,6 +530,12 @@ internal sealed class AnchoredDrawing : InlineElement
     public ChartDefinition? Chart { get; set; }
 
     public TextWrapMode Wrap { get; init; } = TextWrapMode.Square;
+
+    /// <summary>
+    /// The polygon a tight or through wrap follows, on the 21600-unit canvas of the drawing's
+    /// extent (#65). Null where the wrap has no polygon, which falls back to the bounding box.
+    /// </summary>
+    public IReadOnlyList<(long X, long Y)>? WrapPolygon { get; init; }
 
     /// <summary>Drawn behind the text rather than over it. Only meaningful without wrapping.</summary>
     public bool BehindText { get; init; }

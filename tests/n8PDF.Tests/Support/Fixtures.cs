@@ -9198,6 +9198,36 @@ public static class Fixtures
                     ZeroSpacing, DocxBuilder.RunProperties(font: "Malgun Gothic", halfPoints: 32))
                 .AddParagraph("A control line in the usual face.", ZeroSpacing, Times()),
 
+            // Tight and through wrap follow the polygon rather than the box (#65). A triangle
+            // whose right edge the line starts must slope along, then a U whose channel a through
+            // wrap fills with text and a tight wrap leaves empty.
+            ["wrap-polygon-probe"] = () =>
+            {
+                var filler = string.Join(" ", Enumerable.Repeat("wrap the words around it", 12));
+                var builder = new DocxBuilder();
+                var image = builder.AddImagePart(ImageWriter.Bmp(12, 12, ImageWriter.Sample(12, 12)), "bmp");
+
+                (int X, int Y)[] triangle = [(10800, 0), (21600, 21600), (0, 21600)];
+                (int X, int Y)[] channel =
+                    [(0, 0), (21600, 0), (21600, 21600), (14400, 21600), (14400, 7200),
+                     (7200, 7200), (7200, 21600), (0, 21600)];
+
+                return builder
+                    .AddAnchoredImageParagraph(image, 120, 120, filler, wrap: "tight",
+                        offsetYPoints: 4, distancePoints: 0, paragraphProperties: ZeroSpacing,
+                        runProperties: Times(), wrapPolygon: triangle)
+                    .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                     "<w:r><w:rPr>" + Times() + "</w:rPr><w:t>Through:</w:t></w:r></w:p>")
+                    .AddAnchoredImageParagraph(image, 120, 120, filler, wrap: "through",
+                        offsetYPoints: 4, distancePoints: 0, paragraphProperties: ZeroSpacing,
+                        runProperties: Times(), wrapPolygon: channel)
+                    .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                     "<w:r><w:rPr>" + Times() + "</w:rPr><w:t>Tight:</w:t></w:r></w:p>")
+                    .AddAnchoredImageParagraph(image, 120, 120, filler, wrap: "tight",
+                        offsetYPoints: 4, distancePoints: 0, paragraphProperties: ZeroSpacing,
+                        runProperties: Times(), wrapPolygon: channel);
+            },
+
             ["chart-3d-deep-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 0, 60, 100, 15, 20, 110, 0))
                 .WithPart("word/charts/chart2.xml",

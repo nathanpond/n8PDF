@@ -609,16 +609,32 @@ public sealed class DocxBuilder
         double distancePoints = 6,
         bool behindText = false,
         string? paragraphProperties = null,
-        string? runProperties = null)
+        string? runProperties = null,
+        IReadOnlyList<(int X, int Y)>? wrapPolygon = null)
     {
         var cx = (long)Math.Round(widthPoints * 12700);
         var cy = (long)Math.Round(heightPoints * 12700);
         var dist = (long)Math.Round(distancePoints * 12700);
 
+        string Polygon()
+        {
+            var points = new System.Text.StringBuilder("<wp:wrapPolygon edited=\"0\">");
+            for (var i = 0; i < wrapPolygon!.Count; i++)
+            {
+                points.Append(i == 0
+                    ? $"<wp:start x=\"{wrapPolygon[i].X}\" y=\"{wrapPolygon[i].Y}\"/>"
+                    : $"<wp:lineTo x=\"{wrapPolygon[i].X}\" y=\"{wrapPolygon[i].Y}\"/>");
+            }
+
+            return points.Append("</wp:wrapPolygon>").ToString();
+        }
+
         var wrapElement = wrap switch
         {
             "none" => "<wp:wrapNone/>",
             "topAndBottom" => "<wp:wrapTopAndBottom/>",
+            "tight" => $"<wp:wrapTight wrapText=\"bothSides\">{Polygon()}</wp:wrapTight>",
+            "through" => $"<wp:wrapThrough wrapText=\"bothSides\">{Polygon()}</wp:wrapThrough>",
             _ => "<wp:wrapSquare wrapText=\"bothSides\"/>"
         };
 

@@ -2094,11 +2094,28 @@ internal sealed class LayoutEngine(
             right = cursor.Left + cursor.Width;
         }
 
+        // A tight or through wrap follows its polygon (#65): the points come off the 21600
+        // canvas of the extent into page coordinates at the picture's own corner, and the wrap
+        // distances inflate each blocked interval rather than the box.
+        IReadOnlyList<(double X, double Y)>? polygon = null;
+
+        if (anchored.Wrap is TextWrapMode.Tight or TextWrapMode.Through &&
+            anchored.WrapPolygon is { Count: >= 3 } wrapPolygon)
+        {
+            polygon = wrapPolygon
+                .Select(point => (x + point.X * width / 21600.0, y + point.Y * height / 21600.0))
+                .ToList();
+        }
+
         return new FloatRegion(
             left,
             y - Units.EmuToPoints(anchored.DistanceTopEmu),
             right,
-            y + height + Units.EmuToPoints(anchored.DistanceBottomEmu));
+            y + height + Units.EmuToPoints(anchored.DistanceBottomEmu),
+            polygon,
+            anchored.Wrap == TextWrapMode.Through,
+            Units.EmuToPoints(anchored.DistanceLeftEmu),
+            Units.EmuToPoints(anchored.DistanceRightEmu));
     }
 
     /// <summary>
@@ -7977,7 +7994,8 @@ internal sealed class LayoutEngine(
 
             var blocked = Floats
                 .Where(f => f.Top < top + height && f.Bottom > top)
-                .Select(f => (Left: Math.Max(boxLeft, f.Left), Right: Math.Min(boxRight, f.Right)))
+                .SelectMany(f => f.BlockedIntervals(top, top + height))
+                .Select(i => (Left: Math.Max(boxLeft, i.Left), Right: Math.Min(boxRight, i.Right)))
                 .Where(interval => interval.Right > interval.Left)
                 .OrderBy(interval => interval.Left)
                 .ToList();
@@ -8006,7 +8024,8 @@ internal sealed class LayoutEngine(
 
             var blocked = Floats
                 .Where(f => f.Top < top + height && f.Bottom > top)
-                .Select(f => (Left: Math.Max(boxLeft, f.Left), Right: Math.Min(boxRight, f.Right)))
+                .SelectMany(f => f.BlockedIntervals(top, top + height))
+                .Select(i => (Left: Math.Max(boxLeft, i.Left), Right: Math.Min(boxRight, i.Right)))
                 .Where(interval => interval.Right > interval.Left)
                 .OrderBy(interval => interval.Left)
                 .ToList();
@@ -8446,7 +8465,79 @@ internal sealed class LayoutEngine(
     }
 
     /// <summary>A rectangle on the page that text flows around, in page coordinates.</summary>
-    private readonly record struct FloatRegion(double Left, double Top, double Right, double Bottom);
+    /// <summary>
+    /// A region text keeps clear of, in page coordinates. Usually its rectangle; a tight or
+    /// through wrap carries the polygon it follows (#65), and then answers per-strip.
+    /// </summary>
+    /// <param name="Polygon">The wrap polygon in page points, closed implicitly.</param>
+    /// <param name="Through">
+    /// Whether text may enter the polygon's interior gaps — a through wrap does, a tight one
+    /// takes the hull interval of each strip instead.
+    /// </param>
+    /// <param name="InflateLeft">The wrap distance added left of every blocked interval.</param>
+    /// <param name="InflateRight">And to the right.</param>
+    private readonly record struct FloatRegion(
+        double Left, double Top, double Right, double Bottom,
+        IReadOnlyList<(double X, double Y)>? Polygon = null, bool Through = false,
+        double InflateLeft = 0, double InflateRight = 0)
+    {
+        /// <summary>
+        /// The horizontal intervals this region blocks across a vertical strip. A rectangle
+        /// blocks one; a polygon blocks where its edges cross the strip — the hull of the
+        /// crossings for a tight wrap, their union for a through one, so only through lets text
+        /// between two lobes.
+        /// </summary>
+        public List<(double Left, double Right)> BlockedIntervals(double top, double bottom)
+        {
+            if (Polygon is not { Count: >= 3 } polygon)
+                return [(Left, Right)];
+
+            // The polygon sampled at three heights of the strip: the crossings of each sample
+            // line, paired off, are what the polygon covers there. Word quantises to lines just
+            // the same, and three samples catch an edge that enters and leaves inside the strip.
+            var intervals = new List<(double Left, double Right)>();
+
+            foreach (var y in new[] { top + 0.1, (top + bottom) / 2, bottom - 0.1 })
+            {
+                var crossings = new List<double>();
+
+                for (var i = 0; i < polygon.Count; i++)
+                {
+                    var (x0, y0) = polygon[i];
+                    var (x1, y1) = polygon[(i + 1) % polygon.Count];
+
+                    if (y0 == y1) continue;
+                    if (y < Math.Min(y0, y1) || y >= Math.Max(y0, y1)) continue;
+
+                    crossings.Add(x0 + (x1 - x0) * (y - y0) / (y1 - y0));
+                }
+
+                crossings.Sort();
+
+                for (var i = 0; i + 1 < crossings.Count; i += 2)
+                    intervals.Add((crossings[i] - InflateLeft, crossings[i + 1] + InflateRight));
+            }
+
+            if (intervals.Count == 0) return [];
+
+            if (!Through)
+                return [(intervals.Min(i => i.Left), intervals.Max(i => i.Right))];
+
+            // The union: overlapping intervals merge, gaps between lobes stay free.
+            intervals.Sort((a, b) => a.Left.CompareTo(b.Left));
+            var merged = new List<(double Left, double Right)> { intervals[0] };
+
+            foreach (var interval in intervals.Skip(1))
+            {
+                if (interval.Left <= merged[^1].Right + 1)
+                    merged[^1] = (merged[^1].Left, Math.Max(merged[^1].Right, interval.Right));
+                else
+                    merged.Add(interval);
+            }
+
+            return merged;
+        }
+    }
 
     /// <summary>A cell with its resolved geometry and its measured contents.</summary>
     /// <param name="MergedBelow">
