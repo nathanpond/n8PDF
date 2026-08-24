@@ -218,6 +218,28 @@ public static class Converter
 
         var fonts = options.Fonts ?? new FontLibrary();
 
+        // The faces the document carries (#62), registered on a copy for this conversion — the
+        // caller's library is not permanently taught the fonts of one document — where they take
+        // precedence over installed faces of the same name. An embedded face that will not parse
+        // is left out the way an unreadable image is.
+        var embedded = EmbeddedFonts.Read(package, mainPartName, options.Limits);
+        if (embedded.Count > 0)
+        {
+            fonts = new FontLibrary(fonts);
+            foreach (var data in embedded)
+            {
+                try
+                {
+                    fonts.RegisterEmbedded(data);
+                }
+                catch (FontFormatException)
+                {
+                    // The document offered a face the SFNT parser refuses; the conversion
+                    // proceeds in substitutes, exactly as if it had not been carried.
+                }
+            }
+        }
+
         var environment = new FieldEnvironment
         {
             Properties = DocumentProperties.Parse(

@@ -55,6 +55,13 @@ public sealed class PackageLimits
     public long MaximumImagePixels { get; set; } = Images.ImageLimits.DefaultMaximumPixels;
 
     /// <summary>
+    /// The most bytes an embedded font part may hold once deobfuscated. Word embeds the faces a
+    /// document uses, usually subsetted to what it says; tens of megabytes covers a full CJK
+    /// face and a hostile part past it is left out the way an oversized image is (#62).
+    /// </summary>
+    public long MaximumFontBytes { get; set; } = 32L * 1024 * 1024;
+
+    /// <summary>
     /// The most parts a package may declare. A document with several hundred images is ordinary;
     /// one with tens of thousands of parts is an attack on whatever enumerates them.
     /// </summary>

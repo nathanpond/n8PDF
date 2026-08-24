@@ -1,261 +1,157 @@
-using System.Text;
-using n8PDF.Pdf;
+using n8PDF.Fonts;
+using n8PDF.Ooxml;
+using n8PDF.Packaging;
 using n8PDF.Tests.Support;
+using n8PDF.Tests.Support.PdfReading;
+using Xunit.Abstractions;
 
 namespace n8PDF.Tests;
 
 /// <summary>
-/// Tier 2 tests for embedding real fonts as Type0/CIDFontType2, the path every glyph on every
-/// converted page goes through.
+/// The faces a document carries with it (#62): <c>w:embedRegular</c>, the obfuscation undone,
+/// and the embedded face beating whatever the machine has of the same name.
 /// </summary>
-public class EmbeddedFontTests
+/// <remarks>
+/// The probe face (tools/make-embed-font.py) sets every letter as a solid block one em wide, so
+/// ten letters at 24pt are 240pt of line — half again anything a substitute would give — and the
+/// width alone says which face set the text. Word's own render of the fixture is held to ours by
+/// the generic comparison tiers, which line the runs up against the reference PDF.
+/// </remarks>
+public class EmbeddedFontTests(ITestOutputHelper output)
 {
+    private readonly ITestOutputHelper _output = output;
+
+    private const string FontTableType =
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml";
+
+    private const string ObfuscatedFontType =
+        "application/vnd.openxmlformats-officedocument.obfuscatedFont";
+
+    private static ExtractedTextRun ProbeLine(byte[] pdf) =>
+        PdfTextExtractor.Extract(pdf).First(r => r.Text.StartsWith("HHHH", StringComparison.Ordinal));
+
+    /// <summary>The four steps of the read, checked at the seam: part found, key undone, bytes intact.</summary>
     [Fact]
-    public void Encoding_produces_two_bytes_of_glyph_index_per_character()
+    public void The_obfuscation_is_undone_and_the_bytes_come_back_intact()
     {
-        var builder = new PdfBuilder();
-        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        var font = builder.UseFont(typeface);
+        var docx = Fixtures.Build("embedded-font-probe");
+        using var package = OpcPackage.Open(new MemoryStream(docx), leaveOpen: false);
 
-        var encoded = Encode(font, typeface, "ABA");
+        var fonts = EmbeddedFonts.Read(package, package.GetMainDocumentPartName(), new PackageLimits());
 
-        Assert.Equal(6, encoded.Length);
-
-        // The glyphs are numbered again as they are first used, because that is the numbering the
-        // embedded font will have — so the first character of a document is glyph one.
-        var codes = Codes(encoded);
-
-        Assert.Equal([1, 2, 1], codes);
+        Assert.Single(fonts);
+        Assert.Equal(Fixtures.ProbeFont(), fonts[0]);
     }
 
     /// <summary>
-    /// Shapes text and encodes its glyphs, which is the road the converter itself takes: nothing
-    /// turns characters into glyphs but the shaper.
+    /// The conversion sets the probe line in the embedded face: ten block letters at 24pt are
+    /// 240pt of line, which no substitute comes near.
     /// </summary>
-    private static byte[] Encode(PdfFont font, n8PDF.Fonts.TrueTypeFont face, string text)
-    {
-        var shaped = n8PDF.Fonts.TextShaper.Shape(face, text);
-
-        var glyphs = new ushort[shaped.Count];
-        var texts = new string[shaped.Count];
-
-        for (var i = 0; i < shaped.Count; i++)
-        {
-            glyphs[i] = shaped.Glyphs[i].Glyph;
-            texts[i] = shaped.TextOf(i);
-        }
-
-        return font.EncodeGlyphs(glyphs, texts);
-    }
-
-    /// <summary>The two-byte codes of an encoded string.</summary>
-    private static List<int> Codes(byte[] encoded)
-    {
-        var codes = new List<int>(encoded.Length / 2);
-        for (var i = 0; i + 1 < encoded.Length; i += 2) codes.Add((encoded[i] << 8) | encoded[i + 1]);
-
-        return codes;
-    }
-
     [Fact]
-    public void Surrogate_pairs_encode_to_a_single_glyph()
+    public void The_embedded_face_sets_the_line_at_an_em_per_letter()
     {
-        var builder = new PdfBuilder();
-        var typeface = TestFonts.Load(TestFonts.ArialPath);
-        var font = builder.UseFont(typeface);
+        var pdf = n8PDF.Converter.Convert(Fixtures.Build("embedded-font-probe"),
+            new n8PDF.ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
 
-        // U+1D400 is outside the BMP, so it arrives as two chars but is one code point and must
-        // map to one glyph, not two.
-        const string beyondBmp = "\U0001D400";
-        Assert.Equal(2, beyondBmp.Length);
+        var line = ProbeLine(pdf);
+        _output.WriteLine($"the probe line is {line.Width:0.00}pt wide");
 
-        Assert.Single(n8PDF.Fonts.TextShaper.Shape(typeface, beyondBmp).Glyphs);
-        Assert.Equal(2, Encode(font, typeface, beyondBmp).Length);
+        Assert.InRange(line.Width - line.TrailingWhitespaceWidth, 239.0, 241.0);
     }
 
+    /// <summary>Put back wrong — the same text with no embedding — the line is a substitute's.</summary>
     [Fact]
-    public void Glyph_widths_convert_to_text_space_thousandths()
+    public void Without_the_embedding_the_line_is_set_in_a_substitute()
     {
-        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        var builder = new PdfBuilder();
-        var font = builder.UseFont(typeface);
+        var docx = new DocxBuilder()
+            .AddParagraph("HHHHHHHHHH",
+                runProperties: DocxBuilder.RunProperties(font: "n8PDF Probe", halfPoints: 48))
+            .Build();
 
-        // 'M' is 1821 design units in a 2048-unit em, which is 889 thousandths — the published
-        // Times Roman width.
-        var width = font.GetGlyphWidth1000(typeface.GetGlyphIndex('M'));
-        Assert.Equal(889, width, 0);
+        var pdf = n8PDF.Converter.Convert(docx,
+            new n8PDF.ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
 
-        var space = font.GetGlyphWidth1000(typeface.GetGlyphIndex(' '));
-        Assert.Equal(250, space, 0);
-    }
+        var line = ProbeLine(pdf);
+        _output.WriteLine($"unembedded, the line is {line.Width:0.00}pt wide");
 
-    [Fact]
-    public void Embedded_font_produces_a_complete_object_graph()
-    {
-        var builder = new PdfBuilder { Title = "Embedded font smoke test" };
-        var page = builder.AddPage(612, 792);
-        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        var font = builder.UseFont(typeface);
-
-        page.Content.BeginText()
-            .SetFont(font.ResourceName, 24)
-            .SetTextPosition(72, 700)
-            .ShowGlyphs(Encode(font, typeface, "Embedded Times New Roman"))
-            .EndText();
-
-        var bytes = builder.ToArray();
-        var text = Encoding.Latin1.GetString(bytes);
-
-        Assert.Contains("/Subtype /Type0", text);
-        Assert.Contains("/Encoding /Identity-H", text);
-        Assert.Contains("/Subtype /CIDFontType2", text);
-        Assert.Contains("/CIDToGIDMap /Identity", text);
-        Assert.Contains("/FontFile2", text);
-        Assert.Contains("/Length1", text);
-        Assert.Contains("/ToUnicode", text);
-        Assert.Contains("/Ordering (Identity)", text);
-
-        // The descriptor must claim Nonsymbolic (bit 6, value 32) for a text font, and must not
-        // also claim Symbolic (bit 3, value 4).
-        Assert.Contains("/Flags 34", text);
-    }
-
-    [Fact]
-    public void Only_used_glyphs_appear_in_the_width_array()
-    {
-        var builder = new PdfBuilder();
-        var page = builder.AddPage(612, 792);
-        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        var font = builder.UseFont(typeface);
-
-        page.Content.BeginText().SetFont(font.ResourceName, 12).SetTextPosition(72, 700)
-            .ShowGlyphs(Encode(font, typeface, "abc")).EndText();
-
-        // Three distinct characters were shown, so three glyphs should be described even though
-        // the embedded program holds thousands.
-        Assert.Equal(3, font.UsedGlyphCount);
-
-        var text = Encoding.Latin1.GetString(builder.ToArray());
-        var widthsStart = text.IndexOf("/W [", StringComparison.Ordinal);
-        Assert.True(widthsStart > 0, "expected a /W array");
-
-        var widths = text[widthsStart..(text.IndexOf("/CIDToGIDMap", widthsStart, StringComparison.Ordinal))];
-        Assert.Contains("[", widths);
-    }
-
-    [Fact]
-    public void ToUnicode_maps_glyphs_back_to_their_characters()
-    {
-        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        var builder = new PdfBuilder();
-        var page = builder.AddPage(612, 792);
-        var font = builder.UseFont(typeface);
-
-        page.Content.BeginText().SetFont(font.ResourceName, 12).SetTextPosition(72, 700)
-            .ShowGlyphs(Encode(font, typeface, "A")).EndText();
-
-        // The ToUnicode stream is compressed in the output, so check the mapping by decoding it.
-        var text = Encoding.Latin1.GetString(builder.ToArray());
-        Assert.Contains("/ToUnicode", text);
-
-        var cmap = ExtractDecodedStreams(builder.ToArray())
-            .FirstOrDefault(s => s.Contains("beginbfchar", StringComparison.Ordinal));
-
-        Assert.NotNull(cmap);
-
-        // Keyed by the code the glyph was written as, which is the first one used.
-        Assert.Contains("<0001> <0041>", cmap);
-        Assert.Contains("/CMapType 2 def", cmap);
-    }
-
-    [Fact]
-    public void Font_registry_reuses_one_resource_per_face()
-    {
-        var builder = new PdfBuilder();
-        var typeface = TestFonts.Load(TestFonts.TimesNewRomanPath);
-
-        var first = builder.UseFont(typeface);
-        var second = builder.UseFont(typeface);
-        var other = builder.UseFont(TestFonts.Load(TestFonts.ArialPath));
-
-        Assert.Same(first, second);
-        Assert.Equal("F1", first.ResourceName);
-        Assert.Equal("F2", other.ResourceName);
-    }
-
-    [Fact]
-    public void Embedded_font_renders_selectable_text_on_a_real_page()
-    {
-        var builder = new PdfBuilder { Title = "n8PDF embedded font" };
-        var page = builder.AddPage(612, 792);
-
-        var regular = TestFonts.Load(TestFonts.TimesNewRomanPath);
-        var boldFace = TestFonts.Load(TestFonts.TimesNewRomanBoldPath);
-        var italicFace = TestFonts.Load(TestFonts.TimesNewRomanItalicPath);
-
-        var y = 720.0;
-        foreach (var (face, font, label) in new[]
-                 {
-                     (regular, builder.UseFont(regular), "Regular — the quick brown fox jumps over the lazy dog"),
-                     (boldFace, builder.UseFont(boldFace), "Bold — the quick brown fox jumps over the lazy dog"),
-                     (italicFace, builder.UseFont(italicFace), "Italic — the quick brown fox jumps over the lazy dog")
-                 })
-        {
-            page.Content.BeginText()
-                .SetFont(font.ResourceName, 14)
-                .SetTextPosition(72, y)
-                .ShowGlyphs(Encode(font, face, label))
-                .EndText();
-            y -= 24;
-        }
-
-        var bytes = builder.ToArray();
-        var path = TestPaths.WriteArtifact("embedded-fonts.pdf", bytes);
-
-        Assert.True(new FileInfo(path).Length > 10_000, "an embedded font program should dominate the file size");
-        Assert.Equal(1, builder.Document.PageCount);
+        Assert.True(line.Width < 220,
+            $"the line is {line.Width:0.00}pt wide, which is the embedded width — the fallback " +
+            "was expected here, so the probe can no longer tell the two apart");
     }
 
     /// <summary>
-    /// Pulls every Flate-compressed stream out of a PDF and decodes it. Enough of a reader to
-    /// assert on stream contents without a full parser.
+    /// An embedded face outranks a registered face of the same name: the narrow sibling loses to
+    /// the embedded block face even though it was there first.
     /// </summary>
-    private static List<string> ExtractDecodedStreams(byte[] pdf)
+    [Fact]
+    public void An_embedded_face_outranks_a_face_of_the_same_name()
     {
-        var text = Encoding.Latin1.GetString(pdf);
-        var results = new List<string>();
-        var index = 0;
+        var library = new FontLibrary { UseSystemFonts = false };
+        library.Register(Fixtures.NarrowProbeFont());
 
-        // Anchored on the dictionary's closing ">>" because a bare "stream\n" search also
-        // matches the tail of "endstream".
-        const string marker = ">>\nstream\n";
+        var narrow = library.Resolve("n8PDF Probe");
+        Assert.Equal(500, narrow.Font.GetAdvanceWidth(narrow.Font.GetGlyphIndex('H')));
 
-        while (true)
+        var overlay = new FontLibrary(library);
+        overlay.RegisterEmbedded(Fixtures.ProbeFont());
+
+        var chosen = overlay.Resolve("n8PDF Probe");
+        Assert.Equal(1000, chosen.Font.GetAdvanceWidth(chosen.Font.GetGlyphIndex('H')));
+
+        // And the caller's library did not learn the document's face.
+        var still = library.Resolve("n8PDF Probe");
+        Assert.Equal(500, still.Font.GetAdvanceWidth(still.Font.GetGlyphIndex('H')));
+    }
+
+    /// <summary>A font past the byte limit is left out, and the conversion proceeds without it.</summary>
+    [Fact]
+    public void A_font_past_the_byte_limit_is_left_out()
+    {
+        var docx = Fixtures.Build("embedded-font-probe");
+
+        using (var package = OpcPackage.Open(new MemoryStream(docx)))
         {
-            var start = text.IndexOf(marker, index, StringComparison.Ordinal);
-            if (start < 0) break;
-
-            var dataStart = start + marker.Length;
-            var end = text.IndexOf("\nendstream", dataStart, StringComparison.Ordinal);
-            if (end < 0) break;
-
-            var data = new byte[end - dataStart];
-            Array.Copy(pdf, dataStart, data, 0, data.Length);
-
-            try
-            {
-                results.Add(Encoding.Latin1.GetString(PdfFilters.FlateDecode(data)));
-            }
-            catch (InvalidDataException)
-            {
-                // Not Flate-compressed: a short stream that deflate would have grown, so it was
-                // stored verbatim. Still worth inspecting.
-                results.Add(Encoding.Latin1.GetString(data));
-            }
-
-            index = end + 1;
+            Assert.Empty(EmbeddedFonts.Read(package, package.GetMainDocumentPartName(),
+                new PackageLimits { MaximumFontBytes = 100 }));
         }
 
-        return results;
+        var pdf = n8PDF.Converter.Convert(docx, new n8PDF.ConversionOptions
+        {
+            Fonts = TestFonts.CreatePinnedLibrary(),
+            Limits = new PackageLimits { MaximumFontBytes = 100 }
+        });
+
+        var line = ProbeLine(pdf);
+        _output.WriteLine($"capped at 100 bytes, the line is {line.Width:0.00}pt wide");
+
+        Assert.True(line.Width < 220, "the capped font was still embedded");
+    }
+
+    /// <summary>A face the SFNT parser refuses is left out rather than taking the document with it.</summary>
+    [Fact]
+    public void A_face_that_will_not_parse_does_not_abort_the_conversion()
+    {
+        var garbage = new byte[64];
+        garbage[1] = 0x01; // 0x00010000, the sfnt magic, over a table directory of zeros
+
+        var docx = new DocxBuilder()
+            .WithBinaryPart("word/fonts/font1.odttf", ObfuscatedFontType, garbage)
+            .WithPart("word/fontTable.xml", FontTableType,
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<w:fonts xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
+                "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+                "<w:font w:name=\"Broken\"><w:embedRegular r:id=\"rIdFont1\"/></w:font></w:fonts>",
+                fromDocument: ("rIdFontTable",
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable"),
+                own: [("rIdFont1",
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/font",
+                    "fonts/font1.odttf")])
+            .AddParagraph("Still converts.")
+            .Build();
+
+        var pdf = n8PDF.Converter.Convert(docx,
+            new n8PDF.ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() });
+
+        Assert.Contains(PdfTextExtractor.Extract(pdf), r => r.Text.Contains("Still converts"));
     }
 }
