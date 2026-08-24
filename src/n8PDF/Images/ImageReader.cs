@@ -55,9 +55,19 @@ internal static class ImageReader
         {
             return IsSupported(data) ? Read(data, maximumPixels, nesting) : null;
         }
-        catch (ImageFormatException)
+        catch (Exception e) when (e is ImageFormatException
+            or IndexOutOfRangeException or ArgumentException or OverflowException
+            or DivideByZeroException or InvalidDataException)
         {
-            // A malformed image should cost its own placement, not the whole conversion.
+            // A malformed image should cost its own placement, not the whole conversion — and
+            // that sentence has to hold for the files the decoders did not think to refuse, not
+            // only the ones they did (#48). The types here are exactly what the audit reproduced
+            // escaping from crafted files of a few dozen bytes; each hole is filed as its own
+            // issue with its own validation fix, tested at the decoder level where this net
+            // cannot swallow the evidence, and this is the defence in depth behind those fixes
+            // rather than a substitute for any of them. OutOfMemoryException is deliberately not
+            // here: that one means the process is in trouble, and hiding it helps nobody.
+            _ = e;
             return null;
         }
     }
