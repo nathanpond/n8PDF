@@ -76,7 +76,13 @@ internal sealed class OpcPackage : IDisposable
     private static readonly XmlReaderSettings PartReaderSettings = new()
     {
         DtdProcessing = DtdProcessing.Prohibit,
-        XmlResolver = null
+        XmlResolver = null,
+
+        // The reader has its own bound, not only the decompressor's byte cap: an XDocument DOM is
+        // an order of magnitude larger than the text it parses, so a part near the 128MB part cap
+        // amplifies to gigabytes of managed heap. Sixty-four million characters is far past any
+        // real document part and keeps the DOM to something a machine holds (#149).
+        MaxCharactersInDocument = 64L * 1024 * 1024
     };
 
     private static readonly XNamespace ContentTypesNamespace =

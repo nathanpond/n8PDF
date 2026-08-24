@@ -277,4 +277,16 @@ public class ImageDecoderHostileTests(ITestOutputHelper output)
         var ex = Record.Exception(() => ImageReader.TryRead(tiff));
         Assert.True(ex is null, $"a runtime exception escaped: {ex?.GetType().Name}");
     }
+
+    [Fact]
+    public void Jpeg_with_an_unmappable_component_count_is_refused()   // #44
+    {
+        // SOF0 declaring two components, which maps to no PDF colour space.
+        var jpeg = new List<byte> { 0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x0E };
+        jpeg.AddRange([8, 0, 8, 0, 8]);       // precision, 8x8, 2 components
+        jpeg.Add(2);
+        jpeg.AddRange([1, 0x11, 0, 2, 0x11, 0]);
+        jpeg.AddRange([0xFF, 0xD9]);
+        Assert.Null(ImageReader.TryRead(jpeg.ToArray()));
+    }
 }

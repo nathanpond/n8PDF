@@ -579,13 +579,22 @@ internal static class TiffDecoder
         // gigabytes (#30). A little slack over the expected size absorbs a final partial block.
         var cap = (long)Math.Max(0, expected) + 65536;
         var buffer = new byte[81920];
-        int read;
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            if (output.Length + read > cap)
-                throw new ImageFormatException("TIFF strip decompresses past the size its rows allow.");
 
-            output.Write(buffer, 0, read);
+        try
+        {
+            int read;
+            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (output.Length + read > cap)
+                    throw new ImageFormatException("TIFF strip decompresses past the size its rows allow.");
+
+                output.Write(buffer, 0, read);
+            }
+        }
+        catch (InvalidDataException)
+        {
+            // A corrupt Deflate strip is a picture this cannot read, not a fault in the reader (#35).
+            throw new ImageFormatException("TIFF strip is not a valid Deflate stream.");
         }
 
         return output.ToArray();
