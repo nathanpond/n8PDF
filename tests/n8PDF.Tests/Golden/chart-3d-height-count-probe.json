@@ -1,5 +1,5 @@
 {
-  "pageCount": 19,
+  "pageCount": 23,
   "pages": [
     {
       "width": 612,
@@ -396,6 +396,90 @@
           "height": 13.428,
           "runs": [
             {"x": 72, "width": 61.805, "font": "Calibri", "size": 11, "text": "3 cat value 80"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 38,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "3 cat 3 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 40,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "4 cat 4 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 42,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "2 cat 4 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 44,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "4 cat 2 ser"}
           ]
         }
       ]

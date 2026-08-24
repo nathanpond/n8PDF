@@ -10,9 +10,13 @@ namespace n8PDF.Tests;
 /// #116 settled that a category is a unit of width and a series a unit of depth, and that the box is
 /// then scaled uniformly to fit. Two of the three dimensions follow that scale. The third does not.
 ///
-/// **The box is `ceil(n/2)` units tall**, where `n` is whichever count is being varied — so it grows
-/// by a whole unit at every *odd* count and stands still at every even one. Measured across all eight
-/// counts of the series sweep, with the scale divided out:
+/// **The box is `floor((width + depth) / 2)` units tall** — half the sum of the other two, rounded
+/// down, with width in categories and depth in series. It was first found as `ceil(n/2)` with one
+/// count swept and the other held at one, which is the same thing: `floor((n + 1) / 2)`. See
+/// <see cref="The_height_is_half_the_width_and_depth_together"/> for the pages that separate them.
+///
+/// Swept one count at a time it grows by a whole unit at every *odd* count and stands still at every
+/// even one. Measured across all eight counts of the series sweep, with the scale divided out:
 ///
 /// | series | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 /// |---|---|---|---|---|---|---|---|---|
@@ -305,5 +309,65 @@ public class Chart3DBoxHeightTests(ITestOutputHelper output)
 
         // And gone by two, at half.
         Assert.InRange(atTwo / atOne, 0.45, 0.55);
+    }
+    /// <summary>
+    /// The height is half the width and the depth together, rounded down — not half either alone.
+    /// </summary>
+    /// <remarks>
+    /// The general form, and the pages that settle it. With one count held at one,
+    /// <c>floor((c + s)/2)</c> and <c>ceil(n/2)</c> are the same number, so the eight-count sweeps
+    /// above cannot tell them apart; nor can two categories by three, which was the only mixed page
+    /// in existence when this was first written down as <c>ceil(n/2)</c>.
+    ///
+    /// Three readings of it survived that evidence and part company here:
+    ///
+    /// | | 3×3 | 4×4 | 2×4 | 4×2 |
+    /// |---|---|---|---|---|
+    /// | measured | 3.001 | **4.001** | 3.011 | 2.999 |
+    /// | `ceil(max/2)` | 2 | 2 | 2 | 2 |
+    /// | `ceil(c/2) + ceil(s/2) - 1` | 3 | 3 | 2 | 2 |
+    /// | **`floor((c + s)/2)`** | **3** | **4** | **3** | **3** |
+    ///
+    /// Four by four is **held back** and decides it on its own: it is the only page where the middle
+    /// reading and the right one differ, and the middle reading is the one that had fitted everything
+    /// until then.
+    ///
+    /// So the box is width × depth × <c>floor((width + depth)/2)</c> units, the height then taken in
+    /// the plot rectangle's aspect — which is why at one category and one series it is the aspect
+    /// exactly, as #109 measured it.
+    /// </remarks>
+    [Theory]
+    [InlineData(19, 3, 3, 3, false)]
+    [InlineData(20, 4, 4, 4, true)]
+    [InlineData(21, 2, 4, 3, false)]
+    [InlineData(22, 4, 2, 3, false)]
+    public void The_height_is_half_the_width_and_depth_together(
+        int page, int categories, int series, int units, bool heldBack)
+    {
+        if (Reference() is not { } pdf) return;
+
+        if (Box(pdf, 0) is not { } one || Box(pdf, page) is not { } many)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        Assert.InRange(many.Upright - many.Otherwise, -0.4, 0.4);
+
+        // The depth is `series` units and carries the fit scale, so this is the height in units.
+        var measured = many.Upright / many.Depth * series / (one.Upright / one.Depth);
+
+        _output.WriteLine($"{categories} by {series}{(heldBack ? " (held back)" : "")}: " +
+                          $"the box is {measured:0.000} units tall, " +
+                          $"and floor((c + s)/2) is {units}");
+
+        Assert.InRange(measured / units, 0.97, 1.03);
+
+        // And the reading it replaces gets this page wrong, which is why the page is here.
+        var superseded = Math.Ceiling(categories / 2.0) + Math.Ceiling(series / 2.0) - 1;
+
+        if (Math.Abs(superseded - units) > 0.5)
+            _output.WriteLine($"  — ceil(c/2) + ceil(s/2) - 1 would say {superseded}, and does not fit");
     }
 }
