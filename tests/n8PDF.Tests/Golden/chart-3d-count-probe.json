@@ -1,0 +1,530 @@
+{
+  "pageCount": 25,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "1 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 2,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "2 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 4,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "3 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 6,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "4 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "6 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 10,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 11,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "1 cat 2 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 12,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 13,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "1 cat 3 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 14,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 15,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "1 cat 4 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 16,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 17,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "1 cat 6 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 18,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 19,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "2 cat 3 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 20,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 21,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 45.826, "font": "Calibri", "size": 11, "text": "3 cat 2 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 22,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 23,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 90.084, "font": "Calibri", "size": 11, "text": "3 cat 1 ser wide rect"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 24,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 25,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 90.084, "font": "Calibri", "size": 11, "text": "1 cat 1 ser wide rect"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 26,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 27,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 1 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 28,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 29,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 2 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 30,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 31,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 3 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 32,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 33,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 4 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 34,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 35,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 6 cat 1 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 36,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 37,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 1 cat 2 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 38,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 1 cat 3 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 40,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 1 cat 4 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 42,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 43,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 1 cat 6 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 44,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 45,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 2 cat 3 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 46,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 47,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.751, "font": "Calibri", "size": 11, "text": "square 3 cat 2 ser"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 48,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 49,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 102.878, "font": "Calibri", "size": 11, "text": "square 3 cat 1 ser wide"}
+          ]
+        }
+      ]
+    }
+  ]
+}
