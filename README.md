@@ -2167,8 +2167,11 @@ out stays a drawing all the way to the PDF, whose own operators write it out aga
 chart sharp at any size a reader looks at it, and it keeps the text inside one selectable. What is
 handled is what a picture in a document is made of: paths and the shapes that are shorthand for
 them, the pens and brushes that colour them, the fonts and the text, and the bitmaps a drawing can
-carry. What is not is the rest of an interface built to drive a screen: raster operations, clipping
-regions and palettes.
+carry, and the clipping a drawing keeps its ink inside — the intersect and exclude rectangles and
+the regions built of rectangles, honoured as PDF clip paths (#69). What is not is the rest of an
+interface built to drive a screen: raster operations and palettes, declined by decision — the one
+is a screen idiom a document's picture does not use, and the other matters only to old paletted
+bitmaps no Office export writes into a metafile.
 
 A metafile written by anything modern carries the same drawing twice — once in those records, and
 once in the newer GDI+ ones that travel inside their comments, a format smuggled through a format.

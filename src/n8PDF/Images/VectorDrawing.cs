@@ -46,7 +46,15 @@ internal sealed record PathOperation(
     double StrokeWidth,
     bool EvenOdd,
     (double X, double Y, double Width, double Height)? Clip = null,
-    bool RoundCap = false) : DrawingOperation;
+    bool RoundCap = false,
+    IReadOnlyList<ClipShape>? Clips = null) : DrawingOperation;
+
+/// <summary>
+/// One clip a metafile had in force when it drew (#69): a path of its own and the rule deciding
+/// its inside. A path drawn under several is kept inside all of them — the renderer writes each
+/// as a clip in turn, which is how PDF composes the same intersection.
+/// </summary>
+internal sealed record ClipShape(IReadOnlyList<PathStep> Steps, bool EvenOdd);
 
 /// <summary>
 /// A piece of text, which is left as text rather than turned into outlines: the reader that ends

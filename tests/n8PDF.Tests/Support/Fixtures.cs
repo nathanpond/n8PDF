@@ -13843,6 +13843,41 @@ public static class Fixtures
                     .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
             },
 
+            // A metafile that clips (#69): ink drawn under an intersect, an exclude and a
+            // two-rectangle region. What is measured is where ink is and is not — a clip that
+            // fails paints where the document said not to, which is worse than absent.
+            ["images-metafile-clip"] = () =>
+            {
+                var writer = new EmfWriter(200, 120);
+
+                var red = writer.CreateBrush(200, 30, 30);
+                var blue = writer.CreateBrush(30, 60, 200);
+                var green = writer.CreateBrush(30, 160, 60);
+
+                // A red ellipse kept inside a window less than half its size.
+                writer.SaveDc().IntersectClipRect(40, 20, 120, 60);
+                writer.SelectStock(8).Select(red).Ellipse(10, 5, 190, 75);
+                writer.RestoreDc();
+
+                // A blue bar with a hole cut from its middle.
+                writer.SaveDc().ExcludeClipRect(80, 78, 130, 96);
+                writer.SelectStock(8).Select(blue).Rectangle(20, 74, 180, 100);
+                writer.RestoreDc();
+
+                // Green under a region of two islands.
+                writer.SaveDc().SelectClipRegion(5, (20, 102, 60, 116), (140, 102, 180, 116));
+                writer.SelectStock(8).Select(green).Rectangle(10, 100, 190, 118);
+                writer.RestoreDc();
+
+                var builder = new DocxBuilder();
+                var metafile = builder.AddImagePart(writer.Build(), "emf");
+
+                return builder
+                    .AddParagraph("Paragraph before the drawing.", ZeroSpacing, Times12)
+                    .AddImageParagraph(metafile, 200, 120, ZeroSpacing)
+                    .AddParagraph("Paragraph after the drawing.", ZeroSpacing, Times12);
+            },
+
             // A metafile written the way anything modern writes one: the same drawing recorded
             // twice over, once in the newer records and once in the old ones that travel around
             // them. The newer are what draws it here and the old are what Word draws, so this

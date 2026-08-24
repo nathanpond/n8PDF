@@ -99,6 +99,57 @@ public sealed class EmfWriter(int width, int height)
         return this;
     }
 
+    public EmfWriter SaveDc()
+    {
+        Emit(Record(33));
+        return this;
+    }
+
+    public EmfWriter RestoreDc()
+    {
+        Emit(Record(34, Int32(-1)));
+        return this;
+    }
+
+    /// <summary>Narrows the clip to its intersection with a rectangle (#69).</summary>
+    public EmfWriter IntersectClipRect(int left, int top, int right, int bottom)
+    {
+        Emit(Record(30, Int32(left), Int32(top), Int32(right), Int32(bottom)));
+        return this;
+    }
+
+    /// <summary>Cuts a rectangle out of the clip (#69).</summary>
+    public EmfWriter ExcludeClipRect(int left, int top, int right, int bottom)
+    {
+        Emit(Record(29, Int32(left), Int32(top), Int32(right), Int32(bottom)));
+        return this;
+    }
+
+    /// <summary>Selects a region of rectangles as the clip, by mode — 5 copies, 1 intersects (#69).</summary>
+    public EmfWriter SelectClipRegion(int mode, params (int Left, int Top, int Right, int Bottom)[] rects)
+    {
+        var region = new List<byte>();
+        region.AddRange(Int32(32));               // RGNDATAHEADER dwSize
+        region.AddRange(Int32(1));                // RDH_RECTANGLES
+        region.AddRange(Int32(rects.Length));
+        region.AddRange(Int32(rects.Length * 16));
+        region.AddRange(Int32(rects.Min(r => r.Left)));
+        region.AddRange(Int32(rects.Min(r => r.Top)));
+        region.AddRange(Int32(rects.Max(r => r.Right)));
+        region.AddRange(Int32(rects.Max(r => r.Bottom)));
+
+        foreach (var (left, top, right, bottom) in rects)
+        {
+            region.AddRange(Int32(left));
+            region.AddRange(Int32(top));
+            region.AddRange(Int32(right));
+            region.AddRange(Int32(bottom));
+        }
+
+        Emit(Record(75, Int32(region.Count), Int32(mode), [.. region]));
+        return this;
+    }
+
     public EmfWriter Rectangle(int left, int top, int right, int bottom)
     {
         Emit(Record(43, Int32(left), Int32(top), Int32(right), Int32(bottom)));
