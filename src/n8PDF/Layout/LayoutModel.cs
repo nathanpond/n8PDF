@@ -103,6 +103,9 @@ internal sealed record ResolvedHyperlink(string? Url, string? Anchor);
 /// <summary>A place in the document an internal link can point at.</summary>
 internal sealed record BookmarkDestination(int PageIndex, double X, double Y);
 
+/// <summary>A heading the document outline lists (#66): its depth, its text, and where it landed.</summary>
+internal sealed record OutlineHeading(int Level, string Title, int PageIndex, double X, double Y);
+
 /// <summary>A horizontal rule drawn for an underline or strikethrough.</summary>
 internal sealed class PositionedRule
 {
@@ -240,6 +243,9 @@ internal sealed class LaidOutDocument
 
     /// <summary>Bookmark positions by name, for resolving internal links.</summary>
     public Dictionary<string, BookmarkDestination> Bookmarks { get; } = [];
+
+    /// <summary>The headings the PDF outline lists, in document order (#66).</summary>
+    public List<OutlineHeading> Headings { get; } = [];
 
     /// <summary>
     /// The document's final section. Page geometry comes from <see cref="LaidOutPage.Section"/>

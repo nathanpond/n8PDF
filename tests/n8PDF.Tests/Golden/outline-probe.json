@@ -1,0 +1,97 @@
+{
+  "pageCount": 2,
+  "pages": [
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 0,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 69.322, "font": "Times New Roman", "size": 12, "bold": true, "text": "The first part"}
+          ]
+        },
+        {
+          "paragraph": 1,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 141.967, "font": "Times New Roman", "size": 12, "text": "Body text under the first part."}
+          ]
+        },
+        {
+          "paragraph": 2,
+          "baselineY": 110.64,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 93, "font": "Times New Roman", "size": 12, "bold": true, "text": "A section within it"}
+          ]
+        },
+        {
+          "paragraph": 3,
+          "baselineY": 124.56,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 76.986, "font": "Times New Roman", "size": 12, "text": "More body text."}
+          ]
+        },
+        {
+          "paragraph": 4,
+          "baselineY": 138.24,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 110.648, "font": "Times New Roman", "size": 12, "bold": true, "text": "A detail of the section"}
+          ]
+        },
+        {
+          "paragraph": 5,
+          "baselineY": 152.16,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 82.67, "font": "Times New Roman", "size": 12, "bold": true, "text": "The second part"}
+          ]
+        },
+        {
+          "paragraph": 6,
+          "baselineY": 165.84,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 95.66, "font": "Times New Roman", "size": 12, "bold": true, "text": "Straight to a detail"}
+          ]
+        },
+        {
+          "paragraph": 7,
+          "baselineY": 179.76,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 95.344, "font": "Times New Roman", "size": 12, "bold": true, "text": "Promoted by hand"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 8,
+          "baselineY": 83.04,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 104.971, "font": "Times New Roman", "size": 12, "text": "Body on a fresh page."}
+          ]
+        },
+        {
+          "paragraph": 9,
+          "baselineY": 96.96,
+          "height": 13.799,
+          "runs": [
+            {"x": 72, "width": 99.674, "font": "Times New Roman", "size": 12, "bold": true, "text": "On the second page"}
+          ]
+        }
+      ]
+    }
+  ]
+}
