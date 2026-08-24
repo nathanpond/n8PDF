@@ -211,4 +211,106 @@ public class Chart3DProjectionTests(ITestOutputHelper output)
             $"a rotation's tilt ({turned:0.000}) is no longer far enough above Word's " +
             $"({measured.WidthTilt:0.000}) for this page to tell them apart");
     }
+    /// <summary>
+    /// Perspective is a different projection, not the square-axes one with a divide added.
+    /// </summary>
+    /// <remarks>
+    /// The natural guess, and it is wrong. If <c>rAngAx="0"</c> were the oblique projection above with
+    /// a depth divide bolted on — <c>screen = scale·(x + z·sinY, −y − z·sinX) / (1 + z/eye)</c> — then
+    /// a **width** edge would be unmoved in direction. Both its ends sit at one depth, so both take
+    /// the same divisor, and dividing a horizontal segment by a constant leaves it horizontal.
+    ///
+    /// Word tilts it. The same box, same rotations, same everything but <c>rAngAx</c>:
+    ///
+    /// | | square axes | perspective |
+    /// |---|---|---|
+    /// | front width edge, rise over run | **0.000** | 0.133 |
+    /// | back width edge | **0.000** | 0.070 |
+    /// | the two upright edges | 46.62, 46.68 | 45.53, **39.03** |
+    ///
+    /// Under square axes the width edges are level to the hundredth of a point and the uprights are
+    /// the same length as each other. Under perspective the width edges tilt, the two uprights differ
+    /// by a sixth, and — the part that excludes the divide — **they tilt by different amounts at the
+    /// front and the back**, which no single divisor can do to a pair of horizontal segments.
+    ///
+    /// So the two modes are structurally different projections. <c>rAngAx="1"</c> is oblique with no
+    /// rotation at all; <c>rAngAx="0"</c> turns the box and looks at it from somewhere finite. That
+    /// matters for #97 as much as for this story: the oblique result above is #97's answer in full and
+    /// is **not** the limiting case of this one.
+    /// </remarks>
+    [Fact]
+    public void Perspective_is_not_the_square_projection_with_a_divide()
+    {
+        if (TestFonts.SkipForMissingFonts("chart-3d-count-probe")) return;
+
+        var path = Path.Combine(TestPaths.ReferencePdfs, "chart-3d-count-probe.pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        var pdf = File.ReadAllBytes(path);
+
+        // One category and one series, drawn twice: page 13 with square axes, page 0 with perspective.
+        if (Widths(pdf, 13) is not { } square || Widths(pdf, 0) is not { } perspective)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        _output.WriteLine($"square axes: width edges tilt {square.Front:0.000} and {square.Back:0.000}, " +
+                          $"uprights {square.TallOne:0.00} and {square.TallOther:0.00}");
+        _output.WriteLine($"perspective: width edges tilt {perspective.Front:0.000} and {perspective.Back:0.000}, " +
+                          $"uprights {perspective.TallOne:0.00} and {perspective.TallOther:0.00}");
+
+        // Square axes: level, and the two uprights equal.
+        Assert.InRange(square.Front, 0, 0.005);
+        Assert.InRange(square.Back, 0, 0.005);
+        Assert.InRange(square.TallOne / square.TallOther, 0.99, 1.01);
+
+        // Perspective: neither.
+        Assert.True(perspective.Front > 0.05, "the front width edge is no longer tilted under perspective");
+        Assert.True(perspective.TallOne / perspective.TallOther > 1.1,
+            "the two uprights no longer differ under perspective");
+
+        // And the two width edges tilt by *different* amounts, which a single divisor cannot produce
+        // from a pair of segments that were both level.
+        Assert.True(Math.Abs(perspective.Front - perspective.Back) > 0.03,
+            $"the front and back width edges now tilt alike ({perspective.Front:0.000} against " +
+            $"{perspective.Back:0.000}), so a depth divide would account for them and this test no " +
+            "longer excludes one");
+    }
+
+    /// <summary>The tilt of the two width edges, and the lengths of the two uprights.</summary>
+    private (double Front, double Back, double TallOne, double TallOther)? Widths(byte[] pdf, int page)
+    {
+        const double scale = 6;
+
+        if (PdfRasterizer.Render(pdf, page, scale) is not { } rendered) return null;
+
+        var shape = BoxSilhouette.Find(rendered, scale, Reddish, (73, 73, 431, 287));
+
+        if (!shape.Found) return null;
+
+        var points = shape.Points;
+        var tilts = new List<double>();
+        var uprights = new List<double>();
+
+        for (var i = 0; i < points.Count; i++)
+        {
+            var a = points[i];
+            var b = points[(i + 1) % points.Count];
+            var run = Math.Abs(b.X - a.X);
+            var rise = Math.Abs(b.Y - a.Y);
+
+            // The width edges are the long, near-level pair; the uprights the near-vertical pair.
+            if (run > 3 * rise) tilts.Add(rise / run);
+            else if (rise > 3 * run) uprights.Add(Math.Sqrt(run * run + rise * rise));
+        }
+
+        if (tilts.Count != 2 || uprights.Count != 2) return null;
+
+        tilts.Sort();
+        uprights.Sort();
+
+        return (tilts[1], tilts[0], uprights[1], uprights[0]);
+    }
 }
