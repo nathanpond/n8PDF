@@ -115,7 +115,10 @@ internal static class ImageReader
             // SOF0 through SOF15, excluding the two that are not frame headers.
             if (marker is >= 0xc0 and <= 0xcf && marker != 0xc4 && marker != 0xc8 && marker != 0xcc)
             {
-                if (position + 7 >= data.Length) break;
+                // The eight SOF bytes must lie within the segment's own declared length, not
+                // merely within the file — a SOF declaring an empty payload otherwise reads the
+                // bytes of whatever follows it (#45).
+                if (position + 7 >= data.Length || length < 8) break;
 
                 var height = (data[position + 3] << 8) | data[position + 4];
                 var width = (data[position + 5] << 8) | data[position + 6];

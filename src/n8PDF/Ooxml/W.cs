@@ -60,7 +60,13 @@ internal static class W
 
     /// <summary>Reads an integer <c>w:val</c>.</summary>
     public static int? IntVal(this XElement element) =>
-        int.TryParse(element.Val(), out var value) ? value : null;
+        // Invariant culture, like every other reader: a document's numbers are written the same
+        // way whatever locale the machine reading it runs in, and parsing them by the ambient
+        // culture reads a decimal comma or a thousands separator wrong (#160).
+        int.TryParse(element.Val(), System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
 
     /// <summary>Reads a named attribute in the main namespace.</summary>
     public static string? Attr(this XElement element, string name) =>
@@ -72,11 +78,22 @@ internal static class W
         var text = element.Attr(name);
         if (text is null) return null;
 
-        if (int.TryParse(text, out var value)) return value;
-        return double.TryParse(text, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out var real)
-            ? (int)Math.Round(real)
-            : null;
+        if (int.TryParse(text, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var value))
+        {
+            return value;   // invariant culture, as elsewhere (#160)
+        }
+
+        if (!double.TryParse(text, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var real))
+        {
+            return null;
+        }
+
+        // An out-of-range measurement cast straight to int becomes int.MinValue and silently
+        // corrupts the geometry it feeds; one that will not fit is no measurement at all (#148).
+        var rounded = Math.Round(real);
+        return rounded is >= int.MinValue and <= int.MaxValue ? (int)rounded : null;
     }
 
     /// <summary>Reads a named attribute as an on/off value.</summary>

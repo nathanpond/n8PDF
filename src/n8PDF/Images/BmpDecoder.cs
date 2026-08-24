@@ -50,6 +50,22 @@ internal static class BmpDecoder
         if (bits is not (1 or 4 or 8 or 16 or 24 or 32))
             throw new ImageFormatException($"Bitmap has {bits} bits a pixel, which is not handled.");
 
+        // Compression must be one this reader handles and must agree with the bit depth: BI_JPEG,
+        // BI_PNG and unknown values would otherwise fall through and be read as raw scanlines, and
+        // RLE8/RLE4 at the wrong depth packs its nibbles into rows sized for another (#15).
+        var handledCompression = compression switch
+        {
+            0 => true,          // BI_RGB
+            1 => bits == 8,     // BI_RLE8
+            2 => bits == 4,     // BI_RLE4
+            3 => bits is 16 or 32,  // BI_BITFIELDS
+            _ => false
+        };
+
+        if (!handledCompression)
+            throw new ImageFormatException(
+                $"Bitmap compression {compression} at {bits} bits a pixel is not handled.");
+
         var masks = Masks(data, headerSize, bits, compression);
         var palette = ReadPalette(data, headerSize, bits, core);
 
