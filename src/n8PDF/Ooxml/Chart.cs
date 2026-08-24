@@ -187,6 +187,13 @@ internal sealed record ChartSeries(
     /// What each point is painted in, where the series says so point by point. A pie says it that
     /// way, since its points are its slices and one colour would make it a disc.
     /// </summary>
+    /// <summary>
+    /// How far each point's sector stands out from the pie, by index, as a percentage of the
+    /// radius — <c>c:dPt/c:explosion</c>. Empty for points that stay put.
+    /// </summary>
+    public IReadOnlyDictionary<int, int> PointExplosions { get; init; } =
+        new Dictionary<int, int>();
+
     public IReadOnlyDictionary<int, DrawingColorReference?> PointFills { get; init; } =
         new Dictionary<int, DrawingColorReference?>();
 
@@ -956,11 +963,15 @@ internal static class ChartReader
         var line = properties?.Element(W.Drawing + "ln");
 
         var points = new Dictionary<int, DrawingColorReference?>();
+        var explosions = new Dictionary<int, int>();
         foreach (var point in element.Elements(Main + "dPt"))
         {
             if (Integer(point.Element(Main + "idx")) is not { } index) continue;
 
             points[index] = DrawingText.ReadFill(point.Element(Main + "spPr"));
+
+            if (Integer(point.Element(Main + "explosion")) is { } explosion and > 0)
+                explosions[index] = explosion;
         }
 
         var trendlines = new List<ChartTrendline>();
@@ -974,6 +985,7 @@ internal static class ChartReader
         return new ChartSeries(name, categories, values, DrawingText.ReadFill(properties))
         {
             PointFills = points,
+            PointExplosions = explosions,
             Trendlines = trendlines,
             ErrorBars = errorBars,
             Line = DrawingText.ReadFill(line),

@@ -117,6 +117,14 @@ internal static class Chart3DComposer
         ChartDefinition chart, ChartComposer.Plan plan, DocumentTheme theme)
     {
         var scene = chart.Scene!;
+
+        if (chart.Round)
+        {
+            foreach (var operation in Pie(chart, plan, theme))
+                yield return operation;
+            yield break;
+        }
+
         var categories = Math.Max(1, chart.Categories.Count);
         var arrangement = Chart3DArrangement.For(chart);
 
@@ -411,6 +419,153 @@ internal static class Chart3DComposer
             : series.Fill;
 
         return Resolve(stated, theme) ?? new DrawingColor(0x44, 0x72, 0xC4);
+    }
+
+
+    /// <summary>
+    /// The three-dimensional pie: an elliptical top cut into sectors, and a rim below the arcs
+    /// that face the reader.
+    /// </summary>
+    /// <remarks>
+    /// A pie ignores <c>rotY</c>, <c>rAngAx</c> and — measured here — <c>hPercent</c>; only the
+    /// tilt and the perspective shape it (#96). The laws, from <c>chart-3d-pie-probe</c>:
+    ///
+    /// <list type="bullet">
+    /// <item>The silhouette fills 0.9702 of the plot rectangle on whichever side binds and is
+    /// centred across; at perspective nought it is centred down as well.</item>
+    /// <item>At perspective nought the top is the exact tilted disc: <c>ry = rx·sin rotX</c>,
+    /// and the rim stands <c>0.24·rx·cos rotX</c> tall — the cylinder is 0.24 of its own
+    /// radius thick, measured [0.238, 0.242].</item>
+    /// <item>Perspective flattens the top and deepens the rim, symmetrically to the reading
+    /// noise. The flattening fits <c>ry = rx·sinA·(1 − 0.26·tan^1.5 θ / sin²A)</c> over the
+    /// probe's grid (θ the half-angle <c>perspective/4</c>, the camera's own convention), half
+    /// the lost height returning to the rim; and the whole silhouette rises off centre by
+    /// <c>0.0057·rx·tan θ / sin³A</c>. These three are fitted families, not derivations — each
+    /// holds the sixteen-page grid to a point or two — and the follow-up issue holds the grid
+    /// for whoever derives the projective form the way #98 did the camera's.</item>
+    /// <item>Word paints the rim as a cylindrical gradient. It is drawn here flat at 0.65 of
+    /// the sector's colour, the middle of the gradient's measured [0.35, 1.0] range; the ink
+    /// comparisons read colour families for exactly this reason.</item>
+    /// <item>An exploded sector moves along its bisector by its stated share of the radius, on
+    /// the ellipse's own axes.</item>
+    /// </list>
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Pie(
+        ChartDefinition chart, ChartComposer.Plan plan, DocumentTheme theme)
+    {
+        var scene = chart.Scene!;
+        var a = scene.RotationX * Math.PI / 180;
+        var theta = scene.Perspective / 4 * Math.PI / 180;
+        var (sinA, cosA) = (Math.Sin(a), Math.Cos(a));
+
+        // The vertical make-up of the silhouette, per unit of rx.
+        var flatten = sinA > 0.01
+            ? Math.Clamp(1 - 0.26 * Math.Pow(Math.Tan(theta), 1.5) / (sinA * sinA), 0.2, 1)
+            : 1;
+        var ryUnit = sinA * flatten;
+        var rimUnit = 0.24 * cosA + sinA * (1 - flatten);
+        var height = 2 * ryUnit + rimUnit;
+
+        const double Fill = 0.9702;
+        var rx = Math.Min(Fill * plan.Width / 2, Fill * plan.Height / (height <= 0 ? 1 : height));
+        var ry = rx * ryUnit;
+        var rim = rx * rimUnit;
+
+        // The rise off centre ties to the height the flattening takes from the top — most of
+        // it at gentle tilts, less as the tilt steepens. Fitted; the follow-up issue holds the
+        // grid.
+        var rise = rx * sinA * (1 - flatten) * Math.Pow(cosA, 4);
+        var cx = plan.Left + plan.Width / 2;
+        var cy = plan.Top + plan.Height / 2 - rise - (2 * ry + rim) / 2 + ry;
+
+        var series = chart.Series.FirstOrDefault();
+        if (series is null) yield break;
+
+        var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
+        var total = values.Sum();
+        if (total <= 0) yield break;
+
+        (double X, double Y) At(double angle, double reach, double ox, double oy) =>
+            (cx + ox + reach * rx * Math.Sin(angle), cy + oy - reach * ry * Math.Cos(angle));
+
+        var starts = new List<(double From, double Sweep, DrawingColor Colour, double Ox, double Oy)>();
+        // A three-dimensional pie cannot be turned: CT_Pie3DChart carries no firstSliceAng,
+        // and Word ignores one written anyway — four probe pages stating four different angles
+        // render identically. The first slice always starts at the top.
+        var angle = 0.0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] <= 0) continue;
+            var sweep = values[i] / total * 2 * Math.PI;
+            var fill = series.PointFills.TryGetValue(i, out var point) && point is not null
+                ? point
+                : series.Fill;
+            var colour = Resolve(fill, theme) ?? new DrawingColor(0x44, 0x72, 0xC4);
+
+            var explosion = series.PointExplosions.TryGetValue(i, out var stated) ? stated : 0;
+            var (ox, oy) = (0.0, 0.0);
+            if (explosion > 0)
+            {
+                var mid = angle + sweep / 2;
+                ox = explosion / 100.0 * rx * Math.Sin(mid);
+                oy = -(explosion / 100.0) * ry * Math.Cos(mid);
+            }
+
+            starts.Add((angle, sweep, colour, ox, oy));
+            angle += sweep;
+        }
+
+        // The rim first, only under the arcs that face the reader — the lower half of the
+        // ellipse — then the tops over it.
+        foreach (var (from, sweep, colour, ox, oy) in starts)
+        {
+            foreach (var (f, t) in FrontArcs(from, sweep))
+            {
+                var steps = new List<PathStep> { new(PathStepKind.Move, [At(f, 1, ox, oy)]) };
+                const int pieces = 24;
+                for (var i = 1; i <= pieces; i++)
+                    steps.Add(new PathStep(PathStepKind.Line, [At(f + (t - f) * i / pieces, 1, ox, oy)]));
+                for (var i = pieces; i >= 0; i--)
+                {
+                    var (px, py) = At(f + (t - f) * i / pieces, 1, ox, oy);
+                    steps.Add(new PathStep(PathStepKind.Line, [(px, py + rim)]));
+                }
+                steps.Add(new PathStep(PathStepKind.Close, []));
+
+                yield return new PathOperation(steps, Shade(colour, 0.65), null, DefaultLineWidth,
+                    EvenOdd: false);
+            }
+        }
+
+        foreach (var (from, sweep, colour, ox, oy) in starts)
+        {
+            var steps = new List<PathStep> { new(PathStepKind.Move, [(cx + ox, cy + oy)]) };
+            const int pieces = 48;
+            for (var i = 0; i <= pieces; i++)
+                steps.Add(new PathStep(PathStepKind.Line, [At(from + sweep * i / pieces, 1, ox, oy)]));
+            steps.Add(new PathStep(PathStepKind.Close, []));
+
+            yield return new PathOperation(steps, colour, null, DefaultLineWidth, EvenOdd: false);
+        }
+    }
+
+    /// <summary>
+    /// The parts of a sector's arc that face the reader: pie angles run clockwise from the top,
+    /// so the facing half is the half-turn centred on the bottom.
+    /// </summary>
+    private static IEnumerable<(double From, double To)> FrontArcs(double from, double sweep)
+    {
+        // Normalise to [0, 2pi) and intersect with (pi/2, 3pi/2) modulo full turns.
+        var start = from % (2 * Math.PI);
+        if (start < 0) start += 2 * Math.PI;
+        var end = start + sweep;
+
+        for (var baseTurn = 0.0; baseTurn < end; baseTurn += 2 * Math.PI)
+        {
+            var f = Math.Max(start, baseTurn + Math.PI / 2);
+            var t = Math.Min(end, baseTurn + 3 * Math.PI / 2);
+            if (t > f) yield return (f, t);
+        }
     }
 
     /// <summary>The marks of a scale, counted rather than added up so they do not drift.</summary>
