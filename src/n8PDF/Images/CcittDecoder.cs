@@ -80,7 +80,10 @@ internal static class CcittDecoder
         var at = 0;
         var white = true;
 
-        while (at < width)
+        // A line of width pixels changes colour at most width times; a run of zero neither
+        // advances nor terminates, so without this bound a strip of zero-runs spins forever and
+        // grows the changes list without end while decoding an image one pixel tall (#46).
+        while (at < width && changes.Count <= width)
         {
             var run = ReadRun(ref bits, white);
             if (run < 0) return changes.Count > 0 ? Close(changes, width) : null;
@@ -110,7 +113,10 @@ internal static class CcittDecoder
         var a0 = -1;
         var white = true;
 
-        while (a0 < width)
+        // As in the one-dimensional case (#46): a line's transitions cannot outnumber its pixels
+        // by more than the two a horizontal mode writes at once, so this bounds a strip that
+        // would otherwise spin on zero-runs.
+        while (a0 < width && changes.Count <= 2 * width + 1)
         {
             // The first change above that is past where this line has reached and of the colour
             // this line is looking for, and the one after it.

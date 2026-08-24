@@ -485,14 +485,18 @@ internal sealed class SectionProperties
 
         if (ColumnCount <= 1) return [(0, total)];
 
+        // Word allows a few dozen columns; a huge w:cols/@num with a zero gap slips past the
+        // "each <= 0" guard and sizes the list from the count, so it is bounded here (#153).
+        var count = Math.Min(ColumnCount, 1000);
+
         var gap = Units.TwipsToPoints(ColumnSpaceTwips);
-        var each = (total - gap * (ColumnCount - 1)) / ColumnCount;
+        var each = (total - gap * (count - 1)) / count;
 
         // A gap wider than the page would leave columns with no width at all.
         if (each <= 0) return [(0, total)];
 
-        var columns = new List<(double, double)>(ColumnCount);
-        for (var i = 0; i < ColumnCount; i++) columns.Add((i * (each + gap), each));
+        var columns = new List<(double, double)>(count);
+        for (var i = 0; i < count; i++) columns.Add((i * (each + gap), each));
 
         return columns;
     }
