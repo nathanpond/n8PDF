@@ -39,13 +39,23 @@ internal sealed record Chart3DArrangement(
         var categories = Math.Max(1, chart.Categories.Count);
         var series = Math.Max(1, chart.Series.Count);
 
+        // The box's height counts what stands on it. Bars and lines receding count their
+        // series (#116, and the two-series line page); an area's receding ribbons add no
+        // height — floor((categories+1)/2), read off the two-series area page — but a pile
+        // counts what it piles: a stacked ribbon takes floor((categories+series)/2), and a
+        // stacked bar the single-series rule.
+        var ribbon = chart.Kind is ChartKind.Line or ChartKind.Area;
+
         return chart.Grouping switch
         {
             ChartGrouping.Standard => new Chart3DArrangement(
-                categories, series, Math.Floor((categories + series) / 2.0), series),
+                categories, series,
+                Math.Floor((categories + (chart.Kind == ChartKind.Area ? 1 : series)) / 2.0),
+                series),
 
             ChartGrouping.Stacked or ChartGrouping.PercentStacked => new Chart3DArrangement(
-                categories, 1, Math.Floor((categories + 1) / 2.0), 1),
+                categories, 1,
+                Math.Floor((categories + (ribbon ? series : 1)) / 2.0), 1),
 
             // Clustered: one row, the series side by side. The width rule is provisional — see
             // the remarks above — and the height takes (series + 1)/2 unfloored, which the

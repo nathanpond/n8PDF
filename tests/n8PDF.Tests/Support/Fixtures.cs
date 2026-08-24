@@ -2960,6 +2960,67 @@ public static class Fixtures
           </c:chart>
         """;
 
+
+    /// <summary>
+    /// A three-dimensional line or area chart for the ribbon story: values that zigzag so the
+    /// folds show, series in colours the raster can tell apart.
+    /// </summary>
+    private static string ChartPart3DRibbon(
+        string element, string grouping, int rightAngled,
+        (string Colour, double[] Values)[] series)
+    {
+        var categories = series[0].Values.Length;
+        var cats = string.Concat(Enumerable.Range(0, categories)
+            .Select(i => $"""<c:pt idx="{i}"><c:v>K{i}</c:v></c:pt>"""));
+
+        var built = string.Concat(series.Select((entry, j) => $$"""
+            <c:ser><c:idx val="{{j}}"/><c:order val="{{j}}"/>
+              <c:tx><c:strRef><c:f>Sheet1!${{(char)('B' + j)}}$1</c:f><c:strCache><c:ptCount val="1"/>
+                <c:pt idx="0"><c:v>S{{j}}</c:v></c:pt></c:strCache></c:strRef></c:tx>
+              <c:spPr><a:solidFill><a:srgbClr val="{{entry.Colour}}"/></a:solidFill>
+                <a:ln><a:noFill/></a:ln></c:spPr>
+              <c:cat><c:strRef><c:f>Sheet1!$A$2:$A${{categories + 1}}</c:f><c:strCache><c:ptCount val="{{categories}}"/>
+                {{cats}}</c:strCache></c:strRef></c:cat>
+              <c:val><c:numRef><c:f>Sheet1!${{(char)('B' + j)}}$2:${{(char)('B' + j)}}${{categories + 1}}</c:f><c:numCache>
+                <c:formatCode>General</c:formatCode><c:ptCount val="{{categories}}"/>
+                {{string.Concat(entry.Values.Select((v, i) =>
+                    $"""<c:pt idx="{i}"><c:v>{v}</c:v></c:pt>"""))}}</c:numCache></c:numRef></c:val>
+            </c:ser>
+            """));
+
+        return $$"""
+          <c:chart>
+            <c:view3D><c:rotX val="15"/><c:rotY val="20"/><c:rAngAx val="{{rightAngled}}"/>
+              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.55"/>
+              </c:manualLayout></c:layout>
+              <c:{{element}}>
+                <c:grouping val="{{grouping}}"/><c:varyColors val="0"/>
+                {{built}}
+                <c:gapDepth val="150"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:{{element}}>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+    }
+
     private static string ChartPart3DGrid(double rotX, int depthPercent = 100) => $$"""
           <c:chart>
             <c:view3D><c:rotX val="{{rotX}}"/><c:rotY val="20"/><c:rAngAx val="0"/>
@@ -8987,6 +9048,64 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  "<w:r><w:t>p60 rotX 40</w:t></w:r></w:p>"),
+
+            ["chart-3d-ribbon-probe"] = () => new DocxBuilder()
+                .WithChart(ChartPart3DRibbon("area3DChart", "standard", 1, [("FF0000", [30.0, 80.0, 20.0, 60.0])]))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DRibbon("line3DChart", "standard", 1, [("FF0000", [30.0, 80.0, 20.0, 60.0])])),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DRibbon("area3DChart", "standard", 1, [("FF0000", [30.0, 80.0, 20.0, 60.0]), ("0000FF", [60.0, 20.0, 70.0, 40.0])])),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DRibbon("line3DChart", "standard", 1, [("FF0000", [30.0, 80.0, 20.0, 60.0]), ("0000FF", [60.0, 20.0, 70.0, 40.0])])),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DRibbon("area3DChart", "stacked", 1, [("FF0000", [30.0, 50.0, 20.0, 40.0]), ("0000FF", [30.0, 20.0, 40.0, 30.0])])),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DRibbon("line3DChart", "standard", 0, [("FF0000", [30.0, 80.0, 20.0, 60.0])])),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2100, relationshipId: "rIdChart") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>area zigzag</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2101, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>line zigzag</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2102, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>area two series</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2103, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>line two series</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2104, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>area stacked</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2105, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>line camera</w:t></w:r></w:p>"),
 
             ["chart-3d-height-count-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 1, 60))

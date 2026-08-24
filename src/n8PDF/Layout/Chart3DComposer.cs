@@ -253,8 +253,145 @@ internal static class Chart3DComposer
         }
 
 
+        if (chart.Kind is ChartKind.Line or ChartKind.Area)
+        {
+            foreach (var operation in Ribbons(chart, plan, arrangement, projection, theme))
+                yield return operation;
+            yield break;
+        }
+
         foreach (var operation in Bars(chart, plan, arrangement, projection, theme))
             yield return operation;
+    }
+
+    /// <summary>
+    /// The ribbons a 3-D line or area chart runs in depth: a sloped roof following the values,
+    /// an unshaded front, and side-shaded ends.
+    /// </summary>
+    /// <remarks>
+    /// Measured from <c>chart-3d-ribbon-probe</c>. The points span the plot edge to edge —
+    /// point <c>i</c> of <c>n</c> stands at <c>i/(n−1)</c> of the box — the way the flat area
+    /// chart spans. The rows and their depth fills are the bars' own arrangement. A roof
+    /// segment's shade follows its slope: 0.827 of the colour rising, 0.639 falling, the flat
+    /// top's 0.758 level — Word lights the tilted quads and those are the three readings its
+    /// raster shows. An area drops to nought (or its stack) and closes with a front wall; a
+    /// line is the roof alone over a thin front strip, 0.045 of the box tall, read off the
+    /// ribbon's end.
+    /// </remarks>
+    private static IEnumerable<DrawingOperation> Ribbons(
+        ChartDefinition chart, ChartComposer.Plan plan, Chart3DArrangement arrangement,
+        IChart3DProjection projection, DocumentTheme theme)
+    {
+        var span = plan.Maximum - plan.Minimum;
+        if (span <= 0) yield break;
+
+        var stacked = chart.Grouping is ChartGrouping.Stacked or ChartGrouping.PercentStacked;
+        var area = chart.Kind == ChartKind.Area || stacked;
+
+        double At(double value) => Math.Clamp((value - plan.Minimum) / span, 0, 1);
+
+        PathOperation Quad3(
+            (double, double, double) a, (double, double, double) b,
+            (double, double, double) c, (double, double, double) d, DrawingColor fill)
+        {
+            var q = new[] { a, b, c, d }
+                .Select(v => projection.Project(v.Item1, v.Item2, v.Item3)).ToArray();
+            return new PathOperation([
+                new PathStep(PathStepKind.Move, [q[0]]),
+                new PathStep(PathStepKind.Line, [q[1]]),
+                new PathStep(PathStepKind.Line, [q[2]]),
+                new PathStep(PathStepKind.Line, [q[3]]),
+                new PathStep(PathStepKind.Close, [])
+            ], fill, null, DefaultLineWidth, EvenOdd: false);
+        }
+
+        for (var row = arrangement.Rows - 1; row >= 0; row--)
+        {
+            var running = new double[chart.Categories.Count == 0 ? 1 : chart.Categories.Count];
+
+            for (var index = 0; index < chart.Series.Count; index++)
+            {
+                if (arrangement.Rows > 1 && index != row) continue;
+
+                var series = chart.Series[index];
+                var count = series.Values.Count;
+                if (count < 2) continue;
+
+                var colour = ResolveSeries(series, 0, theme);
+
+                // A line's ribbon and a stacked pile run deeper than the bars' slots: 0.6 of
+                // the row against the 0.4 the stated gapDepth gives a bar — measured at
+                // gapDepth 150; whether they follow the gap at all, no page yet separates.
+                var (z0, z1) = arrangement.Depth(chart, index);
+                if (!area)
+                {
+                    var mid = (z0 + z1) / 2;
+                    var slot = 1.0 / arrangement.Rows;
+                    (z0, z1) = (mid - 0.3 * slot, mid + 0.3 * slot);
+                }
+
+                // An area spans the plot edge to edge; a line stands its points at the
+                // category centres, exactly as the flat charts divide the foot.
+                double X(int i) => area || stacked
+                    ? (double)i / (count - 1)
+                    : (i + 0.5) / count;
+
+                var tops = new double[count];
+                var bases = new double[count];
+                for (var i = 0; i < count; i++)
+                {
+                    var value = Math.Max(0, series.Values[i] ?? 0);
+                    if (stacked)
+                    {
+                        bases[i] = At(Math.Max(plan.Minimum, 0) + running[i]);
+                        running[i] += value;
+                        tops[i] = At(Math.Max(plan.Minimum, 0) + running[i]);
+                    }
+                    else
+                    {
+                        tops[i] = At(value);
+                        bases[i] = area ? At(Math.Max(plan.Minimum, 0)) : tops[i];
+                    }
+                }
+
+                // The left end, under everything of this series. A line's ribbon has no
+                // ends to show — its thickness on Word's page is the roof's own edge.
+                if (area || stacked)
+                    yield return Quad3((X(0), bases[0], z0), (X(0), tops[0], z0), (X(0), tops[0], z1),
+                        (X(0), bases[0], z1), Shade(colour, SideShade));
+
+                // The roofs, left to right, each shaded by its slope.
+                for (var i = 0; i < count - 1; i++)
+                {
+                    var factor = tops[i + 1] > tops[i] + 0.0001 ? 0.827
+                        : tops[i + 1] < tops[i] - 0.0001 ? 0.639
+                        : FloorShade;
+
+                    yield return Quad3((X(i), tops[i], z0), (X(i + 1), tops[i + 1], z0),
+                        (X(i + 1), tops[i + 1], z1), (X(i), tops[i], z1), Shade(colour, factor));
+                }
+
+                // The front: a wall to the base for an area or a stack. A line shows no
+                // front strip — its thickness is the sliver its ends and folds show.
+                if (!area && !stacked) continue;
+
+                var steps = new List<PathStep>
+                {
+                    new(PathStepKind.Move, [projection.Project(0, bases[0], z0)])
+                };
+                for (var i = 0; i < count; i++)
+                    steps.Add(new PathStep(PathStepKind.Line, [projection.Project(X(i), tops[i], z0)]));
+                for (var i = count - 1; i >= 0; i--)
+                    steps.Add(new PathStep(PathStepKind.Line, [projection.Project(X(i), bases[i], z0)]));
+                steps.Add(new PathStep(PathStepKind.Close, []));
+                yield return new PathOperation(steps, colour, null, DefaultLineWidth, EvenOdd: false);
+
+                // The right end, over the roofs' and front's corner.
+                yield return Quad3((X(count - 1), bases[^1], z0), (X(count - 1), tops[^1], z0),
+                    (X(count - 1), tops[^1], z1), (X(count - 1), bases[^1], z1),
+                    Shade(colour, SideShade));
+            }
+        }
     }
 
     /// <summary>
