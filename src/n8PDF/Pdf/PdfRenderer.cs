@@ -97,6 +97,95 @@ internal static class PdfRenderer
         // reference to the page it points at and that page may come later in the document.
         foreach (var (source, target) in pages)
             AddLinkAnnotations(document, builder, source, target);
+
+        WriteOutline(document, builder);
+    }
+
+    /// <summary>
+    /// The document outline (#66): the tree of headings a reader shows in its navigation pane.
+    /// </summary>
+    /// <remarks>
+    /// The tree is derived from the outline levels the layout recorded: a heading's parent is the
+    /// nearest heading above it with a smaller level, so a document whose levels skip - a
+    /// Heading3 directly under a Heading1 - still produces a well-formed tree, with the deeper
+    /// entry a child of the nearest shallower one. Every node is written open, so a node's
+    /// <c>/Count</c> is the positive number of its descendants and the root's is the total. Each
+    /// entry is an <c>XYZ</c> destination at the heading's own place on its page, with the zoom
+    /// left alone, exactly as the internal-link annotations write theirs. A document with no
+    /// headings gets no <c>/Outlines</c> entry at all.
+    /// </remarks>
+    private static void WriteOutline(LaidOutDocument document, PdfBuilder builder)
+    {
+        var headings = document.Headings
+            .Where(h => h.PageIndex >= 0 && h.PageIndex < document.Pages.Count && h.Title.Length > 0)
+            .ToList();
+
+        if (headings.Count == 0) return;
+
+        var pdf = builder.Document;
+        var rootRef = pdf.Reserve();
+        var refs = headings.Select(_ => pdf.Reserve()).ToList();
+
+        // The parent of each entry: the nearest one above it with a smaller level.
+        var parents = new int[headings.Count];
+        var childrenOf = new Dictionary<int, List<int>> { [-1] = [] };
+        var open = new Stack<int>();
+
+        for (var i = 0; i < headings.Count; i++)
+        {
+            while (open.Count > 0 && headings[open.Peek()].Level >= headings[i].Level) open.Pop();
+
+            parents[i] = open.Count > 0 ? open.Peek() : -1;
+            childrenOf[-1] ??= [];
+            if (!childrenOf.TryGetValue(parents[i], out var siblings))
+                childrenOf[parents[i]] = siblings = [];
+            siblings.Add(i);
+            open.Push(i);
+        }
+
+        int Descendants(int index) =>
+            childrenOf.TryGetValue(index, out var below)
+                ? below.Sum(child => 1 + Descendants(child))
+                : 0;
+
+        for (var i = 0; i < headings.Count; i++)
+        {
+            var heading = headings[i];
+            var page = document.Pages[heading.PageIndex];
+
+            var entry = new PdfDictionary()
+                .Set("Title", PdfString.FromText(heading.Title))
+                .Set("Parent", parents[i] < 0 ? rootRef : refs[parents[i]])
+                .Set("Dest", new PdfArray()
+                    .Add(pdf.GetPageReference(heading.PageIndex))
+                    .Add(new PdfName("XYZ"))
+                    .Add(heading.X)
+                    .Add(page.HeightPoints - heading.Y)
+                    .Add(PdfNull.Instance));
+
+            var siblings = childrenOf[parents[i]];
+            var at = siblings.IndexOf(i);
+            if (at > 0) entry.Set("Prev", refs[siblings[at - 1]]);
+            if (at < siblings.Count - 1) entry.Set("Next", refs[siblings[at + 1]]);
+
+            if (childrenOf.TryGetValue(i, out var below) && below.Count > 0)
+            {
+                entry.Set("First", refs[below[0]])
+                    .Set("Last", refs[below[^1]])
+                    .Set("Count", Descendants(i));
+            }
+
+            pdf.Assign(refs[i], entry);
+        }
+
+        var top = childrenOf[-1];
+        pdf.Assign(rootRef, new PdfDictionary()
+            .Set("Type", "Outlines")
+            .Set("First", refs[top[0]])
+            .Set("Last", refs[top[^1]])
+            .Set("Count", headings.Count));
+
+        pdf.SetOutlines(rootRef);
     }
 
     /// <summary>

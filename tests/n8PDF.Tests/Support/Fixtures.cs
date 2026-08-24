@@ -9158,6 +9158,38 @@ public static class Fixtures
                     DocxBuilder.RunProperties(font: "n8PDF Probe", halfPoints: 48))
                 .AddParagraph("A control line in the usual face.", ZeroSpacing, Times()),
 
+            ["outline-probe"] = () => new DocxBuilder()
+                .WithExtraStyles(
+                    Style("Heading1", "heading 1", outline: "<w:outlineLvl w:val=\"0\"/>", bold: true) +
+                    Style("Heading2", "heading 2", outline: "<w:outlineLvl w:val=\"1\"/>", bold: true) +
+                    Style("Heading3", "heading 3", outline: "<w:outlineLvl w:val=\"2\"/>", bold: true))
+                .AddRawParagraph("<w:p><w:pPr><w:pStyle w:val=\"Heading1\"/>" + ZeroSpacing +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>The first part</w:t></w:r></w:p>")
+                .AddParagraph("Body text under the first part.", ZeroSpacing, Times())
+                .AddRawParagraph("<w:p><w:pPr><w:pStyle w:val=\"Heading2\"/>" + ZeroSpacing +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>A section within it</w:t></w:r></w:p>")
+                .AddParagraph("More body text.", ZeroSpacing, Times())
+                .AddRawParagraph("<w:p><w:pPr><w:pStyle w:val=\"Heading3\"/>" + ZeroSpacing +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>A detail of the section</w:t></w:r></w:p>")
+                .AddRawParagraph("<w:p><w:pPr><w:pStyle w:val=\"Heading1\"/>" + ZeroSpacing +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>The second part</w:t></w:r></w:p>")
+                .AddRawParagraph("<w:p><w:pPr><w:pStyle w:val=\"Heading3\"/>" + ZeroSpacing +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>Straight to a detail</w:t></w:r></w:p>")
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacing + "<w:outlineLvl w:val=\"1\"/>" +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>Promoted by hand</w:t></w:r></w:p>")
+                .AddRawParagraph("<w:p><w:pPr>" + ZeroSpacingNewPage +
+                                 "</w:pPr><w:r><w:rPr>" + Times() +
+                                 "</w:rPr><w:t>Body on a fresh page.</w:t></w:r></w:p>")
+                .AddRawParagraph("<w:p><w:pPr><w:pStyle w:val=\"Heading2\"/>" + ZeroSpacing +
+                                 "</w:pPr><w:r><w:rPr>" + Times(24, bold: true) +
+                                 "</w:rPr><w:t>On the second page</w:t></w:r></w:p>"),
+
             ["chart-3d-deep-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 0, 60, 100, 15, 20, 110, 0))
                 .WithPart("word/charts/chart2.xml",

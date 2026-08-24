@@ -1203,6 +1203,16 @@ internal sealed class LayoutEngine(
                     // knowing whether or not the document has a table in it yet.
                     if (format.OutlineLevel is not null) _headingPages[paragraph] = cursor.Page;
 
+                    // And a heading is what the PDF's navigation pane lists (#66), recorded with
+                    // its level and text at the line's own place on the page. w:outlineLvl 9 is
+                    // the schema's "none", and a paragraph inside a field - a generated table of
+                    // contents entry, say - is a pointer to a heading rather than one itself.
+                    if (format.OutlineLevel is { } outline && outline < 9 && !paragraph.InsideField)
+                    {
+                        _result.Headings.Add(new OutlineHeading(
+                            outline, TextOf(paragraph), pageIndex, cursor.Left, cursor.Y));
+                    }
+
                     foreach (var mark in marks) _markPages[mark] = cursor.Page;
                 }
 
