@@ -6627,33 +6627,45 @@ internal sealed class LayoutEngine(
         var format = atom.Format;
         var face = atom.Font;
 
-        double Measure(string text) =>
+        var text = atom.Text;
+
+        double Measure(string t) =>
             TextMeasurer.Measure(
-                face.Font, text, format.EffectiveFontSizePoints,
+                face.Font, t, format.EffectiveFontSizePoints,
                 format.CharacterSpacingPoints, applyKerning: false) * format.ScaleFactor;
 
-        var runes = atom.Text.EnumerateRunes().Select(rune => rune.ToString()).ToList();
-        if (runes.Count < 2) return atom;
+        // Accumulate each rune's own width once rather than re-measuring the growing prefix (which
+        // re-scanned from the start every step) or materialising one string per rune per call: a
+        // single unbreakable word of a million letters cost O(L^2) measures and allocations and
+        // hung the conversion (#213). A run breaking here is one no shaping joined, so per-rune
+        // widths sum to the prefix's; character spacing between them is added back per gap.
+        var spacing = format.CharacterSpacingPoints * format.ScaleFactor;
+        var runeCount = 0;
+        var splitAt = 0;    // characters taken so far
+        var width = 0.0;
 
-        var taken = 1;
-        var width = Measure(runes[0]);
-
-        // At least one letter, however narrow the box: a line has to take something or the
-        // paragraph would never end.
-        for (var i = 1; i < runes.Count; i++)
+        foreach (var rune in text.EnumerateRunes())
         {
-            var next = Measure(string.Concat(runes.Take(i + 1)));
-            if (next > available + 0.001) break;
+            var runeWidth = Measure(rune.ToString()) + (runeCount > 0 ? spacing : 0);
 
-            taken = i + 1;
-            width = next;
+            // At least one letter, however narrow the box: a line has to take something or the
+            // paragraph would never end.
+            if (runeCount >= 1 && width + runeWidth > available + 0.001) break;
+
+            splitAt += rune.Utf16SequenceLength;
+            width += runeWidth;
+            runeCount++;
         }
 
-        if (taken >= runes.Count) return atom;
+        if (splitAt >= text.Length) return atom;
 
-        var head = atom.Divide(string.Concat(runes.Take(taken)), width, leadingKern: 0);
-        var rest = string.Concat(runes.Skip(taken));
-        var tail = atom.Divide(rest, Measure(rest), leadingKern: 0);
+        var head = atom.Divide(text[..splitAt], width, leadingKern: 0);
+
+        // The tail's width is the atom's own less the head's, not a fresh measure of the whole
+        // remaining tail — which, measured once per line over a shrinking remainder, was itself
+        // O(L^2) (#213). The tail is re-split on the next line, which measures it exactly then.
+        var rest = text[splitAt..];
+        var tail = atom.Divide(rest, Math.Max(0, atom.Width - width), leadingKern: 0);
 
         atoms[index] = head;
         atoms.Insert(index + 1, tail);
