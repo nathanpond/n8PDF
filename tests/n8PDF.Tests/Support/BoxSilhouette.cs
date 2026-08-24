@@ -77,7 +77,8 @@ internal static class BoxSilhouette
     public static Shape Find(
         RenderedPage page, double scale,
         Func<(byte R, byte G, byte B), bool> belongs,
-        (double Left, double Top, double Right, double Bottom) within)
+        (double Left, double Top, double Right, double Bottom) within,
+        int corners = Corners)
     {
         var left = (int)(within.Left * scale);
         var top = (int)(within.Top * scale);
@@ -133,18 +134,18 @@ internal static class BoxSilhouette
 
         var hull = Hull(edge);
 
-        if (hull.Count < Corners)
-            return new Shape([], $"the outline has only {hull.Count} corners, so it is not a box seen in three dimensions");
+        if (hull.Count < corners)
+            return new Shape([], $"the outline has only {hull.Count} corners, fewer than the {corners} asked for");
 
         // Down to six, dropping whichever corner costs least to lose, then each of the six edges
         // refitted from the pixels rather than kept from the hull.
-        var reduced = Reduce(hull, Corners);
-        var lines = new List<((double X, double Y) On, (double X, double Y) Along)>(Corners);
+        var reduced = Reduce(hull, corners);
+        var lines = new List<((double X, double Y) On, (double X, double Y) Along)>(corners);
 
-        for (var i = 0; i < Corners; i++)
+        for (var i = 0; i < corners; i++)
         {
             var a = reduced[i];
-            var b = reduced[(i + 1) % Corners];
+            var b = reduced[(i + 1) % corners];
 
             // The pixels this edge owns: nearer to it than to any other, and not round a corner.
             var mine = edge.Where(p => Nearest(p, reduced) == i).ToList();
@@ -155,11 +156,11 @@ internal static class BoxSilhouette
             lines.Add(Fit(mine, (b.X - a.X, b.Y - a.Y)));
         }
 
-        var corners = new List<(double X, double Y)>(Corners);
+        var met = new List<(double X, double Y)>(corners);
 
-        for (var i = 0; i < Corners; i++)
+        for (var i = 0; i < corners; i++)
         {
-            var previous = lines[(i + Corners - 1) % Corners];
+            var previous = lines[(i + corners - 1) % corners];
 
             if (Meet(previous, lines[i]) is not { } corner)
                 return new Shape([], "two edges of the outline are parallel and do not meet at a corner");
@@ -175,16 +176,16 @@ internal static class BoxSilhouette
                     $"the outline turns by only {turn:0.0}° at one corner, so the box is too nearly " +
                     "square-on for its corners to be placed");
 
-            corners.Add(corner);
+            met.Add(corner);
         }
 
         // Round to start at the leftmost corner, so a caller can name them without knowing which
         // pixel the walk happened to begin at.
         var first = 0;
-        for (var i = 1; i < corners.Count; i++)
-            if (corners[i].X < corners[first].X) first = i;
+        for (var i = 1; i < met.Count; i++)
+            if (met[i].X < met[first].X) first = i;
 
-        return new Shape([.. Enumerable.Range(0, Corners).Select(i => corners[(first + i) % Corners])], null);
+        return new Shape([.. Enumerable.Range(0, corners).Select(i => met[(first + i) % corners])], null);
     }
 
     /// <summary>

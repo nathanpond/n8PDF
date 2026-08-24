@@ -52,7 +52,7 @@ namespace n8PDF.Layout;
 /// **The verified domain** is rotX 5..60, rotY 5..65, both positive, depth 20..500 percent,
 /// counts to three, and hPercent 50..150. Outside it the formulas extrapolate continuously.
 /// </remarks>
-internal sealed class Chart3DObliqueProjection
+internal sealed class Chart3DObliqueProjection : IChart3DProjection
 {
     private const double LeftPad = 0.0098;
     private const double RightPad = 0.0099;
