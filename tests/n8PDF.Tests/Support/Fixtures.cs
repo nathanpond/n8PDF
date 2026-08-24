@@ -2367,6 +2367,61 @@ public static class Fixtures
     /// series is the same near-white so the bars stay out of the way of the gridlines, and every
     /// value is one so the bars are all of a height and none of them hides a line another needs.
     /// </remarks>
+    /// <summary>
+    /// One three-dimensional bar with the two gaps stated, for measuring what a bar's footprint is.
+    /// </summary>
+    /// <remarks>
+    /// One category and one series throughout, so the slot is the whole box and the bar's footprint
+    /// is read directly against it. <c>standard</c> grouping rather than <c>clustered</c>: the two
+    /// draw different pictures from the same document, and an earlier run of #114 measured a third
+    /// of the width under <c>clustered</c> believing it was measuring depth.
+    ///
+    /// The bar is red and nothing else on the page is, which is what <see cref="BoxSilhouette"/>
+    /// needs. The value is held at 60 on every page so the bar's height never moves — only its
+    /// footprint is under test.
+    /// </remarks>
+    private static string ChartPart3DFootprint(int gapWidth, int gapDepth) => $$"""
+          <c:chart>
+            <c:view3D><c:rotX val="15"/><c:rotY val="20"/><c:rAngAx val="0"/>
+              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.55"/>
+              </c:manualLayout></c:layout>
+              <c:bar3DChart>
+                <c:barDir val="col"/><c:grouping val="standard"/><c:varyColors val="0"/>
+                <c:ser><c:idx val="0"/><c:order val="0"/>
+                  <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>S</c:v></c:pt></c:strCache></c:strRef></c:tx>
+                  <c:spPr><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>
+                    <a:ln><a:noFill/></a:ln></c:spPr>
+                  <c:cat><c:strRef><c:f>Sheet1!$A$2</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>K</c:v></c:pt></c:strCache></c:strRef></c:cat>
+                  <c:val><c:numRef><c:f>Sheet1!$B$2</c:f><c:numCache>
+                    <c:formatCode>General</c:formatCode><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>60</c:v></c:pt></c:numCache></c:numRef></c:val>
+                </c:ser>
+                <c:gapWidth val="{{gapWidth}}"/><c:gapDepth val="{{gapDepth}}"/><c:shape val="box"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:bar3DChart>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+
     private static string ChartPart3DGridSeries(double rotX, int depthPercent, int series)
     {
         var built = new System.Text.StringBuilder();
@@ -6271,6 +6326,94 @@ public static class Fixtures
             // resolved — at 200 the convergence moves by a twelfth depending on where the detector's
             // threshold is put, which is not a measurement — so the law is pinned at the end where
             // the lines are far apart and the two deep pages are kept only to show where that stops.
+            ["chart-3d-footprint-probe"] = () => new DocxBuilder()
+                .WithChart(ChartPart3DFootprint(0, 0))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(50, 0)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(150, 0)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(300, 0)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(0, 50)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(0, 150)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(0, 300)),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(150, 150)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart9.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DFootprint(50, 300)),
+                    fromDocument: ("rIdChart9",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1100, relationshipId: "rIdChart") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 0 gd 0</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1101, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 50 gd 0</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1102, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 150 gd 0</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1103, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 300 gd 0</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1104, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 0 gd 50</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1105, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 0 gd 150</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1106, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 0 gd 300</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1107, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 150 gd 150</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1108, relationshipId: "rIdChart9") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>gw 50 gd 300</w:t></w:r></w:p>"),
+
             ["chart-3d-condition-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DGridSeries(25, 200, 5))
                 .WithPart("word/charts/chart2.xml",
