@@ -231,7 +231,10 @@ internal static class PdfRenderer
                         .Add(end.X + end.Width + LinkPaddingPoints)
                         .Add(Flip(source, top)))
                     // Without this most viewers draw a black box around every link.
-                    .Set("Border", new PdfArray().Add(0).Add(0).Add(0));
+                    .Set("Border", new PdfArray().Add(0).Add(0).Add(0))
+                    // Printable and never hidden, which PDF/A demands of every annotation and
+                    // which is simply true of a link either way (#68).
+                    .Set("F", 4);
 
                 if (link.Url is { } url)
                 {

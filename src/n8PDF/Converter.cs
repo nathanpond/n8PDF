@@ -23,6 +23,14 @@ public sealed class ConversionOptions
     /// </remarks>
     public FontLibrary? Fonts { get; set; }
 
+    /// <summary>
+    /// Claim and honour PDF/A-2b conformance (#68). Off by default. When on, the file carries an
+    /// XMP metadata packet agreeing with the information dictionary, an sRGB output intent, and
+    /// a file identifier in the trailer; what A-2b demands of the content — embedded subset
+    /// fonts, no external references, no encryption — is true of every file this writes anyway.
+    /// </summary>
+    public bool PdfA { get; set; }
+
     public LayoutOptions Layout { get; set; } = new();
 
     /// <summary>
@@ -109,6 +117,7 @@ public static class Converter
 
         var builder = new PdfBuilder { Title = options.Title, DropHinting = options.DropFontHinting };
         builder.Document.CreationDate = options.CreationDate;
+        builder.Document.PdfA = options.PdfA;
 
         // The font library goes with it: a drawing can hold text that layout never measured,
         // and drawing it needs a font of its own.
