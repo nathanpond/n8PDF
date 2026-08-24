@@ -138,7 +138,7 @@ public static class TestFonts
     [
         "chart-area-scatter", "chart-axis-probe", "chart-bar-scale-probe", "chart-bar-stacked",
         "chart-doughnut-bubble", "chart-kinds-probe", "chart-kinds-probe-two",
-        "chart-drop-line-probe", "chart-error-bar-probe", "chart-placement-probe", "chart-legend-key-probe", "chart-3d-geometry-probe", "chart-3d-height-probe", "chart-3d-gridline-probe", "chart-3d-size-probe", "chart-3d-condition-probe", "chart-3d-footprint-probe", "chart-3d-count-probe", "chart-3d-slot-probe", "chart-3d-height-count-probe", "chart-3d-depth-probe", "chart-3d-rotation-probe", "chart-3d-inset-probe", "chart-3d-shading-probe", "chart-3d-value-probe",
+        "chart-drop-line-probe", "chart-error-bar-probe", "chart-placement-probe", "chart-legend-key-probe", "chart-3d-geometry-probe", "chart-3d-height-probe", "chart-3d-gridline-probe", "chart-3d-size-probe", "chart-3d-condition-probe", "chart-3d-footprint-probe", "chart-3d-count-probe", "chart-3d-slot-probe", "chart-3d-height-count-probe", "chart-3d-depth-probe", "chart-3d-rotation-probe", "chart-3d-perspective-probe", "chart-3d-inset-probe", "chart-3d-shading-probe", "chart-3d-value-probe",
         "chart-legend-box-probe", "chart-legend-cut-probe", "chart-legend-room-probe", "chart-legend-size-probe", "chart-radar-stock", "chart-title-weight-probe", "chart-trendline-probe", "chart-updown-bar-probe",
         "merged-indent-probe",
         "brochure", "emphasis-mark-probe", "minutes", "notes",

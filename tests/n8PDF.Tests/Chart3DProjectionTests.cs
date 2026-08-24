@@ -313,4 +313,216 @@ public class Chart3DProjectionTests(ITestOutputHelper output)
 
         return (tilts[1], tilts[0], uprights[1], uprights[0]);
     }
+    /// <summary>
+    /// The rotation, for <c>rAngAx="0"</c>: about the vertical by <c>rotY</c>, then about the
+    /// horizontal by <b>minus</b> <c>rotX</c>.
+    /// </summary>
+    /// <remarks>
+    /// #98 asked for the rotation order and its signs. Under square axes the question had no answer,
+    /// because there is no rotation; here there is one, and this is it.
+    ///
+    /// It is read where nothing has to be fitted for it. <c>c:perspective</c> at nought is
+    /// orthographic, so the divide vanishes and the picture is a plain parallel projection of a
+    /// turned box — parallel edges stay parallel and equal, which the probe's pages confirm before
+    /// anything is fitted to them. The width axis then lands tilted by <c>tan(rotY)·sin(rotX)</c>,
+    /// which at 15° by 20° is 0.0942 against a measured 0.0940 and 0.0945 on the two width edges.
+    ///
+    /// Checked properly, corner by corner, with only the scale and the placing taken from the page —
+    /// three numbers, against twelve — the whole silhouette comes within
+    ///
+    /// | | worst corner |
+    /// |---|---|
+    /// | 15° by 20° | **0.149pt** |
+    /// | 40° by 45°, **held back** | **0.170pt** |
+    ///
+    /// which is inside this story's own bar of 0.24pt, a quarter of a 300 dpi pixel.
+    ///
+    /// The other conventions are not close. On the held-back page: turning the other way about the
+    /// horizontal misses by **71pt**, the two rotations in the other order by **31pt**, and reversing
+    /// the vertical turn as well by **64pt**. This is not a fit among near-equals.
+    ///
+    /// **Only the orthographic case.** With <c>perspective</c> above nought the same model with a
+    /// camera divide degrades — a fifth of a point at 5, but 2.7 at 30 and 10.8 at 120 — so what is
+    /// pinned here is the rotation, not the projection. The remaining term is on the issue.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 15, 20, false)]
+    [InlineData(8, 40, 45, true)]
+    public void The_box_is_turned_about_the_vertical_then_back_about_the_horizontal(
+        int page, int rotX, int rotY, bool heldBack)
+    {
+        if (Corners("chart-3d-perspective-probe", page) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            _output.WriteLine(PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var worst = Astray(word, rotX, rotY, backwards: false, swapped: false);
+
+        _output.WriteLine($"{rotX}° by {rotY}°{(heldBack ? " (held back)" : "")}: " +
+                          $"the worst corner is {worst:0.000}pt from Word's");
+
+        Assert.True(worst < 0.24, $"the worst corner is {worst:0.000}pt out, above the 0.24pt bar");
+    }
+
+    /// <summary>
+    /// The other orders and signs are nowhere near, which is what makes the one above a measurement.
+    /// </summary>
+    [Theory]
+    [InlineData(true, false, "turned the other way about the horizontal")]
+    [InlineData(false, true, "the two rotations in the other order")]
+    public void The_other_conventions_miss_by_orders_of_magnitude(bool backwards, bool swapped, string what)
+    {
+        if (Corners("chart-3d-perspective-probe", 8) is not { } word)
+        {
+            Assert.False(PdfRasterizer.IsRequired, PdfRasterizer.UnavailableMessage);
+            return;
+        }
+
+        var right = Astray(word, 40, 45, backwards: false, swapped: false);
+        var wrong = Astray(word, 40, 45, backwards, swapped);
+
+        _output.WriteLine($"{what}: {wrong:0.0}pt against the right convention's {right:0.000}pt");
+
+        Assert.True(wrong > 20 * right,
+            $"{what} is now within {wrong:0.0}pt where the right one is {right:0.000}pt, so this page " +
+            "no longer tells the conventions apart");
+    }
+
+    /// <summary>Word's six silhouette corners on a page of a probe.</summary>
+    private IReadOnlyList<(double X, double Y)>? Corners(string fixtureName, int page)
+    {
+        if (TestFonts.SkipForMissingFonts(fixtureName)) return null;
+
+        var path = Path.Combine(TestPaths.ReferencePdfs, fixtureName + ".pdf");
+        Assert.True(File.Exists(path), $"No Word reference PDF at {path}");
+
+        const double scale = 6;
+
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), page, scale) is not { } rendered) return null;
+
+        var shape = BoxSilhouette.Find(rendered, scale, Reddish, (73, 73, 431, 287));
+
+        return shape.Found ? shape.Points : null;
+    }
+
+    /// <summary>
+    /// How far the worst corner of the model's silhouette falls from Word's, once the page's own
+    /// scale and placing are taken out.
+    /// </summary>
+    /// <remarks>
+    /// Three numbers are taken from the page — a scale and two offsets — and twelve are compared
+    /// against, so the shape is what is being tested and not the placement. Where the scene sits in
+    /// the plot rectangle is #108's rule and is measured separately.
+    /// </remarks>
+    private static double Astray(
+        IReadOnlyList<(double X, double Y)> word, double rotX, double rotY, bool backwards, bool swapped)
+    {
+        // The bar: a unit across, a unit deep, filling the lower three fifths of a box whose height
+        // is the plot rectangle's aspect. Centred on the box, which is what the rotation turns about.
+        const double boxHeight = 0.55;
+        const double fills = 0.6;
+
+        var top = -boxHeight / 2 + fills * boxHeight;
+        var bottom = -boxHeight / 2;
+
+        (double X, double Y, double Z)[] scene =
+        [
+            (-0.5, top, -0.5), (-0.5, top, 0.5), (0.5, top, 0.5),
+            (0.5, bottom, 0.5), (0.5, bottom, -0.5), (-0.5, bottom, -0.5)
+        ];
+
+        var a = (backwards ? 1 : -1) * rotX * Math.PI / 180;
+        var b = rotY * Math.PI / 180;
+
+        (double X, double Y) Turned((double X, double Y, double Z) p)
+        {
+            // About the vertical by rotY, then about the horizontal by -rotX — or the other order.
+            double x = p.X, y = p.Y, z = p.Z;
+
+            void AboutY()
+            {
+                (x, z) = (x * Math.Cos(b) + z * Math.Sin(b), -x * Math.Sin(b) + z * Math.Cos(b));
+            }
+
+            void AboutX()
+            {
+                (y, z) = (y * Math.Cos(a) - z * Math.Sin(a), y * Math.Sin(a) + z * Math.Cos(a));
+            }
+
+            if (swapped) { AboutX(); AboutY(); } else { AboutY(); AboutX(); }
+
+            return (x, y);
+        }
+
+        // Least squares for scale and the two offsets: screen = (s·X + tx, −s·Y + ty).
+        double[,] normal = new double[3, 3];
+        double[] against = new double[3];
+
+        for (var i = 0; i < 6; i++)
+        {
+            var (px, py) = Turned(scene[i]);
+
+            foreach (var (coefficients, value) in new[]
+                     {
+                         (new[] { px, 1.0, 0.0 }, word[i].X),
+                         (new[] { -py, 0.0, 1.0 }, word[i].Y)
+                     })
+            {
+                for (var r = 0; r < 3; r++)
+                {
+                    for (var c = 0; c < 3; c++) normal[r, c] += coefficients[r] * coefficients[c];
+
+                    against[r] += coefficients[r] * value;
+                }
+            }
+        }
+
+        var placed = Solve(normal, against);
+        var worst = 0.0;
+
+        for (var i = 0; i < 6; i++)
+        {
+            var (px, py) = Turned(scene[i]);
+
+            worst = Math.Max(worst, Math.Sqrt(
+                Math.Pow(placed[0] * px + placed[1] - word[i].X, 2) +
+                Math.Pow(-placed[0] * py + placed[2] - word[i].Y, 2)));
+        }
+
+        return worst;
+    }
+
+    /// <summary>Gaussian elimination on three unknowns.</summary>
+    private static double[] Solve(double[,] matrix, double[] against)
+    {
+        var work = new double[3, 4];
+
+        for (var r = 0; r < 3; r++)
+        {
+            for (var c = 0; c < 3; c++) work[r, c] = matrix[r, c];
+
+            work[r, 3] = against[r];
+        }
+
+        for (var c = 0; c < 3; c++)
+        {
+            var pivot = c;
+            for (var r = c + 1; r < 3; r++)
+                if (Math.Abs(work[r, c]) > Math.Abs(work[pivot, c])) pivot = r;
+
+            for (var j = 0; j < 4; j++) (work[c, j], work[pivot, j]) = (work[pivot, j], work[c, j]);
+
+            for (var r = 0; r < 3; r++)
+            {
+                if (r == c) continue;
+
+                var factor = work[r, c] / work[c, c];
+                for (var j = c; j < 4; j++) work[r, j] -= factor * work[c, j];
+            }
+        }
+
+        return [work[0, 3] / work[0, 0], work[1, 3] / work[1, 1], work[2, 3] / work[2, 2]];
+    }
 }
