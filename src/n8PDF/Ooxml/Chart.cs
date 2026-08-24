@@ -287,6 +287,22 @@ internal sealed class ChartAxis
 
     public bool MajorGridlines { get; set; }
 
+    /// <summary>The colour the major gridlines state for themselves, or null for the default.</summary>
+    public DrawingColorReference? MajorGridlineColor { get; set; }
+
+    /// <summary>Their stated width in points, or null for the default.</summary>
+    public double? MajorGridlineWidth { get; set; }
+
+    /// <summary>Whether the axis asks for minor gridlines.</summary>
+    public bool MinorGridlines { get; set; }
+
+    public DrawingColorReference? MinorGridlineColor { get; set; }
+
+    public double? MinorGridlineWidth { get; set; }
+
+    /// <summary>The stated distance between minor marks, or null where the axis does not say.</summary>
+    public double? MinorUnit { get; set; }
+
     public double? Minimum { get; set; }
 
     public double? Maximum { get; set; }
@@ -530,6 +546,23 @@ internal sealed class ChartDefinition
     /// </remarks>
     public ChartScene? Scene { get; set; }
 
+    /// <summary>
+    /// What the back wall of a three-dimensional chart is filled with, or null for nothing.
+    /// </summary>
+    /// <remarks>
+    /// Unstated walls and floor are not filled at all — the plot comes back white with only the
+    /// bars inked (#110) — so null means null and not a default. The elements are children of
+    /// <c>c:chart</c>, before <c>c:plotArea</c>; put inside the plot area Word neither complains
+    /// nor draws them, and neither does this — the shading probe's last page proves Word's side.
+    /// </remarks>
+    public DrawingColorReference? BackWallFill { get; set; }
+
+    /// <summary>The side wall's fill, as <see cref="BackWallFill"/>.</summary>
+    public DrawingColorReference? SideWallFill { get; set; }
+
+    /// <summary>The floor's fill, as <see cref="BackWallFill"/>.</summary>
+    public DrawingColorReference? FloorFill { get; set; }
+
     /// <summary>The axis the series are arranged along, which only a three-dimensional chart has.</summary>
     public ChartAxis? DepthAxis { get; set; }
 
@@ -658,6 +691,9 @@ internal static class ChartReader
             plot.Name.LocalName == "surfaceChart")
         {
             definition.Scene = ReadScene(chart.Element(Main + "view3D"));
+            definition.BackWallFill = SurfaceFill(chart.Element(Main + "backWall"));
+            definition.SideWallFill = SurfaceFill(chart.Element(Main + "sideWall"));
+            definition.FloorFill = SurfaceFill(chart.Element(Main + "floor"));
             definition.GapDepth = Integer(plot.Element(Main + "gapDepth")) ?? 150;
             definition.Shape = plot.Element(Main + "shape")?.Attribute("val")?.Value ?? "box";
         }
@@ -1019,6 +1055,12 @@ internal static class ChartReader
             Position = element.Element(Main + "axPos")?.Attribute("val")?.Value ?? (isValue ? "l" : "b"),
             Deleted = element.Element(Main + "delete")?.Attribute("val")?.Value is "1" or "true",
             MajorGridlines = element.Element(Main + "majorGridlines") is not null,
+            MajorGridlineColor = GridlineFill(element.Element(Main + "majorGridlines")),
+            MajorGridlineWidth = GridlineWidth(element.Element(Main + "majorGridlines")),
+            MinorGridlines = element.Element(Main + "minorGridlines") is not null,
+            MinorGridlineColor = GridlineFill(element.Element(Main + "minorGridlines")),
+            MinorGridlineWidth = GridlineWidth(element.Element(Main + "minorGridlines")),
+            MinorUnit = Number(element.Element(Main + "minorUnit")),
             Minimum = Number(scaling?.Element(Main + "min")),
             Maximum = Number(scaling?.Element(Main + "max")),
             MajorUnit = Number(element.Element(Main + "majorUnit")),
@@ -1033,6 +1075,22 @@ internal static class ChartReader
                            ?? "between"
         };
     }
+
+    /// <summary>What a surface of the room is filled with, from its own properties.</summary>
+    private static DrawingColorReference? SurfaceFill(XElement? surface) =>
+        DrawingText.ReadFill(surface?.Element(Main + "spPr"));
+
+    /// <summary>The colour a gridline element states for its line, or null for none.</summary>
+    private static DrawingColorReference? GridlineFill(XElement? gridlines) =>
+        DrawingText.ReadFill(gridlines?.Element(Main + "spPr")?.Element(W.Drawing + "ln"));
+
+    /// <summary>The width a gridline element states for its line, in points, or null.</summary>
+    private static double? GridlineWidth(XElement? gridlines) =>
+        double.TryParse(
+            gridlines?.Element(Main + "spPr")?.Element(W.Drawing + "ln")?.Attribute("w")?.Value,
+            NumberStyles.Integer, CultureInfo.InvariantCulture, out var emu)
+            ? emu / 12700
+            : null;
 
     /// <summary>
     /// The type an axis sets its labels in, from the text properties it carries. Hundredths of a

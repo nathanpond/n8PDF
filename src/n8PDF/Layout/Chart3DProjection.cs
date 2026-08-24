@@ -47,7 +47,7 @@ namespace n8PDF.Layout;
 /// their values where the branch changed, which keeps the picture stable and close rather
 /// than exact.
 /// </remarks>
-internal sealed class Chart3DProjection
+internal sealed class Chart3DProjection : IChart3DProjection
 {
     private const double Fill = 0.9702;
     private const double FloorScale = 1.0306;

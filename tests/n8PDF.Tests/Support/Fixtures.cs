@@ -2661,6 +2661,131 @@ public static class Fixtures
             """;
     }
 
+
+    /// <summary>
+    /// A three-dimensional chart whose walls and floor are stated in distinct colours, under a
+    /// sliver of a bar so that nothing occludes them.
+    /// </summary>
+    /// <remarks>
+    /// The bar's value is 1 of 100 deliberately: on the shading probe's pages a bar of 60 casts an
+    /// occlusion shadow across the floor that swallows its back corners, and what a corner finder
+    /// returns there is the shadow's edge rather than the floor's.
+    /// </remarks>
+    private static string ChartPart3DWallStated(int rotX, int rotY, int rightAngled) => $$"""
+          <c:chart>
+            <c:view3D><c:rotX val="{{rotX}}"/><c:rotY val="{{rotY}}"/><c:rAngAx val="{{rightAngled}}"/>
+              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+            <c:floor><c:spPr><a:solidFill><a:srgbClr val="0000FF"/></a:solidFill></c:spPr></c:floor>
+            <c:sideWall><c:spPr><a:solidFill><a:srgbClr val="00C000"/></a:solidFill></c:spPr></c:sideWall>
+            <c:backWall><c:spPr><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill></c:spPr></c:backWall>
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.1"/><c:w val="0.6"/><c:h val="0.55"/>
+              </c:manualLayout></c:layout>
+              <c:bar3DChart>
+                <c:barDir val="col"/><c:grouping val="standard"/><c:varyColors val="0"/>
+                <c:ser><c:idx val="0"/><c:order val="0"/>
+                  <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>S</c:v></c:pt></c:strCache></c:strRef></c:tx>
+                  <c:spPr><a:solidFill><a:srgbClr val="FF00FF"/></a:solidFill>
+                    <a:ln><a:noFill/></a:ln></c:spPr>
+                  <c:cat><c:strRef><c:f>Sheet1!$A$2</c:f><c:strCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>K</c:v></c:pt></c:strCache></c:strRef></c:cat>
+                  <c:val><c:numRef><c:f>Sheet1!$B$2</c:f><c:numCache>
+                    <c:formatCode>General</c:formatCode><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>1</c:v></c:pt></c:numCache></c:numRef></c:val>
+                </c:ser>
+                <c:gapWidth val="150"/><c:gapDepth val="150"/><c:shape val="box"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:bar3DChart>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+
+    /// <summary>
+    /// A three-dimensional chart of three categories by three series, near-white slivers, with
+    /// each axis's gridlines stated in its own colour so the lines can be told apart.
+    /// </summary>
+    private static string ChartPart3DWallGrid(int rotX, int rotY, int rightAngled, bool minor)
+    {
+        var series = string.Concat(Enumerable.Range(0, 3).Select(j => $$"""
+            <c:ser><c:idx val="{{j}}"/><c:order val="{{j}}"/>
+              <c:tx><c:strRef><c:f>Sheet1!${{(char)('B' + j)}}$1</c:f><c:strCache><c:ptCount val="1"/>
+                <c:pt idx="0"><c:v>S{{j}}</c:v></c:pt></c:strCache></c:strRef></c:tx>
+              <c:spPr><a:solidFill><a:srgbClr val="F4F4F4"/></a:solidFill>
+                <a:ln><a:noFill/></a:ln></c:spPr>
+              <c:cat><c:strRef><c:f>Sheet1!$A$2:$A$4</c:f><c:strCache><c:ptCount val="3"/>
+                <c:pt idx="0"><c:v>C0</c:v></c:pt><c:pt idx="1"><c:v>C1</c:v></c:pt>
+                <c:pt idx="2"><c:v>C2</c:v></c:pt></c:strCache></c:strRef></c:cat>
+              <c:val><c:numRef><c:f>Sheet1!${{(char)('B' + j)}}$2:${{(char)('B' + j)}}$4</c:f><c:numCache>
+                <c:formatCode>General</c:formatCode><c:ptCount val="3"/>
+                <c:pt idx="0"><c:v>1</c:v></c:pt><c:pt idx="1"><c:v>1</c:v></c:pt>
+                <c:pt idx="2"><c:v>1</c:v></c:pt></c:numCache></c:numRef></c:val>
+            </c:ser>
+            """));
+
+        var minorLines = minor
+            ? """
+              <c:minorGridlines><c:spPr><a:ln w="25400"><a:solidFill>
+                <a:srgbClr val="FF8000"/></a:solidFill></a:ln></c:spPr></c:minorGridlines>
+              """
+            : "";
+
+        return $$"""
+          <c:chart>
+            <c:view3D><c:rotX val="{{rotX}}"/><c:rotY val="{{rotY}}"/><c:rAngAx val="{{rightAngled}}"/>
+              <c:perspective val="30"/><c:depthPercent val="100"/></c:view3D>
+            <c:plotArea>
+              <c:layout><c:manualLayout><c:layoutTarget val="inner"/>
+                <c:xMode val="edge"/><c:yMode val="edge"/>
+                <c:x val="0.2"/><c:y val="0.05"/><c:w val="0.6"/><c:h val="0.80"/>
+              </c:manualLayout></c:layout>
+              <c:bar3DChart>
+                <c:barDir val="col"/><c:grouping val="standard"/><c:varyColors val="0"/>
+                {{series}}
+                <c:gapWidth val="500"/><c:gapDepth val="500"/><c:shape val="box"/>
+                <c:axId val="111111111"/><c:axId val="222222222"/><c:axId val="333333333"/>
+              </c:bar3DChart>
+              <c:catAx><c:axId val="111111111"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:majorGridlines><c:spPr><a:ln w="25400"><a:solidFill>
+                  <a:srgbClr val="00A000"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>
+                <c:crossAx val="222222222"/></c:catAx>
+              <c:valAx><c:axId val="222222222"/>
+                <c:scaling><c:orientation val="minMax"/><c:max val="100"/><c:min val="0"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="l"/><c:tickLblPos val="none"/>
+                <c:majorGridlines><c:spPr><a:ln w="25400"><a:solidFill>
+                  <a:srgbClr val="FF0000"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>
+                {{minorLines}}
+                <c:majorUnit val="20"/>{{(minor ? "<c:minorUnit val=\"10\"/>" : "")}}
+                <c:crossAx val="111111111"/></c:valAx>
+              <c:serAx><c:axId val="333333333"/>
+                <c:scaling><c:orientation val="minMax"/></c:scaling>
+                <c:delete val="1"/><c:axPos val="b"/><c:tickLblPos val="none"/>
+                <c:majorGridlines><c:spPr><a:ln w="25400"><a:solidFill>
+                  <a:srgbClr val="0000FF"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>
+                <c:crossAx val="222222222"/></c:serAx>
+            </c:plotArea>
+            <c:plotVisOnly val="1"/>
+          </c:chart>
+        """;
+    }
+
     private static string ChartPart3DGrid(double rotX, int depthPercent = 100) => $$"""
           <c:chart>
             <c:view3D><c:rotX val="{{rotX}}"/><c:rotY val="20"/><c:rAngAx val="0"/>
@@ -8276,6 +8401,84 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  "<w:r><w:t>h50 15/20</w:t></w:r></w:p>"),
+
+            ["chart-3d-wall-probe"] = () => new DocxBuilder()
+                .WithChart(ChartPart3DWallStated(15, 20, 0))
+                .WithPart("word/charts/chart2.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallStated(15, 340, 0)),
+                    fromDocument: ("rIdChart2",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart3.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallStated(15, 20, 1)),
+                    fromDocument: ("rIdChart3",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart4.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallStated(15, 340, 1)),
+                    fromDocument: ("rIdChart4",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart5.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallGrid(15, 20, 0, false)),
+                    fromDocument: ("rIdChart5",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart6.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallGrid(15, 20, 1, false)),
+                    fromDocument: ("rIdChart6",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart7.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallGrid(15, 20, 0, true)),
+                    fromDocument: ("rIdChart7",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart8.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DWallGrid(15, 340, 0, false)),
+                    fromDocument: ("rIdChart8",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1700, relationshipId: "rIdChart") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>walls 15/20 camera</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1701, relationshipId: "rIdChart2") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>walls 15/340 camera</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1702, relationshipId: "rIdChart3") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>walls 15/20 square</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1703, relationshipId: "rIdChart4") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>walls 15/340 square</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1704, relationshipId: "rIdChart5") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>grid 15/20 camera</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1705, relationshipId: "rIdChart6") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>grid 15/20 square</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1706, relationshipId: "rIdChart7") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>grid minor 15/20 camera</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 1707, relationshipId: "rIdChart8") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>grid 15/340 camera</w:t></w:r></w:p>"),
 
             ["chart-3d-height-count-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 1, 60))

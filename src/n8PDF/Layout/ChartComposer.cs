@@ -1914,12 +1914,17 @@ internal static class ChartComposer
             Rectangle(plan.Left, plan.Top, plan.Width, plan.Height),
             new DrawingColor(255, 255, 255), null, LineWidth, EvenOdd: false));
 
-        // A chart drawn in three dimensions gets its frame and its plot area and nothing else yet.
-        // Its Kind is the nearest flat equivalent so that the reader could keep one shape, and
-        // falling through here would quietly draw that flat chart instead — a picture of the right
-        // data in the wrong projection, presented as though it were Word's. An empty plot is the
-        // honest answer until #101 draws the boxes.
-        if (chart.Scene is not null) return new VectorDrawing(width, height, operations);
+        // A chart drawn in three dimensions gets the room it stands in — the stated walls and
+        // floor, and the gridlines projected onto them (#99). Its Kind is the nearest flat
+        // equivalent so that the reader could keep one shape, and falling through here would
+        // quietly draw that flat chart instead — a picture of the right data in the wrong
+        // projection, presented as though it were Word's. The bars themselves are #101's.
+        if (chart.Scene is not null)
+        {
+            operations.AddRange(Chart3DComposer.Draw(chart, plan, theme));
+
+            return new VectorDrawing(width, height, operations);
+        }
 
         // A disc has no axes to draw, and nothing behind it but the frame — but it has a legend
         // like any other chart, and one naming its slices rather than its series.
