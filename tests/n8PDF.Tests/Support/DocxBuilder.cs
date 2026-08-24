@@ -511,6 +511,15 @@ public sealed class DocxBuilder
 
     private readonly List<(string Id, string PartName, byte[] Data)> _images = [];
 
+    private readonly List<(string PartName, string ContentType, byte[] Data)> _binaryParts = [];
+
+    /// <summary>A part whose body is bytes rather than markup - an embedded font, say (#62).</summary>
+    public DocxBuilder WithBinaryPart(string partName, string contentType, byte[] data)
+    {
+        _binaryParts.Add((partName, contentType, data));
+        return this;
+    }
+
     /// <summary>
     /// Pictures a running head reaches, which are parts of the package like any other but are not
     /// referred to from the body. Their relationships belong to the header part, and their ids may
@@ -1770,6 +1779,14 @@ public sealed class DocxBuilder
                 using var stream = entry.Open();
                 stream.Write(data, 0, data.Length);
             }
+
+            foreach (var (partName, _, data) in _binaryParts)
+            {
+                var entry = archive.CreateEntry(partName, CompressionLevel.Optimal);
+                entry.LastWriteTime = FixedTimestamp;
+                using var stream = entry.Open();
+                stream.Write(data, 0, data.Length);
+            }
         }
 
         return buffer.ToArray();
@@ -1938,6 +1955,9 @@ public sealed class DocxBuilder
         }
 
         foreach (var (partName, contentType, _, _, _) in _parts)
+            defaults.Append($"<Override PartName=\"/{partName}\" ContentType=\"{contentType}\"/>");
+
+        foreach (var (partName, contentType, _) in _binaryParts)
             defaults.Append($"<Override PartName=\"/{partName}\" ContentType=\"{contentType}\"/>");
 
         foreach (var (_, partName, kind, _, _, _) in _headersFooters)

@@ -4013,6 +4013,36 @@ public static class Fixtures
     }
 
     /// <summary>Every fixture, keyed by the name its golden file and reference PDF share.</summary>
+
+    /// <summary>
+    /// The GUID the probe's embedded font is obfuscated with — the value the fixture writes into
+    /// <c>w:fontKey</c>, and the key the reader must undo (#62).
+    /// </summary>
+    internal const string ProbeFontKey = "12345678-9ABC-DEF0-1234-56789ABCDEF0";
+
+    /// <summary>The committed probe face (tools/make-embed-font.py), read straight.</summary>
+    internal static byte[] ProbeFont() =>
+        File.ReadAllBytes(Path.Combine(TestPaths.TestProject, "Fixtures", "Fonts", "n8PDFProbe.ttf"));
+
+    /// <summary>Its narrow sibling: the same family name at half the advance.</summary>
+    internal static byte[] NarrowProbeFont() =>
+        File.ReadAllBytes(Path.Combine(TestPaths.TestProject, "Fixtures", "Fonts", "n8PDFProbe-Narrow.ttf"));
+
+    /// <summary>
+    /// The probe face obfuscated the way Word obfuscates an embedded font: the first 32 bytes
+    /// XORed with the key GUID's 16 bytes in reverse of their written order (#62).
+    /// </summary>
+    internal static byte[] ObfuscatedProbeFont()
+    {
+        var data = ProbeFont();
+        var hex = ProbeFontKey.Replace("-", "", StringComparison.Ordinal);
+
+        for (var i = 0; i < 32; i++)
+            data[i] ^= System.Convert.ToByte(hex.Substring((15 - i % 16) * 2, 2), 16);
+
+        return data;
+    }
+
     public static IReadOnlyDictionary<string, Func<DocxBuilder>> All { get; } =
         new Dictionary<string, Func<DocxBuilder>>(StringComparer.Ordinal)
         {
@@ -9106,6 +9136,27 @@ public static class Fixtures
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  "<w:r><w:t>line camera</w:t></w:r></w:p>"),
+
+            ["embedded-font-probe"] = () => new DocxBuilder()
+                .WithBinaryPart("word/fonts/font1.odttf",
+                    "application/vnd.openxmlformats-officedocument.obfuscatedFont",
+                    ObfuscatedProbeFont())
+                .WithPart("word/fontTable.xml",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml",
+                    "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                    "<w:fonts xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" " +
+                    "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+                    "<w:font w:name=\"n8PDF Probe\">" +
+                    "<w:embedRegular r:id=\"rIdFont1\" w:fontKey=\"{" + ProbeFontKey + "}\"/>" +
+                    "</w:font></w:fonts>",
+                    fromDocument: ("rIdFontTable",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable"),
+                    own: [("rIdFont1",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/font",
+                        "fonts/font1.odttf")])
+                .AddParagraph("HHHHHHHHHH", ZeroSpacing,
+                    DocxBuilder.RunProperties(font: "n8PDF Probe", halfPoints: 48))
+                .AddParagraph("A control line in the usual face.", ZeroSpacing, Times()),
 
             ["chart-3d-deep-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DCounts(1, 1, 0.2, 0.1, 0.6, 0.55, 0, 60, 100, 15, 20, 110, 0))
