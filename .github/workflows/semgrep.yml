@@ -42,7 +42,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      # Full history: --baseline-commit diffs the PR against its base, which has to be reachable.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -80,3 +83,27 @@ jobs:
         with:
           sarif_file: semgrep.sarif
           category: semgrep
+
+      # Diff-aware view for pull requests: --baseline-commit scans the base too and reports only
+      # findings on code this PR changed, so a reviewer sees what the PR introduced, not the whole
+      # standing baseline. Advisory today (it only prints); #234 turns this step into the gate by
+      # adding --error, which fails the job on a new high/critical without touching the pre-existing
+      # baseline. The full scan above is what feeds code scanning; this one does not upload.
+      - name: New findings on this PR (diff-aware)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --baseline-commit "${{ github.event.pull_request.base.sha }}" \
+            --config .semgrep \
+            --config p/csharp \
+            --config p/security-audit \
+            --config p/secrets \
+            --exclude BidiTables.cs \
+            --exclude HyphenationTables.cs \
+            --exclude IndicTables.cs \
+            --exclude JoiningTables.cs \
+            --exclude LineBreakTables.cs \
+            --exclude UseTables.cs \
+            --metrics=off \
+            src/
