@@ -72,6 +72,16 @@ tools/make-reference-pdfs.sh       # generate missing Word reference PDFs (macOS
 dotnet pack src/n8PDF -c Release   # the package, with its symbols and its documentation
 ```
 
+Static analysis is a separate checker, run on the source rather than the output (`pip install
+semgrep` first):
+
+```bash
+semgrep scan --config .semgrep --config p/csharp --config p/security-audit --config p/secrets src/
+semgrep --test --config .semgrep/unchecked-round-cast.yaml .semgrep/unchecked-round-cast.cs  # a rule's fixtures
+```
+
+The repo-specific rules and the inline-suppression policy live in [`.semgrep/README.md`](.semgrep/README.md).
+
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
 git-ignored.
 
@@ -186,6 +196,23 @@ agreeing is decent evidence a file is well formed; they are not a substitute for
 glyph *positions* come from the content stream, so all conforming viewers agree on geometry; what
 differs between them is rasterisation, and the one feature of ours genuinely sensitive to that is
 synthetic bold (text render mode 2).
+
+### Static analysis
+
+The four tiers above and the external checkers (qpdf, fontTools, FriBidi, veraPDF) all judge a
+finished PDF. **Semgrep** is a different kind of check: it reads the *source*, looking for the shapes
+the audit keeps re-finding in parsers written from scratch against untrusted input — an unchecked
+`(int)` cast of a document value that wraps to `int.MinValue`, an array sized straight off the wire,
+XML opened on the framework's DTD defaults, a length bound that overflows before it is checked. It
+runs in its own workflow (`.github/workflows/semgrep.yml`) on every push and PR, pulling the registry
+rulesets (`p/csharp`, `p/security-audit`, `p/secrets`) tokenlessly and the repo's own rules from
+`.semgrep/`, and uploads its findings to GitHub code scanning.
+
+It is **advisory** — findings surface as alerts and do not fail the build — and it is not a proof of
+absence: Semgrep's C# grammar does not parse C# 12 primary constructors, so files that use them are
+read only in part. It is a net for the recurring patterns, not a substitute for the audit or the
+output tiers. See [`.semgrep/README.md`](.semgrep/README.md) for the rules, the diff-aware PR
+scanning, and the suppression policy.
 
 ## Reading a file someone else wrote
 
