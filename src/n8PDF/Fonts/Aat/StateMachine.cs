@@ -95,7 +95,7 @@ internal sealed class StateMachine
         var index = AatLookup.Read16(_data, at);
         var entry = _entryTable + index * _entrySize;
 
-        if (entry + _entrySize > _data.Length) return default;
+        if (_entrySize < 0 || entry > _data.Length - _entrySize) return default;
 
         return new StateEntry(
             AatLookup.Read16(_data, entry),

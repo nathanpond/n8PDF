@@ -557,7 +557,7 @@ internal static class TiffDecoder
             var from = (y * width + x) * size;
             var to = ((y * width + x) * samples + c) * size;
 
-            if (c >= planes.Length || from + size > planes[c].Length) continue;
+            if (c >= planes.Length || size < 0 || from > planes[c].Length - size) continue;
 
             Array.Copy(planes[c], from, raw, to, size);
         }
@@ -733,7 +733,7 @@ internal static class TiffDecoder
 
             for (var x = samples; x < width * samples; x++)
             {
-                if (start + x >= rows.Length) break;
+                if (start >= rows.Length - x) break;
 
                 rows[start + x] = (byte)(rows[start + x] + rows[start + x - samples]);
             }

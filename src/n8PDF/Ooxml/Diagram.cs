@@ -348,7 +348,7 @@ internal static class DrawingText
 
         var share = value.EndsWith('%') ? number / 100 : number / 100000;
 
-        return ((int)Math.Round(Math.Clamp(share, 0, 1) * 255)).ToString("X2");
+        return Math.Clamp((int)Math.Round(share * 255), 0, 255).ToString("X2");
     }
 
     /// <summary>A percentage in thousandths, which is how DrawingML writes one.</summary>

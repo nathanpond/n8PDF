@@ -837,7 +837,7 @@ internal static class CffSubset
         for (var i = 0; i <= count; i++)
         {
             var at = offsets + i * offSize;
-            if (at + offSize > cff.Length) throw new FontFormatException("An index offset runs past the table.");
+            if (offSize < 0 || at > cff.Length - offSize) throw new FontFormatException("An index offset runs past the table.");
 
             var value = 0;
             for (var b = 0; b < offSize; b++) value = (value << 8) | cff[at + b];

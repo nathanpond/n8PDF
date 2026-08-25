@@ -118,7 +118,7 @@ internal static class AatLookup
         if (glyph < first || glyph >= first + count) return null;
 
         var value = at + 4 + (glyph - first) * size;
-        if (value + size > data.Length) return null;
+        if (size < 0 || value > data.Length - size) return null;
 
         return size switch
         {
