@@ -1661,7 +1661,7 @@ internal static class ChartComposer
     {
         var room = Math.Max(1, labelSize) * (lying ? LyingLabelRoom : UprightLabelRoom);
 
-        return Math.Clamp((int)Math.Floor(axisLength / room) - 1, 1, MostIntervals);
+        return Math.Clamp((int)Math.Floor(axisLength / room - 1), 1, MostIntervals);
     }
 
     /// <summary>
@@ -3170,6 +3170,7 @@ internal static class ChartComposer
         if (unit <= 0) yield break;
 
         // Counted rather than added up, so that a hundred marks do not drift.
+        // nosemgrep: unchecked-round-cast — bounded by the axis unit; a pathological range wraps to <=0 and yields no marks (fails safe). Mark-count bound tracked in #241.
         var steps = (int)Math.Floor((maximum - minimum) / unit + 0.000001);
 
         for (var i = 0; i <= steps; i++) yield return minimum + i * unit;

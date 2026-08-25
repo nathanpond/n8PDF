@@ -624,14 +624,14 @@ internal static class EmfDecoder
             var characters = (int)ReadUInt32(at + 44);
             var offset = (int)ReadUInt32(at + 48);
 
-            if (characters <= 0 || offset <= 0 || at + offset >= data.Length) return;
+            if (characters <= 0 || offset <= 0 || at >= data.Length - offset) return;
 
             var text = new StringBuilder(characters);
 
             for (var i = 0; i < characters; i++)
             {
                 var index = at + offset + (wide ? i * 2 : i);
-                if (index + (wide ? 1 : 0) >= data.Length) break;
+                if (index >= data.Length - (wide ? 1 : 0)) break;
 
                 var character = wide ? (char)ReadUInt16(index) : (char)data[index];
                 if (character == 0) break;
@@ -722,7 +722,7 @@ internal static class EmfDecoder
             for (var i = 0; i < count; i++)
             {
                 var index = start + i * (small ? 4 : 8);
-                if (index + (small ? 3 : 7) >= data.Length) return;
+                if (index >= data.Length - (small ? 3 : 7)) return;
 
                 points.Add(small ? SmallPoint(index) : Point(index));
             }
@@ -785,7 +785,7 @@ internal static class EmfDecoder
                 for (var i = 0; i < count; i++, read++)
                 {
                     var index = start + read * (small ? 4 : 8);
-                    if (index + (small ? 3 : 7) >= data.Length) return;
+                    if (index >= data.Length - (small ? 3 : 7)) return;
 
                     var point = small ? SmallPoint(index) : Point(index);
 

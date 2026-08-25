@@ -508,7 +508,7 @@ internal static class GlyphSubset
         if (keep <= 0 || keep >= metricCount) return tables;
 
         var metrics = keep * 4;
-        if (hmtx.Offset + metrics > source.Length) return tables;
+        if (metrics < 0 || hmtx.Offset > source.Length - metrics) return tables;
 
         // Full metrics as far as the last glyph kept, then a side bearing for each glyph after it.
         var trimmed = new byte[metrics + (font.GlyphCount - keep) * 2];
@@ -549,7 +549,7 @@ internal static class GlyphSubset
         if (at + 2 > outline.Length) return outline;
 
         var length = (outline[at] << 8) | outline[at + 1];
-        if (length == 0 || at + 2 + length > outline.Length) return outline;
+        if (length == 0 || length > outline.Length - at - 2) return outline;
 
         var result = new byte[outline.Length - length];
 

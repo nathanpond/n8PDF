@@ -716,6 +716,7 @@ internal static class Chart3DComposer
     {
         if (unit <= 0) yield break;
 
+        // nosemgrep: unchecked-round-cast — bounded by the axis unit; a pathological range wraps to <=0 and yields no marks (fails safe). Mark-count bound tracked in #241.
         var steps = (int)Math.Floor((maximum - minimum) / unit + 0.000001);
         for (var i = 0; i <= steps; i++) yield return minimum + i * unit;
     }

@@ -84,17 +84,20 @@ jobs:
           sarif_file: semgrep.sarif
           category: semgrep
 
-      # Diff-aware view for pull requests: --baseline-commit scans the base too and reports only
-      # findings on code this PR changed, so a reviewer sees what the PR introduced, not the whole
-      # standing baseline. Advisory today (it only prints); #234 turns this step into the gate by
-      # adding --error, which fails the job on a new high/critical without touching the pre-existing
-      # baseline. The full scan above is what feeds code scanning; this one does not upload.
-      - name: New findings on this PR (diff-aware)
+      # The gate. --baseline-commit scans the PR base too and reports only findings on code this PR
+      # changed; --severity=ERROR narrows that to high/critical; --error makes the job fail on any
+      # that remain. So a PR that introduces a new high/critical finding goes red, while the standing
+      # baseline (which the full scan above still uploads to code scanning) and any new lower-severity
+      # findings do not fail the build. The baseline was driven clean under the ERROR ruleset before
+      # this flip (#234): fixes to the additive length bounds, and rule precision plus justified
+      # nosemgrep for the rounded-cast findings. No continue-on-error: this step is allowed to fail.
+      - name: New high/critical findings on this PR (gate)
         if: github.event_name == 'pull_request'
-        continue-on-error: true
         run: |
           semgrep scan \
             --baseline-commit "${{ github.event.pull_request.base.sha }}" \
+            --severity=ERROR \
+            --error \
             --config .semgrep \
             --config p/csharp \
             --config p/security-audit \

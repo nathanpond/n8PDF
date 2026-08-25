@@ -825,7 +825,7 @@ internal sealed class TrueTypeFont
             if (bestScore.TryGetValue(nameId, out var existing) && existing >= score) continue;
 
             var start = name.Offset + stringOffset + offset;
-            if (start < 0 || start + length > data.Length) continue;
+            if (start < 0 || length < 0 || start > data.Length - length) continue;
 
             var bytes = data.AsSpan(start, length);
             var text = platformId == 3 || platformId == 0
