@@ -19,6 +19,10 @@ class Fixture
     // ok: unchecked-round-cast
     int OkClamped(double v) => Math.Clamp((int)Math.Floor(v), 1, 100);
 
+    // Contained by Math.Min — the result is bounded, not corrupted.
+    // ok: unchecked-round-cast
+    int OkMin(double v) => Math.Min(1000, (int)Math.Floor(v));
+
     // The committed fix (#148/#204): round first, range-guard, then cast the guarded local.
     // ok: unchecked-round-cast
     int Good(double value)

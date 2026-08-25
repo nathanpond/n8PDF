@@ -25,4 +25,5 @@ rules:
       # Math.Max/Math.Clamp yields a valid value (graceful degradation), not the corrupted geometry
       # #148 describes. The rule targets a cast used raw.
       - pattern-not-inside: Math.Max(..., (int)Math.$M(...), ...)
+      - pattern-not-inside: Math.Min(..., (int)Math.$M(...), ...)
       - pattern-not-inside: Math.Clamp((int)Math.$M(...), ...)

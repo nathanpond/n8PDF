@@ -48,4 +48,38 @@ public class ComplexityTests(ITestOutputHelper output)
                 new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }));
         _output.WriteLine("a 150,000-letter word laid out without hanging");
     }
+
+    [Fact]
+    public void A_chart_axis_with_an_abusive_major_unit_is_bounded()   // #241
+    {
+        // A value axis whose XML asks for 100 million marks — min 0, max 1e8, majorUnit 1. Word
+        // ignores such a unit and draws tens; the old Marked loop honoured it literally and drew
+        // 10^8, a DoS from a few hundred bytes. The cap holds it to MostMarks.
+        const string chart = """
+            <c:chart><c:plotArea>
+              <c:barChart>
+                <c:barDir val="col"/><c:grouping val="clustered"/>
+                <c:ser><c:idx val="0"/>
+                  <c:val><c:numRef><c:numCache><c:ptCount val="1"/>
+                    <c:pt idx="0"><c:v>1</c:v></c:pt></c:numCache></c:numRef></c:val>
+                </c:ser>
+              </c:barChart>
+              <c:valAx><c:axId val="2"/>
+                <c:scaling><c:min val="0"/><c:max val="100000000"/></c:scaling>
+                <c:axPos val="l"/><c:majorGridlines/><c:majorUnit val="1"/>
+              </c:valAx>
+              <c:catAx><c:axId val="1"/><c:axPos val="b"/></c:catAx>
+            </c:plotArea></c:chart>
+            """;
+
+        var docx = new DocxBuilder()
+            .WithChart(chart)
+            .AddRawParagraph($"<w:p>{DocxBuilder.ChartDrawing(300, 200)}</w:p>")
+            .Build();
+
+        CompletesWithin("layout of a chart whose axis asks for 10^8 marks", TimeSpan.FromSeconds(20),
+            () => Converter.LayoutDocument(new MemoryStream(docx),
+                new ConversionOptions { Fonts = TestFonts.CreatePinnedLibrary() }));
+        _output.WriteLine("an abusive-major-unit chart axis was laid out without hanging");
+    }
 }
