@@ -6,16 +6,15 @@ namespace n8PDF.Tests;
 
 /// <summary>
 /// The #141 fitter — a diagnostic, not an assertion (both facts are <c>Skip</c>ped; run by hand).
-/// It recovers Word's own camera per deep-perspective page by fitting the pinned #98 placement to
-/// the bar silhouette, and is the harness round 2 continues from.
+/// It recovers Word's own (F, ex, ey) per deep-perspective page by fitting the pinned #98 placement
+/// to the bar silhouette, and is the harness the derivation of the deep-regime offset laws works
+/// from.
 /// </summary>
 /// <remarks>
-/// Round 1 (see the issue) established with this harness that the deep regime carries a fourth free
-/// number beyond (F, ex, ey): the perspective divide-tan, which the #98 placement links to the scale
-/// through the fixed geometry-tan. Freeing it fits the clean pages to ≤0.05pt where the 3-param
-/// family floors at ~4pt. Six silhouette corners underdetermine that fourth param at strong
-/// perspective, so pinning its law needs the label-based instrument — the next build. The frustum
-/// validation shows the instrument is sound: it reproduces the passing camera-test rows to ≤0.21pt.
+/// Validated two ways: on the passing frustum rows it reproduces Word to ≤0.21pt, and on the deep
+/// pages its per-page (F, ex, ey) reproduce the coefficient table recorded on #141 to the
+/// thousandth. The page index is chartN − 1 (the rasteriser is 0-based; the deep-probe's chartN.xml
+/// is its Nth chart) — an earlier off-by-one here invented a spurious fourth camera parameter.
 /// </remarks>
 public class Chart3DDeepFitTests(ITestOutputHelper output)
 {
@@ -27,7 +26,13 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
     private static bool Reddish((byte R, byte G, byte B) p) => p.R > 120 && p.G < 90 && p.B < 90;
 
     public readonly record struct Page(
-        string Fixture, int Index, double RotX, double RotY, double Persp, double Depth, double? H);
+        string Fixture,
+        int Index,
+        double RotX,
+        double RotY,
+        double Persp,
+        double Depth,
+        double? H);
 
     private static readonly Page[] Deep =
     [
@@ -57,12 +62,12 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
 
     private static double GeometryTan(Page p) => Math.Tan(p.Persp / 4 * Math.PI / 180);
 
-    // The #98 placement with a free divide-tan td (td == geometry tan recovers the 3-param form).
-    private static (double X, double Y) Project(Page p, double f, double td, double ex, double ey, double x, double y, double z)
+    private static (double X, double Y) Project(Page p, double f, double ex, double ey, double x, double y, double z)
     {
         var a = p.RotX * Math.PI / 180;
         var b = p.RotY * Math.PI / 180;
         var (cosA, sinA, cosB, sinB) = (Math.Cos(a), Math.Sin(a), Math.Cos(b), Math.Sin(b));
+        var td = GeometryTan(p);
         var (hx, hy, hz) = Box(p);
         var sx = (x - 0.5) * 2 * hx;
         var sy = (y - 0.5) * 2 * hy;
@@ -75,13 +80,13 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
             RectTop + RectHeight / 2 - scale * (sy - ey) * towards);
     }
 
-    private static List<(double X, double Y)> Hull4(Page p, double f, double td, double ex, double ey)
+    private static List<(double X, double Y)> Hull3(Page p, double f, double ex, double ey)
     {
         var pts = new List<(double X, double Y)>();
         foreach (var x in new[] { 0.0, 1.0 })
         foreach (var y in new[] { 0.0, 0.6 })
         foreach (var z in new[] { 0.0, 1.0 })
-            pts.Add(Project(p, f, td, ex, ey, x, y, z));
+            pts.Add(Project(p, f, ex, ey, x, y, z));
         return Hull(pts);
     }
 
@@ -109,12 +114,22 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
         return worst;
     }
 
-    private static double SumSq(Page p, double f, double td, double ex, double ey, IReadOnlyList<(double X, double Y)> w)
+    private static double SumSq(Page p, double f, double ex, double ey, IReadOnlyList<(double X, double Y)> w)
     {
-        var m = Hull4(p, f, td, ex, ey);
+        var m = Hull3(p, f, ex, ey);
         double s = 0;
-        foreach (var q in w) { var d = ToBoundary(q, m); s += d * d; }
-        foreach (var q in m) { var d = ToBoundary(q, w); s += d * d; }
+        foreach (var q in w)
+        {
+            var d = ToBoundary(q, m);
+            s += d * d;
+        }
+
+        foreach (var q in m)
+        {
+            var d = ToBoundary(q, w);
+            s += d * d;
+        }
+
         return s;
     }
 
@@ -123,12 +138,12 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
         var path = Path.Combine(TestPaths.ReferencePdfs, p.Fixture + ".pdf");
         if (!File.Exists(path)) return null;
         const double scale = 6;
-        if (PdfRasterizer.Render(File.ReadAllBytes(path), p.Index, scale) is not { } r) return null;
+        // chartN.xml is the Nth chart; the rasteriser page index is 0-based, so index = N - 1.
+        if (PdfRasterizer.Render(File.ReadAllBytes(path), p.Index - 1, scale) is not { } r) return null;
         var s = BoxSilhouette.Find(r, scale, Reddish, (73, 73, 431, 287));
         return s.Found ? s.Points : null;
     }
 
-    // The current clamp, as Chart3DProjection computes it — the fit seed.
     private static (double F, double Ex, double Ey) Seed(Page p)
     {
         var a = p.RotX * Math.PI / 180;
@@ -186,15 +201,31 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
             {
                 var e = R(2);
                 var ce = cost(e);
-                if (ce < cr) { s[n] = e; c[n] = ce; }
-                else { s[n] = r; c[n] = cr; }
+                if (ce < cr)
+                {
+                    s[n] = e;
+                    c[n] = ce;
+                }
+                else
+                {
+                    s[n] = r;
+                    c[n] = cr;
+                }
             }
-            else if (cr < c[n - 1]) { s[n] = r; c[n] = cr; }
+            else if (cr < c[n - 1])
+            {
+                s[n] = r;
+                c[n] = cr;
+            }
             else
             {
                 var k = R(-0.5);
                 var ck = cost(k);
-                if (ck < c[n]) { s[n] = k; c[n] = ck; }
+                if (ck < c[n])
+                {
+                    s[n] = k;
+                    c[n] = ck;
+                }
                 else
                     for (var i = 1; i <= n; i++)
                     {
@@ -215,7 +246,11 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
         {
             var v = NelderMead(cost, start, st);
             var c = cost(v);
-            if (c < bc) { bc = c; bv = v; }
+            if (c < bc)
+            {
+                bc = c;
+                bv = v;
+            }
         }
 
         return bv;
@@ -224,7 +259,8 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
     [Fact(Skip = "#141 diagnostic — run by hand; rasterises every deep page")]
     public void Report_the_deep_fit()
     {
-        _output.WriteLine("page   geom   t      3param  4param  td     td/t");
+        var fits = new List<(Page P, double T, double F, double Ex, double Ey, double Res)>();
+        _output.WriteLine("page   geom     t      res     F       ex       ey");
         foreach (var p in Deep)
         {
             var word = WordCorners(p);
@@ -236,11 +272,26 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
 
             var t = GeometryTan(p);
             var (f0, ex0, ey0) = Seed(p);
-            var three = Best([f0, ex0, ey0], v => SumSq(p, v[0], t, v[1], v[2], word));
-            var r3 = Hausdorff(Hull4(p, three[0], t, three[1], three[2]), word);
-            var four = Best([f0, t, ex0, ey0], v => SumSq(p, v[0], v[1], v[2], v[3], word));
-            var r4 = Hausdorff(Hull4(p, four[0], four[1], four[2], four[3]), word);
-            _output.WriteLine($"p{p.Index,2} {p.RotX,2}/{p.RotY,-2} q{p.Persp,3} t={t:F3}  {r3,6:F3} {r4,6:F3}  {four[1]:F3}  {four[1] / t:F3}");
+            var v = Best([f0, ex0, ey0], a => SumSq(p, a[0], a[1], a[2], word));
+            var res = Hausdorff(Hull3(p, v[0], v[1], v[2]), word);
+            fits.Add((p, t, v[0], v[1], v[2], res));
+            _output.WriteLine(
+                $"p{p.Index,2} {p.RotX,2}/{p.RotY,-2} q{p.Persp,3} t={t:F3}  {res,6:F3}  {v[0]:F4}  {v[1],7:F4}  {v[2],7:F4}");
+        }
+
+        _output.WriteLine("\n=== per-geometry linear laws in t (pages under 0.3pt) ===");
+        foreach (var g in fits.Where(f => f.Res < 0.3)
+                     .GroupBy(f => (f.P.RotX, f.P.RotY, f.P.Depth, f.P.H))
+                     .Where(g => g.Count() >= 2))
+        {
+            var pts = g.OrderBy(f => f.T).ToList();
+            var f = Line(pts.Select(r => (r.T, r.F)));
+            var x = Line(pts.Select(r => (r.T, r.Ex)));
+            var y = Line(pts.Select(r => (r.T, r.Ey)));
+            _output.WriteLine($"X{g.Key.RotX} Y{g.Key.RotY} d{g.Key.Depth} h{g.Key.H?.ToString() ?? "-"} ({g.Count()}):"
+                              + $"  F={f.S:+0.0000;-0.0000},{f.I:+0.0000;-0.0000}"
+                              + $"  ex={x.S:+0.000;-0.000},{x.I:+0.000;-0.000}"
+                              + $"  ey={y.S:+0.0000;-0.0000},{y.I:+0.0000;-0.0000}");
         }
     }
 
@@ -256,9 +307,10 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
         ];
         foreach (var r in rows)
         {
-            var page = new Page(r.Fx, r.Pg, r.Rx, r.Ry, r.Q, r.Dp, null);
-            var word = WordCorners(page);
-            if (word is null)
+            var path = Path.Combine(TestPaths.ReferencePdfs, r.Fx + ".pdf");
+            if (PdfRasterizer.Render(File.ReadAllBytes(path), r.Pg, 6) is not { } rendered) continue;
+            var sil = BoxSilhouette.Find(rendered, 6, Reddish, (73, 73, 431, 287));
+            if (!sil.Found)
             {
                 _output.WriteLine($"{r.Fx} p{r.Pg}: no corners");
                 continue;
@@ -271,15 +323,29 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
             foreach (var y in new[] { 0.0, 0.6 })
             foreach (var z in new[] { 0.0, 1.0 })
                 pts.Add(real.Project(x, y, z));
-            _output.WriteLine($"{r.Fx} p{r.Pg}: real-vs-Word = {Hausdorff(Hull(pts), word):F3}pt");
+            _output.WriteLine($"{r.Fx} p{r.Pg}: real-vs-Word = {Hausdorff(Hull(pts), sil.Points):F3}pt");
         }
+    }
+
+    private static (double S, double I) Line(IEnumerable<(double X, double Y)> pts)
+    {
+        var l = pts.ToList();
+        double n = l.Count,
+            sx = l.Sum(p => p.X),
+            sy = l.Sum(p => p.Y),
+            sxx = l.Sum(p => p.X * p.X),
+            sxy = l.Sum(p => p.X * p.Y);
+        var slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+        return (slope, (sy - slope * sx) / n);
     }
 
     private static List<(double X, double Y)> Hull(List<(double X, double Y)> points)
     {
         var sorted = points.OrderBy(p => p.X).ThenBy(p => p.Y).ToList();
+
         double Cross((double X, double Y) o, (double X, double Y) a, (double X, double Y) b) =>
             (a.X - o.X) * (b.Y - o.Y) - (a.Y - o.Y) * (b.X - o.X);
+
         var lower = new List<(double X, double Y)>();
         foreach (var p in sorted)
         {
