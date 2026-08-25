@@ -38,14 +38,17 @@ namespace n8PDF.Layout;
 /// centre sits at the rectangle's centre on every page measured.</item>
 /// </list>
 ///
-/// **The verified domain is the frustum-fit regime** — wherever one of the two frustum-fill
-/// constraints sets the eye distance, which covers every perspective at Word's defaults up to
-/// about 60, and all perspectives for scenes whose extents keep the frustum constraints binding.
-/// Where the near-floor constraint takes over instead (deep perspective on a mild scene), the
-/// eye distance is measured to about three percent but the eye offsets leave these laws;
-/// the follow-up issue holds the measurements. In that regime this class clamps the offsets at
-/// their values where the branch changed, which keeps the picture stable and close rather
-/// than exact.
+/// **The frustum-fit regime is verified to a quarter point.** That covers every perspective at
+/// Word's defaults up to about 60, and all perspectives for scenes whose extents keep the frustum
+/// constraints binding. Where the near-floor constraint takes over instead (deep perspective on a
+/// mild scene) the eye leaves the frustum-branch offset laws, and #141 measured what it does
+/// instead: for rotX and rotY both inside 45° — every deep scene Word's UI can reach, its
+/// perspective capping at 100 — the deep offset laws below take over and bring the corners to
+/// well under a point (a fraction of a point at low rotX). What still keeps that regime off the
+/// quarter-point bar is the eye distance: the floor law is right to a fraction of a percent at
+/// rotX 15 but biased with rotX above it, and past perspective 200 the ex law turns slightly
+/// concave — both open on #141. Beyond 45° a third regime begins whose offsets are still open, so
+/// there the eye stays clamped at the branch boundary, stable and close rather than exact.
 /// </remarks>
 internal sealed class Chart3DProjection : IChart3DProjection
 {
@@ -58,6 +61,12 @@ internal sealed class Chart3DProjection : IChart3DProjection
     // the wider ±1% the pages once showed was that instrument's older vintage, not real scene
     // disagreement. A three-category box wants ~0.7% less again (a wide-box effect held on #141).
     private const double WidthFill = 0.9862;
+
+    // Deep-regime eye offsets (#141): the verified part is rotX and rotY both under this many
+    // degrees (beyond it a third regime opens, still clamped), and ey's tangential bias about
+    // the rotY=45 turn carries this coefficient — both measured off Word's silhouettes.
+    private const double DeepRegimeLimit = 45;
+    private const double DeepEyeBias = 0.709;
 
     private readonly double _cosA, _sinA, _cosB, _sinB;
     private readonly double _hx, _hy, _hz;
@@ -112,15 +121,31 @@ internal sealed class Chart3DProjection : IChart3DProjection
         var byFloor = floorPart * _tan + _hy;
         _frustum = Math.Max(byHeight, Math.Max(byWidth, byFloor));
 
-        // The eye offsets follow the frustum branches; where the floor constraint has taken
-        // over they are clamped at the change of branch — the known gap, held by the follow-up.
-        var eyeTan = _tan;
-        if (byFloor > byHeight && byFloor > byWidth)
-            eyeTan = (Math.Max(byHeight, byWidth) - _hy) / floorPart;
-
-        _ex = eyeTan * aspect * _cosA * (_hx * _sinB - _hz * _cosB);
-        _ey = -eyeTan * FloorScale *
-              (_hx * _sinB * _cosA + Fill * _hz * _cosB * _cosA - _hy * _sinA);
+        // The eye offsets. In the frustum regime they follow the branch laws below. Where the
+        // near-floor constraint has taken over (deep perspective on a mild scene) those laws no
+        // longer hold; #141 measured what the offsets do instead, and for the verified part of
+        // that regime — rotX and rotY both inside 45°, which is every deep scene Word's UI can
+        // reach (perspective caps at 100) — this uses those measured laws. Beyond 45° a third
+        // regime begins whose offsets are still open (#141), so there the eye stays clamped at
+        // the branch boundary, which keeps the picture stable and close rather than exact.
+        var floorBound = byFloor > byHeight && byFloor > byWidth;
+        if (floorBound && rotX < DeepRegimeLimit && rotY < DeepRegimeLimit)
+        {
+            // The deep-regime offset laws (#141), measured corner-by-corner off Word's silhouettes.
+            // ex is the frustum law's first term carried on tan θ, less its −hz·sinB intercept:
+            // it runs from −hz·sinB at perspective nought toward the frustum edge; ey leaves the
+            // floor-branch law tangentially, biased by the box turn about rotY=45. (Every deep
+            // probe is single-category, so hx here is only ever verified at 0.5.)
+            _ex = _sinB * (_hx * aspect * _cosA * _tan - _hz);
+            _ey = _sinA * (FloorScale * _hy * _tan - DeepEyeBias * Math.Cos(b - Math.PI / 4));
+        }
+        else
+        {
+            var eyeTan = floorBound ? (Math.Max(byHeight, byWidth) - _hy) / floorPart : _tan;
+            _ex = eyeTan * aspect * _cosA * (_hx * _sinB - _hz * _cosB);
+            _ey = -eyeTan * FloorScale *
+                  (_hx * _sinB * _cosA + Fill * _hz * _cosB * _cosA - _hy * _sinA);
+        }
 
         _rectCentreX = rectLeft + rectWidth / 2;
         _rectCentreY = rectTop + rectHeight / 2;

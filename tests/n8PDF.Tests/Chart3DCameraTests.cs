@@ -249,17 +249,20 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Deep perspective on a mild scene leaves the verified domain, and this says by how much.
+    /// Deep perspective on a mild scene: the eye offsets now follow the measured laws, and this
+    /// says how close that leaves the corners.
     /// </summary>
     /// <remarks>
-    /// Where the near-floor constraint sets the eye distance, the distance itself is measured to
-    /// about three percent but the eye offsets leave the frustum-branch laws — the follow-up
-    /// issue holds the sweep. The clamp keeps the picture stable; this test pins the size of the
-    /// remaining gap so that closing it is visible and widening it fails.
+    /// The near-floor constraint sets the eye distance here, and #141 implemented the deep-regime
+    /// offsets it measured off Word (rotX and rotY both inside 45°), so the picture is no longer
+    /// clamped. What remains is the eye distance: the floor law is right to a fraction of a percent
+    /// at rotX 15 but rotX-dependently biased above it, and at perspective 240 — past Word's UI cap
+    /// of 100 — the ex law is slightly concave. This test pins the residual so closing it is visible
+    /// and widening it fails.
     /// </remarks>
     [Theory]
-    [InlineData("chart-3d-perspective-probe", 6, 15, 20, 80, 20)]
-    [InlineData("chart-3d-camera-probe", 2, 15, 20, 240, 90)]
+    [InlineData("chart-3d-perspective-probe", 6, 15, 20, 80, 1.0)]
+    [InlineData("chart-3d-camera-probe", 2, 15, 20, 240, 8.0)]
     public void Deep_perspective_is_close_but_not_yet_within_the_bar(
         string fixture, int page, int rotX, int rotY, int perspective, double ceiling)
     {
