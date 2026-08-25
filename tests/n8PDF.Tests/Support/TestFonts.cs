@@ -146,7 +146,7 @@ public static class TestFonts
         "chart-3d-wall-probe", "chart-3d-depth-axis-probe", "chart-3d-box-probe", "chart-3d-pie-probe",
         "chart-3d-ribbon-probe", "chart-3d-perspective-probe", "chart-3d-camera-probe", "chart-3d-eye-probe",
         "chart-3d-eye2-probe", "chart-3d-branch-probe", "chart-3d-floor-probe", "chart-3d-deep-probe",
-        "chart-3d-deep2-probe", "hangul-jamo-probe", "shape-rotation-probe", "shape-fill-probe", "shape-autofit-probe",
+        "chart-3d-deep2-probe", "chart-3d-mirror-probe", "hangul-jamo-probe", "shape-rotation-probe", "shape-fill-probe", "shape-autofit-probe",
         "chart-3d-inset-probe", "chart-3d-shading-probe", "chart-3d-value-probe",
         "chart-legend-box-probe", "chart-legend-cut-probe", "chart-legend-room-probe", "chart-legend-size-probe",
         "chart-radar-stock", "chart-title-weight-probe", "chart-trendline-probe", "chart-updown-bar-probe",

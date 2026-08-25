@@ -51,8 +51,12 @@ namespace n8PDF.Layout;
 /// ex holds linear out to perspective 200, twice the cap. So what keeps the deep test pages off
 /// the quarter-point bar is not a law but the corner instrument's own floor — about 0.2pt on a box
 /// this size — with a slight ex concavity contributing only on the synthetic perspective-240 page.
-/// Beyond 45° a third regime begins whose offsets are still open, so there the eye stays clamped at
-/// the branch boundary, stable and close rather than exact.
+/// Beyond 45° lies a third regime, now characterised (#247): rotX ≥ 45 binds the floor only past
+/// perspective 180 — twice Word's cap, so it is synthetic, reachable only by hand-edited XML; and
+/// the corner-on band, rotY ≥ 45, follows the rotY=45 symmetry (verified in Word's raster,
+/// <c>Chart3DMirrorTests</c>), being the sub-45 band mirrored — ey and F are even about 45 and carry
+/// over, ex is odd with ex(45)=0. The eye stays clamped there all the same: putting those offsets in
+/// would need ex's turn law, and that is still the unidentifiable f,g of #141 rounds 3–4.
 /// </remarks>
 internal sealed class Chart3DProjection : IChart3DProjection
 {
@@ -146,6 +150,13 @@ internal sealed class Chart3DProjection : IChart3DProjection
             // floor distance is built from — so it foreshortens with the depth as tan θ climbs. A
             // depth sweep pins this: an earlier −0.709·cos(rotY−45) was only its hx=hz=½ case
             // (0.709 ≈ ½√2), right at the default depth and wrong away from it.
+            //
+            // ex's sinB turn factor is exact only to about rotY 30. #247 proved (through the rotY=45
+            // symmetry, which the corner-on band follows) that ex is odd about rotY=45 with ex(45)=0,
+            // where sinB keeps climbing — so past rotY 30 this reads a little high. The full turn law
+            // is ex = cosA·f(rotY) + sinA·g(rotY) with f,g not separable from silhouette data (#141
+            // rounds 3–4, "ex resists"); rotY is gated under 45 here, and rotY 20 — Word's default —
+            // is exact. ey and F are already even about 45, so they need no such caveat.
             _ex = _sinB * (_hx * aspect * _cosA * _tan - _hz);
             _ey = _sinA * (FloorScale * _hy * _tan - (_hx * _sinB + _hz * _cosB));
         }
