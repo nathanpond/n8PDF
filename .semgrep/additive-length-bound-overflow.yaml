@@ -1,0 +1,28 @@
+rules:
+  - id: additive-length-bound-overflow
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      A bounds check `pos + count > buffer.Length` where count is a document-controlled length
+      overflows to a negative when pos + count exceeds int.MaxValue, passes the check, and lets the
+      read run off the end and throw past the format's exception net. Compare the other way —
+      `pos > buffer.Length - count` — so the arithmetic cannot overflow (pos and count already known
+      non-negative). A small constant addend cannot overflow and is not flagged. Refs #181.
+    metadata:
+      category: security
+      subcategory: [audit]
+      cwe: ["CWE-190: Integer Overflow or Wraparound"]
+      confidence: MEDIUM
+      references:
+        - https://github.com/nathanpond/n8PDF/issues/181
+    patterns:
+      - pattern-either:
+          - pattern: $P + $N > $ARR.Length
+          - pattern: $P + $N >= $ARR.Length
+          - pattern: $P + $N > $LEN.Count
+      # Only a variable addend can be a large, document-controlled length; a constant like
+      # `offset + 4` cannot push a buffer position past int.MaxValue, so it is not the overflow.
+      - metavariable-pattern:
+          metavariable: $N
+          patterns:
+            - pattern-not-regex: '^[0-9]'

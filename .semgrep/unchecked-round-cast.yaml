@@ -1,0 +1,22 @@
+rules:
+  - id: unchecked-round-cast
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      A document-derived measurement rounded and cast straight to int/long wraps to int.MinValue on
+      overflow and silently corrupts the geometry it feeds — an out-of-range value becomes a huge
+      negative one, not an error. Range-guard the rounded value before the cast, as W.IntAttr and
+      DrawingText.SafeInt do (return null / 0 when it will not fit). Refs #148, #204.
+    metadata:
+      category: security
+      subcategory: [audit]
+      confidence: HIGH
+      references:
+        - https://github.com/nathanpond/n8PDF/issues/148
+        - https://github.com/nathanpond/n8PDF/issues/204
+    patterns:
+      - pattern-either:
+          - pattern: (int)Math.Round(...)
+          - pattern: (long)Math.Round(...)
+          - pattern: (int)Math.Ceiling(...)
+          - pattern: (int)Math.Floor(...)

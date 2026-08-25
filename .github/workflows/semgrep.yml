@@ -13,6 +13,11 @@
 # Semgrep is a tool installed on the runner, exactly as qpdf and the rest are — not a package the
 # library takes on. src/n8PDF carries zero PackageReference entries and this does not change that.
 #
+# The repo-specific rules live in .semgrep/ and run first in the --config list: unchecked rounded
+# casts (#148/#204), allocation sized straight from the wire, XML read off the framework defaults
+# rather than a hardened reader, and an additive length bound that can overflow (#181). Each ships
+# with a passing+failing fixture; `semgrep --test` covers them.
+#
 # One caveat worth stating in the file that runs it: Semgrep's C# grammar does not parse C# 12
 # primary constructors, so files that use them are read only in part (~15% of lines went unscanned
 # on the first run, some of it in the decoders this is meant to watch). The scan is real signal, not
@@ -55,6 +60,7 @@ jobs:
         continue-on-error: true
         run: |
           semgrep scan \
+            --config .semgrep \
             --config p/csharp \
             --config p/security-audit \
             --config p/secrets \
