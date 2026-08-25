@@ -7754,6 +7754,28 @@ internal sealed class LayoutEngine(
             return;
         }
 
+        // A drawing that named a chart it could not read still holds the space Word gives the chart,
+        // so the document below it does not reflow (#95). Unlike a picture — which a word processor
+        // drops when it cannot render it, and which this does too just below — a chart carries no
+        // image fallback, so all three ways one goes unread (its part absent or external, its XML
+        // unparseable, its plot element unknown) arrive here with Chart null and the frame's own
+        // wp:extent intact. The atom draws nothing, Image and Content both null; it only holds the room.
+        if (drawing.ChartRelationshipId is not null)
+        {
+            atoms.Add(new ImageAtom
+            {
+                Image = null,
+                Description = drawing.Description,
+                Width = width,
+                Height = height,
+                Ascent = height,
+                NaturalHeight = height,
+                Descent = 0
+            });
+
+            return;
+        }
+
         if (drawing.RelationshipId is null) return;
 
         var image = DecodeImage(drawing.RelationshipId, drawing.Wash);
