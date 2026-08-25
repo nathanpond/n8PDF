@@ -47,7 +47,9 @@ These are load-bearing. Do not breach one without being asked to, by name.
 - **`src/n8PDF` carries zero `PackageReference` entries.** `LibraryInvariantTests` fails the
   build if that changes. Never solve a problem in the library by taking a dependency —
   `System.IO.Compression` and `System.Xml.Linq` are the whole of what is available. A task that
-  seems to need a package needs a conversation instead.
+  seems to need a package needs a conversation instead. Semgrep, like qpdf and the other checkers,
+  is a tool the CI runner installs, not a package the library references — the static-analysis
+  workflow leaves this invariant untouched.
 - **The public surface is six types.** `PublicApiTests` writes it out in full and fails on
   anything that grows it. Making a type or member public is a deliberate act with a diff to show
   for it; propose it, do not simply do it.
@@ -86,6 +88,14 @@ mind before trusting a green CI on anything touching font selection or metrics.
 
 `artifacts/` is gitignored test output — converted PDFs and diff images for eyeballing, not
 assertions.
+
+One more checker reads the source rather than the output: **Semgrep** runs as its own workflow
+(`.github/workflows/semgrep.yml`) on every push and PR, flagging the shapes the audit keeps
+re-finding — unchecked casts, allocation off the wire, XML on the framework's DTD defaults, an
+additive length bound that overflows. It is advisory (findings go to code scanning, not to failing
+the build) and installed on the runner, not referenced by the library. Its repo-specific rules and
+the suppression policy are in `.semgrep/README.md`; run it locally with
+`semgrep scan --config .semgrep --config p/csharp --config p/security-audit --config p/secrets src/`.
 
 ## Backlog
 
