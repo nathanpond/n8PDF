@@ -45,13 +45,14 @@ namespace n8PDF.Layout;
 /// mild scene) the eye leaves the frustum-branch offset laws, and #141 measured what it does
 /// instead: for rotX and rotY both inside 45° — every deep scene Word's UI can reach, its
 /// perspective capping at 100 — the deep offset laws below take over and bring the corners to
-/// well under a point (a fraction of a point at low rotX, ~0.4pt at 15/20 perspective 80). The
-/// eye distance is right to a tenth of a percent everywhere a floor-bound scene can be reached —
-/// that constraint only binds up to about rotX 25 within Word's perspective cap of 100 — so what
-/// keeps these pages off the quarter-point bar is the corner instrument's own floor (~0.2pt on a
-/// box this deep) and, past perspective 200, a slight concavity in the ex law (#141). Beyond 45°
-/// a third regime begins whose offsets are still open, so there the eye stays clamped at the
-/// branch boundary, stable and close rather than exact.
+/// well under a point (a fraction of a point at low rotX, ~0.4pt at 15/20 perspective 80). Every
+/// law here is exact to a tenth of a percent across the whole of that reachable regime: the floor
+/// distance's constraint only binds up to about rotX 25 within Word's perspective cap of 100, and
+/// ex holds linear out to perspective 200, twice the cap. So what keeps the deep test pages off
+/// the quarter-point bar is not a law but the corner instrument's own floor — about 0.2pt on a box
+/// this size — with a slight ex concavity contributing only on the synthetic perspective-240 page.
+/// Beyond 45° a third regime begins whose offsets are still open, so there the eye stays clamped at
+/// the branch boundary, stable and close rather than exact.
 /// </remarks>
 internal sealed class Chart3DProjection : IChart3DProjection
 {
