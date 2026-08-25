@@ -27,6 +27,7 @@ public class PublicApiTests(ITestOutputHelper output)
             .ctor()
             Boolean ApplyWordBuiltInStyleDefaults { get; set; }
             Boolean DropFontHinting { get; set; }
+            Boolean PdfA { get; set; }
             DateTimeOffset? CreationDate { get; set; }
             DateTimeOffset? FieldsAsOf { get; set; }
             FontLibrary Fonts { get; set; }
@@ -64,6 +65,7 @@ public class PublicApiTests(ITestOutputHelper output)
         class n8PDF.Packaging.PackageLimits
             .ctor()
             Int32 MaximumPartCount { get; set; }
+            Int64 MaximumFontBytes { get; set; }
             Int64 MaximumImagePixels { get; set; }
             Int64 MaximumPartBytes { get; set; }
             Int64 MaximumTotalBytes { get; set; }

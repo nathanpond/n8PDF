@@ -511,6 +511,15 @@ public sealed class DocxBuilder
 
     private readonly List<(string Id, string PartName, byte[] Data)> _images = [];
 
+    private readonly List<(string PartName, string ContentType, byte[] Data)> _binaryParts = [];
+
+    /// <summary>A part whose body is bytes rather than markup - an embedded font, say (#62).</summary>
+    public DocxBuilder WithBinaryPart(string partName, string contentType, byte[] data)
+    {
+        _binaryParts.Add((partName, contentType, data));
+        return this;
+    }
+
     /// <summary>
     /// Pictures a running head reaches, which are parts of the package like any other but are not
     /// referred to from the body. Their relationships belong to the header part, and their ids may
@@ -539,7 +548,7 @@ public sealed class DocxBuilder
     public DocxBuilder AddImageParagraph(
         string relationshipId, double widthPoints, double heightPoints,
         string? paragraphProperties = null, string? leadingText = null,
-        string? leadingRunProperties = null)
+        string? leadingRunProperties = null, string? description = null)
     {
         var cx = (long)Math.Round(widthPoints * 12700);
         var cy = (long)Math.Round(heightPoints * 12700);
@@ -558,7 +567,7 @@ public sealed class DocxBuilder
             <w:r><w:drawing>
               <wp:inline distT="0" distB="0" distL="0" distR="0">
                 <wp:extent cx="{cx}" cy="{cy}"/>
-                <wp:docPr id="{_images.Count}" name="Picture {_images.Count}"/>
+                <wp:docPr id="{_images.Count}" name="Picture {_images.Count}"{(description is null ? "" : $" descr=\"{Escape(description)}\"")}/>
                 <a:graphic>
                   <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
                     <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
@@ -600,16 +609,32 @@ public sealed class DocxBuilder
         double distancePoints = 6,
         bool behindText = false,
         string? paragraphProperties = null,
-        string? runProperties = null)
+        string? runProperties = null,
+        IReadOnlyList<(int X, int Y)>? wrapPolygon = null)
     {
         var cx = (long)Math.Round(widthPoints * 12700);
         var cy = (long)Math.Round(heightPoints * 12700);
         var dist = (long)Math.Round(distancePoints * 12700);
 
+        string Polygon()
+        {
+            var points = new System.Text.StringBuilder("<wp:wrapPolygon edited=\"0\">");
+            for (var i = 0; i < wrapPolygon!.Count; i++)
+            {
+                points.Append(i == 0
+                    ? $"<wp:start x=\"{wrapPolygon[i].X}\" y=\"{wrapPolygon[i].Y}\"/>"
+                    : $"<wp:lineTo x=\"{wrapPolygon[i].X}\" y=\"{wrapPolygon[i].Y}\"/>");
+            }
+
+            return points.Append("</wp:wrapPolygon>").ToString();
+        }
+
         var wrapElement = wrap switch
         {
             "none" => "<wp:wrapNone/>",
             "topAndBottom" => "<wp:wrapTopAndBottom/>",
+            "tight" => $"<wp:wrapTight wrapText=\"bothSides\">{Polygon()}</wp:wrapTight>",
+            "through" => $"<wp:wrapThrough wrapText=\"bothSides\">{Polygon()}</wp:wrapThrough>",
             _ => "<wp:wrapSquare wrapText=\"bothSides\"/>"
         };
 
@@ -1770,6 +1795,14 @@ public sealed class DocxBuilder
                 using var stream = entry.Open();
                 stream.Write(data, 0, data.Length);
             }
+
+            foreach (var (partName, _, data) in _binaryParts)
+            {
+                var entry = archive.CreateEntry(partName, CompressionLevel.Optimal);
+                entry.LastWriteTime = FixedTimestamp;
+                using var stream = entry.Open();
+                stream.Write(data, 0, data.Length);
+            }
         }
 
         return buffer.ToArray();
@@ -1938,6 +1971,9 @@ public sealed class DocxBuilder
         }
 
         foreach (var (partName, contentType, _, _, _) in _parts)
+            defaults.Append($"<Override PartName=\"/{partName}\" ContentType=\"{contentType}\"/>");
+
+        foreach (var (partName, contentType, _) in _binaryParts)
             defaults.Append($"<Override PartName=\"/{partName}\" ContentType=\"{contentType}\"/>");
 
         foreach (var (_, partName, kind, _, _, _) in _headersFooters)

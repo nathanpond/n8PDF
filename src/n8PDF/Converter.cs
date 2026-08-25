@@ -23,6 +23,14 @@ public sealed class ConversionOptions
     /// </remarks>
     public FontLibrary? Fonts { get; set; }
 
+    /// <summary>
+    /// Claim and honour PDF/A-2b conformance (#68). Off by default. When on, the file carries an
+    /// XMP metadata packet agreeing with the information dictionary, an sRGB output intent, and
+    /// a file identifier in the trailer; what A-2b demands of the content — embedded subset
+    /// fonts, no external references, no encryption — is true of every file this writes anyway.
+    /// </summary>
+    public bool PdfA { get; set; }
+
     public LayoutOptions Layout { get; set; } = new();
 
     /// <summary>
@@ -109,6 +117,7 @@ public static class Converter
 
         var builder = new PdfBuilder { Title = options.Title, DropHinting = options.DropFontHinting };
         builder.Document.CreationDate = options.CreationDate;
+        builder.Document.PdfA = options.PdfA;
 
         // The font library goes with it: a drawing can hold text that layout never measured,
         // and drawing it needs a font of its own.
@@ -218,6 +227,34 @@ public static class Converter
 
         var fonts = options.Fonts ?? new FontLibrary();
 
+        // The faces the document carries (#62), registered on a copy for this conversion — the
+        // caller's library is not permanently taught the fonts of one document — where they take
+        // precedence over installed faces of the same name. An embedded face that will not parse
+        // is left out the way an unreadable image is.
+        var embedded = EmbeddedFonts.Read(package, mainPartName, options.Limits);
+        if (embedded.Count > 0)
+        {
+            fonts = new FontLibrary(fonts);
+            foreach (var data in embedded)
+            {
+                try
+                {
+                    fonts.RegisterEmbedded(data);
+                }
+                catch (Exception e) when (e is FontFormatException
+                    or IndexOutOfRangeException or ArgumentException or OverflowException
+                    or DivideByZeroException or InvalidDataException)
+                {
+                    // The document offered a face the SFNT parser refuses; the conversion
+                    // proceeds in substitutes, exactly as if it had not been carried. The net
+                    // takes the malformed-input runtime types as well as FontFormatException, the
+                    // way the image reader's does (#48), so a hole the table readers miss costs
+                    // the face and not the conversion.
+                    _ = e;
+                }
+            }
+        }
+
         var environment = new FieldEnvironment
         {
             Properties = DocumentProperties.Parse(
@@ -231,7 +268,11 @@ public static class Converter
         var bookmarks = BookmarkText.Collect(document);
         environment.TextOfBookmark = name => bookmarks.GetValueOrDefault(name);
 
-        var engine = new LayoutEngine(fonts, resolver, options.Layout, options.Limits) { Fields = environment };
+        // One decode cache spans both pagination passes so an image is decoded once, not per pass (#217).
+        var decodedImages = new Dictionary<string, Images.ImageData?>();
+
+        var engine = new LayoutEngine(fonts, resolver, options.Layout, options.Limits, decodedImages)
+            { Fields = environment };
         var laidOut = engine.Layout(document);
 
         // A page number cannot be known while the page it is on is still being filled, so a
@@ -246,7 +287,7 @@ public static class Converter
             ? laidOut.Pages[found.PageIndex].PageNumber
             : 0;
 
-        var second = new LayoutEngine(fonts, resolver, options.Layout, options.Limits)
+        var second = new LayoutEngine(fonts, resolver, options.Layout, options.Limits, decodedImages)
         {
             Fields = environment,
             Pagination = pagination
@@ -267,6 +308,10 @@ public static class Converter
     /// </remarks>
     private static void LoadHeadersAndFooters(OpcPackage package, string mainPartName, WordDocument document)
     {
+        // One parse per header/footer part: a section that points two references at the same part
+        // otherwise re-parses it and re-runs its image/hyperlink/diagram/chart loading each time (#224).
+        var byPart = new Dictionary<string, HeaderFooter>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var relationship in package.GetRelationships(mainPartName))
         {
             if (relationship.IsExternal) continue;
@@ -281,6 +326,12 @@ public static class Converter
                 var partName = package.ResolveTarget(mainPartName, relationship.Target);
                 if (!package.HasPart(partName)) continue;
 
+                if (byPart.TryGetValue(partName, out var already))
+                {
+                    document.HeadersAndFooters[relationship.Id] = already;
+                    continue;
+                }
+
                 var root = package.ReadPartAsXml(partName).Root;
                 if (root is null) continue;
 
@@ -292,12 +343,14 @@ public static class Converter
                 }
 
                 document.HeadersAndFooters[relationship.Id] = content;
+                byPart[partName] = content;
                 LoadHyperlinks(package, partName, partName, content.Body, document);
                 LoadPartImages(package, partName, content.Body, document);
                 LoadDiagrams(package, partName, content.Body);
                 LoadCharts(package, partName, content.Body);
             }
-            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
             {
             }
         }
@@ -329,7 +382,8 @@ public static class Converter
                 LoadHyperlinks(package, partName, partName, note.Body, document);
             }
         }
-        catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+        catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+            or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
         {
         }
     }
@@ -349,19 +403,17 @@ public static class Converter
     private static void LoadHyperlinks(
         OpcPackage package, string partName, string scope, List<BlockElement> blocks, WordDocument document)
     {
-        Dictionary<string, string>? targets = null;
-
         foreach (var run in EnumerateRuns(blocks))
         {
             if (run.Hyperlink is not { RelationshipId: { } id } link) continue;
 
-            targets ??= package.GetRelationships(partName)
-                .Where(r => r.Type == OpcPackage.HyperlinkRelationship)
-                .GroupBy(r => r.Id, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.First().Target, StringComparer.Ordinal);
-
             var key = scope + "|" + id;
-            if (targets.TryGetValue(id, out var target)) document.Hyperlinks[key] = target;
+
+            // Resolved through the by-id index (#192), one O(1) lookup per link, rather than a
+            // per-call dictionary rebuild — which, called once per note by LoadNotes, was
+            // O(notes * relationships) and hung on a document of many notes each with a link (#210).
+            if (package.GetRelationshipById(partName, id) is { Type: OpcPackage.HyperlinkRelationship } rel)
+                document.Hyperlinks[key] = rel.Target;
 
             run.Hyperlink = link with { RelationshipId = key };
         }
@@ -401,14 +453,17 @@ public static class Converter
 
             var key = partName + "|" + id;
 
-            if (targets.TryGetValue(id, out var target))
+            // Read once per key: many drawings sharing one relationship id otherwise decompress
+            // the same part once each (#219).
+            if (targets.TryGetValue(id, out var target) && !document.Images.ContainsKey(key))
             {
                 try
                 {
                     var image = package.ResolveTarget(partName, target);
                     if (package.HasPart(image)) document.Images[key] = package.ReadPart(image);
                 }
-                catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+                catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
                 {
                 }
             }
@@ -436,6 +491,10 @@ public static class Converter
     /// </remarks>
     private static void LoadDiagrams(OpcPackage package, string partName, List<BlockElement> blocks)
     {
+        // One read per diagram relationship: many drawings sharing an id otherwise re-parse the
+        // same data part and re-walk it with Descendants (#224).
+        var byId = new Dictionary<string, List<DiagramShape>>(StringComparer.Ordinal);
+
         foreach (var run in EnumerateRuns(blocks))
         foreach (var content in run.Content)
         {
@@ -448,7 +507,8 @@ public static class Converter
 
             if (id is null) continue;
 
-            var shapes = ReadDiagram(package, partName, id);
+            if (!byId.TryGetValue(id, out var shapes))
+                byId[id] = shapes = ReadDiagram(package, partName, id);
             if (shapes.Count == 0) continue;
 
             switch (content)
@@ -467,6 +527,10 @@ public static class Converter
     /// <summary>Reads the chart part every chart in a run of blocks names.</summary>
     private static void LoadCharts(OpcPackage package, string partName, List<BlockElement> blocks)
     {
+        // One parse per chart part: many drawings naming the same chart otherwise each rebuild the
+        // identical XDocument and re-parse it (#224).
+        var chartByPart = new Dictionary<string, ChartDefinition?>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var run in EnumerateRuns(blocks))
         foreach (var content in run.Content)
         {
@@ -483,19 +547,27 @@ public static class Converter
 
             try
             {
-                var reference = package.GetRelationships(partName)
-                    .FirstOrDefault(r => r.Id == id && !r.IsExternal);
+                // The by-id index (#192), not a linear scan per drawing — a crafted document
+                // with a million drawings and a million relationships is otherwise O(N*R) (#209).
+                var reference = package.GetRelationshipById(partName, id) is { IsExternal: false } found
+                    ? found
+                    : null;
 
                 if (reference is not null)
                 {
                     var chartPart = package.ResolveTarget(partName, reference.Target);
 
-                    if (package.HasPart(chartPart))
+                    if (package.HasPart(chartPart) &&
+                        !chartByPart.TryGetValue(chartPart, out chart))
+                    {
                         chart = ChartReader.Parse(package.ReadPartAsXml(chartPart));
+                        chartByPart[chartPart] = chart;
+                    }
                 }
             }
             catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
-                                         or System.Xml.XmlException)
+                                         or System.Xml.XmlException
+                                         or Packaging.PackageTooLargeException { WholePackage: false })
             {
             }
 
@@ -519,8 +591,9 @@ public static class Converter
     {
         try
         {
-            var data = package.GetRelationships(partName)
-                .FirstOrDefault(r => r.Id == relationshipId && !r.IsExternal);
+            var data = package.GetRelationshipById(partName, relationshipId) is { IsExternal: false } found
+                ? found
+                : null;  // by-id index, not a per-diagram scan (#209)
 
             if (data is null) return [];
 
@@ -537,11 +610,12 @@ public static class Converter
 
             foreach (var owner in new[] { dataPart, partName })
             {
-                var drawing = package.GetRelationships(owner).FirstOrDefault(r =>
-                    !r.IsExternal &&
-                    (named is not null ? r.Id == named : r.Type == Diagram.DrawingRelationship));
+                var drawing = named is not null
+                    ? package.GetRelationshipById(owner, named)
+                    : package.GetRelationshipByType(owner, Diagram.DrawingRelationship);   // (#209)
 
-                if (drawing is null || drawing.Type != Diagram.DrawingRelationship) continue;
+                if (drawing is null || drawing.IsExternal || drawing.Type != Diagram.DrawingRelationship)
+                    continue;
 
                 var drawingPart = package.ResolveTarget(owner, drawing.Target);
 
@@ -552,7 +626,8 @@ public static class Converter
             return [];
         }
         catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
-                                     or System.Xml.XmlException)
+                                     or System.Xml.XmlException
+                                     or Packaging.PackageTooLargeException { WholePackage: false })
         {
             return [];
         }
@@ -585,6 +660,12 @@ public static class Converter
         // runs, and a drawing carries only the relationship id, not the picture. A part that is
         // missing or unreadable is skipped: a broken image should cost its own placement, not the
         // conversion.
+        // Read each image part once and share the bytes across every relationship that names it:
+        // R relationships targeting one part otherwise decompress it R times and retain R copies,
+        // and the re-reads count toward the whole-package cap and can turn an image-heavy document
+        // into a spurious failure (#219).
+        var byPart = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var relationship in package.GetRelationships(mainPartName))
         {
             if (relationship.Type != OpcPackage.ImageRelationship || relationship.IsExternal) continue;
@@ -592,10 +673,18 @@ public static class Converter
             try
             {
                 var partName = package.ResolveTarget(mainPartName, relationship.Target);
-                if (package.HasPart(partName))
-                    document.Images[relationship.Id] = package.ReadPart(partName);
+                if (!package.HasPart(partName)) continue;
+
+                if (!byPart.TryGetValue(partName, out var bytes))
+                {
+                    bytes = package.ReadPart(partName);
+                    byPart[partName] = bytes;
+                }
+
+                document.Images[relationship.Id] = bytes;
             }
-            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException)
+            catch (Exception e) when (e is IOException or InvalidDataException or FileNotFoundException
+                or System.Xml.XmlException or Packaging.PackageTooLargeException { WholePackage: false })
             {
             }
         }

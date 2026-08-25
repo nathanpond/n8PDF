@@ -72,6 +72,16 @@ tools/make-reference-pdfs.sh       # generate missing Word reference PDFs (macOS
 dotnet pack src/n8PDF -c Release   # the package, with its symbols and its documentation
 ```
 
+Static analysis is a separate checker, run on the source rather than the output (`pip install
+semgrep` first):
+
+```bash
+semgrep scan --config .semgrep --config p/csharp --config p/security-audit --config p/secrets src/
+semgrep --test --config .semgrep/unchecked-round-cast.yaml .semgrep/unchecked-round-cast.cs  # a rule's fixtures
+```
+
+The repo-specific rules and the inline-suppression policy live in [`.semgrep/README.md`](.semgrep/README.md).
+
 Converted fixtures are written to `artifacts/test-output/` for eyeballing. That directory is
 git-ignored.
 
@@ -186,6 +196,23 @@ agreeing is decent evidence a file is well formed; they are not a substitute for
 glyph *positions* come from the content stream, so all conforming viewers agree on geometry; what
 differs between them is rasterisation, and the one feature of ours genuinely sensitive to that is
 synthetic bold (text render mode 2).
+
+### Static analysis
+
+The four tiers above and the external checkers (qpdf, fontTools, FriBidi, veraPDF) all judge a
+finished PDF. **Semgrep** is a different kind of check: it reads the *source*, looking for the shapes
+the audit keeps re-finding in parsers written from scratch against untrusted input — an unchecked
+`(int)` cast of a document value that wraps to `int.MinValue`, an array sized straight off the wire,
+XML opened on the framework's DTD defaults, a length bound that overflows before it is checked. It
+runs in its own workflow (`.github/workflows/semgrep.yml`) on every push and PR, pulling the registry
+rulesets (`p/csharp`, `p/security-audit`, `p/secrets`) tokenlessly and the repo's own rules from
+`.semgrep/`, and uploads its findings to GitHub code scanning.
+
+It is **advisory** — findings surface as alerts and do not fail the build — and it is not a proof of
+absence: Semgrep's C# grammar does not parse C# 12 primary constructors, so files that use them are
+read only in part. It is a net for the recurring patterns, not a substitute for the audit or the
+output tiers. See [`.semgrep/README.md`](.semgrep/README.md) for the rules, the diff-aware PR
+scanning, and the suppression policy.
 
 ## Reading a file someone else wrote
 
@@ -1892,10 +1919,17 @@ geometry by the element rather than by an attribute, and defaults its fill to wh
 outline to three quarters of a point of black. Where a document offers both, in a compatibility
 wrapper, the newer is read and the older passed over so the shape is drawn once.
 
-What a shape does not do yet: turn (a rotated shape is drawn square), resize itself or its text to
-fit the other (a box holding more than it has room for overflows, which is what `noAutofit` asks
-for and what Word does with that setting), fill with anything but one flat colour, or carry a
-shadow.
+A shape turns and mirrors (`a:xfrm`'s `rot`, `flipH`, `flipV`), and the wrap region beside it
+stays the stated extent, unturned — measured: Word lets the turned corner overhang the text
+beside it rather than pushing it out to the turned bounds; it fills with a linear gradient of any number of stops or with a picture
+kept inside its path, and carries an outer shadow, drawn as the same path offset where the shadow
+falls at the shadow's own solidity. A box told to size itself to its text grows at render, and one
+told to shrink its text draws full size where the text fits — the stored scale is Word's cache of
+its own computation, applied only where full-size content overflows, which is what Word was
+measured doing. What a shape does not do yet: rotate the paragraphs laid out inside it (the
+geometry turns; flowed text within stays upright), tighten its line spacing to fit
+(`lnSpcReduction` — the font shrinks, the leading does not), fill with a pattern (declined —
+Word's own gallery no longer offers one), or blur its shadow's edge.
 
 Watermarks are drawn, of both kinds: the word, in the face and colour and half-solidity it asks for,
 turned the way it asks to be turned; or the picture, washed out to the gain and black level it
@@ -2167,8 +2201,11 @@ out stays a drawing all the way to the PDF, whose own operators write it out aga
 chart sharp at any size a reader looks at it, and it keeps the text inside one selectable. What is
 handled is what a picture in a document is made of: paths and the shapes that are shorthand for
 them, the pens and brushes that colour them, the fonts and the text, and the bitmaps a drawing can
-carry. What is not is the rest of an interface built to drive a screen: raster operations, clipping
-regions and palettes.
+carry, and the clipping a drawing keeps its ink inside — the intersect and exclude rectangles and
+the regions built of rectangles, honoured as PDF clip paths (#69). What is not is the rest of an
+interface built to drive a screen: raster operations and palettes, declined by decision — the one
+is a screen idiom a document's picture does not use, and the other matters only to old paletted
+bitmaps no Office export writes into a metafile.
 
 A metafile written by anything modern carries the same drawing twice — once in those records, and
 once in the newer GDI+ ones that travel inside their comments, a format smuggled through a format.

@@ -15,8 +15,9 @@ namespace n8PDF.Images;
 ///
 /// What is handled is what a picture in a document is made of: paths and the shapes that are
 /// shorthand for them, the pens and brushes that colour them, text, and the bitmaps a drawing can
-/// carry. What is not is the rest of an interface designed to drive a screen: raster operations,
-/// clipping regions and palettes.
+/// carry. What is handled beside them is the clipping a drawing keeps its ink
+/// inside (#69). What is not is the rest of an interface designed to drive a screen: raster
+/// operations and palettes.
 ///
 /// A metafile written by anything modern carries the newer format's records as well, inside the
 /// comments of this one. Where a file has them they are what draws it: that is what they are for,
@@ -70,7 +71,10 @@ internal static class EmfDecoder
             var type = (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24));
             var size = data[at + 4] | (data[at + 5] << 8) | (data[at + 6] << 16) | (data[at + 7] << 24);
 
-            if (size < 8 || at + size > data.Length) break;
+            // Overflow-safe: at is within the buffer, so data.Length - at is a non-negative int,
+            // where at + size overflows to negative for a size near int.MaxValue and passes a
+            // naive check, after which the cursor moves backwards and the walk never ends (#17).
+            if (size < 8 || size > data.Length - at) break;
 
             if (type == 70 && at + 16 <= data.Length)
             {
@@ -149,6 +153,9 @@ internal static class EmfDecoder
             public double ScaleX { get; init; } = 1;
 
             public double ScaleY { get; init; } = 1;
+
+            /// <summary>The clips in force, innermost last — every one applies at once (#69).</summary>
+            public IReadOnlyList<ClipShape>? Clips { get; init; }
         }
 
         private sealed record LogicalFont(string Family, double Size, bool Bold, bool Italic, double Angle);
@@ -172,7 +179,10 @@ internal static class EmfDecoder
                 var type = ReadUInt32(at);
                 var size = (int)ReadUInt32(at + 4);
 
-                if (size < 8 || at + size > data.Length) break;
+                // Overflow-safe: at is within the buffer, so data.Length - at is a non-negative int,
+            // where at + size overflows to negative for a size near int.MaxValue and passes a
+            // naive check, after which the cursor moves backwards and the walk never ends (#17).
+            if (size < 8 || size > data.Length - at) break;
 
                 Record(type, at, size);
 
@@ -275,6 +285,69 @@ internal static class EmfDecoder
                 case 23: // SETSTRETCHBLTMODE
                 case 24: // SETTEXTALIGN
                     break;
+
+                // ----- the clips (#69) -----
+
+                case 30: // INTERSECTCLIPRECT
+                {
+                    var (x0, y0) = Point(at + 8);
+                    var (x1, y1) = Point(at + 16);
+
+                    AppendClip(new ClipShape(RectSteps(x0, y0, x1, y1), EvenOdd: false));
+                    break;
+                }
+
+                case 29: // EXCLUDECLIPRECT
+                {
+                    // Everything but the rectangle: a path of the whole plane and the rectangle,
+                    // decided even-odd, which is the same subtraction in PDF's terms.
+                    var (x0, y0) = Point(at + 8);
+                    var (x1, y1) = Point(at + 16);
+
+                    var steps = RectSteps(-Beyond, -Beyond, Beyond, Beyond);
+                    steps.AddRange(RectSteps(x0, y0, x1, y1));
+
+                    AppendClip(new ClipShape(steps, EvenOdd: true));
+                    break;
+                }
+
+                case 67: // SELECTCLIPPATH
+                    if (_path.Count > 0)
+                        CombineClip(ReadUInt32(at + 8), new ClipShape([.. _path], _state.EvenOdd));
+
+                    _recording = false;
+                    _path = [];
+                    break;
+
+                case 75: // EXTSELECTCLIPRGN
+                {
+                    // The region rides as RGNDATA: a 32-byte header naming how many rectangles,
+                    // then the rectangles, whose union is the region. RGN_COPY with no data at
+                    // all is how a metafile clears its clip.
+                    var mode = ReadUInt32(at + 12);
+
+                    if (ReadUInt32(at + 8) == 0)
+                    {
+                        if (mode == 5) _state = _state with { Clips = null };
+                        break;
+                    }
+
+                    var count = (int)Math.Min(ReadUInt32(at + 24), 256);
+                    var steps = new List<PathStep>();
+
+                    for (var i = 0; i < count; i++)
+                    {
+                        var o = at + 16 + 32 + i * 16;
+                        if (o + 16 > data.Length) break;
+
+                        var (x0, y0) = Point(o);
+                        var (x1, y1) = Point(o + 8);
+                        steps.AddRange(RectSteps(x0, y0, x1, y1));
+                    }
+
+                    if (steps.Count > 0) CombineClip(mode, new ClipShape(steps, EvenOdd: false));
+                    break;
+                }
 
                 case 19: // SETPOLYFILLMODE
                     _state = _state with { EvenOdd = ReadUInt32(at + 8) == 1 };
@@ -518,7 +591,9 @@ internal static class EmfDecoder
         {
             // A logical font's height is in the metafile's own units, and is negative where it
             // names the height of the characters rather than of the whole line.
-            var height = Math.Abs(ReadInt32(at)) * _scale * _state.ScaleY;
+            // int.MinValue has no positive counterpart, so Math.Abs throws on it (#25).
+            var rawFontHeight = ReadInt32(at);
+            var height = (rawFontHeight == int.MinValue ? 0 : Math.Abs(rawFontHeight)) * _scale * _state.ScaleY;
             var escapement = ReadInt32(at + 8);
             var weight = ReadInt32(at + 16);
             var italic = data[at + 20] != 0;
@@ -549,14 +624,14 @@ internal static class EmfDecoder
             var characters = (int)ReadUInt32(at + 44);
             var offset = (int)ReadUInt32(at + 48);
 
-            if (characters <= 0 || offset <= 0 || at + offset >= data.Length) return;
+            if (characters <= 0 || offset <= 0 || at >= data.Length - offset) return;
 
             var text = new StringBuilder(characters);
 
             for (var i = 0; i < characters; i++)
             {
                 var index = at + offset + (wide ? i * 2 : i);
-                if (index + (wide ? 1 : 0) >= data.Length) break;
+                if (index >= data.Length - (wide ? 1 : 0)) break;
 
                 var character = wide ? (char)ReadUInt16(index) : (char)data[index];
                 if (character == 0) break;
@@ -587,7 +662,13 @@ internal static class EmfDecoder
             var bitsSize = (int)ReadUInt32(at + 60);
 
             if (headerAt <= 0 || bitsAt <= 0 || headerSize <= 0 || bitsSize <= 0) return;
-            if (at + bitsAt + bitsSize > data.Length) return;
+
+            // The header's offset and size are validated the same way the bits' are, and both
+            // overflow-safe: only the bits were checked, so a crafted header offset or size read
+            // past the end or sized a gigabyte-long copy (#23). data.Length - X is non-negative
+            // because X (= at, an in-range cursor) is; the subtractions cannot overflow.
+            if (headerAt > data.Length - at || headerSize > data.Length - at - headerAt) return;
+            if (bitsAt > data.Length - at || bitsSize > data.Length - at - bitsAt) return;
 
             // A device-independent bitmap is a bitmap without its file header, so one is put back
             // in front of it and the same reader used.
@@ -628,12 +709,20 @@ internal static class EmfDecoder
 
             if (count <= 0) return;
 
+            // The count is a raw 32-bit field; a point must fit within the record's own bytes, so
+            // it is bounded by what remains after the header rather than read to the end of the
+            // file, and the list is pre-sized from the bounded value (#20, #21).
+            var pointSize = small ? 4 : 8;
+            var room = Math.Max(0, (size - 28) / pointSize);
+            count = Math.Min(count, room);
+            if (count <= 0) return;
+
             var points = new List<(double X, double Y)>(count);
 
             for (var i = 0; i < count; i++)
             {
                 var index = start + i * (small ? 4 : 8);
-                if (index + (small ? 3 : 7) >= data.Length) return;
+                if (index >= data.Length - (small ? 3 : 7)) return;
 
                 points.Add(small ? SmallPoint(index) : Point(index));
             }
@@ -679,6 +768,11 @@ internal static class EmfDecoder
 
             if (polygons <= 0 || points <= 0) return;
 
+            // Both counts are raw 32-bit fields. The per-polygon count array and the points both
+            // have to fit within the record, so each is bounded by what the record's own size
+            // leaves rather than allocated from the file's word (#20).
+            if (polygons > (size - 32) / 4) return;
+
             var counts = new int[polygons];
             for (var i = 0; i < polygons; i++) counts[i] = (int)ReadUInt32(at + 32 + i * 4);
 
@@ -691,7 +785,7 @@ internal static class EmfDecoder
                 for (var i = 0; i < count; i++, read++)
                 {
                     var index = start + read * (small ? 4 : 8);
-                    if (index + (small ? 3 : 7) >= data.Length) return;
+                    if (index >= data.Length - (small ? 3 : 7)) return;
 
                     var point = small ? SmallPoint(index) : Point(index);
 
@@ -757,8 +851,36 @@ internal static class EmfDecoder
 
             Add(new PathOperation(
                 [.. steps], fillColor, strokeColor,
-                Math.Max(0.24, _state.StrokeWidth * _scale), _state.EvenOdd));
+                Math.Max(0.24, _state.StrokeWidth * _scale), _state.EvenOdd,
+                Clips: _state.Clips));
         }
+
+        /// <summary>Far past any drawing, for the path that stands for the whole plane (#69).</summary>
+        private const double Beyond = 1e6;
+
+        private static List<PathStep> RectSteps(double x0, double y0, double x1, double y1) =>
+        [
+            new PathStep(PathStepKind.Move, [(x0, y0)]),
+            new PathStep(PathStepKind.Line, [(x1, y0)]),
+            new PathStep(PathStepKind.Line, [(x1, y1)]),
+            new PathStep(PathStepKind.Line, [(x0, y1)]),
+            new PathStep(PathStepKind.Close, [])
+        ];
+
+        private void AppendClip(ClipShape shape) =>
+            _state = _state with { Clips = [.. _state.Clips ?? [], shape] };
+
+        /// <summary>
+        /// How a selected region or path joins the clip in force. Copy replaces it and And
+        /// intersects, which the renderer composes by clipping to each in turn; the other three
+        /// modes need a union or a symmetric difference of arbitrary regions, which nothing
+        /// yet drawn by Office asks of a document's picture — they take the new shape alone,
+        /// which errs toward clipping less rather than more.
+        /// </summary>
+        private void CombineClip(uint mode, ClipShape shape) =>
+            _state = mode == 1 // RGN_AND
+                ? _state with { Clips = [.. _state.Clips ?? [], shape] }
+                : _state with { Clips = [shape] };
 
         /// <summary>A point of the metafile's own, in the drawing's points.</summary>
         private (double X, double Y) Point(int at) =>

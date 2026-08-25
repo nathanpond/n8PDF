@@ -62,7 +62,7 @@ internal static class GifDecoder
                 }
 
                 case 0x2C:
-                    return Frame(data, at, screenWidth, screenHeight, globalPalette, transparent);
+                    return Frame(data, at, screenWidth, screenHeight, globalPalette, transparent, maximumPixels);
 
                 case 0x3B:
                 default:
@@ -74,8 +74,14 @@ internal static class GifDecoder
     }
 
     private static ImageData Frame(
-        byte[] data, int at, int screenWidth, int screenHeight, byte[]? globalPalette, int? transparent)
+        byte[] data, int at, int screenWidth, int screenHeight, byte[]? globalPalette, int? transparent,
+        long maximumPixels)
     {
+        // The ten-byte image descriptor and the code-size byte after the colour table must be
+        // present; a truncated file would otherwise index past its end (#9).
+        if (at + 10 > data.Length)
+            throw new ImageFormatException("GIF image descriptor runs past the end of the file.");
+
         var left = data[at + 1] | (data[at + 2] << 8);
         var top = data[at + 3] | (data[at + 4] << 8);
         var width = data[at + 5] | (data[at + 6] << 8);
@@ -95,7 +101,14 @@ internal static class GifDecoder
         if (palette is null) throw new ImageFormatException("GIF has no colour table.");
         if (width <= 0 || height <= 0) throw new ImageFormatException("GIF frame is empty.");
 
+        // The frame's own width and height are independent 16-bit fields, unrelated to the logical
+        // screen the header check bounded — so a 31-byte GIF can declare a frame of 2GB. They are
+        // checked here, where the frame is read and before width*height sizes anything (#8).
+        ImageLimits.Check(width, height, maximumPixels, "GIF");
+
         var interlaced = (packed & 0x40) != 0;
+
+        if (at >= data.Length) throw new ImageFormatException("GIF ends before its image data.");  // (#9)
 
         var minimumCodeSize = data[at];
         at++;

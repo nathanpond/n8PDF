@@ -348,6 +348,12 @@ internal static class DocumentParser
     /// </summary>
     private static void CollectRuns(XElement element, List<Run> runs)
     {
+        // Inline wrappers nest into inline wrappers, and this walks into each; a document that
+        // nests them past the bound is refused a deeper walk rather than overflowing the stack
+        // (#143). The scope also counts toward the text-box cycle's total (#146).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return;
+
         if (element.Name == W.Main + "r")
         {
             runs.Add(ParseRun(element));
@@ -708,6 +714,7 @@ internal static class DocumentParser
 
         return new DrawingInline(width, height, ReadEmbeddedRelationship(inline))
         {
+            Description = inline.Element(W.WordDrawing + "docPr")?.Attribute("descr")?.Value,
             Shape = ReadShape(inline),
             DiagramRelationshipId = ReadDiagram(inline),
             ChartRelationshipId = ReadChart(inline)
@@ -723,17 +730,112 @@ internal static class DocumentParser
     /// the frame rather than from its <c>a:xfrm</c>: the two agree in everything Word writes, and
     /// the frame is what the text around it was laid out against.
     /// </remarks>
+    /// <summary>A gradient fill's stops and axis, or null where the fill is not one (#64).</summary>
+    private static ShapeGradient? ReadGradientFill(XElement spPr)
+    {
+        if (spPr.Element(W.Drawing + "gradFill") is not { } gradient) return null;
+
+        var stops = new List<(double Position, DrawingColorReference Color)>();
+
+        foreach (var stop in gradient.Element(W.Drawing + "gsLst")?.Elements(W.Drawing + "gs") ?? [])
+        {
+            if (!long.TryParse(stop.Attribute("pos")?.Value, out var position)) continue;
+
+            DrawingColorReference? color =
+                stop.Element(W.Drawing + "srgbClr")?.Attribute("val")?.Value is { } hex
+                    ? new DrawingColorReference(hex, null)
+                    : stop.Element(W.Drawing + "schemeClr")?.Attribute("val")?.Value is { } slot
+                        ? new DrawingColorReference(null, slot)
+                        : null;
+
+            if (color is not null) stops.Add((Math.Clamp(position / 100000.0, 0, 1), color));
+        }
+
+        if (stops.Count < 2) return null;
+
+        var angle = 0.0;
+
+        if (gradient.Element(W.Drawing + "lin")?.Attribute("ang")?.Value is { } ang &&
+            long.TryParse(ang, out var sixtieths))
+        {
+            angle = sixtieths / 60000.0;
+        }
+
+        return new ShapeGradient([.. stops.OrderBy(stop => stop.Position)], angle);
+    }
+
+    /// <summary>The outer shadow a shape carries, or null for none (#64).</summary>
+    private static ShapeShadow? ReadShadow(XElement spPr)
+    {
+        if (spPr.Element(W.Drawing + "effectLst")?.Element(W.Drawing + "outerShdw") is not { } shadow)
+            return null;
+
+        var colour = shadow.Element(W.Drawing + "srgbClr") ?? shadow.Element(W.Drawing + "schemeClr");
+        if (colour is null) return null;
+
+        var reference = colour.Name.LocalName == "srgbClr"
+            ? new DrawingColorReference(colour.Attribute("val")?.Value ?? "000000", null)
+            : new DrawingColorReference(null, colour.Attribute("val")?.Value);
+
+        var opacity = 1.0;
+
+        if (long.TryParse(colour.Element(W.Drawing + "alpha")?.Attribute("val")?.Value, out var alpha))
+            opacity = Math.Clamp(alpha / 100000.0, 0, 1);
+
+        var distance = 0.0;
+        if (long.TryParse(shadow.Attribute("dist")?.Value, out var emu)) distance = Units.EmuToPoints(emu);
+
+        var direction = 0.0;
+        if (long.TryParse(shadow.Attribute("dir")?.Value, out var dir)) direction = dir / 60000.0;
+
+        return new ShapeShadow(reference, opacity, distance, direction);
+    }
+
     private static ShapeFrame? ReadShape(XElement container)
     {
+        // A text box holds a paragraph that holds a drawing that holds a text box; past the bound
+        // the innermost is refused rather than overflowing the stack (#146).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return null;
+
         var wsp = container.Descendants(W.Shape + "wsp").FirstOrDefault();
         if (wsp is null) return null;
 
         var shape = new ShapeFrame();
 
-        if (wsp.Descendants(W.Shape + "spPr").FirstOrDefault() is { } spPr)
+        // Bind spPr, bodyPr and txbxContent in one traversal rather than three independent
+        // Descendants scans, each of which walked the whole subtree when its element was absent
+        // (#220). Stop as soon as all three are found.
+        XElement? spPr = null, bodyPr = null, content = null;
+
+        foreach (var el in wsp.Descendants())
+        {
+            if (spPr is null && el.Name == W.Shape + "spPr") spPr = el;
+            else if (bodyPr is null && el.Name == W.Shape + "bodyPr") bodyPr = el;
+            else if (content is null && el.Name == W.Main + "txbxContent") content = el;
+
+            if (spPr is not null && bodyPr is not null && content is not null) break;
+        }
+
+        if (spPr is not null)
         {
             shape.Geometry = spPr.Element(W.Drawing + "prstGeom")?.Attribute("prst")?.Value ?? "rect";
             shape.Fill = ReadDrawingFill(spPr);
+            shape.Gradient = ReadGradientFill(spPr);
+            shape.PictureFillRelationshipId = spPr.Element(W.Drawing + "blipFill")
+                ?.Element(W.Drawing + "blip")?.Attribute(W.Relationships + "embed")?.Value;
+            shape.Shadow = ReadShadow(spPr);
+
+            // The turn and the mirrors, from the shape's own transform (#64). The angle is in
+            // sixty-thousandths of a degree, clockwise, exactly as the schema writes it.
+            if (spPr.Element(W.Drawing + "xfrm") is { } xfrm)
+            {
+                if (long.TryParse(xfrm.Attribute("rot")?.Value, out var sixtieths))
+                    shape.RotationDegrees = sixtieths / 60000.0;
+
+                shape.FlipHorizontal = xfrm.Attribute("flipH")?.Value is "1" or "true";
+                shape.FlipVertical = xfrm.Attribute("flipV")?.Value is "1" or "true";
+            }
 
             if (spPr.Element(W.Drawing + "ln") is { } line)
             {
@@ -747,12 +849,21 @@ internal static class DocumentParser
             }
         }
 
-        if (wsp.Descendants(W.Shape + "bodyPr").FirstOrDefault() is { } bodyPr)
+        if (bodyPr is not null)
         {
             shape.InsetLeftPoints = Inset(bodyPr, "lIns", shape.InsetLeftPoints);
             shape.InsetTopPoints = Inset(bodyPr, "tIns", shape.InsetTopPoints);
             shape.InsetRightPoints = Inset(bodyPr, "rIns", shape.InsetRightPoints);
             shape.InsetBottomPoints = Inset(bodyPr, "bIns", shape.InsetBottomPoints);
+
+            shape.AutofitToText = bodyPr.Element(W.Drawing + "spAutoFit") is not null;
+
+            if (bodyPr.Element(W.Drawing + "normAutofit") is { } autofit &&
+                long.TryParse(autofit.Attribute("fontScale")?.Value, out var fontScale) &&
+                fontScale is > 0 and < 100000)
+            {
+                shape.FontScale = fontScale / 100000.0;
+            }
 
             shape.Anchor = bodyPr.Attribute("anchor")?.Value switch
             {
@@ -762,7 +873,6 @@ internal static class DocumentParser
             };
         }
 
-        var content = wsp.Descendants(W.Main + "txbxContent").FirstOrDefault();
         if (content is not null)
         {
             foreach (var child in Blocks(content))
@@ -821,6 +931,28 @@ internal static class DocumentParser
         return null;
     }
 
+    /// <summary>The polygon a tight or through wrap follows: a start point and its lines (#65).</summary>
+    private static IReadOnlyList<(long X, long Y)>? ReadWrapPolygon(XElement wrap)
+    {
+        if (wrap.Element(W.WordDrawing + "wrapPolygon") is not { } polygon) return null;
+
+        var points = new List<(long X, long Y)>();
+
+        foreach (var element in polygon.Elements())
+        {
+            if (element.Name != W.WordDrawing + "start" && element.Name != W.WordDrawing + "lineTo")
+                continue;
+
+            if (long.TryParse(element.Attribute("x")?.Value, out var x) &&
+                long.TryParse(element.Attribute("y")?.Value, out var y))
+            {
+                points.Add((x, y));
+            }
+        }
+
+        return points.Count >= 3 ? points : null;
+    }
+
     private static AnchoredDrawing? ParseAnchoredDrawing(XElement anchor)
     {
         var (width, height) = ReadExtent(anchor);
@@ -830,14 +962,21 @@ internal static class DocumentParser
         var positionV = anchor.Element(W.WordDrawing + "positionV");
 
         // Exactly one of wrapNone, wrapSquare, wrapTight, wrapThrough and wrapTopAndBottom is
-        // present. Tight and through follow a polygon; both are approximated by the bounding box,
-        // which is what wrapSquare does.
+        // present. Tight and through follow the polygon they carry (#65); one that carries none
+        // falls back to the bounding box, which is what wrapSquare does.
         var wrap = TextWrapMode.Square;
+        IReadOnlyList<(long X, long Y)>? polygon = null;
+
         if (anchor.Element(W.WordDrawing + "wrapNone") is not null) wrap = TextWrapMode.None;
         else if (anchor.Element(W.WordDrawing + "wrapTopAndBottom") is not null) wrap = TextWrapMode.TopAndBottom;
+        else if (anchor.Element(W.WordDrawing + "wrapTight") is { } tight)
+            (wrap, polygon) = (TextWrapMode.Tight, ReadWrapPolygon(tight));
+        else if (anchor.Element(W.WordDrawing + "wrapThrough") is { } through)
+            (wrap, polygon) = (TextWrapMode.Through, ReadWrapPolygon(through));
 
         return new AnchoredDrawing
         {
+            Description = anchor.Element(W.WordDrawing + "docPr")?.Attribute("descr")?.Value,
             Shape = ReadShape(anchor),
             DiagramRelationshipId = ReadDiagram(anchor),
             ChartRelationshipId = ReadChart(anchor),
@@ -845,6 +984,7 @@ internal static class DocumentParser
             HeightEmu = height,
             RelationshipId = ReadEmbeddedRelationship(anchor),
             Wrap = wrap,
+            WrapPolygon = polygon,
             BehindText = anchor.Attribute("behindDoc")?.Value is "1" or "true",
 
             HorizontalFrom = positionH?.Attribute("relativeFrom")?.Value switch
@@ -1199,6 +1339,11 @@ internal static class DocumentParser
     public static Table ParseTable(XElement element)
     {
         var table = new Table();
+
+        // A table can hold a table in a cell without end; past the bound the inner table is left
+        // out rather than overflowing the stack (#144).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return table;
 
         var tblPr = element.Element(W.Main + "tblPr");
         if (tblPr is not null) table.Properties = ParseTableProperties(tblPr);

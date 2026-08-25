@@ -70,8 +70,28 @@ internal static class Bidi
         var levels = new byte[text.Length];
         var resolved = new BidiClass[text.Length];
 
-        Explicit(classes, resolved, levels, paragraphLevel);                             // X1–X8
-        Sequences(text, classes, resolved, levels, paragraphLevel);                      // X10, W, N, I
+        // The isolate initiator -> matching PDI map, and which PDIs match an opener, computed
+        // once by a single stack pass rather than rescanned per isolate: the per-isolate scans
+        // were O(N^2) on a run of isolate characters (#215). The isolate structure of classes is
+        // stable through Explicit (it reclassifies only the embedding controls, not the isolates).
+        var matchingPdi = new int[classes.Length];
+        Array.Fill(matchingPdi, classes.Length);
+        var isolateStack = new Stack<int>();
+        for (var i = 0; i < classes.Length; i++)
+        {
+            if (classes[i] is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI) isolateStack.Push(i);
+            else if (classes[i] == BidiClass.PDI && isolateStack.Count > 0) matchingPdi[isolateStack.Pop()] = i;
+        }
+
+        var matchesIsolate = new bool[classes.Length];
+        for (var i = 0; i < classes.Length; i++)
+        {
+            if (classes[i] is (BidiClass.LRI or BidiClass.RLI or BidiClass.FSI) && matchingPdi[i] < classes.Length)
+                matchesIsolate[matchingPdi[i]] = true;
+        }
+
+        Explicit(classes, resolved, levels, paragraphLevel, matchingPdi);                 // X1–X8
+        Sequences(text, classes, resolved, levels, paragraphLevel, matchingPdi, matchesIsolate);  // X10, W, N, I
         ResetLevels(classes, levels, paragraphLevel);                                    // L1
 
         return new Result(levels, paragraphLevel);
@@ -155,17 +175,20 @@ internal static class Bidi
     /// the way the reader is going, so what is stored as an opening bracket is drawn as a closing
     /// one. This is rule L4.
     /// </summary>
-    public static char Mirror(char value)
+    // The generated table is a flat (from, to) pair list; scanning it per character cost ~180
+    // comparisons on every glyph of an RTL slice (#225). Index it once into a dictionary — the
+    // table is generator output, so the structure lives here in the consumer, not in the file.
+    private static readonly Dictionary<char, char> MirrorMap = BuildPairMap(BidiTables.Mirrored);
+    private static readonly Dictionary<char, char> BracketMap = BuildPairMap(BidiTables.BracketPairs);
+
+    private static Dictionary<char, char> BuildPairMap(int[] pairs)
     {
-        var pairs = BidiTables.Mirrored;
-
-        for (var i = 0; i < pairs.Length; i += 2)
-        {
-            if (pairs[i] == value) return (char)pairs[i + 1];
-        }
-
-        return value;
+        var map = new Dictionary<char, char>(pairs.Length / 2);
+        for (var i = 0; i < pairs.Length; i += 2) map[(char)pairs[i]] = (char)pairs[i + 1];
+        return map;
     }
+
+    public static char Mirror(char value) => MirrorMap.TryGetValue(value, out var m) ? m : value;
 
     /// <summary>The class of the character at a position, reading a surrogate pair as one.</summary>
     public static BidiClass ClassOf(string text, int at)
@@ -240,7 +263,8 @@ internal static class Bidi
     /// The explicit marks: the embeddings, overrides and isolates a document may put around text
     /// to say what the algorithm cannot work out. Rules X1 to X8.
     /// </summary>
-    private static void Explicit(BidiClass[] classes, BidiClass[] resolved, byte[] levels, byte paragraphLevel)
+    private static void Explicit(
+        BidiClass[] classes, BidiClass[] resolved, byte[] levels, byte paragraphLevel, int[] matchingPdi)
     {
         var stack = new Stack<(byte Level, BidiClass Override, bool Isolate)>();
         stack.Push((paragraphLevel, BidiClass.ON, false));
@@ -267,7 +291,7 @@ internal static class Bidi
                     var rightToLeft = type switch
                     {
                         BidiClass.RLE or BidiClass.RLO or BidiClass.RLI => true,
-                        BidiClass.FSI => FirstStrong(classes, i + 1, MatchingPdi(classes, i)) == 1,
+                        BidiClass.FSI => FirstStrong(classes, i + 1, matchingPdi[i]) == 1,   // (#215)
                         _ => false
                     };
 
@@ -374,7 +398,8 @@ internal static class Bidi
     /// several joined across an isolate — and works each one out. Rule X10.
     /// </summary>
     private static void Sequences(
-        string text, BidiClass[] classes, BidiClass[] resolved, byte[] levels, byte paragraphLevel)
+        string text, BidiClass[] classes, BidiClass[] resolved, byte[] levels, byte paragraphLevel,
+        int[] matchingPdi, bool[] matchesIsolate)
     {
         var length = classes.Length;
 
@@ -391,7 +416,7 @@ internal static class Bidi
         foreach (var start in kept)
         {
             if (used[start]) continue;
-            if (classes[start] == BidiClass.PDI && MatchesAnIsolate(classes, start)) continue;
+            if (classes[start] == BidiClass.PDI && matchesIsolate[start]) continue;   // precomputed (#215)
 
             // A sequence runs from here to the end of its level run, and on across an isolate
             // that is closed later.
@@ -403,23 +428,35 @@ internal static class Bidi
                 var level = levels[at];
                 var last = at;
 
+                // Whether a kept index of a different level has appeared since the last one added:
+                // tracked as the loop runs rather than rescanned with kept.Any at every element,
+                // which was O(N^2) on text interleaved with dropped control characters (#214).
+                var sawDifferentLevel = false;
+
                 foreach (var i in kept)
                 {
-                    if (i < at || levels[i] != level) continue;
-                    if (i > at && used[i]) break;
+                    if (i < at) continue;
 
-                    if (i > last + 1 && kept.Any(k => k > last && k < i && levels[k] != level)) break;
+                    if (levels[i] != level)
+                    {
+                        if (i > last) sawDifferentLevel = true;
+                        continue;
+                    }
+
+                    if (i > at && used[i]) break;
+                    if (i > last + 1 && sawDifferentLevel) break;
 
                     sequence.Add(i);
                     used[i] = true;
                     last = i;
+                    sawDifferentLevel = false;
                 }
 
                 // An isolate that is closed carries the sequence on after the character closing
                 // it, so that text either side of an isolate is worked out as one.
                 if (classes[last] is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI)
                 {
-                    var closing = MatchingPdi(classes, last);
+                    var closing = matchingPdi[last];   // precomputed (#215)
 
                     if (closing < length && !used[closing])
                     {
@@ -445,24 +482,6 @@ internal static class Bidi
 
             levels[i] = i == 0 ? paragraphLevel : levels[i - 1];
         }
-    }
-
-    /// <summary>Whether a closing isolate has an opening one to belong to.</summary>
-    private static bool MatchesAnIsolate(BidiClass[] classes, int at)
-    {
-        var depth = 0;
-
-        for (var i = at - 1; i >= 0; i--)
-        {
-            if (classes[i] == BidiClass.PDI) depth++;
-            else if (classes[i] is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI)
-            {
-                if (depth == 0) return true;
-                depth--;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>The weak, neutral and implicit rules over one sequence: W1–W7, N0–N2, I1–I2.</summary>
@@ -702,17 +721,8 @@ internal static class Bidi
     }
 
     /// <summary>The closing bracket that matches an opening one, or null where it is not one.</summary>
-    private static char? ClosingOf(char value)
-    {
-        var pairs = BidiTables.BracketPairs;
-
-        for (var i = 0; i < pairs.Length; i += 2)
-        {
-            if (pairs[i] == value) return (char)pairs[i + 1];
-        }
-
-        return null;
-    }
+    private static char? ClosingOf(char value) =>
+        BracketMap.TryGetValue(value, out var c) ? c : null;
 
     /// <summary>
     /// The two brackets Unicode says are the same as two others, which have to be matched with

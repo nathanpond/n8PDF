@@ -46,7 +46,24 @@ internal sealed record PathOperation(
     double StrokeWidth,
     bool EvenOdd,
     (double X, double Y, double Width, double Height)? Clip = null,
-    bool RoundCap = false) : DrawingOperation;
+    bool RoundCap = false,
+    IReadOnlyList<ClipShape>? Clips = null,
+    double FillOpacity = 1,
+    DrawingGradient? Gradient = null) : DrawingOperation;
+
+/// <summary>
+/// A gradient painted inside a path (#64): its resolved stops in order and the axis they run
+/// along, clockwise from three o'clock in the drawing's own frame.
+/// </summary>
+internal sealed record DrawingGradient(
+    IReadOnlyList<(double Position, DrawingColor Color)> Stops, double AngleDegrees);
+
+/// <summary>
+/// One clip a metafile had in force when it drew (#69): a path of its own and the rule deciding
+/// its inside. A path drawn under several is kept inside all of them — the renderer writes each
+/// as a clip in turn, which is how PDF composes the same intersection.
+/// </summary>
+internal sealed record ClipShape(IReadOnlyList<PathStep> Steps, bool EvenOdd);
 
 /// <summary>
 /// A piece of text, which is left as text rather than turned into outlines: the reader that ends
@@ -100,7 +117,8 @@ internal sealed record ImageOperation(
     double X,
     double Y,
     double Width,
-    double Height) : DrawingOperation;
+    double Height,
+    IReadOnlyList<ClipShape>? Clips = null) : DrawingOperation;
 
 /// <summary>
 /// A drawing: something recorded as the things to draw rather than as the pixels they came to.

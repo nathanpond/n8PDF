@@ -120,6 +120,17 @@ internal static class Diagram
 internal static class DrawingText
 {
     /// <summary>
+    /// A document-controlled measurement rounded to int, or nought where it will not fit: an
+    /// out-of-range value cast straight to int wraps to int.MinValue and corrupts the geometry it
+    /// feeds, where nought is merely no spacing (#204).
+    /// </summary>
+    private static int SafeInt(double value)
+    {
+        var rounded = Math.Round(value);
+        return rounded is >= int.MinValue and <= int.MaxValue ? (int)rounded : 0;
+    }
+
+    /// <summary>
     /// What DrawingML counts as one line: six fifths of the type size, whatever the face says
     /// about its own. It is what a percentage of a line is a percentage of.
     /// </summary>
@@ -198,7 +209,7 @@ internal static class DrawingText
         // the same thing counted in hundreds instead of 240ths.
         if (Percentage(Spacing(properties, "lnSpc")) is { } line)
         {
-            paragraph.Properties.Line = (int)Math.Round(240 * line);
+            paragraph.Properties.Line = SafeInt(240 * line);
             paragraph.Properties.LineRule = LineSpacingRule.Scaled;
         }
 
@@ -247,10 +258,10 @@ internal static class DrawingText
         var singleLine = size * 10 * DrawingLineSpacing;
 
         if (before is { } beforeShare)
-            paragraph.Properties.SpacingBeforeTwips = (int)Math.Round(beforeShare * singleLine);
+            paragraph.Properties.SpacingBeforeTwips = SafeInt(beforeShare * singleLine);
 
         if (after is { } afterShare)
-            paragraph.Properties.SpacingAfterTwips = (int)Math.Round(afterShare * singleLine);
+            paragraph.Properties.SpacingAfterTwips = SafeInt(afterShare * singleLine);
 
         return paragraph;
     }
@@ -272,7 +283,7 @@ internal static class DrawingText
         if (rPr.Attribute("sz")?.Value is { } size &&
             double.TryParse(size, NumberStyles.Float, CultureInfo.InvariantCulture, out var hundredths))
         {
-            properties.SizeHalfPoints = (int)Math.Round(hundredths * scale / 50);
+            properties.SizeHalfPoints = SafeInt(hundredths * scale / 50);
         }
 
         if (rPr.Attribute("b")?.Value is { } bold) properties.Bold = bold is "1" or "true";
@@ -337,7 +348,7 @@ internal static class DrawingText
 
         var share = value.EndsWith('%') ? number / 100 : number / 100000;
 
-        return ((int)Math.Round(Math.Clamp(share, 0, 1) * 255)).ToString("X2");
+        return Math.Clamp((int)Math.Round(share * 255), 0, 255).ToString("X2");
     }
 
     /// <summary>A percentage in thousandths, which is how DrawingML writes one.</summary>

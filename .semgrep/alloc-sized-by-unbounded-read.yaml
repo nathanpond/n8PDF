@@ -1,0 +1,22 @@
+rules:
+  - id: alloc-sized-by-unbounded-read
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      An array sized directly by a value read from the input decompresses or allocates whatever the
+      document declares, with no bound — a two-byte count buys a 4 GB allocation. Read the count into
+      a local, reject it against the bytes actually remaining (and against a sane ceiling), then
+      allocate. This is the shape behind the Images/ unbounded-allocation tier.
+    metadata:
+      category: security
+      subcategory: [audit]
+      confidence: MEDIUM
+      references:
+        - https://github.com/nathanpond/n8PDF/labels/audit
+    patterns:
+      - pattern-either:
+          - pattern: new $T[$R.ReadInt32()]
+          - pattern: new $T[$R.ReadUInt32()]
+          - pattern: new $T[$R.ReadInt16()]
+          - pattern: new $T[$R.ReadUInt16()]
+          - pattern: new $T[$R.ReadByte()]

@@ -55,9 +55,19 @@ internal static class ImageReader
         {
             return IsSupported(data) ? Read(data, maximumPixels, nesting) : null;
         }
-        catch (ImageFormatException)
+        catch (Exception e) when (e is ImageFormatException
+            or IndexOutOfRangeException or ArgumentException or OverflowException
+            or DivideByZeroException or InvalidDataException)
         {
-            // A malformed image should cost its own placement, not the whole conversion.
+            // A malformed image should cost its own placement, not the whole conversion — and
+            // that sentence has to hold for the files the decoders did not think to refuse, not
+            // only the ones they did (#48). The types here are exactly what the audit reproduced
+            // escaping from crafted files of a few dozen bytes; each hole is filed as its own
+            // issue with its own validation fix, tested at the decoder level where this net
+            // cannot swallow the evidence, and this is the defence in depth behind those fixes
+            // rather than a substitute for any of them. OutOfMemoryException is deliberately not
+            // here: that one means the process is in trouble, and hiding it helps nobody.
+            _ = e;
             return null;
         }
     }
@@ -105,17 +115,26 @@ internal static class ImageReader
             // SOF0 through SOF15, excluding the two that are not frame headers.
             if (marker is >= 0xc0 and <= 0xcf && marker != 0xc4 && marker != 0xc8 && marker != 0xcc)
             {
-                if (position + 7 >= data.Length) break;
+                // The eight SOF bytes must lie within the segment's own declared length, not
+                // merely within the file — a SOF declaring an empty payload otherwise reads the
+                // bytes of whatever follows it (#45).
+                if (position + 7 >= data.Length || length < 8) break;
 
                 var height = (data[position + 3] << 8) | data[position + 4];
                 var width = (data[position + 5] << 8) | data[position + 6];
                 var components = data[position + 7];
 
+                // Only the three component counts that map to a real PDF colour space are
+                // carried; any other (2, or 5 and up) would produce an image dictionary that
+                // contradicts its own DCTDecode stream, so the picture is refused rather than
+                // written wrong (#44).
                 var colorSpace = components switch
                 {
                     1 => ImageColorSpace.Gray,
+                    3 => ImageColorSpace.Rgb,
                     4 => ImageColorSpace.Cmyk,
-                    _ => ImageColorSpace.Rgb
+                    _ => throw new ImageFormatException(
+                        $"A JPEG of {components} components has no PDF colour space.")
                 };
 
                 if (width <= 0 || height <= 0)

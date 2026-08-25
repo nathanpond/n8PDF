@@ -1,0 +1,112 @@
+# Static analysis, the one checker here that reads the source rather than the output. The suite's
+# other second opinions — qpdf, fontTools, FriBidi, veraPDF — judge a finished PDF; Semgrep judges
+# the parsers that produced it, looking for the shapes the audit keeps re-finding in from-scratch
+# code that reads untrusted input: unchecked casts of document-controlled values, allocation sized
+# from a declared count, XML opened without its resolver nailed shut, a length prefix trusted before
+# a bounds check.
+#
+# Advisory, not a gate. Findings are uploaded to Security -> Code scanning and nothing here fails
+# the build (#230); the flip to blocking on high/critical is a later, deliberate step once the
+# baseline is known clean (#234). GitHub owns dedup and fixed-tracking of the alerts; the Issues
+# backlog stays for human-triaged work and the scanner never files into it.
+#
+# Semgrep is a tool installed on the runner, exactly as qpdf and the rest are — not a package the
+# library takes on. src/n8PDF carries zero PackageReference entries and this does not change that.
+#
+# The repo-specific rules live in .semgrep/ and run first in the --config list: unchecked rounded
+# casts (#148/#204), allocation sized straight from the wire, XML read off the framework defaults
+# rather than a hardened reader, and an additive length bound that can overflow (#181). Each ships
+# with a passing+failing fixture; `semgrep --test` covers them.
+#
+# One caveat worth stating in the file that runs it: Semgrep's C# grammar does not parse C# 12
+# primary constructors, so files that use them are read only in part (~15% of lines went unscanned
+# on the first run, some of it in the decoders this is meant to watch). The scan is real signal, not
+# a proof of absence — see #229 for the measured gap.
+name: Semgrep
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# upload-sarif writes to the code-scanning API; nothing else here needs more than read.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # Full history: --baseline-commit diffs the PR against its base, which has to be reachable.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      # Tokenless: the registry rulesets pull without a Semgrep account. Advisory: no --error, and
+      # continue-on-error means even a parse failure or a finding leaves the job green during the
+      # advisory period. The six generated Unicode tables under Text/ are generator output and are
+      # excluded (a hand-fix there is wrong per CLAUDE.md); tests/ and tools/ sit outside src/ and so
+      # are already out of scope. The hand-authored Images/CcittTables.cs is not generated and stays in.
+      - name: Scan
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config .semgrep \
+            --config p/csharp \
+            --config p/security-audit \
+            --config p/secrets \
+            --exclude BidiTables.cs \
+            --exclude HyphenationTables.cs \
+            --exclude IndicTables.cs \
+            --exclude JoiningTables.cs \
+            --exclude LineBreakTables.cs \
+            --exclude UseTables.cs \
+            --sarif --output semgrep.sarif \
+            --metrics=off \
+            src/
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      # The gate. --baseline-commit scans the PR base too and reports only findings on code this PR
+      # changed; --severity=ERROR narrows that to high/critical; --error makes the job fail on any
+      # that remain. So a PR that introduces a new high/critical finding goes red, while the standing
+      # baseline (which the full scan above still uploads to code scanning) and any new lower-severity
+      # findings do not fail the build. The baseline was driven clean under the ERROR ruleset before
+      # this flip (#234): fixes to the additive length bounds, and rule precision plus justified
+      # nosemgrep for the rounded-cast findings. No continue-on-error: this step is allowed to fail.
+      - name: New high/critical findings on this PR (gate)
+        if: github.event_name == 'pull_request'
+        run: |
+          semgrep scan \
+            --baseline-commit "${{ github.event.pull_request.base.sha }}" \
+            --severity=ERROR \
+            --error \
+            --config .semgrep \
+            --config p/csharp \
+            --config p/security-audit \
+            --config p/secrets \
+            --exclude BidiTables.cs \
+            --exclude HyphenationTables.cs \
+            --exclude IndicTables.cs \
+            --exclude JoiningTables.cs \
+            --exclude LineBreakTables.cs \
+            --exclude UseTables.cs \
+            --metrics=off \
+            src/

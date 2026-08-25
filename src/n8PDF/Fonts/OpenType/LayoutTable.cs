@@ -373,7 +373,13 @@ internal static class LayoutReaders
     }
 
     public static ushort ReadUInt16At(byte[] data, int offset) =>
-        (ushort)((data[offset] << 8) | data[offset + 1]);
+        // Bounds-checked, overflow-safe (offset compared against Length - 1 without adding): the
+        // layout apply path feeds attacker offsets straight here, and an out-of-range read threw
+        // IndexOutOfRangeException that aborted the conversion; past the end it now reads nought
+        // and the shaper's own guard drops a run it cannot make sense of (#186).
+        offset < 0 || offset >= data.Length - 1
+            ? (ushort)0
+            : (ushort)((data[offset] << 8) | data[offset + 1]);
 
     /// <summary>
     /// A subtable behind a wider offset, which is how a font whose tables outgrew sixteen bits

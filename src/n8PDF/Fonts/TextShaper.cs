@@ -65,23 +65,59 @@ internal static class TextShaper
 
         var plan = ShapingPlan.For(text);
 
-        if (plan.DecomposesMarks) Decompose(font, buffer);
+        // The apply phase reads lookup tables lazily, at attacker-chosen offsets, and none of it
+        // is otherwise guarded: a malformed embedded font could throw and abort the whole
+        // conversion. Shaping that fails costs the run its shaping and no more — the run falls
+        // back to the glyphs as first mapped, unshaped (#183). That fallback re-maps from the
+        // original text in the catch rather than snapshotting the buffer up front, which allocated
+        // a list and copied the whole buffer on every call for a path that almost never runs (#226).
+        try
+        {
+            if (plan.DecomposesMarks) Decompose(font, buffer);
 
-        // A face that describes its shaping only in Apple's tables is shaped from those. There is
-        // nothing to choose between: it carries no OpenType tables at all, and a converter that
-        // reads only those would draw its letters unjoined.
-        if (font.Metamorphosis is { } metamorphosis) metamorphosis.Apply(buffer, rightToLeft);
-        else plan.Substitute(font, text, buffer);
+            // A face that describes its shaping only in Apple's tables is shaped from those. There
+            // is nothing to choose between: it carries no OpenType tables at all, and a converter
+            // that reads only those would draw its letters unjoined.
+            if (font.Metamorphosis is { } metamorphosis) metamorphosis.Apply(buffer, rightToLeft);
+            else plan.Substitute(font, text, buffer);
 
-        // Whatever the glyphs have become, they advance the pen by their own widths until
-        // positioning says otherwise.
-        foreach (var item in buffer) item.Advance = font.GetAdvanceWidth(item.Glyph);
+            // Whatever the glyphs have become, they advance the pen by their own widths until
+            // positioning says otherwise.
+            foreach (var item in buffer) item.Advance = font.GetAdvanceWidth(item.Glyph);
 
-        plan.Position(font, buffer, applyKerning, rightToLeft);
+            plan.Position(font, buffer, applyKerning, rightToLeft);
 
-        Positioner.Resolve(buffer, rightToLeft);
+            Positioner.Resolve(buffer, rightToLeft);
 
-        if (rightToLeft) buffer.Reverse();
+            if (rightToLeft) buffer.Reverse();
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException
+            or OverflowException or DivideByZeroException or FontFormatException
+            or InvalidOperationException)
+        {
+            buffer.Clear();
+
+            for (var i = 0; i < text.Length; i++)
+            {
+                var cluster = i;
+                int codePoint = text[i];
+
+                if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                {
+                    codePoint = char.ConvertToUtf32(text[i], text[i + 1]);
+                    i++;
+                }
+
+                var glyph = font.GetGlyphIndex(codePoint);
+
+                buffer.Add(new ShapeItem(glyph, cluster, ShapingPlan.Everywhere, codePoint)
+                {
+                    Advance = font.GetAdvanceWidth(glyph)
+                });
+            }
+
+            if (rightToLeft) buffer.Reverse();
+        }
 
         var glyphs = new ShapedGlyph[buffer.Count];
 

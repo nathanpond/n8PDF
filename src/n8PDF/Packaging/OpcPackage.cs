@@ -76,7 +76,13 @@ internal sealed class OpcPackage : IDisposable
     private static readonly XmlReaderSettings PartReaderSettings = new()
     {
         DtdProcessing = DtdProcessing.Prohibit,
-        XmlResolver = null
+        XmlResolver = null,
+
+        // The reader has its own bound, not only the decompressor's byte cap: an XDocument DOM is
+        // an order of magnitude larger than the text it parses, so a part near the 128MB part cap
+        // amplifies to gigabytes of managed heap. Sixty-four million characters is far past any
+        // real document part and keeps the DOM to something a machine holds (#149).
+        MaxCharactersInDocument = 64L * 1024 * 1024
     };
 
     private static readonly XNamespace ContentTypesNamespace =
@@ -90,6 +96,15 @@ internal sealed class OpcPackage : IDisposable
     private readonly Dictionary<string, string> _defaultContentTypes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _overrideContentTypes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, IReadOnlyList<OpcRelationship>> _relationshipCache = new(StringComparer.OrdinalIgnoreCase);
+
+    // A part's relationships indexed by id and by type, built once, so a document with N
+    // references against N relationships is O(N) rather than the O(N*N) a linear scan per lookup
+    // cost — a few-MB docx of hundreds of thousands of references would otherwise hang for hours
+    // (#192).
+    private readonly Dictionary<string, Dictionary<string, OpcRelationship>> _relationshipById =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, OpcRelationship>> _relationshipByType =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly bool _ownsStream;
     private readonly Stream? _stream;
     private readonly PackageLimits _limits;
@@ -113,11 +128,15 @@ internal sealed class OpcPackage : IDisposable
         if (count > limits.MaximumPartCount)
         {
             throw new PackageTooLargeException(
-                $"The package declares {count:N0} parts, and the limit is {limits.MaximumPartCount:N0}.");
+                $"The package declares {count:N0} parts, and the limit is {limits.MaximumPartCount:N0}.",
+                wholePackage: true);
         }
 
+        // First wins, matching how ZipArchive itself resolves a name — two members that
+        // normalise to one part name are a parser differential a validator and this reader must
+        // not disagree on, or content hides behind a duplicate (#150).
         foreach (var entry in archive.Entries)
-            _entries[Normalize(entry.FullName)] = entry;
+            _entries.TryAdd(Normalize(entry.FullName), entry);
 
         ReadContentTypes();
     }
@@ -130,8 +149,25 @@ internal sealed class OpcPackage : IDisposable
         // network and pipe streams, so buffer when needed.
         if (!stream.CanSeek)
         {
+            // A non-seekable stream is buffered through a cap rather than copied whole, so the
+            // caller's limits apply to this path too and a sender cannot drive gigabytes of
+            // managed heap past them (#203). A valid package's compressed size cannot exceed its
+            // decompressed budget by much.
             var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
+            var chunk = new byte[81920];
+            int read;
+            while ((read = stream.Read(chunk, 0, chunk.Length)) > 0)
+            {
+                if (buffer.Length + read > limits.MaximumTotalBytes)
+                {
+                    throw new PackageTooLargeException(
+                        $"The stream holds more than the {limits.MaximumTotalBytes:N0} bytes allowed.",
+                        wholePackage: true);
+                }
+
+                buffer.Write(chunk, 0, read);
+            }
+
             buffer.Position = 0;
             return new OpcPackage(new ZipArchive(buffer, ZipArchiveMode.Read), buffer, ownsStream: true, limits);
         }
@@ -140,8 +176,22 @@ internal sealed class OpcPackage : IDisposable
             new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen), null, ownsStream: false, limits);
     }
 
-    public static OpcPackage Open(string path, PackageLimits? limits = null) =>
-        Open(File.OpenRead(path), leaveOpen: false, limits);
+    public static OpcPackage Open(string path, PackageLimits? limits = null)
+    {
+        // If the ZipArchive or this package's construction throws — a malformed zip, an oversized
+        // package — the file handle would leak, one per hostile file, until the finalizer ran
+        // (#151). Disposed here so a caller looping over many does not exhaust its handles.
+        var stream = File.OpenRead(path);
+        try
+        {
+            return Open(stream, leaveOpen: false, limits);
+        }
+        catch
+        {
+            stream.Dispose();
+            throw;
+        }
+    }
 
     public IEnumerable<string> PartNames => _entries.Keys;
 
@@ -216,7 +266,8 @@ internal sealed class OpcPackage : IDisposable
             {
                 throw new PackageTooLargeException(
                     $"The package decompressed to more than the {package._limits.MaximumTotalBytes:N0} " +
-                    $"bytes allowed in total, reading part '{partName}'.");
+                    $"bytes allowed in total, reading part '{partName}'.",
+                    wholePackage: true);
             }
 
             return read;
@@ -293,11 +344,32 @@ internal sealed class OpcPackage : IDisposable
         return result;
     }
 
-    public OpcRelationship? GetRelationshipById(string partName, string id) =>
-        GetRelationships(partName).FirstOrDefault(r => r.Id == id);
+    public OpcRelationship? GetRelationshipById(string partName, string id)
+    {
+        var normalized = Normalize(partName);
+        if (!_relationshipById.TryGetValue(normalized, out var byId))
+        {
+            byId = new Dictionary<string, OpcRelationship>(StringComparer.Ordinal);
+            foreach (var relationship in GetRelationships(partName)) byId.TryAdd(relationship.Id, relationship);
+            _relationshipById[normalized] = byId;
+        }
 
-    public OpcRelationship? GetRelationshipByType(string partName, string type) =>
-        GetRelationships(partName).FirstOrDefault(r => r.Type == type);
+        return byId.GetValueOrDefault(id);
+    }
+
+    public OpcRelationship? GetRelationshipByType(string partName, string type)
+    {
+        var normalized = Normalize(partName);
+        if (!_relationshipByType.TryGetValue(normalized, out var byType))
+        {
+            byType = new Dictionary<string, OpcRelationship>(StringComparer.Ordinal);
+            // First wins, matching the previous FirstOrDefault.
+            foreach (var relationship in GetRelationships(partName)) byType.TryAdd(relationship.Type, relationship);
+            _relationshipByType[normalized] = byType;
+        }
+
+        return byType.GetValueOrDefault(type);
+    }
 
     /// <summary>
     /// Resolves a relationship target against the part that declared it, producing an absolute

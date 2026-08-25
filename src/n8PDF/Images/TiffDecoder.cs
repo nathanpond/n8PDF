@@ -41,7 +41,16 @@ internal static class TiffDecoder
         ImageLimits.Check(width, height, maximumPixels, "TIFF");
 
         var samples = (int)Value(reader, tags, 277, 1);
-        var bits = tags.TryGetValue(258, out var bitsTag) ? (int)Numbers(reader, bitsTag)[0] : 1;
+
+        // A picture has a handful of channels; an unbounded SamplesPerPixel overflows the row
+        // stride negative or sizes the raw buffer in gigabytes (#29).
+        if (samples is < 1 or > 16)
+            throw new ImageFormatException($"TIFF declares {samples} samples a pixel, which is not a picture.");
+        // A BitsPerSample tag may declare no values at all, or point outside the file, and then
+        // Numbers hands back an empty list (#32).
+        var bits = tags.TryGetValue(258, out var bitsTag) && Numbers(reader, bitsTag) is { Count: > 0 } bitsList
+            ? (int)bitsList[0]
+            : 1;
         var compression = (int)Value(reader, tags, 259, 1);
         var photometric = (int)Value(reader, tags, 262, bits == 1 ? 0 : 1);
 
@@ -52,6 +61,10 @@ internal static class TiffDecoder
         var predictor = (int)Value(reader, tags, 317, 1);
         var fillOrder = (int)Value(reader, tags, 266, 1);
         var rowsPerStrip = (int)Value(reader, tags, 278, height);
+
+        // The tag is unsigned, and 0xFFFFFFFF — read here as -1 — means the whole image in one
+        // strip; nought divides by zero counting the strips (#33). Both fall back to the height.
+        if (rowsPerStrip <= 0) rowsPerStrip = height;
 
         // What a fax strip says about how it was written: whether its lines are written against
         // the ones above them, and whether each begins on a byte.
@@ -165,11 +178,18 @@ internal static class TiffDecoder
     private static List<long> Numbers(Reader reader, Tag tag)
     {
         var size = tag.Type switch { 1 or 2 or 6 or 7 => 1, 3 or 8 => 2, _ => 4 };
-        var total = size * tag.Count;
+        var total = (long)size * tag.Count;
 
-        var values = new List<long>(tag.Count);
+        // The count is a raw 32-bit field. The values must lie within the file — inline in the
+        // four-byte entry, or at an offset the file's own length bounds — so the number read is
+        // bounded by that rather than pre-sizing a list from the word of the file (#27).
+        var count = total <= 4
+            ? Math.Min(Math.Max(0, tag.Count), 4 / size)
+            : Math.Min(Math.Max(0, tag.Count), Math.Max(0, (reader.Length - tag.Offset) / size));
 
-        for (var i = 0; i < tag.Count; i++)
+        var values = new List<long>(count);
+
+        for (var i = 0; i < count; i++)
         {
             var at = total <= 4 ? i * size : tag.Offset + i * size;
             var source = total <= 4 ? tag.Inline : null;
@@ -195,6 +215,10 @@ internal static class TiffDecoder
         tags.TryGetValue(id, out var tag) && tag.Count > 0
             ? tag.Type switch
             {
+                // A single BYTE/SBYTE sits in the first of the four inline bytes whichever way the
+                // file runs; taken as the whole field it reads value<<24 in a big-endian file and
+                // a count of 3 becomes fifty million (#28).
+                1 or 6 when tag.Inline.Length > 0 => tag.Inline[0],
                 3 or 8 => reader.UInt16(tag.Inline, 0),
                 _ => tag.Offset
             }
@@ -224,7 +248,7 @@ internal static class TiffDecoder
         var wholeAt = (int)Value(reader, tags, 513, 0);
         var wholeLength = (int)Value(reader, tags, 514, 0);
 
-        if (wholeAt > 0 && wholeLength > 0 && wholeAt + wholeLength <= data.Length)
+        if (wholeAt > 0 && wholeLength > 0 && wholeLength <= data.Length - wholeAt)
             return Whole(data[wholeAt..(wholeAt + wholeLength)], maximumPixels, nesting);
 
         var offsets = tags.TryGetValue(tiled ? 324 : 273, out var offsetTag) ? Numbers(reader, offsetTag) : [];
@@ -237,7 +261,8 @@ internal static class TiffDecoder
         if (offsets.Count > 1 || (!tiled && rowsPerStrip < height))
         {
             return Join(
-                data, reader, tags, offsets, counts, width, height, tiled, rowsPerStrip, Rebuild);
+                data, reader, tags, offsets, counts, width, height, tiled, rowsPerStrip, Rebuild,
+                maximumPixels);
         }
 
         var offset = (int)offsets[0];
@@ -287,7 +312,8 @@ internal static class TiffDecoder
     /// </remarks>
     private static ImageData Join(
         byte[] data, Reader reader, Dictionary<int, Tag> tags, List<long> offsets, List<long> counts,
-        int width, int height, bool tiled, int rowsPerStrip, Func<byte[], byte[]> rebuild)
+        int width, int height, bool tiled, int rowsPerStrip, Func<byte[], byte[]> rebuild,
+        long maximumPixels)
     {
         var tileWidth = tiled ? (int)Value(reader, tags, 322, 0) : width;
         var tileHeight = tiled ? (int)Value(reader, tags, 323, 0) : rowsPerStrip;
@@ -296,12 +322,20 @@ internal static class TiffDecoder
             throw new ImageFormatException("TIFF holds a JPEG in pieces of no size.");
 
         var across = tiled ? (width + tileWidth - 1) / tileWidth : 1;
+        var down = tiled ? (height + tileHeight - 1) / tileHeight : (height + rowsPerStrip - 1) / rowsPerStrip;
+
+        // Each piece decodes to at most its own tile or strip, and the picture holds at most
+        // across*down of them: a crafted TIFF that declares thousands of strips, each a few-byte
+        // JPEG whose header claims eight thousand pixels square, would otherwise amplify a tiny
+        // file into thousands of full-size decodes (#198).
+        var pieces = Math.Min(offsets.Count, Math.Max(1, (long)across * down > int.MaxValue ? int.MaxValue : across * down));
+        var pieceBudget = Math.Min(maximumPixels, (long)tileWidth * tileHeight + tileWidth + tileHeight);
 
         byte[]? pixels = null;
         var components = 3;
         var colour = ImageColorSpace.Rgb;
 
-        for (var piece = 0; piece < offsets.Count; piece++)
+        for (var piece = 0; piece < pieces; piece++)
         {
             var offset = (int)offsets[piece];
             if (offset < 0 || offset >= data.Length) continue;
@@ -311,7 +345,7 @@ internal static class TiffDecoder
 
             if (length <= 0) continue;
 
-            var part = JpegDecoder.Decode(rebuild(data[offset..(offset + length)]));
+            var part = JpegDecoder.Decode(rebuild(data[offset..(offset + length)]), pieceBudget);
 
             if (pixels is null)
             {
@@ -324,7 +358,12 @@ internal static class TiffDecoder
                 throw new ImageFormatException("The pieces of the TIFF's JPEG are not alike.");
 
             var left = tiled ? piece % across * tileWidth : 0;
-            var top = tiled ? piece / across * tileHeight : piece * rowsPerStrip;
+
+            // The row origin is an index times a size, both from tags; with enough pieces the
+            // product overflows negative and slips under the top + y < height guard (#38).
+            var origin = tiled ? (long)(piece / across) * tileHeight : (long)piece * rowsPerStrip;
+            if (origin < 0 || origin >= height) continue;
+            var top = (int)origin;
 
             for (var y = 0; y < part.Height && top + y < height; y++)
             {
@@ -388,8 +427,9 @@ internal static class TiffDecoder
             var offset = (int)offsets[index];
             if (offset < 0 || offset >= data.Length) break;
 
-            var length = Math.Min(
-                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset);
+            // A byte count of 0xFFFFFFFF reads as -1, and unfloored it slices backwards (#34).
+            var length = Math.Max(0, Math.Min(
+                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset));
 
             var rows = Math.Min(rowsPerStrip, height - strip * rowsPerStrip);
             if (rows <= 0) break;
@@ -429,7 +469,14 @@ internal static class TiffDecoder
 
         var across = (width + tileWidth - 1) / tileWidth;
         var down = (height + tileHeight - 1) / tileHeight;
-        var tileRowBytes = (tileWidth * perPlane * bits + 7) / 8;
+
+        // A tile's stride and size come from tags, not from the picture; a declared width in the
+        // billions overflows the stride negative, and a negative stride reaches Array.Copy as a
+        // negative source index (#36).
+        var wideRowBytes = ((long)tileWidth * perPlane * bits + 7) / 8;
+        if (wideRowBytes > int.MaxValue || wideRowBytes * tileHeight > int.MaxValue)
+            throw new ImageFormatException("TIFF declares tiles larger than could be held.");
+        var tileRowBytes = (int)wideRowBytes;
 
         var raw = new byte[rowBytes * height];
 
@@ -442,8 +489,9 @@ internal static class TiffDecoder
             var offset = (int)offsets[index];
             if (offset < 0 || offset >= data.Length) continue;
 
-            var length = Math.Min(
-                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset);
+            // A byte count of 0xFFFFFFFF reads as -1, and unfloored it slices backwards (#34).
+            var length = Math.Max(0, Math.Min(
+                index < counts.Count ? (int)counts[index] : data.Length - offset, data.Length - offset));
 
             var unpacked = unpack(offset, length, tileHeight, tileRowBytes);
 
@@ -509,7 +557,7 @@ internal static class TiffDecoder
             var from = (y * width + x) * size;
             var to = ((y * width + x) * samples + c) * size;
 
-            if (c >= planes.Length || from + size > planes[c].Length) continue;
+            if (c >= planes.Length || size < 0 || from > planes[c].Length - size) continue;
 
             Array.Copy(planes[c], from, raw, to, size);
         }
@@ -525,18 +573,39 @@ internal static class TiffDecoder
             1 => data[offset..(offset + length)],
             5 => Lzw(data, offset, length, expected),
             32773 => PackBits(data, offset, length, expected),
-            8 or 32946 => Inflate(data, offset, length),
+            8 or 32946 => Inflate(data, offset, length, expected),
             _ => throw new ImageFormatException(
                 $"TIFF is packed with method {compression}, which is not handled.")
         };
 
-    private static byte[] Inflate(byte[] data, int offset, int length)
+    private static byte[] Inflate(byte[] data, int offset, int length, int expected)
     {
         using var input = new MemoryStream(data, offset, length);
         using var stream = new ZLibStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
 
-        stream.CopyTo(output);
+        // A strip decompresses to the rows it covers, no more; reading it a block at a time and
+        // stopping past that bound is what refuses a small Deflate strip that inflates to
+        // gigabytes (#30). A little slack over the expected size absorbs a final partial block.
+        var cap = (long)Math.Max(0, expected) + 65536;
+        var buffer = new byte[81920];
+
+        try
+        {
+            int read;
+            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (output.Length + read > cap)
+                    throw new ImageFormatException("TIFF strip decompresses past the size its rows allow.");
+
+                output.Write(buffer, 0, read);
+            }
+        }
+        catch (InvalidDataException)
+        {
+            // A corrupt Deflate strip is a picture this cannot read, not a fault in the reader (#35).
+            throw new ImageFormatException("TIFF strip is not a valid Deflate stream.");
+        }
 
         return output.ToArray();
     }
@@ -664,7 +733,7 @@ internal static class TiffDecoder
 
             for (var x = samples; x < width * samples; x++)
             {
-                if (start + x >= rows.Length) break;
+                if (start >= rows.Length - x) break;
 
                 rows[start + x] = (byte)(rows[start + x] + rows[start + x - samples]);
             }
@@ -838,13 +907,13 @@ internal static class TiffDecoder
     {
         public int Length => data.Length;
 
-        public byte Byte(int at) => at < data.Length ? data[at] : (byte)0;
+        public byte Byte(int at) => at >= 0 && at < data.Length ? data[at] : (byte)0;
 
         public int UInt16(int at) => UInt16(data, at);
 
         public int UInt16(byte[] source, int at)
         {
-            if (at + 1 >= source.Length) return 0;
+            if (at < 0 || at > source.Length - 2) return 0;
 
             return little
                 ? source[at] | (source[at + 1] << 8)
@@ -855,7 +924,7 @@ internal static class TiffDecoder
 
         public int Int32(byte[] source, int at)
         {
-            if (at + 3 >= source.Length) return 0;
+            if (at < 0 || at > source.Length - 4) return 0;
 
             return little
                 ? source[at] | (source[at + 1] << 8) | (source[at + 2] << 16) | (source[at + 3] << 24)
@@ -865,9 +934,9 @@ internal static class TiffDecoder
         public byte[] Slice(int at, int length)
         {
             var slice = new byte[length];
-            var available = Math.Max(0, Math.Min(length, data.Length - at));
+            if (at < 0 || at >= data.Length) return slice;
 
-            Array.Copy(data, at, slice, 0, available);
+            Array.Copy(data, at, slice, 0, Math.Min(length, data.Length - at));
 
             return slice;
         }

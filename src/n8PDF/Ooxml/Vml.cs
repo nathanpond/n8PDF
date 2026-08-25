@@ -383,7 +383,7 @@ internal static class Vml
         if (!double.TryParse(text[..digits], NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
             return null;
 
-        return unit switch
+        var points = unit switch
         {
             "pt" => number,
             "in" => number * 72,
@@ -394,6 +394,11 @@ internal static class Vml
             "px" or "" => number * 0.75,
             _ => number
         };
+
+        // A non-finite length (1e309 parses to Infinity) or one past any real page dimension casts
+        // to long.MinValue in EMU downstream and corrupts the shape's geometry; it is no length
+        // (#205). A million points is fourteen thousand inches — far past any real shape.
+        return double.IsFinite(points) && Math.Abs(points) <= 1_000_000 ? points : null;
     }
 
     /// <summary>

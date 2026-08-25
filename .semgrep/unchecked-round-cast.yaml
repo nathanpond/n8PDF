@@ -1,0 +1,29 @@
+rules:
+  - id: unchecked-round-cast
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      A document-derived measurement rounded and cast straight to int wraps to int.MinValue on
+      overflow and silently corrupts the geometry it feeds — an out-of-range value becomes a huge
+      negative one, not an error. Range-guard the rounded value before the cast, as W.IntAttr and
+      DrawingText.SafeInt do (return null / 0 when it will not fit). Refs #148, #204.
+    metadata:
+      category: security
+      subcategory: [audit]
+      confidence: HIGH
+      references:
+        - https://github.com/nathanpond/n8PDF/issues/148
+        - https://github.com/nathanpond/n8PDF/issues/204
+    patterns:
+      # int only: the vulnerability is the wrap to int.MinValue. A (long) cast of a rounded real
+      # cannot overflow for any realistic magnitude, so it is out of scope (#148, #204).
+      - pattern-either:
+          - pattern: (int)Math.Round(...)
+          - pattern: (int)Math.Ceiling(...)
+          - pattern: (int)Math.Floor(...)
+      # A cast whose result is immediately clamped to a sane range is contained: even if it wraps,
+      # Math.Max/Math.Clamp yields a valid value (graceful degradation), not the corrupted geometry
+      # #148 describes. The rule targets a cast used raw.
+      - pattern-not-inside: Math.Max(..., (int)Math.$M(...), ...)
+      - pattern-not-inside: Math.Min(..., (int)Math.$M(...), ...)
+      - pattern-not-inside: Math.Clamp((int)Math.$M(...), ...)

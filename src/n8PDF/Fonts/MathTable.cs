@@ -407,7 +407,12 @@ internal sealed record MathConstants(
 
         var ranges = ReadUShort(data, offset + 2);
 
-        for (var i = 0; i < ranges; i++)
+        // A coverage table names the glyphs a feature applies to — thousands at most, not the
+        // whole 16-bit space a range of 0..65535 spans, and not once per range. The total
+        // expanded is bounded so a small MATH table cannot grow this list to millions (#185).
+        const int maxGlyphs = 100_000;
+
+        for (var i = 0; i < ranges && glyphs.Count < maxGlyphs; i++)
         {
             var at = offset + 4 + i * 6;
             if (at + 6 > data.Length) break;
@@ -415,7 +420,7 @@ internal sealed record MathConstants(
             var first = ReadUShort(data, at);
             var last = ReadUShort(data, at + 2);
 
-            for (var glyph = first; glyph <= last && glyph <= ushort.MaxValue; glyph++)
+            for (var glyph = first; glyph <= last && glyph <= ushort.MaxValue && glyphs.Count < maxGlyphs; glyph++)
                 glyphs.Add((ushort)glyph);
         }
 
@@ -498,10 +503,10 @@ internal sealed record MathConstants(
     }
 
     private static int ReadUShort(byte[] data, int offset) =>
-        (data[offset] << 8) | data[offset + 1];
+        offset < 0 || offset >= data.Length - 1 ? 0 : (data[offset] << 8) | data[offset + 1];  // (#186)
 
     private static short ReadShort(byte[] data, int offset) =>
-        (short)((data[offset] << 8) | data[offset + 1]);
+        offset < 0 || offset >= data.Length - 1 ? (short)0 : (short)((data[offset] << 8) | data[offset + 1]);  // (#186)
 }
 
 /// <summary>

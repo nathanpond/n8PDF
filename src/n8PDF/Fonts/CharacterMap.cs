@@ -147,7 +147,13 @@ internal sealed class CharacterMap
         }
 
         var map = new Dictionary<int, ushort>(512);
-        for (var segment = 0; segment < segCount; segment++)
+        // Format 4 covers only the basic multilingual plane, so a well-formed table touches each
+        // of at most 65536 codes once; overlapping full-range segments would redo that work up to
+        // segCount times (~2 billion iterations). The total is bounded to twice the plane, past
+        // which the table is malformed and the walk stops (#159).
+        var budget = 2 * 0x10000;
+
+        for (var segment = 0; segment < segCount && budget > 0; segment++)
         {
             int start = startCodes[segment];
             int end = endCodes[segment];
@@ -155,8 +161,9 @@ internal sealed class CharacterMap
             // The final segment is the required 0xFFFF terminator and carries no real mapping.
             if (start == 0xffff) continue;
 
-            for (var code = start; code <= end && code <= 0xffff; code++)
+            for (var code = start; code <= end && code <= 0xffff && budget > 0; code++)
             {
+                budget--;
                 ushort glyph;
                 if (idRangeOffsets[segment] == 0)
                 {
@@ -205,8 +212,14 @@ internal sealed class CharacterMap
         reader.ReadUInt32(); // language
         var groupCount = (int)reader.ReadUInt32();
 
-        var map = new Dictionary<int, ushort>(groupCount * 4);
-        for (var i = 0; i < groupCount; i++)
+        // A cmap maps at most the whole Unicode space; groupCount*4 as a capacity overflows to a
+        // negative for a moderate count (ArgumentOutOfRangeException on the constructor), and the
+        // fill across groups is otherwise unbounded even though each group is range-checked (#157).
+        const int maxEntries = 0x110000;
+        groupCount = Math.Min(Math.Max(0, groupCount), maxEntries);
+
+        var map = new Dictionary<int, ushort>();
+        for (var i = 0; i < groupCount && map.Count < maxEntries; i++)
         {
             var start = (int)reader.ReadUInt32();
             var end = (int)reader.ReadUInt32();
@@ -215,7 +228,7 @@ internal sealed class CharacterMap
             // Guard against a corrupt group claiming an absurd range.
             if (end < start || end - start > 0x10ffff) continue;
 
-            for (var code = start; code <= end; code++)
+            for (var code = start; code <= end && map.Count < maxEntries; code++)
             {
                 var glyph = startGlyph + (code - start);
                 if (glyph is > 0 and <= 0xffff) map[code] = (ushort)glyph;

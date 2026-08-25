@@ -44,6 +44,8 @@ internal sealed class PdfBuilder
     private readonly PdfDictionary _xObjectResources = new();
     private readonly PdfDictionary _alphaResources = new();
     private readonly Dictionary<double, string> _alphaNames = [];
+    private readonly PdfDictionary _shadingResources = new();
+    private int _shadings;
     private readonly PdfDictionary _sharedResources = new();
     private readonly PdfReference _sharedResourcesRef;
 
@@ -52,6 +54,7 @@ internal sealed class PdfBuilder
         _sharedResources.Set("Font", _fontResources);
         _sharedResources.Set("XObject", _xObjectResources);
         _sharedResources.Set("ExtGState", _alphaResources);
+        _sharedResources.Set("Shading", _shadingResources);
         _sharedResourcesRef = _document.Add(_sharedResources);
     }
 
@@ -119,6 +122,66 @@ internal sealed class PdfBuilder
         _alphaResources.Set(name, state);
         _alphaNames[rounded] = name;
 
+        return name;
+    }
+
+    /// <summary>
+    /// An axial shading between the given page coordinates, named so a content stream can paint
+    /// it with <c>sh</c> (#64). Two stops make one exponential function; more make a stitching
+    /// function over the segments between them.
+    /// </summary>
+    public string UseShading(
+        IReadOnlyList<(double Position, (double R, double G, double B) Color)> stops,
+        double x0, double y0, double x1, double y1)
+    {
+        static PdfDictionary Segment((double R, double G, double B) from, (double R, double G, double B) to)
+        {
+            var function = new PdfDictionary();
+            function.Set("FunctionType", new PdfNumber(2));
+            function.Set("Domain", new PdfArray().Add(0).Add(1));
+            function.Set("C0", new PdfArray().Add(from.R).Add(from.G).Add(from.B));
+            function.Set("C1", new PdfArray().Add(to.R).Add(to.G).Add(to.B));
+            function.Set("N", new PdfNumber(1));
+            return function;
+        }
+
+        PdfDictionary function;
+
+        if (stops.Count == 2)
+        {
+            function = Segment(stops[0].Color, stops[1].Color);
+        }
+        else
+        {
+            var functions = new PdfArray();
+            var bounds = new PdfArray();
+            var encode = new PdfArray();
+
+            for (var i = 0; i + 1 < stops.Count; i++)
+            {
+                functions.Add(Segment(stops[i].Color, stops[i + 1].Color));
+                if (i > 0) bounds.Add(stops[i].Position);
+                encode.Add(0).Add(1);
+            }
+
+            function = new PdfDictionary();
+            function.Set("FunctionType", new PdfNumber(3));
+            function.Set("Domain", new PdfArray().Add(0).Add(1));
+            function.Set("Functions", functions);
+            function.Set("Bounds", bounds);
+            function.Set("Encode", encode);
+        }
+
+        // The axis runs from the first stop's position to the last's along the given line, so
+        // stops that begin late or end early still land where they were asked to.
+        var shading = new PdfDictionary();
+        shading.Set("ShadingType", new PdfNumber(2));
+        shading.Set("ColorSpace", "DeviceRGB");
+        shading.Set("Coords", new PdfArray().Add(x0).Add(y0).Add(x1).Add(y1));
+        shading.Set("Function", function);
+
+        var name = "Sh" + (++_shadings).ToString(CultureInfo.InvariantCulture);
+        _shadingResources.Set(name, _document.Add(shading));
         return name;
     }
 

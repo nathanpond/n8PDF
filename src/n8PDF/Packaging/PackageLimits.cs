@@ -55,6 +55,13 @@ public sealed class PackageLimits
     public long MaximumImagePixels { get; set; } = Images.ImageLimits.DefaultMaximumPixels;
 
     /// <summary>
+    /// The most bytes an embedded font part may hold once deobfuscated. Word embeds the faces a
+    /// document uses, usually subsetted to what it says; tens of megabytes covers a full CJK
+    /// face and a hostile part past it is left out the way an oversized image is (#62).
+    /// </summary>
+    public long MaximumFontBytes { get; set; } = 32L * 1024 * 1024;
+
+    /// <summary>
     /// The most parts a package may declare. A document with several hundred images is ordinary;
     /// one with tens of thousands of parts is an attack on whatever enumerates them.
     /// </summary>
@@ -70,4 +77,19 @@ public sealed class PackageLimits
 /// decision the caller can revisit by raising the limit. A caller who genuinely has a 700MB
 /// document can catch this and try again.
 /// </remarks>
-public sealed class PackageTooLargeException(string message) : Exception(message);
+public sealed class PackageTooLargeException : Exception
+{
+    public PackageTooLargeException(string message) : base(message)
+    {
+    }
+
+    internal PackageTooLargeException(string message, bool wholePackage) : base(message) =>
+        WholePackage = wholePackage;
+
+    /// <summary>
+    /// True where the whole package broke a limit — too many parts, or too much decompressed in
+    /// total — which is fatal; false where one part alone was too large, which costs that part and
+    /// not the conversion (#200). Internal: the public surface is unchanged.
+    /// </summary>
+    internal bool WholePackage { get; }
+}

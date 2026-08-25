@@ -41,7 +41,7 @@ internal static class ShapeOutline
 
     public static VectorDrawing Draw(
         ShapeFrame shape, double width, double height, DocumentTheme theme,
-        FontLibrary? fonts = null)
+        FontLibrary? fonts = null, ImageData? pictureFill = null)
     {
         // A word on a path is drawn as the word: what the shape says it is filled with paints the
         // letters, and the shape itself is not drawn at all.
@@ -56,6 +56,11 @@ internal static class ShapeOutline
 
         var steps = Path(shape.Geometry, width, height);
 
+        // Mirrors first, then the turn: DrawingML's transform flips in the shape's own frame and
+        // rotates the result (#64).
+        if (shape.FlipHorizontal || shape.FlipVertical)
+            steps = Mirror(steps, shape.FlipHorizontal, shape.FlipVertical, width, height);
+
         if (shape.RotationDegrees != 0)
             steps = Turn(steps, shape.RotationDegrees, width / 2, height / 2);
 
@@ -64,9 +69,54 @@ internal static class ShapeOutline
         // the box is what the text around it was laid out against, and only the drawing shifts.
         if (shape.DrawnOffsetPoints != 0) steps = Shift(steps, shape.DrawnOffsetPoints);
 
-        return new VectorDrawing(width, height, [
-            new PathOperation(steps, fill, stroke, shape.LineWidthPoints, EvenOdd: false)
-        ]);
+        var operations = new List<DrawingOperation>();
+
+        // The shadow goes down first: the same path, shifted where the shadow falls, filled in
+        // the shadow's colour at the shadow's own solidity (#64).
+        if (shape.Shadow is { } shadow && Resolve(shadow.Color, theme) is { } shade)
+        {
+            var radians = shadow.DirectionDegrees * Math.PI / 180;
+
+            operations.Add(new PathOperation(
+                Shift(steps, shadow.DistancePoints * Math.Cos(radians),
+                    shadow.DistancePoints * Math.Sin(radians)),
+                shade, null, 0, EvenOdd: false, FillOpacity: shadow.Opacity));
+        }
+
+        // A picture fill is the picture kept inside the path (#64), with the outline stroked
+        // over it; a gradient rides the path itself and the renderer paints it as a shading.
+        if (pictureFill is not null)
+        {
+            operations.Add(new ImageOperation(pictureFill, 0, 0, width, height,
+                [new ClipShape(steps, EvenOdd: false)]));
+
+            if (stroke is not null)
+                operations.Add(new PathOperation(steps, null, stroke, shape.LineWidthPoints, EvenOdd: false));
+        }
+        else
+        {
+            operations.Add(new PathOperation(
+                steps, fill, stroke, shape.LineWidthPoints, EvenOdd: false,
+                FillOpacity: shape.FillOpacity, Gradient: Gradient(shape.Gradient, theme)));
+        }
+
+        return new VectorDrawing(width, height, operations);
+    }
+
+    /// <summary>The gradient with its colours resolved, or null where it cannot be (#64).</summary>
+    private static DrawingGradient? Gradient(ShapeGradient? gradient, DocumentTheme theme)
+    {
+        if (gradient is null) return null;
+
+        var stops = new List<(double Position, DrawingColor Color)>();
+
+        foreach (var (position, reference) in gradient.Stops)
+        {
+            if (Resolve(reference, theme) is { } color)
+                stops.Add((position, color));
+        }
+
+        return stops.Count >= 2 ? new DrawingGradient(stops, gradient.AngleDegrees) : null;
     }
 
     /// <summary>
@@ -182,6 +232,15 @@ internal static class ShapeOutline
 
         return (centreX + dx * cos - dy * sin, centreY + dx * sin + dy * cos);
     }
+
+    /// <summary>Mirrors a path about the centrelines of its box (#64).</summary>
+    private static IReadOnlyList<PathStep> Mirror(
+        IReadOnlyList<PathStep> steps, bool horizontal, bool vertical, double width, double height) =>
+        [.. steps.Select(step => step with
+        {
+            Points = [.. step.Points.Select(point =>
+                (horizontal ? width - point.X : point.X, vertical ? height - point.Y : point.Y))]
+        })];
 
     private static IReadOnlyList<PathStep> Shift(IReadOnlyList<PathStep> steps, double by) =>
         Shift(steps, by, by);

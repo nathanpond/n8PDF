@@ -459,7 +459,18 @@ internal sealed class TrueTypeFont
 
     public static TrueTypeFont Load(byte[] data, int faceIndex = 0)
     {
-        var faces = GetFaceOffsets(data);
+        List<int> faces;
+        try
+        {
+            faces = GetFaceOffsets(data);
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException or OverflowException)
+        {
+            // The collection header is malformed in a way its own reads did not catch; a face
+            // that will not parse is no face, which is the same answer a bad SFNT gives (#182).
+            throw new FontFormatException("The font collection header is malformed.");
+        }
+
         if (faceIndex < 0 || faceIndex >= faces.Count)
             throw new FontFormatException($"Face index {faceIndex} is out of range; the file holds {faces.Count} face(s).");
 
@@ -469,7 +480,17 @@ internal sealed class TrueTypeFont
     /// <summary>Loads every face in the file. A <c>.ttc</c> commonly holds a whole family.</summary>
     public static IReadOnlyList<TrueTypeFont> LoadAll(byte[] data)
     {
-        var faces = GetFaceOffsets(data);
+        List<int> faces;
+        try
+        {
+            faces = GetFaceOffsets(data);
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException
+            or OverflowException or FontFormatException)
+        {
+            return [];  // a malformed collection header carries no readable face (#182)
+        }
+
         var result = new List<TrueTypeFont>(faces.Count);
         foreach (var offset in faces)
         {
@@ -497,9 +518,13 @@ internal sealed class TrueTypeFont
             return [0];
 
         reader.ReadUInt32(); // version
-        var faceCount = (int)reader.ReadUInt32();
 
-        var offsets = new List<int>(faceCount);
+        // Clamped before it sizes anything: a negative cast throws ArgumentOutOfRangeException
+        // from the List constructor, and a huge value pre-sizes gigabytes — neither of which the
+        // collection holds more than a handful of faces (#158, #182).
+        var faceCount = Math.Clamp((long)reader.ReadUInt32(), 0, 1024);
+
+        var offsets = new List<int>((int)faceCount);
         for (var i = 0; i < faceCount; i++)
             offsets.Add((int)reader.ReadUInt32());
 
@@ -800,7 +825,7 @@ internal sealed class TrueTypeFont
             if (bestScore.TryGetValue(nameId, out var existing) && existing >= score) continue;
 
             var start = name.Offset + stringOffset + offset;
-            if (start < 0 || start + length > data.Length) continue;
+            if (start < 0 || length < 0 || start > data.Length - length) continue;
 
             var bytes = data.AsSpan(start, length);
             var text = platformId == 3 || platformId == 0

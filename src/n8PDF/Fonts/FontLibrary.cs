@@ -71,6 +71,13 @@ public sealed class FontLibrary
 
         public TrueTypeFont Font => _font.Value;
 
+        /// <summary>
+        /// True for a face the document itself carried (#62). An embedded face outranks an
+        /// installed face of the same name: the author embedded it precisely so that this
+        /// machine's own fonts would not be consulted.
+        /// </summary>
+        public bool Embedded { get; init; }
+
         /// <summary>Whether the face has been read from its file yet, rather than merely known of.</summary>
         public bool IsRead => _font.IsValueCreated;
     }
@@ -142,6 +149,38 @@ public sealed class FontLibrary
         {
             lock (_gate) return _byFamily.Keys.ToArray();
         }
+    }
+
+    /// <summary>
+    /// A copy for one conversion of a document that carries its own faces (#62): the embedded
+    /// faces are registered on the copy, so the caller's library is not permanently taught the
+    /// fonts of one document it converted.
+    /// </summary>
+    internal FontLibrary(FontLibrary source)
+    {
+        lock (source._gate)
+        {
+            _all.AddRange(source._all);
+            foreach (var (family, faces) in source._byFamily)
+                _byFamily[family] = [.. faces];
+            _loadedPaths.UnionWith(source._loadedPaths);
+            _systemFontsLoaded = source._systemFontsLoaded;
+        }
+
+        UseSystemFonts = source.UseSystemFonts;
+        FallbackFamilies.Clear();
+        FallbackFamilies.AddRange(source.FallbackFamilies);
+    }
+
+    public FontLibrary()
+    {
+    }
+
+    /// <summary>Registers every face in a font the document itself carried (#62).</summary>
+    internal void RegisterEmbedded(byte[] data)
+    {
+        foreach (var face in TrueTypeFont.LoadAll(data))
+            Add(new Face(face) { Embedded = true });
     }
 
     /// <summary>Registers every face in the given font file data.</summary>
@@ -325,6 +364,11 @@ public sealed class FontLibrary
             var score = 0;
             if (candidate.IsItalic == italic) score += 4;
             if (candidate.IsBold == bold) score += 2;
+
+            // A face the document carried beats any installed face, whatever the style match:
+            // Word embeds each face a document actually uses, so a missing style is synthesised
+            // from the embedded family rather than borrowed from the machine's (#62).
+            if (candidate.Embedded) score += 16;
 
             // Prefer the nearest weight among faces that all claim the same bold flag.
             var targetWeight = bold ? 700 : 400;

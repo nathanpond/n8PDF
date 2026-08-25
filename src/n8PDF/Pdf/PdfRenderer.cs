@@ -30,15 +30,20 @@ internal static class PdfRenderer
     public static void Render(LaidOutDocument document, PdfBuilder builder, FontLibrary? fonts = null)
     {
         var pages = new List<(LaidOutPage Source, PdfPage Target)>();
+        var structure = new StructureWriter(document, builder);
 
         foreach (var page in document.Pages)
         {
             var target = builder.AddPage(page.WidthPoints, page.HeightPoints);
             var content = target.Content;
             pages.Add((page, target));
+            structure.StartPage(target);
 
             // Shading and table borders go down first, in the order layout added them: fills
-            // before the borders that sit on top of them, and both before any text.
+            // before the borders that sit on top of them, and both before any text. To a reader
+            // they are decoration, marked as such (#67).
+            if (structure.Enabled && page.Rectangles.Count > 0) content.BeginArtifact();
+
             foreach (var rectangle in page.Rectangles)
             {
                 content.Save()
@@ -49,13 +54,18 @@ internal static class PdfRenderer
                     .Restore();
             }
 
+            if (structure.Enabled && page.Rectangles.Count > 0) content.EndMarked();
+
             foreach (var image in page.Images)
             {
+                if (structure.Enabled) structure.Begin(content, image.StructureIndex);
+
                 // A metafile is a drawing rather than a picture, and is written out as the PDF's
                 // own drawing commands rather than embedded as pixels.
                 if (image.Image.Drawing is { } drawing)
                 {
                     RenderDrawing(builder, content, page, image, drawing, fonts);
+                    if (structure.Enabled) content.EndMarked();
                     continue;
                 }
 
@@ -65,9 +75,13 @@ internal static class PdfRenderer
                     .Transform(image.Width, 0, 0, image.Height, image.X, Flip(page, image.Y) - image.Height)
                     .DrawXObject(builder.UseImage(image.Image).ResourceName)
                     .Restore();
+
+                if (structure.Enabled) content.EndMarked();
             }
 
-            // Rules go down next so that text sits on top of any underline.
+            // Rules go down next so that text sits on top of any underline — decoration too.
+            if (structure.Enabled && page.Rules.Count > 0) content.BeginArtifact();
+
             foreach (var rule in page.Rules)
             {
                 content.Save()
@@ -78,6 +92,8 @@ internal static class PdfRenderer
             }
 
             // And the lines a rule cannot draw: the cross in a ticked checkbox, corner to corner.
+            if (structure.Enabled && page.Strokes.Count > 0) content.BeginArtifact();
+
             foreach (var stroke in page.Strokes)
             {
                 content.Save()
@@ -89,14 +105,118 @@ internal static class PdfRenderer
                     .Restore();
             }
 
-            foreach (var text in page.Texts)
-                RenderText(builder, content, page, text);
+            if (structure.Enabled && page.Strokes.Count > 0) content.EndMarked();
+
+            if (structure.Enabled && page.Rules.Count > 0) content.EndMarked();
+
+            // Each line's runs ride one marked-content sequence tied to the line's element in
+            // the structure tree; a line that belongs to nothing content-bearing — a line
+            // number, a running head — is an artifact (#67).
+            foreach (var line in page.Lines)
+            {
+                if (structure.Enabled) structure.Begin(content, line.StructureIndex);
+
+                foreach (var text in line.Texts)
+                    RenderText(builder, content, page, text);
+
+                if (structure.Enabled) content.EndMarked();
+            }
         }
 
         // Annotations are added after every page exists, because an internal link needs a
         // reference to the page it points at and that page may come later in the document.
         foreach (var (source, target) in pages)
-            AddLinkAnnotations(document, builder, source, target);
+            AddLinkAnnotations(document, builder, source, target, structure);
+
+        WriteOutline(document, builder);
+        structure.Write();
+    }
+
+    /// <summary>
+    /// The document outline (#66): the tree of headings a reader shows in its navigation pane.
+    /// </summary>
+    /// <remarks>
+    /// The tree is derived from the outline levels the layout recorded: a heading's parent is the
+    /// nearest heading above it with a smaller level, so a document whose levels skip - a
+    /// Heading3 directly under a Heading1 - still produces a well-formed tree, with the deeper
+    /// entry a child of the nearest shallower one. Every node is written open, so a node's
+    /// <c>/Count</c> is the positive number of its descendants and the root's is the total. Each
+    /// entry is an <c>XYZ</c> destination at the heading's own place on its page, with the zoom
+    /// left alone, exactly as the internal-link annotations write theirs. A document with no
+    /// headings gets no <c>/Outlines</c> entry at all.
+    /// </remarks>
+    private static void WriteOutline(LaidOutDocument document, PdfBuilder builder)
+    {
+        var headings = document.Headings
+            .Where(h => h.PageIndex >= 0 && h.PageIndex < document.Pages.Count && h.Title.Length > 0)
+            .ToList();
+
+        if (headings.Count == 0) return;
+
+        var pdf = builder.Document;
+        var rootRef = pdf.Reserve();
+        var refs = headings.Select(_ => pdf.Reserve()).ToList();
+
+        // The parent of each entry: the nearest one above it with a smaller level.
+        var parents = new int[headings.Count];
+        var childrenOf = new Dictionary<int, List<int>> { [-1] = [] };
+        var open = new Stack<int>();
+
+        for (var i = 0; i < headings.Count; i++)
+        {
+            while (open.Count > 0 && headings[open.Peek()].Level >= headings[i].Level) open.Pop();
+
+            parents[i] = open.Count > 0 ? open.Peek() : -1;
+            childrenOf[-1] ??= [];
+            if (!childrenOf.TryGetValue(parents[i], out var siblings))
+                childrenOf[parents[i]] = siblings = [];
+            siblings.Add(i);
+            open.Push(i);
+        }
+
+        int Descendants(int index) =>
+            childrenOf.TryGetValue(index, out var below)
+                ? below.Sum(child => 1 + Descendants(child))
+                : 0;
+
+        for (var i = 0; i < headings.Count; i++)
+        {
+            var heading = headings[i];
+            var page = document.Pages[heading.PageIndex];
+
+            var entry = new PdfDictionary()
+                .Set("Title", PdfString.FromText(heading.Title))
+                .Set("Parent", parents[i] < 0 ? rootRef : refs[parents[i]])
+                .Set("Dest", new PdfArray()
+                    .Add(pdf.GetPageReference(heading.PageIndex))
+                    .Add(new PdfName("XYZ"))
+                    .Add(heading.X)
+                    .Add(page.HeightPoints - heading.Y)
+                    .Add(PdfNull.Instance));
+
+            var siblings = childrenOf[parents[i]];
+            var at = siblings.IndexOf(i);
+            if (at > 0) entry.Set("Prev", refs[siblings[at - 1]]);
+            if (at < siblings.Count - 1) entry.Set("Next", refs[siblings[at + 1]]);
+
+            if (childrenOf.TryGetValue(i, out var below) && below.Count > 0)
+            {
+                entry.Set("First", refs[below[0]])
+                    .Set("Last", refs[below[^1]])
+                    .Set("Count", Descendants(i));
+            }
+
+            pdf.Assign(refs[i], entry);
+        }
+
+        var top = childrenOf[-1];
+        pdf.Assign(rootRef, new PdfDictionary()
+            .Set("Type", "Outlines")
+            .Set("First", refs[top[0]])
+            .Set("Last", refs[top[^1]])
+            .Set("Count", headings.Count));
+
+        pdf.SetOutlines(rootRef);
     }
 
     /// <summary>
@@ -108,7 +228,8 @@ internal static class PdfRenderer
     /// lines still gets one region per line, which is what a reader expects.
     /// </remarks>
     private static void AddLinkAnnotations(
-        LaidOutDocument document, PdfBuilder builder, LaidOutPage source, PdfPage target)
+        LaidOutDocument document, PdfBuilder builder, LaidOutPage source, PdfPage target,
+        StructureWriter structure)
     {
         foreach (var line in source.Lines)
         {
@@ -142,7 +263,10 @@ internal static class PdfRenderer
                         .Add(end.X + end.Width + LinkPaddingPoints)
                         .Add(Flip(source, top)))
                     // Without this most viewers draw a black box around every link.
-                    .Set("Border", new PdfArray().Add(0).Add(0).Add(0));
+                    .Set("Border", new PdfArray().Add(0).Add(0).Add(0))
+                    // Printable and never hidden, which PDF/A demands of every annotation and
+                    // which is simply true of a link either way (#68).
+                    .Set("F", 4);
 
                 if (link.Url is { } url)
                 {
@@ -172,7 +296,14 @@ internal static class PdfRenderer
                     return;
                 }
 
-                target.Annotations.Add(builder.Document.Add(annotation));
+                var annotationRef = builder.Document.Add(annotation);
+
+                // The annotation joins the structure tree as a Link under the text's own
+                // element, and names its parent-tree key (#67).
+                if (structure.Enabled)
+                    annotation.Set("StructParent", structure.AddLink(line.StructureIndex, annotationRef));
+
+                target.Annotations.Add(annotationRef);
 
                 start = null;
                 end = null;
@@ -215,6 +346,47 @@ internal static class PdfRenderer
         double X(double x) => placed.X + x * scaleX;
         double Y(double y) => Flip(page, placed.Y + y * scaleY);
 
+        void WritePath(IReadOnlyList<Images.PathStep> steps)
+        {
+            foreach (var step in steps)
+            {
+                switch (step.Kind)
+                {
+                    case Images.PathStepKind.Move:
+                        content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                        break;
+
+                    case Images.PathStepKind.Line:
+                        content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
+                        break;
+
+                    case Images.PathStepKind.Curve:
+                        content.CurveTo(
+                            X(step.Points[0].X), Y(step.Points[0].Y),
+                            X(step.Points[1].X), Y(step.Points[1].Y),
+                            X(step.Points[2].X), Y(step.Points[2].Y));
+                        break;
+
+                    case Images.PathStepKind.Close:
+                        content.ClosePath();
+                        break;
+                }
+            }
+        }
+
+        // The clips something was drawn under (#69, #64), each written as a clip path of its
+        // own, which is how PDF composes their intersection.
+        void WriteClips(IReadOnlyList<Images.ClipShape>? clips)
+        {
+            foreach (var shape in clips ?? [])
+            {
+                WritePath(shape.Steps);
+
+                if (shape.EvenOdd) content.ClipEvenOdd();
+                else content.Clip();
+            }
+        }
+
         foreach (var operation in drawing.Operations)
         {
             switch (operation)
@@ -233,6 +405,49 @@ internal static class PdfRenderer
                         content.Clip();
                     }
 
+                    WriteClips(path.Clips);
+
+                    if (path.FillOpacity < 1)
+                        content.SetGraphicsState(builder.UseAlpha(path.FillOpacity));
+
+                    // A gradient is painted as an axial shading kept inside the path (#64): the
+                    // path becomes a clip, the axis runs with the stated angle across the path's
+                    // own bounds, and the outline is stroked after as its own path.
+                    if (path.Gradient is { Stops.Count: >= 2 } gradient)
+                    {
+                        WritePath(path.Steps);
+                        content.Clip();
+
+                        var points = path.Steps.SelectMany(step => step.Points).ToList();
+                        var minX = points.Min(p => X(p.X));
+                        var maxX = points.Max(p => X(p.X));
+                        var minY = points.Min(p => Y(p.Y));
+                        var maxY = points.Max(p => Y(p.Y));
+
+                        // The angle is clockwise from three o'clock with the drawing's own axes,
+                        // which point down; the page's point up, so the sine turns over.
+                        var radians = gradient.AngleDegrees * Math.PI / 180;
+                        var (dx, dy) = (Math.Cos(radians), -Math.Sin(radians));
+                        var (cx, cy) = ((minX + maxX) / 2, (minY + maxY) / 2);
+                        var half = (Math.Abs(dx) * (maxX - minX) + Math.Abs(dy) * (maxY - minY)) / 2;
+
+                        content.PaintShading(builder.UseShading(
+                            [.. gradient.Stops.Select(stop => (stop.Position,
+                                (stop.Color.Red / 255.0, stop.Color.Green / 255.0, stop.Color.Blue / 255.0)))],
+                            cx - dx * half, cy - dy * half, cx + dx * half, cy + dy * half));
+
+                        if (path.Stroke is { } outline)
+                        {
+                            content.SetStrokeColor(outline.Red / 255.0, outline.Green / 255.0, outline.Blue / 255.0);
+                            content.SetLineWidth(Math.Max(0.24, path.StrokeWidth * scaleX));
+                            WritePath(path.Steps);
+                            content.Stroke();
+                        }
+
+                        content.Restore();
+                        break;
+                    }
+
                     if (path.Fill is { } fill)
                         content.SetFillColor(fill.Red / 255.0, fill.Green / 255.0, fill.Blue / 255.0);
 
@@ -245,30 +460,7 @@ internal static class PdfRenderer
                         if (path.RoundCap) content.SetLineCap(1);
                     }
 
-                    foreach (var step in path.Steps)
-                    {
-                        switch (step.Kind)
-                        {
-                            case Images.PathStepKind.Move:
-                                content.MoveTo(X(step.Points[0].X), Y(step.Points[0].Y));
-                                break;
-
-                            case Images.PathStepKind.Line:
-                                content.LineTo(X(step.Points[0].X), Y(step.Points[0].Y));
-                                break;
-
-                            case Images.PathStepKind.Curve:
-                                content.CurveTo(
-                                    X(step.Points[0].X), Y(step.Points[0].Y),
-                                    X(step.Points[1].X), Y(step.Points[1].Y),
-                                    X(step.Points[2].X), Y(step.Points[2].Y));
-                                break;
-
-                            case Images.PathStepKind.Close:
-                                content.ClosePath();
-                                break;
-                        }
-                    }
+                    WritePath(path.Steps);
 
                     if (path.Fill is not null && path.Stroke is not null) content.FillAndStroke(path.EvenOdd);
                     else if (path.Fill is not null) _ = path.EvenOdd ? content.FillEvenOdd() : content.Fill();
@@ -344,11 +536,13 @@ internal static class PdfRenderer
                     var width = picture.Width * scaleX;
                     var height = picture.Height * scaleY;
 
-                    content.Save()
-                        .Transform(width, 0, 0, height, X(picture.X), Y(picture.Y) - height)
-                        .DrawXObject(builder.UseImage(picture.Image).ResourceName)
-                        .Restore();
+                    content.Save();
+                    WriteClips(picture.Clips);
 
+                    content.Transform(width, 0, 0, height, X(picture.X), Y(picture.Y) - height)
+                        .DrawXObject(builder.UseImage(picture.Image).ResourceName);
+
+                    content.Restore();
                     break;
                 }
             }

@@ -99,6 +99,13 @@ internal sealed class Substitutor(LayoutTable table, GlyphClasses? classes)
         item.Substituted = true;
         item.Multiplied = glyphCount > 1;
 
+        // A Multiple lookup turns one glyph into up to 65535, and the plans run many passes each
+        // re-covering the last one's output, so unbounded this expands one character into
+        // billions of glyphs. The shaped buffer is capped: once it is full the expansion stops
+        // (#184). No real run approaches the bound.
+        if (buffer.Count + glyphCount > ShapingLimits.MaxGlyphs)
+            return at + 1;
+
         for (var i = 1; i < glyphCount; i++)
         {
             // Every piece stands for the same character, so they share its cluster.

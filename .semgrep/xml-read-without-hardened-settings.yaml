@@ -1,0 +1,27 @@
+rules:
+  - id: xml-read-without-hardened-settings
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      XML read through XDocument.Load/Parse or XmlDocument.LoadXml that is not routed through a
+      hardened XmlReader relies on framework defaults for DTD handling — a billion-laughs DoS on an
+      untrusted .docx part. Create an XmlReader with DtdProcessing.Prohibit and XmlResolver = null
+      (OpcPackage.PartReaderSettings) and load from that reader. Refs OpcPackage hardening.
+    metadata:
+      category: security
+      subcategory: [audit]
+      cwe: ["CWE-611: Improper Restriction of XML External Entity Reference"]
+      confidence: MEDIUM
+      references:
+        - https://github.com/nathanpond/n8PDF/blob/main/src/n8PDF/Packaging/OpcPackage.cs
+    patterns:
+      - pattern-either:
+          - pattern: XDocument.Load(...)
+          - pattern: XDocument.Parse(...)
+          - pattern: $D.LoadXml(...)
+      # The one blessed path is a load from an XmlReader.Create'd reader in the same scope; anything
+      # else is reading XML on the framework's defaults.
+      - pattern-not-inside: |
+          XmlReader.Create(...);
+          ...
+      - pattern-not: XDocument.Load(XmlReader.Create(...), ...)

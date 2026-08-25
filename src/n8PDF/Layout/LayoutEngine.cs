@@ -33,7 +33,8 @@ internal sealed class LayoutEngine(
     FontLibrary fonts,
     StyleResolver styles,
     LayoutOptions? options = null,
-    Packaging.PackageLimits? limits = null)
+    Packaging.PackageLimits? limits = null,
+    Dictionary<string, Images.ImageData?>? decodedImages = null)
 {
     private readonly FontLibrary _fonts = fonts;
 
@@ -58,9 +59,17 @@ internal sealed class LayoutEngine(
     // Bookmarks seen while building a paragraph's atoms, recorded once the paragraph is placed.
     private readonly List<string> _pendingBookmarks = [];
 
-    // Decoded images, keyed by relationship id. A picture used several times is decoded once and
-    // yields the same instance every time, which is what lets the writer embed it once.
-    private readonly Dictionary<string, Images.ImageData?> _decodedImages = [];
+    // Decoded images, keyed by relationship id (plus any wash). A picture used several times is
+    // decoded once and yields the same instance every time, which is what lets the writer embed it
+    // once. The decode is a pure function of the part bytes, so the cache is shared across the two
+    // pagination passes — the second pass would otherwise re-decode every image from scratch (#217).
+    private readonly Dictionary<string, Images.ImageData?> _decodedImages = decodedImages ?? [];
+
+    // Intrinsic total width of a nested table, memoized by reference for one pass. Autofit probes a
+    // nested table's intrinsic width once per ancestor level, so a d-deep chain re-measured its
+    // deepest content O(d^2) times without this (#218). The total is the unconstrained column sum,
+    // a pure function of the table, so caching it by reference is sound.
+    private readonly Dictionary<Table, double> _nestedTableIntrinsic = new(ReferenceEqualityComparer.Instance);
 
     // List counters, which advance as paragraphs are laid out. A list item's number depends on
     // every item before it, so this is per-document state rather than per-paragraph.
@@ -234,6 +243,16 @@ internal sealed class LayoutEngine(
     // by its position, since both passes lay out the same document.
     private readonly Dictionary<Paragraph, LaidOutPage> _headingPages = [];
 
+    // The structure element new lines belong to (#67): -1 outside content, an index into the
+    // result's structure list within a paragraph. The parent is what a newly allocated element
+    // hangs from - the root, or the table cell being measured - and the open list is what lets
+    // consecutive numbered paragraphs share one L element.
+    private int _currentStructure = -1;
+    private int _structureParent = -1;
+    private int _openList = -1;
+    private int _openListParent = -1;
+    private bool _artifactContent;
+
     // The body being laid out, which a table of contents reads to find the headings. It is the
     // document rather than the section, since a table gathers the whole of it.
     private IReadOnlyList<BlockElement> _body = [];
@@ -279,7 +298,7 @@ internal sealed class LayoutEngine(
         _footnotesContinue = false;
         _separatorFlows.Clear();
         _currentNoteLabel = null;
-        _decodedImages.Clear();
+        _nestedTableIntrinsic.Clear();
         _numbering = new NumberingCounter(_styles.Numbering);
         _fieldOccurrence = 0;
         _fieldPages.Clear();
@@ -299,6 +318,7 @@ internal sealed class LayoutEngine(
 
         var result = new LaidOutDocument { Section = document.Section };
         _result = result;
+        result.Language = _styles.Styles.Language;
         _pagesInSection = 0;
 
         // The first section's numbering begins where it says, or at one.
@@ -1094,6 +1114,10 @@ internal sealed class LayoutEngine(
         // very first line already flows around them.
         PlaceAnchoredDrawings(cursor, paragraph, cursor.Y - stoodAt);
 
+        // The paragraph's place in the structure tree (#67): a heading by its outline level, a
+        // list item under the list its numbering opens or continues, a plain paragraph else.
+        _currentStructure = AllocateParagraphStructure(format);
+
         _pendingBookmarks.Clear();
         _pendingMarks.Clear();
         var composer = new ParagraphComposer(
@@ -1202,6 +1226,16 @@ internal sealed class LayoutEngine(
                     // A heading is where a table of contents points, so where it landed is worth
                     // knowing whether or not the document has a table in it yet.
                     if (format.OutlineLevel is not null) _headingPages[paragraph] = cursor.Page;
+
+                    // And a heading is what the PDF's navigation pane lists (#66), recorded with
+                    // its level and text at the line's own place on the page. w:outlineLvl 9 is
+                    // the schema's "none", and a paragraph inside a field - a generated table of
+                    // contents entry, say - is a pointer to a heading rather than one itself.
+                    if (format.OutlineLevel is { } outline && outline < 9 && !paragraph.InsideField)
+                    {
+                        _result.Headings.Add(new OutlineHeading(
+                            outline, TextOf(paragraph), pageIndex, cursor.Left, cursor.Y));
+                    }
 
                     foreach (var mark in marks) _markPages[mark] = cursor.Page;
                 }
@@ -2000,6 +2034,19 @@ internal sealed class LayoutEngine(
             var height = anchored.HeightPoints;
             if (width <= 0 || height <= 0) continue;
 
+            // A box told to size itself to its text does so at render (#64): the stated extent
+            // grows to the content plus the insets — measured on shape-autofit-probe, where a
+            // 30pt extent drew 76pt of box.
+            if (anchored.Shape is { AutofitToText: true, WordArt: null } autofit && autofit.HasText)
+            {
+                var autofitEdge = autofit.Line is null ? 0 : autofit.LineWidthPoints / 2;
+                var autofitWidth = Math.Max(1,
+                    width - autofit.InsetLeftPoints - autofit.InsetRightPoints - 2 * autofitEdge);
+
+                height = Math.Max(height, MeasureInside(autofit.Content, autofitWidth).Height
+                    + autofit.InsetTopPoints + autofit.InsetBottomPoints + 2 * autofitEdge);
+            }
+
             // Where it goes, worked out before anything else happens and kept. Breaking the lines
             // above it again can lengthen the paragraph they belong to and so move the flow, and
             // the picture does not follow: Word's own export has the picture standing where the
@@ -2042,7 +2089,13 @@ internal sealed class LayoutEngine(
                 Y = y,
                 Width = width,
                 Height = height,
-                Image = image
+                Image = image,
+
+                // A picture is a figure to a reader, with the document's own description for it;
+                // a drawn frame whose text is its content is not (#67).
+                StructureIndex = anchored.Description is not null || anchored.RelationshipId is not null
+                    ? AllocateFigure(anchored.Description)
+                    : -1
             });
 
             composed?.Content?.PlaceOnto(cursor.Page, x + composed.Value.Left, y + composed.Value.Top);
@@ -2074,6 +2127,9 @@ internal sealed class LayoutEngine(
         var x = ResolveHorizontalPosition(cursor, anchored, width);
         var y = ResolveVerticalPosition(cursor, anchored, height);
 
+        // A turned shape's wrap region stays the stated extent, unturned (#64) — measured, not
+        // assumed: Word starts the text beside a 30-degree box at the square extent's edge and
+        // lets the turned corner overhang it, exactly 4pt inside the turned bounds on the probe.
         var left = x - Units.EmuToPoints(anchored.DistanceLeftEmu);
         var right = x + width + Units.EmuToPoints(anchored.DistanceRightEmu);
 
@@ -2084,11 +2140,28 @@ internal sealed class LayoutEngine(
             right = cursor.Left + cursor.Width;
         }
 
+        // A tight or through wrap follows its polygon (#65): the points come off the 21600
+        // canvas of the extent into page coordinates at the picture's own corner, and the wrap
+        // distances inflate each blocked interval rather than the box.
+        IReadOnlyList<(double X, double Y)>? polygon = null;
+
+        if (anchored.Wrap is TextWrapMode.Tight or TextWrapMode.Through &&
+            anchored.WrapPolygon is { Count: >= 3 } wrapPolygon)
+        {
+            polygon = wrapPolygon
+                .Select(point => (x + point.X * width / 21600.0, y + point.Y * height / 21600.0))
+                .ToList();
+        }
+
         return new FloatRegion(
             left,
             y - Units.EmuToPoints(anchored.DistanceTopEmu),
             right,
-            y + height + Units.EmuToPoints(anchored.DistanceBottomEmu));
+            y + height + Units.EmuToPoints(anchored.DistanceBottomEmu),
+            polygon,
+            anchored.Wrap == TextWrapMode.Through,
+            Units.EmuToPoints(anchored.DistanceLeftEmu),
+            Units.EmuToPoints(anchored.DistanceRightEmu));
     }
 
     /// <summary>
@@ -2175,7 +2248,8 @@ internal sealed class LayoutEngine(
             BaselineY = line.BaselineY + delta,
             Height = line.Height,
             Ascent = line.Ascent,
-            ParagraphIndex = line.ParagraphIndex
+            ParagraphIndex = line.ParagraphIndex,
+            StructureIndex = line.StructureIndex
         };
 
         foreach (var text in line.Texts)
@@ -2269,6 +2343,10 @@ internal sealed class LayoutEngine(
         }
 
         _totalPages = result.Pages.Count;
+
+        // Running heads are pagination rather than content: everything measured from here on is
+        // an artifact to a reader (#67), and nothing content-bearing lays out after them.
+        _artifactContent = true;
 
         for (var index = 0; index < result.Pages.Count; index++)
         {
@@ -2404,7 +2482,8 @@ internal sealed class LayoutEngine(
                 BaselineY = line.BaselineY + delta,
                 Height = line.Height,
                 Ascent = line.Ascent,
-                ParagraphIndex = line.ParagraphIndex
+                ParagraphIndex = line.ParagraphIndex,
+                StructureIndex = line.StructureIndex
             };
 
             foreach (var text in line.Texts) moved.Texts.Add(text.Translate(0, delta));
@@ -2453,7 +2532,8 @@ internal sealed class LayoutEngine(
                 Y = image.Y + shift(image.Y),
                 Width = image.Width,
                 Height = image.Height,
-                Image = image.Image
+                Image = image.Image,
+                StructureIndex = image.StructureIndex
             });
         }
     }
@@ -3125,10 +3205,21 @@ internal sealed class LayoutEngine(
         if (_currentPage > 0)
         {
             var page = _currentPage - 1;
-            var onPage = _styledParagraphs.Where(p => p.StyleId == styleId && p.Page == page).ToList();
 
-            if (onPage.Count > 0)
-                return instruction.HasSwitch('l') ? onPage[^1].Text : onPage[0].Text;
+            // The first or the last styled paragraph on the page — scan to it and stop, rather
+            // than materialising every match into a list only to read one end of it (#227).
+            if (instruction.HasSwitch('l'))
+            {
+                for (var i = _styledParagraphs.Count - 1; i >= 0; i--)
+                    if (_styledParagraphs[i].StyleId == styleId && _styledParagraphs[i].Page == page)
+                        return _styledParagraphs[i].Text;
+            }
+            else
+            {
+                for (var i = 0; i < _styledParagraphs.Count; i++)
+                    if (_styledParagraphs[i].StyleId == styleId && _styledParagraphs[i].Page == page)
+                        return _styledParagraphs[i].Text;
+            }
 
             for (var i = _styledParagraphs.Count - 1; i >= 0; i--)
             {
@@ -3850,6 +3941,7 @@ internal sealed class LayoutEngine(
             // known while its content is being laid out.
             var outer = Fields.Cells;
             Fields.Cells = new TableCells(table, rowIndex, column);
+            var outerStructure = EnterCellStructure(table, rowIndex);
 
             // A cell continuing a vertical merge draws no content of its own; the cell that
             // started the merge owns it.
@@ -3857,6 +3949,7 @@ internal sealed class LayoutEngine(
                 ? DetachedFlow.Empty
                 : MeasureInside(cell.Content, Math.Max(1, inside - marginLeft - marginRight));
 
+            LeaveCellStructure(outerStructure);
             Fields.Cells = outer;
 
             placed.Add(new PlacedCell(cell, x, width, column, span, content,
@@ -3882,12 +3975,14 @@ internal sealed class LayoutEngine(
 
             var outer = Fields.Cells;
             Fields.Cells = new TableCells(table, rowIndex, cell.Column);
+            var outerStructure = EnterCellStructure(table, rowIndex);
 
             placed[i] = cell with
             {
                 Content = MeasureInside(cell.Source.Content, Math.Max(1, along))
             };
 
+            LeaveCellStructure(outerStructure);
             Fields.Cells = outer;
         }
 
@@ -4237,14 +4332,26 @@ internal sealed class LayoutEngine(
     {
         floors = null;
 
+        // A table has columns in the tens; a summed w:gridSpan can claim billions and size four
+        // parallel double[] arrays from it. The per-row count is accumulated with a cap so the
+        // sum cannot overflow, and the column count is bounded before anything is allocated from
+        // it (#152).
+        const int maxColumns = 10_000;
+
         var columnCount = 0;
         foreach (var row in table.Rows)
         {
-            var count = row.Cells.Sum(cell => Math.Max(1, cell.GridSpan));
+            var count = 0;
+            foreach (var cell in row.Cells)
+            {
+                count += Math.Max(1, cell.GridSpan);
+                if (count >= maxColumns) { count = maxColumns; break; }
+            }
+
             columnCount = Math.Max(columnCount, count);
         }
 
-        columnCount = Math.Max(columnCount, table.Grid.Count);
+        columnCount = Math.Min(Math.Max(columnCount, table.Grid.Count), maxColumns);
         if (columnCount == 0) return [availableWidth];
 
         var minimums = new double[columnCount];
@@ -4572,9 +4679,14 @@ internal sealed class LayoutEngine(
 
                 case Table nested:
                 {
-                    // A nested table needs at least the sum of its own columns.
-                    var widths = ComputeAutofitColumnWidths(nested, double.MaxValue / 4, out _);
-                    var total = widths.Sum();
+                    // A nested table needs at least the sum of its own columns — computed once per
+                    // table, not once per ancestor that measures through it (#218).
+                    if (!_nestedTableIntrinsic.TryGetValue(nested, out var total))
+                    {
+                        total = ComputeAutofitColumnWidths(nested, double.MaxValue / 4, out _).Sum();
+                        _nestedTableIntrinsic[nested] = total;
+                    }
+
                     min = Math.Max(min, total);
                     max = Math.Max(max, total);
                     break;
@@ -5199,10 +5311,14 @@ internal sealed class LayoutEngine(
     private (Images.ImageData Frame, DetachedFlow? Content, double Left, double Top) ComposeShape(
         ShapeFrame shape, double width, double height)
     {
+        var pictureFill = shape.PictureFillRelationshipId is { } picture
+            ? DecodeImage(picture, null)
+            : null;
+
         var frame = new Images.ImageData(1, 1, [],
             Images.ImageEncoding.Raw, Images.ImageColorSpace.Rgb)
         {
-            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme, _fonts)
+            Drawing = ShapeOutline.Draw(shape, width, height, _styles.Theme, _fonts, pictureFill)
         };
 
         if (!shape.HasText || shape.WordArt is not null) return (frame, null, 0, 0);
@@ -5221,6 +5337,13 @@ internal sealed class LayoutEngine(
         // does with one too.
         var box = height - shape.InsetTopPoints - shape.InsetBottomPoints - 2 * edge;
 
+        // A box told to shrink its text re-fits at render (#64): full size where the text fits —
+        // Word ignores the stored scale then, measured on shape-autofit-probe — and the stored
+        // scale where it does not, which in a Word-authored document is the value Word itself
+        // computed the last time it laid this box out.
+        if (shape.FontScale < 1 && content.Height > box)
+            content = MeasureInside(ScaledBlocks(shape.Content, shape.FontScale), available);
+
         var top = carried + shape.Anchor switch
         {
             ShapeTextAnchor.Center => shape.InsetTopPoints + edge + Math.Max(0, (box - content.Height) / 2),
@@ -5230,6 +5353,120 @@ internal sealed class LayoutEngine(
         };
 
         return (frame, content, left, top);
+    }
+
+    /// <summary>
+    /// The structure element a paragraph's lines belong to (#67): -1 for decoration, a heading
+    /// by its resolved outline level, a list item under the list its numbering continues, a
+    /// plain paragraph otherwise. Allocation order is reading order.
+    /// </summary>
+    private int AllocateParagraphStructure(ResolvedParagraphFormat format)
+    {
+        if (_artifactContent || _result is null) return -1;
+
+        if (format.OutlineLevel is { } outline and < 9)
+        {
+            _openList = -1;
+            _result.Structure.Add(new StructureElement(
+                StructureKind.Heading, _structureParent, Math.Min(outline + 1, 6)));
+            return _result.Structure.Count - 1;
+        }
+
+        if (format.NumberingId is not null)
+        {
+            if (_openList < 0 || _openListParent != _structureParent)
+            {
+                _result.Structure.Add(new StructureElement(StructureKind.List, _structureParent));
+                _openList = _result.Structure.Count - 1;
+                _openListParent = _structureParent;
+            }
+
+            _result.Structure.Add(new StructureElement(StructureKind.ListItem, _openList));
+            return _result.Structure.Count - 1;
+        }
+
+        _openList = -1;
+        _result.Structure.Add(new StructureElement(StructureKind.Paragraph, _structureParent));
+        return _result.Structure.Count - 1;
+    }
+
+    // A table's and its rows' elements, allocated when their first cell is measured (#67).
+    private readonly Dictionary<object, int> _tableStructure = [];
+    private readonly Dictionary<(object Table, int Row), int> _rowStructure = [];
+
+    /// <summary>
+    /// Enters a table cell for structure purposes (#67): the cell's TD is allocated under its
+    /// row's TR under its table, and becomes the parent of the paragraphs measured inside.
+    /// Returns what to hand back to <see cref="LeaveCellStructure"/>.
+    /// </summary>
+    /// <summary>A picture's Figure element (#67), with its alternative text along.</summary>
+    private int AllocateFigure(string? alt, int? parent = null)
+    {
+        if (_artifactContent || _result is null) return -1;
+
+        _result.Structure.Add(new StructureElement(
+            StructureKind.Figure, parent ?? _structureParent, Alt: alt));
+        return _result.Structure.Count - 1;
+    }
+
+    private (int Parent, int OpenList, int OpenListParent) EnterCellStructure(object table, int rowIndex)
+    {
+        var saved = (_structureParent, _openList, _openListParent);
+
+        if (_artifactContent || _result is null) return saved;
+
+        if (!_tableStructure.TryGetValue(table, out var tableElement))
+        {
+            _result.Structure.Add(new StructureElement(StructureKind.Table, -1));
+            _tableStructure[table] = tableElement = _result.Structure.Count - 1;
+        }
+
+        if (!_rowStructure.TryGetValue((table, rowIndex), out var rowElement))
+        {
+            _result.Structure.Add(new StructureElement(StructureKind.TableRow, tableElement));
+            _rowStructure[(table, rowIndex)] = rowElement = _result.Structure.Count - 1;
+        }
+
+        _result.Structure.Add(new StructureElement(StructureKind.TableCell, rowElement));
+        _structureParent = _result.Structure.Count - 1;
+        _openList = -1;
+
+        return saved;
+    }
+
+    private void LeaveCellStructure((int Parent, int OpenList, int OpenListParent) saved) =>
+        (_structureParent, _openList, _openListParent) = saved;
+
+    /// <summary>The blocks again with every run's size scaled, for a box that shrinks its text (#64).</summary>
+    private static List<BlockElement> ScaledBlocks(IReadOnlyList<BlockElement> blocks, double scale)
+    {
+        var scaled = new List<BlockElement>(blocks.Count);
+
+        foreach (var block in blocks)
+        {
+            if (block is not Paragraph paragraph)
+            {
+                scaled.Add(block);
+                continue;
+            }
+
+            var copy = new Paragraph
+            {
+                Properties = paragraph.Properties,
+                InsideField = paragraph.InsideField
+            };
+
+            foreach (var run in paragraph.Runs)
+            {
+                var clone = new Run { Properties = run.Properties.Scaled(scale), Hyperlink = run.Hyperlink };
+                clone.Content.AddRange(run.Content);
+                copy.Runs.Add(clone);
+            }
+
+            scaled.Add(copy);
+        }
+
+        return scaled;
     }
 
     /// <summary>
@@ -5476,7 +5713,8 @@ internal sealed class LayoutEngine(
             BaselineY = baselineY,
             Height = line.Height,
             Ascent = line.Ascent,
-            ParagraphIndex = paragraphIndex
+            ParagraphIndex = paragraphIndex,
+            StructureIndex = _currentStructure
         };
 
         // A guided word is written where it stands in the line rather than after everything else
@@ -5722,7 +5960,12 @@ internal sealed class LayoutEngine(
                     Y = restingY - image.Height,
                     Width = image.Width,
                     Height = image.Height,
-                    Image = picture
+                    Image = picture,
+
+                    // A picture in the line is a figure inside its paragraph (#67).
+                    StructureIndex = image.Picture || image.Description is not null
+                        ? AllocateFigure(image.Description, _currentStructure)
+                        : -1
                 });
             }
 
@@ -5874,6 +6117,11 @@ internal sealed class LayoutEngine(
         var start = Math.Ceiling(from / width - 0.001) * width;
         var count = (int)Math.Floor((to - start) / width + 0.001);
         if (count <= 0) return;
+
+        // A tab leader over a huge tab stop set in a tiny font would fill the gap with a
+        // tens-of-megabyte string; no real leader is more than a line wide, so it is bounded
+        // (#155).
+        count = Math.Min(count, 100_000);
 
         line.Texts.Add(new PositionedText
         {
@@ -6404,33 +6652,45 @@ internal sealed class LayoutEngine(
         var format = atom.Format;
         var face = atom.Font;
 
-        double Measure(string text) =>
+        var text = atom.Text;
+
+        double Measure(string t) =>
             TextMeasurer.Measure(
-                face.Font, text, format.EffectiveFontSizePoints,
+                face.Font, t, format.EffectiveFontSizePoints,
                 format.CharacterSpacingPoints, applyKerning: false) * format.ScaleFactor;
 
-        var runes = atom.Text.EnumerateRunes().Select(rune => rune.ToString()).ToList();
-        if (runes.Count < 2) return atom;
+        // Accumulate each rune's own width once rather than re-measuring the growing prefix (which
+        // re-scanned from the start every step) or materialising one string per rune per call: a
+        // single unbreakable word of a million letters cost O(L^2) measures and allocations and
+        // hung the conversion (#213). A run breaking here is one no shaping joined, so per-rune
+        // widths sum to the prefix's; character spacing between them is added back per gap.
+        var spacing = format.CharacterSpacingPoints * format.ScaleFactor;
+        var runeCount = 0;
+        var splitAt = 0;    // characters taken so far
+        var width = 0.0;
 
-        var taken = 1;
-        var width = Measure(runes[0]);
-
-        // At least one letter, however narrow the box: a line has to take something or the
-        // paragraph would never end.
-        for (var i = 1; i < runes.Count; i++)
+        foreach (var rune in text.EnumerateRunes())
         {
-            var next = Measure(string.Concat(runes.Take(i + 1)));
-            if (next > available + 0.001) break;
+            var runeWidth = Measure(rune.ToString()) + (runeCount > 0 ? spacing : 0);
 
-            taken = i + 1;
-            width = next;
+            // At least one letter, however narrow the box: a line has to take something or the
+            // paragraph would never end.
+            if (runeCount >= 1 && width + runeWidth > available + 0.001) break;
+
+            splitAt += rune.Utf16SequenceLength;
+            width += runeWidth;
+            runeCount++;
         }
 
-        if (taken >= runes.Count) return atom;
+        if (splitAt >= text.Length) return atom;
 
-        var head = atom.Divide(string.Concat(runes.Take(taken)), width, leadingKern: 0);
-        var rest = string.Concat(runes.Skip(taken));
-        var tail = atom.Divide(rest, Measure(rest), leadingKern: 0);
+        var head = atom.Divide(text[..splitAt], width, leadingKern: 0);
+
+        // The tail's width is the atom's own less the head's, not a fresh measure of the whole
+        // remaining tail — which, measured once per line over a shrinking remainder, was itself
+        // O(L^2) (#213). The tail is re-split on the next line, which measures it exactly then.
+        var rest = text[splitAt..];
+        var tail = atom.Divide(rest, Math.Max(0, atom.Width - width), leadingKern: 0);
 
         atoms[index] = head;
         atoms.Insert(index + 1, tail);
@@ -7479,6 +7739,7 @@ internal sealed class LayoutEngine(
 
             atoms.Add(new ImageAtom
             {
+                Description = drawing.Description,
                 Image = composed.Frame,
                 Width = width,
                 Height = height,
@@ -7500,6 +7761,8 @@ internal sealed class LayoutEngine(
 
         atoms.Add(new ImageAtom
         {
+                Picture = true,
+                Description = drawing.Description,
             Image = image,
             Width = width,
             Height = height,
@@ -7967,7 +8230,8 @@ internal sealed class LayoutEngine(
 
             var blocked = Floats
                 .Where(f => f.Top < top + height && f.Bottom > top)
-                .Select(f => (Left: Math.Max(boxLeft, f.Left), Right: Math.Min(boxRight, f.Right)))
+                .SelectMany(f => f.BlockedIntervals(top, top + height))
+                .Select(i => (Left: Math.Max(boxLeft, i.Left), Right: Math.Min(boxRight, i.Right)))
                 .Where(interval => interval.Right > interval.Left)
                 .OrderBy(interval => interval.Left)
                 .ToList();
@@ -7996,7 +8260,8 @@ internal sealed class LayoutEngine(
 
             var blocked = Floats
                 .Where(f => f.Top < top + height && f.Bottom > top)
-                .Select(f => (Left: Math.Max(boxLeft, f.Left), Right: Math.Min(boxRight, f.Right)))
+                .SelectMany(f => f.BlockedIntervals(top, top + height))
+                .Select(i => (Left: Math.Max(boxLeft, i.Left), Right: Math.Min(boxRight, i.Right)))
                 .Where(interval => interval.Right > interval.Left)
                 .OrderBy(interval => interval.Left)
                 .ToList();
@@ -8228,7 +8493,8 @@ internal sealed class LayoutEngine(
                     BaselineY = line.BaselineY - cut,
                     Height = line.Height,
                     Ascent = line.Ascent,
-                    ParagraphIndex = line.ParagraphIndex
+                    ParagraphIndex = line.ParagraphIndex,
+                    StructureIndex = line.StructureIndex
                 };
 
                 foreach (var text in line.Texts) moved.Texts.Add(text.Translate(0, -cut));
@@ -8262,7 +8528,8 @@ internal sealed class LayoutEngine(
                 else remaining.Images.Add(new PositionedImage
                 {
                     X = image.X, Y = image.Y - cut, Width = image.Width,
-                    Height = image.Height, Image = image.Image
+                    Height = image.Height, Image = image.Image,
+                    StructureIndex = image.StructureIndex
                 });
             }
 
@@ -8308,7 +8575,8 @@ internal sealed class LayoutEngine(
                     BaselineY = Grid.Snap(up ? left + across : right - across),
                     Height = line.Height,
                     Ascent = line.Ascent,
-                    ParagraphIndex = line.ParagraphIndex
+                    ParagraphIndex = line.ParagraphIndex,
+                    StructureIndex = line.StructureIndex
                 };
 
                 foreach (var text in line.Texts)
@@ -8388,7 +8656,8 @@ internal sealed class LayoutEngine(
                     BaselineY = line.BaselineY + shift,
                     Height = line.Height,
                     Ascent = line.Ascent,
-                    ParagraphIndex = line.ParagraphIndex
+                    ParagraphIndex = line.ParagraphIndex,
+                    StructureIndex = line.StructureIndex
                 };
 
                 foreach (var text in line.Texts)
@@ -8417,7 +8686,8 @@ internal sealed class LayoutEngine(
                     Y = image.Y + dy,
                     Width = image.Width,
                     Height = image.Height,
-                    Image = image.Image
+                    Image = image.Image,
+                    StructureIndex = image.StructureIndex
                 });
             }
 
@@ -8436,7 +8706,79 @@ internal sealed class LayoutEngine(
     }
 
     /// <summary>A rectangle on the page that text flows around, in page coordinates.</summary>
-    private readonly record struct FloatRegion(double Left, double Top, double Right, double Bottom);
+    /// <summary>
+    /// A region text keeps clear of, in page coordinates. Usually its rectangle; a tight or
+    /// through wrap carries the polygon it follows (#65), and then answers per-strip.
+    /// </summary>
+    /// <param name="Polygon">The wrap polygon in page points, closed implicitly.</param>
+    /// <param name="Through">
+    /// Whether text may enter the polygon's interior gaps — a through wrap does, a tight one
+    /// takes the hull interval of each strip instead.
+    /// </param>
+    /// <param name="InflateLeft">The wrap distance added left of every blocked interval.</param>
+    /// <param name="InflateRight">And to the right.</param>
+    private readonly record struct FloatRegion(
+        double Left, double Top, double Right, double Bottom,
+        IReadOnlyList<(double X, double Y)>? Polygon = null, bool Through = false,
+        double InflateLeft = 0, double InflateRight = 0)
+    {
+        /// <summary>
+        /// The horizontal intervals this region blocks across a vertical strip. A rectangle
+        /// blocks one; a polygon blocks where its edges cross the strip — the hull of the
+        /// crossings for a tight wrap, their union for a through one, so only through lets text
+        /// between two lobes.
+        /// </summary>
+        public List<(double Left, double Right)> BlockedIntervals(double top, double bottom)
+        {
+            if (Polygon is not { Count: >= 3 } polygon)
+                return [(Left, Right)];
+
+            // The polygon sampled at three heights of the strip: the crossings of each sample
+            // line, paired off, are what the polygon covers there. Word quantises to lines just
+            // the same, and three samples catch an edge that enters and leaves inside the strip.
+            var intervals = new List<(double Left, double Right)>();
+
+            foreach (var y in new[] { top + 0.1, (top + bottom) / 2, bottom - 0.1 })
+            {
+                var crossings = new List<double>();
+
+                for (var i = 0; i < polygon.Count; i++)
+                {
+                    var (x0, y0) = polygon[i];
+                    var (x1, y1) = polygon[(i + 1) % polygon.Count];
+
+                    if (y0 == y1) continue;
+                    if (y < Math.Min(y0, y1) || y >= Math.Max(y0, y1)) continue;
+
+                    crossings.Add(x0 + (x1 - x0) * (y - y0) / (y1 - y0));
+                }
+
+                crossings.Sort();
+
+                for (var i = 0; i + 1 < crossings.Count; i += 2)
+                    intervals.Add((crossings[i] - InflateLeft, crossings[i + 1] + InflateRight));
+            }
+
+            if (intervals.Count == 0) return [];
+
+            if (!Through)
+                return [(intervals.Min(i => i.Left), intervals.Max(i => i.Right))];
+
+            // The union: overlapping intervals merge, gaps between lobes stay free.
+            intervals.Sort((a, b) => a.Left.CompareTo(b.Left));
+            var merged = new List<(double Left, double Right)> { intervals[0] };
+
+            foreach (var interval in intervals.Skip(1))
+            {
+                if (interval.Left <= merged[^1].Right + 1)
+                    merged[^1] = (merged[^1].Left, Math.Max(merged[^1].Right, interval.Right));
+                else
+                    merged.Add(interval);
+            }
+
+            return merged;
+        }
+    }
 
     /// <summary>A cell with its resolved geometry and its measured contents.</summary>
     /// <param name="MergedBelow">
@@ -8769,6 +9111,12 @@ internal sealed class LayoutEngine(
         public required double Width { get; init; }
 
         public required double Height { get; init; }
+
+        /// <summary>True for a picture proper, which is a figure to a reader (#67).</summary>
+        public bool Picture { get; init; }
+
+        /// <summary>The document's description of it (wp:docPr/@descr), for /Alt (#67).</summary>
+        public string? Description { get; init; }
 
         /// <summary>
         /// What a shape holds, already laid out, or null for a picture. It is placed onto the

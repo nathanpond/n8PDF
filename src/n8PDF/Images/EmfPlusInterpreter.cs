@@ -29,18 +29,6 @@ internal static class EmfPlusInterpreter
         data[at] == 0x45 && data[at + 1] == 0x4D && data[at + 2] == 0x46 && data[at + 3] == 0x2B;
 
     /// <summary>
-    /// Reads a run of records, which is every EMF+ comment of a file joined together: a record may
-    /// begin in one comment and end in the next.
-    /// </summary>
-    public static List<DrawingOperation> Read(byte[] records, double unitsToPoints)
-    {
-        var state = new Interpreter(unitsToPoints, [], ImageLimits.DefaultMaximumPixels, 0);
-        state.Feed(records, 0, records.Length);
-
-        return state.Operations;
-    }
-
-    /// <summary>
     /// Begins reading, a comment at a time, so that the records of both formats can be replayed in
     /// the one order the file puts them in.
     /// </summary>
@@ -119,9 +107,25 @@ internal static class EmfPlusInterpreter
         /// Reads what has arrived. A record may begin in one comment and end in the next, so
         /// whatever is left over at the end of a run waits for the run that completes it.
         /// </summary>
+        /// <summary>
+        /// The most that may wait for a record to complete across comments. A single EMF+ record
+        /// is small; a pending buffer past this is a record that declares a size it never fills,
+        /// re-copied whole on every comment that follows (#19), so it is abandoned rather than
+        /// carried.
+        /// </summary>
+        private const int MaxPending = 16 * 1024 * 1024;
+
         public void Feed(byte[] arrived, int from, int to)
         {
             if (to <= from) return;
+
+            // Abandon a leftover that has grown past what any real record needs, rather than
+            // append to it and re-copy it again (#19).
+            if ((long)data.Length + (to - from) > MaxPending)
+            {
+                data = [];
+                return;
+            }
 
             data = data.Length == 0 ? arrived[from..to] : [.. data, .. arrived[from..to]];
 
@@ -141,7 +145,7 @@ internal static class EmfPlusInterpreter
                     return;
                 }
 
-                if (at + size > data.Length) break;
+                if (size > data.Length - at) break;  // overflow-safe (#18)
 
                 Record(type, flags, at + 12, at + size);
 
@@ -600,7 +604,13 @@ internal static class EmfPlusInterpreter
 
         private List<(double X, double Y)> ReadPoints(int at, int count, int flags, int end)
         {
-            var points = new List<(double, double)>(Math.Max(0, count));
+            // A point is at least two bytes (the relative form), so the record's own remaining
+            // bytes bound how many there can be; the list is pre-sized from that rather than from
+            // the raw count field (#22).
+            var room = Math.Max(0, (end - at) / 2);
+            count = Math.Min(Math.Max(0, count), room);
+
+            var points = new List<(double, double)>(count);
             var compressed = (flags & 0x4000) != 0;
             var relative = (flags & 0x0800) != 0;
 
@@ -743,16 +753,29 @@ internal static class EmfPlusInterpreter
         private DrawingColor Color(uint value) =>
             new((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
 
-        private Matrix ReadMatrix(int at) => new(
-            ReadFloat(at), ReadFloat(at + 4), ReadFloat(at + 8),
-            ReadFloat(at + 12), ReadFloat(at + 16), ReadFloat(at + 20));
+        private Matrix ReadMatrix(int at)
+        {
+            var m = new Matrix(
+                ReadFloat(at), ReadFloat(at + 4), ReadFloat(at + 8),
+                ReadFloat(at + 12), ReadFloat(at + 16), ReadFloat(at + 20));
 
+            // A NaN or infinite component would be written as the literal token "NaN" into the PDF
+            // content stream, making it malformed; an unusable transform is dropped (#26).
+            return double.IsFinite(m.M11) && double.IsFinite(m.M12) && double.IsFinite(m.M21) &&
+                   double.IsFinite(m.M22) && double.IsFinite(m.Dx) && double.IsFinite(m.Dy)
+                ? m
+                : Matrix.Identity;
+        }
+
+        // at >= 0 as well as the upper bound: a pen's optional-field counts advance the cursor by
+        // an unvalidated 32-bit count that overflows it negative, and a negative index would read
+        // below the buffer's start (#24).
         private uint ReadUInt32(int at) =>
-            at + 3 < data.Length
+            at >= 0 && at + 3 < data.Length
                 ? (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24))
                 : 0;
 
-        private int ReadUInt16(int at) => at + 1 < data.Length ? data[at] | (data[at + 1] << 8) : 0;
+        private int ReadUInt16(int at) => at >= 0 && at + 1 < data.Length ? data[at] | (data[at + 1] << 8) : 0;
 
         private short ReadInt16(int at) => (short)ReadUInt16(at);
 

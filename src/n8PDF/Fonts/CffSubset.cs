@@ -826,6 +826,28 @@ internal static class CffSubset
         var offsets = offset + 3;
         var dataStart = offsets + (count + 1) * offSize;
 
+        // The offset array itself must lie within the table, and the offsets must be validated,
+        // not just read: an INDEX whose offsets are wide or non-monotonic makes each kept glyph's
+        // charstring slice span most of the table, so a font used by many glyphs amplifies the
+        // subset to gigabytes. Validated here — first offset one, non-decreasing, within the
+        // table — so a bad INDEX is refused and the font embeds whole rather than aborting (#194).
+        if (dataStart > cff.Length) throw new FontFormatException("An index's data runs past the table.");
+
+        var previous = 0;
+        for (var i = 0; i <= count; i++)
+        {
+            var at = offsets + i * offSize;
+            if (offSize < 0 || at > cff.Length - offSize) throw new FontFormatException("An index offset runs past the table.");
+
+            var value = 0;
+            for (var b = 0; b < offSize; b++) value = (value << 8) | cff[at + b];
+
+            if (value < 1 || value < previous || dataStart + value - 1 > cff.Length)
+                throw new FontFormatException("An index has offsets that do not run forward within the table.");
+
+            previous = value;
+        }
+
         return new CffIndex(cff, offset, count, offSize, offsets, dataStart);
     }
 

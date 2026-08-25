@@ -119,7 +119,11 @@ internal static class NumberFormatter
         if (value < 1) return string.Empty;
 
         var index = (value - 1) % 26;
-        var repeats = (value - 1) / 26 + 1;
+
+        // A real letter-numbered list reaches "aa" or "aaa"; a hostile w:start turns the repeat
+        // count into a hundred-megabyte label, so it is bounded to eight letters (26^8 is past
+        // any list a document holds) (#154).
+        var repeats = Math.Min((value - 1) / 26 + 1, 8);
 
         return new string((char)(first + index), repeats);
     }

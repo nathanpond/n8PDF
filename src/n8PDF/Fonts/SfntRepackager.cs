@@ -134,6 +134,7 @@ internal static class SfntRepackager
 
         // The binary-search hint fields. Consumers compute their own, but malformed values
         // trip some strict validators, so they are filled in properly.
+        // nosemgrep: unchecked-round-cast — log2 of a table entry count (>=1) is < 64; no int overflow.
         var entrySelector = (int)Math.Floor(Math.Log2(Math.Max(payloads.Count, 1)));
         var searchRange = (int)Math.Pow(2, entrySelector) * 16;
         WriteUInt16(output, 6, (ushort)searchRange);

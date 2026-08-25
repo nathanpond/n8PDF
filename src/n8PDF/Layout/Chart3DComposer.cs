@@ -711,12 +711,17 @@ internal static class Chart3DComposer
         }
     }
 
+    // A real 3-D axis never approaches this; the cap bounds a hostile min/max/unit (#241).
+    private const int MostMarks = 1000;
+
     /// <summary>The marks of a scale, counted rather than added up so they do not drift.</summary>
     private static IEnumerable<double> Marked(double minimum, double maximum, double unit)
     {
         if (unit <= 0) yield break;
 
-        var steps = (int)Math.Floor((maximum - minimum) / unit + 0.000001);
+        // Capped so a document-controlled min/max/unit cannot force an unbounded draw loop (#241);
+        // a real axis is far below this, so the cap never truncates one Word would draw.
+        var steps = Math.Min(MostMarks, (int)Math.Floor((maximum - minimum) / unit + 0.000001));
         for (var i = 0; i <= steps; i++) yield return minimum + i * unit;
     }
 

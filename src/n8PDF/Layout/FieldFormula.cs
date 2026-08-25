@@ -157,12 +157,32 @@ internal static class FieldFormula
     {
         private int _index;
 
+        // A formula expression is document-controlled and recurses on every parenthesis, power
+        // and unary sign; past this depth it is refused rather than overflowing the stack, which
+        // a StackOverflowException would take the whole process down for (#195). Nought in
+        // return means "cannot be worked out", which is the contract the evaluator uses already.
+        private int _depth;
+        private const int MaxDepth = 64;
+
         public bool AtEnd => _index >= tokens.Count;
 
         private Token Current => _index < tokens.Count ? tokens[_index] : default;
 
         /// <summary>A comparison, which comes to one where it holds and nothing where it does not.</summary>
         public double? Comparison()
+        {
+            if (++_depth > MaxDepth) { _depth--; return null; }
+            try
+            {
+                return ComparisonBody();
+            }
+            finally
+            {
+                _depth--;
+            }
+        }
+
+        private double? ComparisonBody()
         {
             var left = Sum();
             if (left is null) return null;
@@ -229,24 +249,40 @@ internal static class FieldFormula
 
         private double? Power()
         {
-            var value = Unary();
-            if (value is null || Current.Kind != Kind.Operator || Current.Text != "^") return value;
+            if (++_depth > MaxDepth) { _depth--; return null; }
+            try
+            {
+                var value = Unary();
+                if (value is null || Current.Kind != Kind.Operator || Current.Text != "^") return value;
 
-            _index++;
+                _index++;
 
-            var exponent = Power();
-            return exponent is null ? null : Math.Pow(value.Value, exponent.Value);
+                var exponent = Power();
+                return exponent is null ? null : Math.Pow(value.Value, exponent.Value);
+            }
+            finally
+            {
+                _depth--;
+            }
         }
 
         private double? Unary()
         {
-            if (Current.Kind != Kind.Operator || Current.Text is not ("-" or "+")) return Primary();
+            if (++_depth > MaxDepth) { _depth--; return null; }
+            try
+            {
+                if (Current.Kind != Kind.Operator || Current.Text is not ("-" or "+")) return Primary();
 
-            var negate = Current.Text == "-";
-            _index++;
+                var negate = Current.Text == "-";
+                _index++;
 
-            var value = Unary();
-            return value is null ? null : negate ? -value : value;
+                var value = Unary();
+                return value is null ? null : negate ? -value : value;
+            }
+            finally
+            {
+                _depth--;
+            }
         }
 
         private double? Primary()

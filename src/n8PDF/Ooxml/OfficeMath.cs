@@ -66,6 +66,11 @@ internal static class OfficeMath
 
     private static MathNode Sequence(XElement container)
     {
+        // Equation containers nest into equation containers without end; past the bound the walk
+        // stops rather than overflowing the stack (#145).
+        using var guard = ParseGuard.Enter();
+        if (!guard.Allowed) return new MathSequence([]);
+
         var children = new List<MathNode>();
 
         foreach (var child in container.Elements())
