@@ -45,7 +45,7 @@ namespace n8PDF.Layout;
 /// mild scene) the eye leaves the frustum-branch offset laws, and #141 measured what it does
 /// instead: for rotX and rotY both inside 45° — every deep scene Word's UI can reach, its
 /// perspective capping at 100 — the deep offset laws below take over and bring the corners to
-/// well under a point (a fraction of a point at low rotX, ~0.3pt at 15/20 perspective 80). What
+/// well under a point (a fraction of a point at low rotX, ~0.4pt at 15/20 perspective 80). What
 /// still keeps that regime off the quarter-point bar is the eye distance: the floor law is within
 /// a tenth of a percent at rotX 15 and 22, but its slope biases by rotX 30, and past perspective
 /// 200 the ex law turns slightly concave — both open on #141. Beyond 45° a third regime begins
@@ -65,10 +65,8 @@ internal sealed class Chart3DProjection : IChart3DProjection
     private const double WidthFill = 0.9862;
 
     // Deep-regime eye offsets (#141): the verified part is rotX and rotY both under this many
-    // degrees (beyond it a third regime opens, still clamped), and ey's tangential bias about
-    // the rotY=45 turn carries this coefficient — both measured off Word's silhouettes.
+    // degrees — beyond it a third regime opens, still clamped.
     private const double DeepRegimeLimit = 45;
-    private const double DeepEyeBias = 0.709;
 
     private readonly double _cosA, _sinA, _cosB, _sinB;
     private readonly double _hx, _hy, _hz;
@@ -139,11 +137,13 @@ internal sealed class Chart3DProjection : IChart3DProjection
         {
             // The deep-regime offset laws (#141), measured corner-by-corner off Word's silhouettes.
             // ex is the frustum law's first term carried on tan θ, less its −hz·sinB intercept:
-            // it runs from −hz·sinB at perspective nought toward the frustum edge; ey leaves the
-            // floor-branch law tangentially, biased by the box turn about rotY=45. (Every deep
-            // probe is single-category, so hx here is only ever verified at 0.5.)
+            // it runs from −hz·sinB at perspective nought toward the frustum edge. ey's intercept
+            // is minus the near floor edge's own reach, (hx·sinB + hz·cosB) — the same extent the
+            // floor distance is built from — so it foreshortens with the depth as tan θ climbs. A
+            // depth sweep pins this: an earlier −0.709·cos(rotY−45) was only its hx=hz=½ case
+            // (0.709 ≈ ½√2), right at the default depth and wrong away from it.
             _ex = _sinB * (_hx * aspect * _cosA * _tan - _hz);
-            _ey = _sinA * (FloorScale * _hy * _tan - DeepEyeBias * Math.Cos(b - Math.PI / 4));
+            _ey = _sinA * (FloorScale * _hy * _tan - (_hx * _sinB + _hz * _cosB));
         }
         else
         {

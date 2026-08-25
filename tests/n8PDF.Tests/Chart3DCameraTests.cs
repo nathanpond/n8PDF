@@ -257,7 +257,7 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     /// offsets it measured off Word (rotX and rotY both inside 45°), so the picture is no longer
     /// clamped. What remains is the eye distance: with the floor law's intercept
     /// foreshortened by cosA (#141) it is within a tenth of a percent at rotX 15 and 22 — the 80
-    /// page is down to ~0.3pt — but its slope still biases by rotX 30, and at perspective 240 (past
+    /// page is down to ~0.4pt — but its slope still biases by rotX 30, and at perspective 240 (past
     /// Word's UI cap of 100) the ex law is slightly concave. This test pins the residual so closing
     /// it is visible and widening it fails.
     /// </remarks>
