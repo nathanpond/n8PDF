@@ -24,8 +24,9 @@ namespace n8PDF.Layout;
 /// frustum's height and width against its width, whichever asks for the greater distance. The
 /// 0.9702 is the same fill #116 measured for the scene in its rectangle, and the frustum's
 /// aspect is the plot rectangle's. At strong perspective a third constraint takes over and the
-/// eye follows <c>D = 1.0306·(floor depth extent) + hy·cot(θ)</c> — the frustum's half-height
-/// at the floor's near edge held at the box's half-height.</item>
+/// eye follows <c>D = 1.0306·cosA·((floor depth extent) + hy·cot(θ))</c> — the frustum's
+/// half-height at the near floor edge held at the box's half-height, the whole foreshortened by
+/// the tilt <c>cosA</c> (#141).</item>
 /// <item>The eye does not sit on the axis. Its offsets are, with <c>A = rotX</c>,
 /// <c>B = rotY</c> and <c>W/H</c> the plot rectangle's aspect:
 /// <code>
@@ -44,11 +45,12 @@ namespace n8PDF.Layout;
 /// mild scene) the eye leaves the frustum-branch offset laws, and #141 measured what it does
 /// instead: for rotX and rotY both inside 45° — every deep scene Word's UI can reach, its
 /// perspective capping at 100 — the deep offset laws below take over and bring the corners to
-/// well under a point (a fraction of a point at low rotX). What still keeps that regime off the
-/// quarter-point bar is the eye distance: the floor law is right to a fraction of a percent at
-/// rotX 15 but biased with rotX above it, and past perspective 200 the ex law turns slightly
-/// concave — both open on #141. Beyond 45° a third regime begins whose offsets are still open, so
-/// there the eye stays clamped at the branch boundary, stable and close rather than exact.
+/// well under a point (a fraction of a point at low rotX, ~0.3pt at 15/20 perspective 80). What
+/// still keeps that regime off the quarter-point bar is the eye distance: the floor law is within
+/// a tenth of a percent at rotX 15 and 22, but its slope biases by rotX 30, and past perspective
+/// 200 the ex law turns slightly concave — both open on #141. Beyond 45° a third regime begins
+/// whose offsets are still open, so there the eye stays clamped at the branch boundary, stable and
+/// close rather than exact.
 /// </remarks>
 internal sealed class Chart3DProjection : IChart3DProjection
 {
@@ -118,7 +120,11 @@ internal sealed class Chart3DProjection : IChart3DProjection
         var floorPart = FloorScale * (_hx * Math.Abs(_sinB * _cosA) + _hz * Math.Abs(_cosB * _cosA));
         var byHeight = extentY / Fill;
         var byWidth = extentX / (Fill * WidthFill * aspect);
-        var byFloor = floorPart * _tan + _hy;
+        // The whole floor value carries FloorScale·cosA — including the hy the near edge is held at,
+        // which the box's tilt foreshortens by cosA (#141). With the bare hy the floor law ran a
+        // quarter to two and a half percent high with rotX; the foreshortened intercept brings it
+        // to within a tenth of a percent at rotX 15 and 22, leaving the rotX-30 slope open.
+        var byFloor = floorPart * _tan + FloorScale * _cosA * _hy;
         _frustum = Math.Max(byHeight, Math.Max(byWidth, byFloor));
 
         // The eye offsets. In the frustum regime they follow the branch laws below. Where the
