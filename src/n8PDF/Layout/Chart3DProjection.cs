@@ -146,6 +146,13 @@ internal sealed class Chart3DProjection : IChart3DProjection
             // floor distance is built from — so it foreshortens with the depth as tan θ climbs. A
             // depth sweep pins this: an earlier −0.709·cos(rotY−45) was only its hx=hz=½ case
             // (0.709 ≈ ½√2), right at the default depth and wrong away from it.
+            //
+            // ex's sinB turn factor is exact only to about rotY 30. #247 proved (through the rotY=45
+            // symmetry, which the corner-on band follows) that ex is odd about rotY=45 with ex(45)=0,
+            // where sinB keeps climbing — so past rotY 30 this reads a little high. The full turn law
+            // is ex = cosA·f(rotY) + sinA·g(rotY) with f,g not separable from silhouette data (#141
+            // rounds 3–4, "ex resists"); rotY is gated under 45 here, and rotY 20 — Word's default —
+            // is exact. ey and F are already even about 45, so they need no such caveat.
             _ex = _sinB * (_hx * aspect * _cosA * _tan - _hz);
             _ey = _sinA * (FloorScale * _hy * _tan - (_hx * _sinB + _hz * _cosB));
         }
