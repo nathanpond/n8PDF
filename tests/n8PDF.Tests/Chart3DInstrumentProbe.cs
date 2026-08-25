@@ -45,6 +45,14 @@ public class Chart3DInstrumentProbe(ITestOutputHelper output)
         new(38, 20, 160, 100),
     ];
 
+    // The corner-on band: turned enough that the outer silhouette's corners go shallow.
+    private static readonly Pg[] CornerOn =
+    [
+        new(15, 45, 80, 100), new(15, 50, 80, 100), new(15, 55, 80, 100), new(15, 60, 80, 100), new(15, 65, 80, 100),
+        new(15, 50, 120, 100), new(15, 60, 120, 100),
+        new(10, 55, 80, 100), new(20, 55, 80, 100), new(30, 45, 100, 100),
+    ];
+
     [Fact(Skip = "#248 diagnostic — run by hand; rasterises deep-camera box shapes")]
     public void Report()
     {
@@ -107,6 +115,83 @@ public class Chart3DInstrumentProbe(ITestOutputHelper output)
                 $"{p.Rx}/{p.Ry} q{p.Q,3}   {shallowest,6:F1}°     clean={clean,7:F4}   snapped={snapWorst,7:F4}   " +
                 $"(snap adds {snapWorst - clean,6:F4})");
         }
+    }
+
+    [Fact(Skip = "#248 diagnostic — run by hand; characterises the corner-on band")]
+    public void CornerOnReport()
+    {
+        _output.WriteLine("geom          silhouette              faceRegions(dark/mid/bright px)   creaseSharpest");
+        foreach (var p in CornerOn)
+        {
+            var proj = new Chart3DProjection(p.Rx, p.Ry, p.Q, p.Dp, null, 1, 1,
+                RectLeft, RectTop, RectWidth, RectHeight);
+            var corners = new List<(double X, double Y)>();
+            var depths = new List<double>();
+            var a = p.Rx * Math.PI / 180;
+            var b = p.Ry * Math.PI / 180;
+            var (sinA, cosA, sinB, cosB) = (Math.Sin(a), Math.Cos(a), Math.Sin(b), Math.Cos(b));
+            var (hx, hy, hz) = (0.5, RectHeight / RectWidth / 2, p.Dp / 100 / 2);
+            foreach (var z in new[] { 0.0, 1.0 })
+            foreach (var y in new[] { 0.0, 0.6 })
+            foreach (var x in new[] { 0.0, 1.0 })
+            {
+                corners.Add(proj.Project(x, y, z));
+                double sx = (x - 0.5) * 2 * hx, sy = (y - 0.5) * 2 * hy, sz = (z - 0.5) * 2 * hz;
+                var sz1 = -sx * sinB + sz * cosB;
+                depths.Add(-sy * sinA + sz1 * cosA);
+            }
+
+            var truth = Hull(corners);
+            var shallow = truth.Count == 6 ? ShallowestCorner(truth) : double.NaN;
+
+            var page = PdfRasterizer.Render(Paint(corners, depths), 0, Scale);
+            if (page is null)
+            {
+                _output.WriteLine(PdfRasterizer.UnavailableMessage);
+                return;
+            }
+
+            var shape = BoxSilhouette.Find(page, Scale, Reddish, Region);
+            var sil = shape.Found
+                ? $"found {Worst(shape.Points, truth):F3}pt"
+                : $"REFUSED ({shape.Refused?[..Math.Min(16, shape.Refused.Length)]})";
+
+            int dark = 0, mid = 0, bright = 0;
+            var w = page.Pixels.Width;
+            for (var py = (int)(Region.Top * Scale); py < (int)(Region.Bottom * Scale); py++)
+            for (var px = (int)(Region.Left * Scale); px < (int)(Region.Right * Scale); px++)
+            {
+                var at = (py * w + px) * 3;
+                var (r, g, bl) = (page.Pixels.Data[at], page.Pixels.Data[at + 1], page.Pixels.Data[at + 2]);
+                if (!Reddish((r, g, bl))) continue;
+                if (r < 175) dark++;
+                else if (r < 228) mid++;
+                else bright++;
+            }
+
+            var creaseSharpest = CreaseAngles(corners);
+            _output.WriteLine(
+                $"{p.Rx}/{p.Ry} q{p.Q,3}  {(double.IsNaN(shallow) ? "  n/a " : $"{shallow,5:F1}°")} {sil,-22}  " +
+                $"{dark,6}/{mid,6}/{bright,6}    {creaseSharpest,6:F1}°");
+        }
+    }
+
+    // The shallowest angle between the three creases at the front (nearest) vertex — box vertex 0
+    // (x0,y0,z0), whose three box-edge neighbours along x, y, z are indices 1, 2, 4.
+    private static double CreaseAngles(List<(double X, double Y)> c)
+    {
+        var v = c[0];
+        var dirs = new[] { c[1], c[2], c[4] }.Select(n => Math.Atan2(n.Y - v.Y, n.X - v.X)).ToArray();
+        var sharpest = 360.0;
+        for (var i = 0; i < 3; i++)
+        for (var j = i + 1; j < 3; j++)
+        {
+            var d = Math.Abs(dirs[i] - dirs[j]) * 180 / Math.PI;
+            if (d > 180) d = 360 - d;
+            sharpest = Math.Min(sharpest, d);
+        }
+
+        return sharpest;
     }
 
     private static byte[] Paint(List<(double X, double Y)> corners, List<double> depths)
