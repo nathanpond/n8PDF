@@ -1771,6 +1771,19 @@ over a grid, not a series of points, and shares nothing with the family above �
 the room a 3-D chart stands in (frame, walls, gridlines, axes) and no mesh, rather than passing a
 3-D line off as one (#104).
 
+Those kinds are drawn **in three dimensions** where a chart asks for it (`c:view3D`): the box is
+projected the way Word's camera projects it — a right-angle projection where `c:rAngAx` says so
+(#97), and otherwise a perspective one, `c:perspective` being a field of view in half-degrees and
+the eye backed off the scene by a law measured to a tenth of a percent across Word's whole
+reachable range of angle and fov (#98, #141). The room is built around it: the back and side walls
+and the floor, the gridlines ruled on them, and the depth axis for the series stacked into the page
+(#99, #100). The bars are shaded boxes, three faces to a lightness, drawn back to front so the near
+cover the far (#101, #110); the pie is sectors with a rim (#102); line and area are ribbons in depth
+(#103). What a value's height, and the box's own extent, come to inside all that — from the
+categories, series, depth and `c:hPercent` — is each measured against Word rather than guessed
+(#109, #113, #114, #116). Beyond the angles Word's dialog can state the camera clamps to its last
+good law, which is visible only on a hand-edited file (#247).
+
 A title or a legend placed by hand is put where the chart asks. A `c:manualLayout` names a corner
 as fractions of the chart's own width and height, and what sits at that corner was measured at two
 placements each — which is what says the offsets are constants rather than shares of anything. A
