@@ -3165,13 +3165,18 @@ internal static class ChartComposer
     public static IEnumerable<double> MarksAcross(Plan plan) =>
         Marked(plan.AcrossMinimum, plan.AcrossMaximum, plan.AcrossUnit);
 
+    // A chart Word renders never approaches this many marks — a probe whose XML asked for ~10000
+    // came back from Word with tens — so capping here cannot truncate a legitimate axis, and it
+    // bounds the loop a hostile min/max/unit would otherwise drive to hundreds of millions (#241).
+    private const int MostMarks = 1000;
+
     private static IEnumerable<double> Marked(double minimum, double maximum, double unit)
     {
         if (unit <= 0) yield break;
 
-        // Counted rather than added up, so that a hundred marks do not drift.
-        // nosemgrep: unchecked-round-cast — bounded by the axis unit; a pathological range wraps to <=0 and yields no marks (fails safe). Mark-count bound tracked in #241.
-        var steps = (int)Math.Floor((maximum - minimum) / unit + 0.000001);
+        // Counted rather than added up, so that a hundred marks do not drift; capped so a
+        // document-controlled unit cannot force an unbounded draw loop (#241).
+        var steps = Math.Min(MostMarks, (int)Math.Floor((maximum - minimum) / unit + 0.000001));
 
         for (var i = 0; i <= steps; i++) yield return minimum + i * unit;
     }
