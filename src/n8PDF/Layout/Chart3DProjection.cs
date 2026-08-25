@@ -52,6 +52,13 @@ internal sealed class Chart3DProjection : IChart3DProjection
     private const double Fill = 0.9702;
     private const double FloorScale = 1.0306;
 
+    // The width bound fills slightly less of the frustum than the height bound does: the
+    // effective width fraction is Fill·WidthFill. Settled by #141 — the width-bound probe pages
+    // (single- and two-category) agree on this to ±0.13% once #106's corner finder is current;
+    // the wider ±1% the pages once showed was that instrument's older vintage, not real scene
+    // disagreement. A three-category box wants ~0.7% less again (a wide-box effect held on #141).
+    private const double WidthFill = 0.9862;
+
     private readonly double _cosA, _sinA, _cosB, _sinB;
     private readonly double _hx, _hy, _hz;
     private readonly double _frustum, _tan, _ex, _ey;
@@ -101,7 +108,7 @@ internal sealed class Chart3DProjection : IChart3DProjection
         // and the projection becomes the parallel one #140 measured, with the same fill.
         var floorPart = FloorScale * (_hx * Math.Abs(_sinB * _cosA) + _hz * Math.Abs(_cosB * _cosA));
         var byHeight = extentY / Fill;
-        var byWidth = extentX / (Fill * 0.9862 * aspect);
+        var byWidth = extentX / (Fill * WidthFill * aspect);
         var byFloor = floorPart * _tan + _hy;
         _frustum = Math.Max(byHeight, Math.Max(byWidth, byFloor));
 

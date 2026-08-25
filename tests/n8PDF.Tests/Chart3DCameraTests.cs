@@ -154,10 +154,12 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     /// corners found by an older vintage of #106's instrument, a tenth or two adrift of
     /// today's; the constants of the placement identities (the 0.9703 fill, the frustum scale)
     /// hold to a third of a percent page by page, which is one to two tenths at this scene size
-    /// and looks like Word's own page-grid snapping; the width-bound fill constant is only
-    /// known to a percent (its pages disagree by that much among themselves); and near the edge
-    /// of the verified domain the eye offsets begin their migration toward the deep-perspective
-    /// regime the follow-up issue owns. Three of these rows are held back.
+    /// and looks like Word's own page-grid snapping; the width-bound fill constant is settled
+    /// (#141 — the single- and two-category width-bound pages agree to ±0.13%, a three-category
+    /// box wanting ~0.7% less), so the fraction of a point it carries here is the wide 3cat page,
+    /// not doubt about the constant; and near the edge of the verified domain the eye offsets
+    /// begin their migration toward the deep-perspective regime the follow-up issue owns. Three
+    /// of these rows are held back.
     /// </remarks>
     [Theory]
     [InlineData("chart-3d-perspective-probe", 1, 15, 20, 5, 100, 0, 1, 1, false)]
