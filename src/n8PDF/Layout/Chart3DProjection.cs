@@ -45,12 +45,13 @@ namespace n8PDF.Layout;
 /// mild scene) the eye leaves the frustum-branch offset laws, and #141 measured what it does
 /// instead: for rotX and rotY both inside 45° — every deep scene Word's UI can reach, its
 /// perspective capping at 100 — the deep offset laws below take over and bring the corners to
-/// well under a point (a fraction of a point at low rotX, ~0.4pt at 15/20 perspective 80). What
-/// still keeps that regime off the quarter-point bar is the eye distance: the floor law is within
-/// a tenth of a percent at rotX 15 and 22, but its slope biases by rotX 30, and past perspective
-/// 200 the ex law turns slightly concave — both open on #141. Beyond 45° a third regime begins
-/// whose offsets are still open, so there the eye stays clamped at the branch boundary, stable and
-/// close rather than exact.
+/// well under a point (a fraction of a point at low rotX, ~0.4pt at 15/20 perspective 80). The
+/// eye distance is right to a tenth of a percent everywhere a floor-bound scene can be reached —
+/// that constraint only binds up to about rotX 25 within Word's perspective cap of 100 — so what
+/// keeps these pages off the quarter-point bar is the corner instrument's own floor (~0.2pt on a
+/// box this deep) and, past perspective 200, a slight concavity in the ex law (#141). Beyond 45°
+/// a third regime begins whose offsets are still open, so there the eye stays clamped at the
+/// branch boundary, stable and close rather than exact.
 /// </remarks>
 internal sealed class Chart3DProjection : IChart3DProjection
 {
@@ -121,7 +122,9 @@ internal sealed class Chart3DProjection : IChart3DProjection
         // The whole floor value carries FloorScale·cosA — including the hy the near edge is held at,
         // which the box's tilt foreshortens by cosA (#141). With the bare hy the floor law ran a
         // quarter to two and a half percent high with rotX; the foreshortened intercept brings it
-        // to within a tenth of a percent at rotX 15 and 22, leaving the rotX-30 slope open.
+        // to within a tenth of a percent everywhere the floor constraint can be reached — which is
+        // rotX up to about 25, because above that it only binds past perspective 100, Word's cap
+        // (the drift at rotX 30+ is the height-to-floor crossover on deeper-than-Word pages, #141).
         var byFloor = floorPart * _tan + FloorScale * _cosA * _hy;
         _frustum = Math.Max(byHeight, Math.Max(byWidth, byFloor));
 

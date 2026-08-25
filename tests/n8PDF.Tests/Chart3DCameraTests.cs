@@ -255,11 +255,12 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     /// <remarks>
     /// The near-floor constraint sets the eye distance here, and #141 implemented the deep-regime
     /// offsets it measured off Word (rotX and rotY both inside 45°), so the picture is no longer
-    /// clamped. What remains is the eye distance: with the floor law's intercept
-    /// foreshortened by cosA (#141) it is within a tenth of a percent at rotX 15 and 22 — the 80
-    /// page is down to ~0.4pt — but its slope still biases by rotX 30, and at perspective 240 (past
-    /// Word's UI cap of 100) the ex law is slightly concave. This test pins the residual so closing
-    /// it is visible and widening it fails.
+    /// clamped. What remains is not the eye distance — with the floor law's
+    /// intercept foreshortened by cosA (#141) that is exact to a tenth of a percent everywhere a
+    /// floor-bound scene is reachable (rotX up to ~25 within perspective 100). The 80 page is down
+    /// to ~0.4pt against the corner instrument's own ~0.2pt floor on a box this deep; the 240 page
+    /// (past Word's cap of 100) additionally meets a slight concavity in the ex law. This test pins
+    /// the residual so closing it is visible and widening it fails.
     /// </remarks>
     [Theory]
     [InlineData("chart-3d-perspective-probe", 6, 15, 20, 80, 0.5)]
