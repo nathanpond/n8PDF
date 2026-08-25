@@ -154,10 +154,12 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     /// corners found by an older vintage of #106's instrument, a tenth or two adrift of
     /// today's; the constants of the placement identities (the 0.9703 fill, the frustum scale)
     /// hold to a third of a percent page by page, which is one to two tenths at this scene size
-    /// and looks like Word's own page-grid snapping; the width-bound fill constant is only
-    /// known to a percent (its pages disagree by that much among themselves); and near the edge
-    /// of the verified domain the eye offsets begin their migration toward the deep-perspective
-    /// regime the follow-up issue owns. Three of these rows are held back.
+    /// and looks like Word's own page-grid snapping; the width-bound fill constant is settled
+    /// (#141 — the single- and two-category width-bound pages agree to ±0.13%, a three-category
+    /// box wanting ~0.7% less), so the fraction of a point it carries here is the wide 3cat page,
+    /// not doubt about the constant; and near the edge of the verified domain the eye offsets
+    /// begin their migration toward the deep-perspective regime the follow-up issue owns. Three
+    /// of these rows are held back.
     /// </remarks>
     [Theory]
     [InlineData("chart-3d-perspective-probe", 1, 15, 20, 5, 100, 0, 1, 1, false)]
@@ -247,17 +249,22 @@ public class Chart3DCameraTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Deep perspective on a mild scene leaves the verified domain, and this says by how much.
+    /// Deep perspective on a mild scene: the eye offsets now follow the measured laws, and this
+    /// says how close that leaves the corners.
     /// </summary>
     /// <remarks>
-    /// Where the near-floor constraint sets the eye distance, the distance itself is measured to
-    /// about three percent but the eye offsets leave the frustum-branch laws — the follow-up
-    /// issue holds the sweep. The clamp keeps the picture stable; this test pins the size of the
-    /// remaining gap so that closing it is visible and widening it fails.
+    /// The near-floor constraint sets the eye distance here, and #141 implemented the deep-regime
+    /// offsets it measured off Word (rotX and rotY both inside 45°), so the picture is no longer
+    /// clamped. What remains is not the eye distance — with the floor law's
+    /// intercept foreshortened by cosA (#141) that is exact to a tenth of a percent everywhere a
+    /// floor-bound scene is reachable (rotX up to ~25 within perspective 100). The 80 page is down
+    /// to ~0.4pt against the corner instrument's own ~0.2pt floor on a box this deep; the 240 page
+    /// (past Word's cap of 100) additionally meets a slight concavity in the ex law. This test pins
+    /// the residual so closing it is visible and widening it fails.
     /// </remarks>
     [Theory]
-    [InlineData("chart-3d-perspective-probe", 6, 15, 20, 80, 20)]
-    [InlineData("chart-3d-camera-probe", 2, 15, 20, 240, 90)]
+    [InlineData("chart-3d-perspective-probe", 6, 15, 20, 80, 0.5)]
+    [InlineData("chart-3d-camera-probe", 2, 15, 20, 240, 8.0)]
     public void Deep_perspective_is_close_but_not_yet_within_the_bar(
         string fixture, int page, int rotX, int rotY, int perspective, double ceiling)
     {

@@ -50,6 +50,19 @@ public class Chart3DDeepFitTests(ITestOutputHelper output)
         new("chart-3d-deep-probe", 44, 15, 20, 160, 100, 50),
         new("chart-3d-deep-probe", 45, 15, 20, 160, 100, 100),
         new("chart-3d-deep-probe", 46, 15, 20, 160, 100, 150),
+        // #141 round 9 probes: the ex t-curvature (15/20 filling p190→p240), two rotX slope arms
+        // (25 and 33 at rotY 20, wide perspective), and a 15/20 depth arm to pair with the 30/20 one.
+        new("chart-3d-deep2-probe", 1, 15, 20, 200, 100, null),
+        new("chart-3d-deep2-probe", 2, 15, 20, 220, 100, null),
+        new("chart-3d-deep2-probe", 3, 25, 20, 120, 100, null),
+        new("chart-3d-deep2-probe", 4, 25, 20, 180, 100, null),
+        new("chart-3d-deep2-probe", 5, 25, 20, 240, 100, null),
+        new("chart-3d-deep2-probe", 6, 33, 20, 120, 100, null),
+        new("chart-3d-deep2-probe", 7, 33, 20, 180, 100, null),
+        new("chart-3d-deep2-probe", 8, 33, 20, 240, 100, null),
+        new("chart-3d-deep2-probe", 9, 15, 20, 160, 50, null),
+        new("chart-3d-deep2-probe", 10, 15, 20, 160, 100, null),
+        new("chart-3d-deep2-probe", 11, 15, 20, 160, 200, null),
     ];
 
     private static Page P(int i, double rx, double ry, double q) => new("chart-3d-deep-probe", i, rx, ry, q, 100, null);
