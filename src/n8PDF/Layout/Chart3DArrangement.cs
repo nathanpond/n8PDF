@@ -22,12 +22,16 @@ namespace n8PDF.Layout;
 /// <item><b>The stacked box is the single-row box</b>: one unit wide per category, one deep, and
 /// as tall as a one-series chart — <c>floor((categories + 1)/2)</c> units, not the series
 /// count's rule. Its pile reaches the sum of the values.</item>
-/// <item><b>The clustered box's proportions are bounded, not pinned.</b> The best fit puts its
-/// width at <c>categories·(series + 1)/2</c> units against a one-unit depth — exact on one
-/// category with three series (1.90 measured), three per cent narrow on two series (1.42
-/// against 1.5), and ten per cent narrow on two categories (3.61 against 4). That spread is
-/// real and unexplained; the follow-up issue holds the measurements, and this rule is the
-/// middle of what they allow.</item>
+/// <item><b>The clustered box's width is <c>categories·(series + 1)/2</c> units against a
+/// one-unit depth.</b> The one-category rule is confirmed to under a per cent against Word by the
+/// red bars — the earlier five-per-cent narrowness (1.90 read against 2) was the grey floor
+/// outline lying, not the rule: the outline cannot be told from the wall gridlines it shares a
+/// colour with. Multi-category boxes read a few per cent wide, but that is not a width-rule error
+/// and no change to this value moves it: the oblique fit is <c>min(rectW/extentX, rectH/extentY)</c>,
+/// so a wide box is width-bound and fills the plot whatever its <c>WidthUnits</c> — this sets the
+/// box's aspect and which side binds, not its rendered width. The residual is confounded between
+/// that binding and the bars' own placement, and the one thing that could separate them, the box
+/// floor, is unreadable from the raster (#163).</item>
 /// </list>
 /// </remarks>
 internal sealed record Chart3DArrangement(

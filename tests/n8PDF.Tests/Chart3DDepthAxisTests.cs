@@ -15,11 +15,12 @@ namespace n8PDF.Tests;
 /// swept gaps and counts; the groupings and the axis ride <c>chart-3d-depth-axis-probe</c>.
 ///
 /// The clustered rows carry a wide bar deliberately: the cluster's own rule — bars abutting,
-/// together filling <c>n/(n + gapWidth/100)</c> of the slot — is exact on three pages, but the
-/// clustered <b>box's</b> proportions are only bounded (measured 1.90, 1.42 and 3.61 units wide
-/// where the provisional rule says 2, 1.5 and 4), and the follow-up issue holds those
-/// measurements. Until it closes, a clustered page is held to the family rather than the
-/// quarter point.
+/// together filling <c>n/(n + gapWidth/100)</c> of the slot — is exact on three pages, and the
+/// one-category box width is confirmed to under a per cent against Word by the red bars (#163: the
+/// earlier 1.90-against-2 was the grey floor outline lying, not the rule). A clustered page is held
+/// to the family rather than the quarter point because a multi-category box reads a few per cent
+/// wide — a fit-binding-and-placement residual the width rule cannot move and the raster cannot
+/// isolate the box floor to settle, closed as such on #163.
 /// </remarks>
 public class Chart3DDepthAxisTests(ITestOutputHelper output)
 {
