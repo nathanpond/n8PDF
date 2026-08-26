@@ -226,7 +226,7 @@ internal sealed class ExtendedKerning
                 else if (key > found) low = middle + 1;
                 else
                 {
-                    Adjust(buffer, i, j, (short)AatLookup.Read16(_data, entry + 4), crossStream);
+                    Adjust(buffer, i, j, AatLookup.ReadInt16(_data, entry + 4), crossStream);
                     break;
                 }
             }
@@ -259,7 +259,7 @@ internal sealed class ExtendedKerning
             var at = values + (row.Value + column.Value) * 2;
             if (at + 2 > _data.Length) continue;
 
-            Adjust(buffer, i, j, (short)AatLookup.Read16(_data, at), crossStream);
+            Adjust(buffer, i, j, AatLookup.ReadInt16(_data, at), crossStream);
         }
     }
 
@@ -305,7 +305,7 @@ internal sealed class ExtendedKerning
             {
                 if (action + 2 > _data.Length) return;
 
-                var value = (short)AatLookup.Read16(_data, action);
+                var value = AatLookup.ReadInt16(_data, action);
                 var last = (value & 1) != 0;
 
                 var target = stack[^1];
@@ -401,10 +401,10 @@ internal sealed class ExtendedKerning
             {
                 if (action + 8 > _data.Length) return null;
 
-                var markedX = (short)AatLookup.Read16(_data, action);
-                var markedY = (short)AatLookup.Read16(_data, action + 2);
-                var currentX = (short)AatLookup.Read16(_data, action + 4);
-                var currentY = (short)AatLookup.Read16(_data, action + 6);
+                var markedX = AatLookup.ReadInt16(_data, action);
+                var markedY = AatLookup.ReadInt16(_data, action + 2);
+                var currentX = AatLookup.ReadInt16(_data, action + 4);
+                var currentY = AatLookup.ReadInt16(_data, action + 6);
 
                 return (markedX - currentX, markedY - currentY);
             }

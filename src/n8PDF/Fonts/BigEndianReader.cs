@@ -28,18 +28,23 @@ internal struct BigEndianReader(byte[] data, int position = 0)
         return value;
     }
 
-    public short ReadInt16() => (short)ReadUInt16();
+    // A signed read reinterprets the same bits — a negative coordinate has its top bit set — so
+    // the narrowing cast is a bit pattern, not an arithmetic result, and stays unchecked while the
+    // assembly checks the size and offset arithmetic built on these values (#266).
+    public short ReadInt16() => unchecked((short)ReadUInt16());
 
     public uint ReadUInt32()
     {
         Require(4);
-        var value = (uint)((_data[Position] << 24) | (_data[Position + 1] << 16) |
-                           (_data[Position + 2] << 8) | _data[Position + 3]);
+        // Packing four bytes: the top byte sets the int's sign bit, so the reinterpretation to
+        // uint is unchecked — every 4-byte input maps to exactly one uint, nothing overflows.
+        var value = unchecked((uint)((_data[Position] << 24) | (_data[Position + 1] << 16) |
+                                     (_data[Position + 2] << 8) | _data[Position + 3]));
         Position += 4;
         return value;
     }
 
-    public int ReadInt32() => (int)ReadUInt32();
+    public int ReadInt32() => unchecked((int)ReadUInt32());
 
     /// <summary>Reads a 16.16 fixed-point value, used for versions and the italic angle.</summary>
     public double ReadFixed() => ReadInt32() / 65536.0;

@@ -53,6 +53,6 @@ internal sealed class Anchors
         var point = at + 4 + index * 4;
         if (point + 4 > _data.Length) return null;
 
-        return ((short)AatLookup.Read16(_data, point), (short)AatLookup.Read16(_data, point + 2));
+        return (AatLookup.ReadInt16(_data, point), AatLookup.ReadInt16(_data, point + 2));
     }
 }

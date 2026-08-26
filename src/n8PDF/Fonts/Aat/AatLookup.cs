@@ -132,6 +132,11 @@ internal static class AatLookup
     public static ushort Read16(byte[] data, int at) =>
         at < 0 || at >= data.Length - 1 ? (ushort)0 : (ushort)((data[at] << 8) | data[at + 1]);  // (#186)
 
+    // A signed read of the same two bytes: a negative value — a kern or an anchor delta — has its
+    // top bit set, so the narrowing cast is a bit pattern rather than an arithmetic result and is
+    // unchecked, unlike the offset arithmetic the assembly guards (#266).
+    public static short ReadInt16(byte[] data, int at) => unchecked((short)Read16(data, at));
+
     public static uint Read32(byte[] data, int at) =>
         at < 0 || at > data.Length - 4
             ? 0u

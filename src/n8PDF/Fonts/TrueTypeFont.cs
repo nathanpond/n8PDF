@@ -549,8 +549,10 @@ internal sealed class TrueTypeFont
         {
             var tag = reader.ReadTag();
             var checksum = reader.ReadUInt32();
-            var offset = (int)reader.ReadUInt32();
-            var length = (int)reader.ReadUInt32();
+            // Reinterpreted, not range-checked here: a scrambled offset with its top bit set wraps
+            // to a negative int the guard below rejects, which is why the cast is unchecked (#266).
+            var offset = unchecked((int)reader.ReadUInt32());
+            var length = unchecked((int)reader.ReadUInt32());
 
             // A table cannot reach past the end of the file it is in. The offset was already
             // checked; the length was not, and it is a thirty-two bit number straight out of the

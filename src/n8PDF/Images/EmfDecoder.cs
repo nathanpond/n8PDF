@@ -695,10 +695,14 @@ internal static class EmfDecoder
 
         private static void Write(byte[] target, int at, int value)
         {
-            target[at] = (byte)value;
-            target[at + 1] = (byte)(value >> 8);
-            target[at + 2] = (byte)(value >> 16);
-            target[at + 3] = (byte)(value >> 24);
+            // Splitting a value into little-endian bytes keeps the low eight bits by design (#266).
+            unchecked
+            {
+                target[at] = (byte)value;
+                target[at + 1] = (byte)(value >> 8);
+                target[at + 2] = (byte)(value >> 16);
+                target[at + 3] = (byte)(value >> 24);
+            }
         }
 
         private void Poly(uint type, int at, int size)
@@ -897,10 +901,12 @@ internal static class EmfDecoder
 
         private uint ReadUInt32(int at) =>
             at + 3 < data.Length
-                ? (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24))
+                // Packing four bytes: the top byte sets the sign bit, so reinterpreting to uint is
+                // unchecked — the size arithmetic built on the value stays guarded (#266).
+                ? unchecked((uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24)))
                 : 0;
 
-        private int ReadInt32(int at) => (int)ReadUInt32(at);
+        private int ReadInt32(int at) => unchecked((int)ReadUInt32(at));
 
         private int ReadUInt16(int at) => at + 1 < data.Length ? data[at] | (data[at + 1] << 8) : 0;
 

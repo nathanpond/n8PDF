@@ -506,7 +506,9 @@ internal sealed record MathConstants(
         offset < 0 || offset >= data.Length - 1 ? 0 : (data[offset] << 8) | data[offset + 1];  // (#186)
 
     private static short ReadShort(byte[] data, int offset) =>
-        offset < 0 || offset >= data.Length - 1 ? (short)0 : (short)((data[offset] << 8) | data[offset + 1]);  // (#186)
+        // The signed read reinterprets the two bytes — a negative value has its top bit set — so
+        // the narrowing cast is unchecked, a bit pattern rather than an arithmetic result (#266).
+        offset < 0 || offset >= data.Length - 1 ? (short)0 : unchecked((short)((data[offset] << 8) | data[offset + 1]));  // (#186)
 }
 
 /// <summary>

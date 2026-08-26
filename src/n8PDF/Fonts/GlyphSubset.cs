@@ -166,10 +166,14 @@ internal static class GlyphSubset
             var advance = font.GetAdvanceWidth(glyph);
             var bearing = LeftSideBearing(font, source, glyph);
 
-            hmtx[index * 4] = (byte)(advance >> 8);
-            hmtx[index * 4 + 1] = (byte)advance;
-            hmtx[index * 4 + 2] = (byte)(bearing >> 8);
-            hmtx[index * 4 + 3] = (byte)bearing;
+            // Splitting the two metrics into bytes keeps their low bits by design (#266).
+            unchecked
+            {
+                hmtx[index * 4] = (byte)(advance >> 8);
+                hmtx[index * 4 + 1] = (byte)advance;
+                hmtx[index * 4 + 2] = (byte)(bearing >> 8);
+                hmtx[index * 4 + 3] = (byte)bearing;
+            }
 
             var start = offsets[glyph];
             var length = offsets[glyph + 1] - start;
@@ -222,7 +226,9 @@ internal static class GlyphSubset
     private static void Renumber(byte[] outline, Dictionary<ushort, ushort> numbering)
     {
         if (outline.Length < 10) return;
-        if ((short)((outline[0] << 8) | outline[1]) >= 0) return;
+        // A composite glyph has a negative contour count — its top bit set — so this signed read
+        // of it is a reinterpretation and stays unchecked (#266).
+        if (unchecked((short)((outline[0] << 8) | outline[1])) >= 0) return;
 
         var at = 10;
 
@@ -233,8 +239,9 @@ internal static class GlyphSubset
 
             if (numbering.TryGetValue(component, out var renumbered))
             {
+                // The new glyph number written back as two bytes — low byte by design (#266).
                 outline[at + 2] = (byte)(renumbered >> 8);
-                outline[at + 3] = (byte)renumbered;
+                outline[at + 3] = unchecked((byte)renumbered);
             }
 
             at += 4;
@@ -338,18 +345,26 @@ internal static class GlyphSubset
         return table.ToArray();
     }
 
+    // Splitting a value into big-endian bytes keeps the low eight bits by design, so these
+    // serialisers are unchecked, unlike the size arithmetic the assembly guards (#266).
     private static void WriteUInt16(Stream output, int value)
     {
-        output.WriteByte((byte)(value >> 8));
-        output.WriteByte((byte)value);
+        unchecked
+        {
+            output.WriteByte((byte)(value >> 8));
+            output.WriteByte((byte)value);
+        }
     }
 
     private static void WriteUInt32(Stream output, uint value)
     {
-        output.WriteByte((byte)(value >> 24));
-        output.WriteByte((byte)(value >> 16));
-        output.WriteByte((byte)(value >> 8));
-        output.WriteByte((byte)value);
+        unchecked
+        {
+            output.WriteByte((byte)(value >> 24));
+            output.WriteByte((byte)(value >> 16));
+            output.WriteByte((byte)(value >> 8));
+            output.WriteByte((byte)value);
+        }
     }
 
     /// <summary>Where each glyph's outline starts, with one extra entry marking the end.</summary>
@@ -535,7 +550,7 @@ internal static class GlyphSubset
     {
         if (outline.Length < 10) return outline;
 
-        var contours = (short)((outline[0] << 8) | outline[1]);
+        var contours = unchecked((short)((outline[0] << 8) | outline[1]));
 
         return contours >= 0
             ? SimpleWithoutInstructions(outline, contours)
@@ -602,9 +617,13 @@ internal static class GlyphSubset
 
     private static void WriteUInt32(byte[] target, int offset, uint value)
     {
-        target[offset] = (byte)(value >> 24);
-        target[offset + 1] = (byte)(value >> 16);
-        target[offset + 2] = (byte)(value >> 8);
-        target[offset + 3] = (byte)value;
+        // Big-endian byte split — the low eight bits by design, unchecked serialisation (#266).
+        unchecked
+        {
+            target[offset] = (byte)(value >> 24);
+            target[offset + 1] = (byte)(value >> 16);
+            target[offset + 2] = (byte)(value >> 8);
+            target[offset + 3] = (byte)value;
+        }
     }
 }
