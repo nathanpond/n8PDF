@@ -1,0 +1,19 @@
+# Keeps the pinned CI action SHAs current. Each `uses:` in .github/workflows is pinned to a commit
+# SHA (never a moveable tag), so a compromised tag cannot slip into the build — but a pin also stops
+# receiving updates, including security fixes to the action itself. Dependabot watches those pins and
+# opens a reviewable PR to bump the SHA when a new release appears, so the pinning stays fresh rather
+# than rotting. This is the CI/CD supply chain only: the shipping library carries no package
+# dependencies of its own.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      # One PR for all action bumps rather than one per action.
+      github-actions:
+        patterns:
+          - "*"
