@@ -570,15 +570,17 @@ internal static class Chart3DComposer
     /// that face the reader.
     /// </summary>
     /// <remarks>
-    /// A pie ignores <c>rotY</c>, <c>rAngAx</c> and — measured here — <c>hPercent</c>; only the
-    /// tilt and the perspective shape it (#96). The laws, from <c>chart-3d-pie-probe</c>:
+    /// A pie ignores <c>rotY</c> and <c>rAngAx</c> (#96): the tilt and the perspective shape its
+    /// silhouette, and <c>hPercent</c> sets its depth alone. The laws, from
+    /// <c>chart-3d-pie-probe</c>:
     ///
     /// <list type="bullet">
     /// <item>The silhouette fills 0.9702 of the plot rectangle on whichever side binds and is
     /// centred across; at perspective nought it is centred down as well.</item>
     /// <item>At perspective nought the top is the exact tilted disc: <c>ry = rx·sin rotX</c>,
     /// and the rim stands <c>0.24·rx·cos rotX</c> tall — the cylinder is 0.24 of its own
-    /// radius thick, measured [0.238, 0.242].</item>
+    /// radius thick at hPercent 100, measured [0.238, 0.242], and that depth scales dead-linearly
+    /// with hPercent (the top ellipse and the width unmoved) so the pie simply thickens.</item>
     /// <item>Perspective flattens the top and deepens the rim, and both come from one camera
     /// rather than two fitted families: the tilted disc, a cylinder 0.24 of its radius deep, seen
     /// through the same perspective divide the boxes use, from an eye that drops as the
@@ -613,7 +615,11 @@ internal static class Chart3DComposer
         // ellipse's flattening and the rim's growth together, in place of the tan^1.5/sin²
         // families they were; only the rise off centre (below) stays a residual the projection
         // does not account for.
-        var (ryUnit, rimUnit) = PieSilhouette(sinA, cosA, Math.Tan(theta));
+        // hPercent sets the cylinder's depth and nothing else: at 100 (and where absent, which a
+        // pie reads as 100) it is 0.24 of the radius; the rim grows dead-linearly with it while
+        // the top ellipse and the width hold, so the pie simply thickens (#166).
+        var thickness = 0.24 * (scene.HeightPercent ?? 100) / 100;
+        var (ryUnit, rimUnit) = PieSilhouette(sinA, cosA, Math.Tan(theta), thickness);
         var height = 2 * ryUnit + rimUnit;
 
         var series = chart.Series.FirstOrDefault();
@@ -742,10 +748,9 @@ internal static class Chart3DComposer
     /// 0–60. The three camera constants were measured from that grid the way #98 measured the
     /// box camera's; the top face comes out symmetric about its axis, so the drawn ellipse is too.
     /// </remarks>
-    private static (double RyUnit, double RimUnit) PieSilhouette(double sinA, double cosA, double tan)
+    private static (double RyUnit, double RimUnit) PieSilhouette(
+        double sinA, double cosA, double tan, double thickness)
     {
-        // The rim's depth in radii, from the parallel-perspective rim standing 0.24·cosA tall.
-        const double Thickness = 0.24;
         // The frustum half-height F = FrustumBase + FrustumSlope·tan θ, and the eye's drop.
         const double FrustumBase = 0.2428, FrustumSlope = 1.0612, EyeDrop = 0.7581;
 
@@ -760,11 +765,11 @@ internal static class Chart3DComposer
             var phi = 2 * Math.PI * i / steps;
             var (sx, sz) = (Math.Sin(phi), Math.Cos(phi));
 
-            // The top face at y = +Thickness/2, the bottom at −Thickness/2; rotX tilts about the
+            // The top face at y = +thickness/2, the bottom at −thickness/2; rotX tilts about the
             // horizontal, then the perspective divide from the eye.
             for (var top = 0; top < 2; top++)
             {
-                var y = (top == 0 ? Thickness : -Thickness) / 2;
+                var y = (top == 0 ? thickness : -thickness) / 2;
                 var sy2 = y * cosA + sz * sinA;
                 var sz2 = -y * sinA + sz * cosA;
                 var towards = parallel ? 1 : d / (d + sz2);

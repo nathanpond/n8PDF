@@ -9028,6 +9028,26 @@ public static class Fixtures
                     ChartPart(ChartPart3DPie(Pie3DView(15, 30, 100), 0, 25, 1)),
                     fromDocument: ("rIdChart22",
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart23.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DPie(Pie3DView(15, 0, 50))),
+                    fromDocument: ("rIdChart23",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart24.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DPie(Pie3DView(15, 0, 100))),
+                    fromDocument: ("rIdChart24",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart25.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DPie(Pie3DView(15, 0, 150))),
+                    fromDocument: ("rIdChart25",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart26.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DPie(Pie3DView(15, 0, 200))),
+                    fromDocument: ("rIdChart26",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 2000, relationshipId: "rIdChart") +
                                  "</w:p>")
@@ -9132,7 +9152,27 @@ public static class Fixtures
                                  DocxBuilder.ChartDrawing(360, 216, id: 2021, relationshipId: "rIdChart22") +
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
-                                 "<w:r><w:t>explosion 25 blue</w:t></w:r></w:p>"),
+                                 "<w:r><w:t>explosion 25 blue</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2022, relationshipId: "rIdChart23") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>p0 hPercent 50</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2023, relationshipId: "rIdChart24") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>p0 hPercent 100</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2024, relationshipId: "rIdChart25") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>p0 hPercent 150</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2025, relationshipId: "rIdChart26") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>p0 hPercent 200</w:t></w:r></w:p>"),
 
             ["chart-3d-ribbon-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DRibbon("area3DChart", "standard", 1, [("FF0000", [30.0, 80.0, 20.0, 60.0])]))
