@@ -592,9 +592,13 @@ internal static class Chart3DComposer
     /// it (#166). One residual stays fitted: Word lifts the pie a little further off the plot
     /// centre than the symmetric projection accounts for, largest at a gentle tilt and steep
     /// perspective — the rise, riding on <c>sinA − ryUnit</c>, the height the flattening took.</item>
-    /// <item>Word paints the rim as a cylindrical gradient. It is drawn here flat at 0.65 of
-    /// the sector's colour, the middle of the gradient's measured [0.35, 1.0] range; the ink
-    /// comparisons read colour families for exactly this reason.</item>
+    /// <item>Word paints the rim as a cylinder wall lit from the left. Measured on the probe's
+    /// tall-rim pages, the shade runs <c>min(1, 0.42 + 0.60·max(0, −sin θ))</c> of the sector's
+    /// colour (θ the arc angle) — an ambient 0.42 across the right half, brightening to full at the
+    /// left edge where the wall faces the light, and flat down the rim's own height; the 0.42 and
+    /// 0.60 match Word's mean rim shade on both flanks. It is drawn as vertical slices at that
+    /// shade rather than the flat 0.65 it once was; the ink comparisons still read colour families,
+    /// since the shade is what varies (#166).</item>
     /// <item>An exploded sector moves along its bisector by its stated share of the radius, on
     /// the ellipse's own axes, and the whole pie shrinks so the furthest tip still lands on the
     /// fill boundary while the disc's centre holds — the radius is the disc-fill radius over
@@ -701,20 +705,30 @@ internal static class Chart3DComposer
         {
             foreach (var (f, t) in FrontArcs(from, sweep))
             {
-                var steps = new List<PathStep> { new(PathStepKind.Move, [At(f, 1, ox, oy)]) };
+                // The rim is a cylinder wall lit from the left, drawn as vertical slices each
+                // shaded by where it faces: an ambient 0.42 to the right, brightening to full where
+                // its outward normal points left (−sin of its arc angle). The 0.42 floor and the
+                // 0.60 slope match Word's mean rim shade on both flanks of the pie probe's tall-rim
+                // pages, and the shade is flat down the rim's own height (#166). Slicing gives the
+                // gradient without a shading resource, and takes the explosion offset for free.
                 const int pieces = 24;
-                for (var i = 1; i <= pieces; i++)
-                    steps.Add(new PathStep(PathStepKind.Line, [At(f + (t - f) * i / pieces, 1, ox, oy)]));
-                for (var i = pieces; i >= 0; i--)
+                for (var i = 0; i < pieces; i++)
                 {
-                    var (px, py) = At(f + (t - f) * i / pieces, 1, ox, oy);
-                    steps.Add(new PathStep(PathStepKind.Line, [(px, py + rim)]));
+                    var a0 = f + (t - f) * i / pieces;
+                    var a1 = f + (t - f) * (i + 1) / pieces;
+                    var (x0, y0) = At(a0, 1, ox, oy);
+                    var (x1, y1) = At(a1, 1, ox, oy);
+                    var lit = Math.Min(1, 0.42 + 0.60 * Math.Max(0, -Math.Sin((a0 + a1) / 2)));
+
+                    yield return new PathOperation(
+                    [
+                        new PathStep(PathStepKind.Move, [(x0, y0)]),
+                        new PathStep(PathStepKind.Line, [(x1, y1)]),
+                        new PathStep(PathStepKind.Line, [(x1, y1 + rim)]),
+                        new PathStep(PathStepKind.Line, [(x0, y0 + rim)]),
+                        new PathStep(PathStepKind.Close, []),
+                    ], Shade(colour, lit), null, DefaultLineWidth, EvenOdd: false);
                 }
-
-                steps.Add(new PathStep(PathStepKind.Close, []));
-
-                yield return new PathOperation(steps, Shade(colour, 0.65), null, DefaultLineWidth,
-                    EvenOdd: false);
             }
         }
 
