@@ -252,13 +252,18 @@ The defaults are set for documents rather than for the fixtures here, the larges
 in one part across 6 parts — a hundredth of the smallest limit, which `PackageLimitTests` asserts,
 so a fixture that ever approaches one says so.
 
-Fonts are not in this list, and the reason is worth stating: **no font ever comes from a document**.
-Word can embed one, and the relationship type for the font table is declared here, but nothing reads
-it — faces come from the system directories or from what the caller registers, both of which the
-caller chose. What was worth fixing was smaller: the table directory of an SFNT checked that a
-table began inside the file and not that it ended there, so a malformed face could declare a table
-of two gigabytes and be believed by anything that read one by its length. Lengths are clamped to
-what is actually there. When embedded fonts are implemented, a byte limit belongs beside the others.
+A font can come from a document too, so one of the limits is `MaximumFontBytes`. Word embeds a face
+as an *obfuscated* part — its first 32 bytes XORed with the sixteen of the GUID in `w:fontKey`,
+in reverse of the order the hex is written — and `EmbeddedFonts` reads the four the font table
+declares (`w:embedRegular` and its siblings), undoes that, and offers them below the system faces
+and whatever the caller registered (#62). It is not encryption — the key sits in the same package
+as the data — but the bytes are no SFNT until it is undone. One that overruns the limit, carries a
+key that will not parse, or is no SFNT once deobfuscated is left out the way an unreadable image is,
+the conversion going on as though the document had not carried it — and from there the font parser
+is reading attacker-controlled bytes, which is what the `Fonts/` audit is about. An older, smaller
+fix sits near it: the table directory of an SFNT checked that a table began inside the file and not
+that it ended there, so a malformed face could declare a table of two gigabytes and be believed by
+anything that read one by its length — lengths are clamped to what is actually there.
 
 ## Matching Word
 
@@ -294,6 +299,10 @@ anchor too. The one case where that shows — a float whose top clearance reache
 previous paragraph's last line — is handled by moving those lines down, which is correct because
 a full-width float does not change their width. A partial-width float reaching backwards would
 need the line broken again, and is not handled.
+
+A **tight** or **through** wrap follows the float's own wrap polygon rather than its bounding box,
+so a line closes in against a shape's real outline instead of the rectangle around it, and a through
+wrap runs text into the polygon's concavities where a tight one holds off the whole of it (#65).
 
 Three rules about how tall a line is were settled by `superscript-probe` and `numbering`, and none
 of them is what the code did before it was asked. A raised or lowered run keeps the line box of the
@@ -1751,7 +1760,17 @@ a paragraph (`w:pBdr`, shared between paragraphs bordered alike) and round a run
 emphasis marks over a run's characters (`w:em`),
 alignment including justification, indents including hanging, spacing before/after with
 contextual spacing, line spacing (auto/exact/at-least), pagination, real font metrics with
-`.ttc` support, and Type0/CIDFontType2 embedding with a `ToUnicode` map so text stays selectable.
+`.ttc` support, the faces a document carries in its own font table read and deobfuscated so a file
+brings its own type rather than falling back to substitutes, and Type0/CIDFontType2 embedding with
+a `ToUnicode` map so text stays selectable.
+
+The PDF carries more than the ink. A document outline hangs off the headings, so a reader opens to a
+navigation pane rather than a flat file (#66). A structure tree tags the page in reading order —
+headings, paragraphs, tables and their cells written as marked content, tied back through a parent
+tree, with the document's language on the catalogue — so the text has an order and a shape to it and
+is not a wall of glyphs to a screen reader (#67). And where the caller asks for it, the output claims
+and honours **PDF/A-2b**: an XMP metadata packet agreeing with the information dictionary, an sRGB
+output intent, and a file identifier derived from the body itself (#68).
 
 Ten kinds of chart are drawn: **columns, bars, lines, pies, areas, scatters, doughnuts, bubbles,
 radars and stock charts**, the bars and areas clustered, stacked or stacked to the whole. What is
