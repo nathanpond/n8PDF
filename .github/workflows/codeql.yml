@@ -1,0 +1,52 @@
+# CodeQL: deep dataflow and taint analysis of the library, complementing Semgrep's pattern rules
+# (#268). Semgrep finds known shapes; CodeQL traces attacker-controlled bytes from a source (a
+# decoded length, count or offset) to a sink (an allocation size, an array index, a cast) across the
+# whole call graph — the class hardest to see by pattern. It compiles the shipping library under the
+# .NET 10 SDK and runs the security-and-quality suite; findings go to Security -> Code scanning.
+#
+# Only src/n8PDF is built and analysed: the attack surface is the library, not the test project.
+# Actions are pinned to commit SHAs (#270); Dependabot bumps them.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so a query-pack update surfaces new findings even without a push.
+    - cron: '38 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyse (C#)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          languages: csharp
+          build-mode: manual
+          queries: security-and-quality
+
+      # The library alone — no test project, no packages — so CodeQL sees the shipping code.
+      - name: Build
+        run: dotnet build src/n8PDF/n8PDF.csproj --configuration Release
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          category: '/language:csharp'
