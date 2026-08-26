@@ -2922,7 +2922,7 @@ public static class Fixtures
     /// raster can tell apart, under a stated or absent scene, turn, explosion or height.
     /// </summary>
     private static string ChartPart3DPie(
-        string view3D, int firstSlice = 0, int explosion = 0) => $$"""
+        string view3D, int firstSlice = 0, int explosion = 0, int explodeIndex = 0) => $$"""
           <c:chart>
             {{view3D}}
             <c:plotArea>
@@ -2936,13 +2936,15 @@ public static class Fixtures
                   <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f><c:strCache><c:ptCount val="1"/>
                     <c:pt idx="0"><c:v>S</c:v></c:pt></c:strCache></c:strRef></c:tx>
                   <c:dPt><c:idx val="0"/><c:bubble3D val="0"/>{{(
-                    explosion > 0 ? $"<c:explosion val=\"{explosion}\"/>" : "")}}
+                    explosion > 0 && explodeIndex == 0 ? $"<c:explosion val=\"{explosion}\"/>" : "")}}
                     <c:spPr><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>
                       <a:ln><a:noFill/></a:ln></c:spPr></c:dPt>
-                  <c:dPt><c:idx val="1"/><c:bubble3D val="0"/>
+                  <c:dPt><c:idx val="1"/><c:bubble3D val="0"/>{{(
+                    explosion > 0 && explodeIndex == 1 ? $"<c:explosion val=\"{explosion}\"/>" : "")}}
                     <c:spPr><a:solidFill><a:srgbClr val="0000FF"/></a:solidFill>
                       <a:ln><a:noFill/></a:ln></c:spPr></c:dPt>
-                  <c:dPt><c:idx val="2"/><c:bubble3D val="0"/>
+                  <c:dPt><c:idx val="2"/><c:bubble3D val="0"/>{{(
+                    explosion > 0 && explodeIndex == 2 ? $"<c:explosion val=\"{explosion}\"/>" : "")}}
                     <c:spPr><a:solidFill><a:srgbClr val="00C000"/></a:solidFill>
                       <a:ln><a:noFill/></a:ln></c:spPr></c:dPt>
                   <c:cat><c:strRef><c:f>Sheet1!$A$2:$A$4</c:f><c:strCache><c:ptCount val="3"/>
@@ -9016,6 +9018,16 @@ public static class Fixtures
                     ChartPart(ChartPart3DPie(Pie3DView(40, 60))),
                     fromDocument: ("rIdChart19",
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart20.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DPie(Pie3DView(15, 30, 100), 0, 10)),
+                    fromDocument: ("rIdChart20",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
+                .WithPart("word/charts/chart22.xml",
+                    "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
+                    ChartPart(ChartPart3DPie(Pie3DView(15, 30, 100), 0, 25, 1)),
+                    fromDocument: ("rIdChart22",
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart"))
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
                                  DocxBuilder.ChartDrawing(360, 216, id: 2000, relationshipId: "rIdChart") +
                                  "</w:p>")
@@ -9110,7 +9122,17 @@ public static class Fixtures
                                  DocxBuilder.ChartDrawing(360, 216, id: 2018, relationshipId: "rIdChart19") +
                                  "</w:p>")
                 .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
-                                 "<w:r><w:t>p60 rotX 40</w:t></w:r></w:p>"),
+                                 "<w:r><w:t>p60 rotX 40</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2019, relationshipId: "rIdChart20") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>explosion 10</w:t></w:r></w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacingNewPage}</w:pPr>" +
+                                 DocxBuilder.ChartDrawing(360, 216, id: 2021, relationshipId: "rIdChart22") +
+                                 "</w:p>")
+                .AddRawParagraph($"<w:p><w:pPr>{ZeroSpacing}</w:pPr>" +
+                                 "<w:r><w:t>explosion 25 blue</w:t></w:r></w:p>"),
 
             ["chart-3d-ribbon-probe"] = () => new DocxBuilder()
                 .WithChart(ChartPart3DRibbon("area3DChart", "standard", 1, [("FF0000", [30.0, 80.0, 20.0, 60.0])]))
