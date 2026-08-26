@@ -1,5 +1,5 @@
 {
-  "pageCount": 19,
+  "pageCount": 21,
   "pages": [
     {
       "width": 612,
@@ -396,6 +396,48 @@
           "height": 13.428,
           "runs": [
             {"x": 72, "width": 52.083, "font": "Calibri", "size": 11, "text": "p60 rotX 40"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 38,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 39,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 56.386, "font": "Calibri", "size": 11, "text": "explosion 10"}
+          ]
+        }
+      ]
+    },
+    {
+      "width": 612,
+      "height": 792,
+      "lines": [
+        {
+          "paragraph": 40,
+          "baselineY": 288,
+          "height": 216,
+          "runs": [
+          ]
+        },
+        {
+          "paragraph": 41,
+          "baselineY": 298.56,
+          "height": 13.428,
+          "runs": [
+            {"x": 72, "width": 78.429, "font": "Calibri", "size": 11, "text": "explosion 25 blue"}
           ]
         }
       ]

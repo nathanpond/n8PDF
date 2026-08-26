@@ -590,7 +590,10 @@ internal static class Chart3DComposer
     /// the sector's colour, the middle of the gradient's measured [0.35, 1.0] range; the ink
     /// comparisons read colour families for exactly this reason.</item>
     /// <item>An exploded sector moves along its bisector by its stated share of the radius, on
-    /// the ellipse's own axes.</item>
+    /// the ellipse's own axes, and the whole pie shrinks so the furthest tip still lands on the
+    /// fill boundary while the disc's centre holds — the radius is the disc-fill radius over
+    /// <c>1 + reach</c> on the binding axis. Derived, not fitted: measured to under a point on the
+    /// front slices across an explosion sweep (0/10/25/40) and an off-axis slice (#166).</item>
     /// </list>
     /// </remarks>
     private static IEnumerable<DrawingOperation> Pie(
@@ -609,8 +612,55 @@ internal static class Chart3DComposer
         var rimUnit = 0.24 * cosA + sinA * (1 - flatten);
         var height = 2 * ryUnit + rimUnit;
 
+        var series = chart.Series.FirstOrDefault();
+        if (series is null) yield break;
+
+        var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
+        var total = values.Sum();
+        if (total <= 0) yield break;
+
+        // Sector geometry first — a sweep depends only on the values, not on the radius, so how
+        // far each explosion reaches is known before the radius is chosen.
+        // A three-dimensional pie cannot be turned: CT_Pie3DChart carries no firstSliceAng, and
+        // Word ignores one written anyway — four probe pages stating four different angles render
+        // identically. The first slice always starts at the top.
+        var sectors = new List<(double From, double Sweep, DrawingColor Colour, double Mid, double Reach)>();
+        double maxHReach = 0, maxVReach = 0;
+        var walk = 0.0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] <= 0) continue;
+            var sweep = values[i] / total * 2 * Math.PI;
+            var fill = series.PointFills.TryGetValue(i, out var point) && point is not null
+                ? point
+                : series.Fill;
+            var colour = Resolve(fill, theme) ?? new DrawingColor(0x44, 0x72, 0xC4);
+
+            var mid = walk + sweep / 2;
+            var reach = series.PointExplosions.TryGetValue(i, out var stated) ? stated / 100.0 : 0;
+            if (reach > 0)
+            {
+                // The sector slides out along its bisector, so its arc reaches reach·rx further
+                // in x and reach·ry further in y, scaled by the bisector's direction cosines.
+                maxHReach = Math.Max(maxHReach, reach * Math.Abs(Math.Sin(mid)));
+                maxVReach = Math.Max(maxVReach, reach * Math.Abs(Math.Cos(mid)));
+            }
+
+            sectors.Add((walk, sweep, colour, mid, reach));
+            walk += sweep;
+        }
+
+        // The disc stays centred on the plot rectangle; an exploded sector slides past its edge,
+        // and Word shrinks the whole pie so the furthest tip still lands on the fill boundary
+        // rather than spilling over it. So the radius is the disc-fill radius divided by how far
+        // the exploded arrangement reaches on the binding axis: the pie shrinks, the centre holds.
+        // Measured against Word to under a point across an explosion sweep (0/10/25/40 on the
+        // horizontal slice) and an off-axis slice (#166); the vertical divisor is the same reach
+        // argument on the other axis, which no Word-reachable pie is tall enough to bind.
         const double Fill = 0.9702;
-        var rx = Math.Min(Fill * plan.Width / 2, Fill * plan.Height / (height <= 0 ? 1 : height));
+        var rx = Math.Min(
+            Fill * plan.Width / 2 / (1 + maxHReach),
+            Fill * plan.Height / (height <= 0 ? 1 : height) / (1 + maxVReach));
         var ry = rx * ryUnit;
         var rim = rx * rimUnit;
 
@@ -621,41 +671,16 @@ internal static class Chart3DComposer
         var cx = plan.Left + plan.Width / 2;
         var cy = plan.Top + plan.Height / 2 - rise - (2 * ry + rim) / 2 + ry;
 
-        var series = chart.Series.FirstOrDefault();
-        if (series is null) yield break;
-
-        var values = series.Values.Select(value => Math.Max(0, value ?? 0)).ToList();
-        var total = values.Sum();
-        if (total <= 0) yield break;
-
         (double X, double Y) At(double angle, double reach, double ox, double oy) =>
             (cx + ox + reach * rx * Math.Sin(angle), cy + oy - reach * ry * Math.Cos(angle));
 
         var starts = new List<(double From, double Sweep, DrawingColor Colour, double Ox, double Oy)>();
-        // A three-dimensional pie cannot be turned: CT_Pie3DChart carries no firstSliceAng,
-        // and Word ignores one written anyway — four probe pages stating four different angles
-        // render identically. The first slice always starts at the top.
-        var angle = 0.0;
-        for (var i = 0; i < values.Count; i++)
+        foreach (var (from, sweep, colour, mid, reach) in sectors)
         {
-            if (values[i] <= 0) continue;
-            var sweep = values[i] / total * 2 * Math.PI;
-            var fill = series.PointFills.TryGetValue(i, out var point) && point is not null
-                ? point
-                : series.Fill;
-            var colour = Resolve(fill, theme) ?? new DrawingColor(0x44, 0x72, 0xC4);
-
-            var explosion = series.PointExplosions.TryGetValue(i, out var stated) ? stated : 0;
-            var (ox, oy) = (0.0, 0.0);
-            if (explosion > 0)
-            {
-                var mid = angle + sweep / 2;
-                ox = explosion / 100.0 * rx * Math.Sin(mid);
-                oy = -(explosion / 100.0) * ry * Math.Cos(mid);
-            }
-
-            starts.Add((angle, sweep, colour, ox, oy));
-            angle += sweep;
+            var (ox, oy) = reach > 0
+                ? (reach * rx * Math.Sin(mid), -reach * ry * Math.Cos(mid))
+                : (0.0, 0.0);
+            starts.Add((from, sweep, colour, ox, oy));
         }
 
         // The rim first, only under the arcs that face the reader — the lower half of the
@@ -673,6 +698,7 @@ internal static class Chart3DComposer
                     var (px, py) = At(f + (t - f) * i / pieces, 1, ox, oy);
                     steps.Add(new PathStep(PathStepKind.Line, [(px, py + rim)]));
                 }
+
                 steps.Add(new PathStep(PathStepKind.Close, []));
 
                 yield return new PathOperation(steps, Shade(colour, 0.65), null, DefaultLineWidth,
