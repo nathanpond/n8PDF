@@ -772,12 +772,14 @@ internal static class EmfPlusInterpreter
         // below the buffer's start (#24).
         private uint ReadUInt32(int at) =>
             at >= 0 && at + 3 < data.Length
-                ? (uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24))
+                // Packing four bytes: the top byte sets the sign bit, so reinterpreting to uint is
+                // unchecked — the cursor and count arithmetic built on the value stays guarded (#266).
+                ? unchecked((uint)(data[at] | (data[at + 1] << 8) | (data[at + 2] << 16) | (data[at + 3] << 24)))
                 : 0;
 
         private int ReadUInt16(int at) => at >= 0 && at + 1 < data.Length ? data[at] | (data[at + 1] << 8) : 0;
 
-        private short ReadInt16(int at) => (short)ReadUInt16(at);
+        private short ReadInt16(int at) => unchecked((short)ReadUInt16(at));
 
         private float ReadFloat(int at) => BitConverter.Int32BitsToSingle((int)ReadUInt32(at));
     }

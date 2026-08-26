@@ -204,17 +204,25 @@ internal static class SfntRepackager
 
     private static int Align4(int value) => (value + 3) & ~3;
 
+    // Splitting a value into big-endian bytes: each (byte) keeps the low eight bits by design, so
+    // it is unchecked — this is serialisation, not the size arithmetic the assembly guards (#266).
     private static void WriteUInt16(byte[] buffer, int offset, ushort value)
     {
-        buffer[offset] = (byte)(value >> 8);
-        buffer[offset + 1] = (byte)value;
+        unchecked
+        {
+            buffer[offset] = (byte)(value >> 8);
+            buffer[offset + 1] = (byte)value;
+        }
     }
 
     private static void WriteUInt32(byte[] buffer, int offset, uint value)
     {
-        buffer[offset] = (byte)(value >> 24);
-        buffer[offset + 1] = (byte)(value >> 16);
-        buffer[offset + 2] = (byte)(value >> 8);
-        buffer[offset + 3] = (byte)value;
+        unchecked
+        {
+            buffer[offset] = (byte)(value >> 24);
+            buffer[offset + 1] = (byte)(value >> 16);
+            buffer[offset + 2] = (byte)(value >> 8);
+            buffer[offset + 3] = (byte)value;
+        }
     }
 }

@@ -350,7 +350,7 @@ internal sealed class Metamorphosis
                 // The glyph plus the offset is the place in the table of components: an index
                 // rather than a distance in bytes, which is what the older form of this table
                 // held and what makes the two easy to confuse.
-                var component = buffer[position].Glyph + (int)raw;
+                var component = buffer[position].Glyph + unchecked((int)raw);
                 if (component < 0) break;
 
                 var index = components + component * 2;
@@ -360,7 +360,7 @@ internal sealed class Metamorphosis
 
                 if ((step & (StoreAction | LastAction)) != 0)
                 {
-                    var found = ligatures + (int)ligature * 2;
+                    var found = ligatures + unchecked((int)ligature) * 2;
 
                     if (found + 2 > _data.Length) break;
 

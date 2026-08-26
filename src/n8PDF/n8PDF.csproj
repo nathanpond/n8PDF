@@ -7,6 +7,23 @@
         <RootNamespace>n8PDF</RootNamespace>
 
         <!--
+          Every input is a file someone else wrote, and the recurring shape of an attack is a
+          length, a count or an offset read straight off the wire that overflows on the way to an
+          allocation size, an array index or a cast. Checking arithmetic across the assembly turns
+          that overflow into a catchable OverflowException at the point it happens, instead of a
+          silently wrapped value that sizes a buffer wrong or indexes out of bounds — the whole
+          integer-overflow class fails safely rather than corrupts (#266). It reaches the code the
+          Semgrep rules cannot (primary constructors its C# grammar skips), and it is the runtime
+          twin of the `unchecked-round-cast` and `additive-length-bound-overflow` rules.
+
+          Cheap here on purpose: this affects integer arithmetic and integer casts only, and the
+          layout, metric and geometry hot paths are all `double`, which does not participate. The
+          two places that MEAN to wrap — the SFNT table checksum and the FNV-1a subset-tag hash —
+          say so with an explicit `unchecked` block, which still wins locally.
+        -->
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+
+        <!--
           The documentation is shipped: what a rule is and where it was measured from is written
           on the types that carry it, and that is worth having in a consumer's editor. What is not
           answered is the compiler's per-member nag — this documents behaviour at the level of a

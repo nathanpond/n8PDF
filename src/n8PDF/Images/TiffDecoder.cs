@@ -735,7 +735,8 @@ internal static class TiffDecoder
             {
                 if (start >= rows.Length - x) break;
 
-                rows[start + x] = (byte)(rows[start + x] + rows[start + x - samples]);
+                // Horizontal differencing is a running sum modulo 256 — the low byte is the value (#266).
+                rows[start + x] = unchecked((byte)(rows[start + x] + rows[start + x - samples]));
             }
         }
     }
@@ -848,8 +849,12 @@ internal static class TiffDecoder
     {
         if (deep)
         {
-            target[at] = (byte)(value >> 8);
-            target[at + 1] = (byte)value;
+            // Splitting a 16-bit sample into bytes keeps the low eight bits by design (#266).
+            unchecked
+            {
+                target[at] = (byte)(value >> 8);
+                target[at + 1] = (byte)value;
+            }
 
             return;
         }

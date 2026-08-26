@@ -296,7 +296,9 @@ internal static class PngDecoder
                 int up = previous[i];
                 int upLeft = i >= filterStride ? previous[i - filterStride] : 0;
 
-                raw[target + i] = filter switch
+                // PNG filters reconstruct modulo 256 by definition — the sum keeps its low byte —
+                // so the truncation is unchecked, unlike the size arithmetic the assembly guards (#266).
+                raw[target + i] = unchecked(filter switch
                 {
                     0 => (byte)value,
                     1 => (byte)(value + left),
@@ -304,7 +306,7 @@ internal static class PngDecoder
                     3 => (byte)(value + (left + up) / 2),
                     4 => (byte)(value + Paeth(left, up, upLeft)),
                     _ => throw new ImageFormatException($"Unknown PNG row filter {filter}.")
-                };
+                });
             }
 
             Array.Copy(raw, target, previous, 0, rowBytes);

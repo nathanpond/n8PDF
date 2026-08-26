@@ -53,9 +53,10 @@ internal sealed class PdfFont
         {
             RegisterGlyph(glyphs[i], i < texts.Length ? texts[i] : string.Empty);
 
+            // Identity-H writes the glyph code as two bytes; the low-byte truncation is by design (#266).
             var code = CodeFor(glyphs[i]);
             bytes[i * 2] = (byte)(code >> 8);
-            bytes[i * 2 + 1] = (byte)code;
+            bytes[i * 2 + 1] = unchecked((byte)code);
         }
 
         return bytes;
@@ -320,12 +321,17 @@ internal sealed class PdfFont
     /// </remarks>
     private static string SubsetTag(List<ushort> glyphs)
     {
-        // FNV-1a over the glyph indices in order, which is why they are sorted first.
+        // FNV-1a over the glyph indices in order, which is why they are sorted first. The
+        // multiply is meant to wrap around 2^32 — that is the hash — so it stays unchecked even
+        // though the assembly now checks arithmetic for overflow (#266).
         var hash = 2166136261u;
-        foreach (var glyph in glyphs.Order())
+        unchecked
         {
-            hash = (hash ^ glyph) * 16777619;
-            hash = (hash ^ (uint)(glyph >> 8)) * 16777619;
+            foreach (var glyph in glyphs.Order())
+            {
+                hash = (hash ^ glyph) * 16777619;
+                hash = (hash ^ (uint)(glyph >> 8)) * 16777619;
+            }
         }
 
         var tag = new char[6];

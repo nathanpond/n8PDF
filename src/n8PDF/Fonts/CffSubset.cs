@@ -574,10 +574,14 @@ internal static class CffSubset
     private static void WriteOffset(Stream output, int value)
     {
         output.WriteByte(29);
-        output.WriteByte((byte)(value >> 24));
-        output.WriteByte((byte)(value >> 16));
-        output.WriteByte((byte)(value >> 8));
-        output.WriteByte((byte)value);
+        // Big-endian byte split — the low eight bits by design, unchecked serialisation (#266).
+        unchecked
+        {
+            output.WriteByte((byte)(value >> 24));
+            output.WriteByte((byte)(value >> 16));
+            output.WriteByte((byte)(value >> 8));
+            output.WriteByte((byte)value);
+        }
     }
 
     private static void WriteOperand(Stream output, double value)
@@ -748,7 +752,9 @@ internal static class CffSubset
             switch (b0)
             {
                 case 28:
-                    Push((short)((cff[position + 1] << 8) | cff[position + 2]));
+                    // A signed 16-bit operand: a negative one has its top bit set, so the cast is
+                    // a reinterpretation and stays unchecked (#266).
+                    Push(unchecked((short)((cff[position + 1] << 8) | cff[position + 2])));
                     return position + 3;
 
                 case 255:
@@ -865,9 +871,14 @@ internal static class CffSubset
         };
 
         var output = new MemoryStream();
-        output.WriteByte((byte)(entries.Count >> 8));
-        output.WriteByte((byte)entries.Count);
-        output.WriteByte((byte)offSize);
+        // Serialising the count and offsets keeps their low bytes by design — unchecked, unlike the
+        // size arithmetic the assembly guards (#266).
+        unchecked
+        {
+            output.WriteByte((byte)(entries.Count >> 8));
+            output.WriteByte((byte)entries.Count);
+            output.WriteByte((byte)offSize);
+        }
 
         var position = 1;
         WriteSized(output, position, offSize);
@@ -885,7 +896,8 @@ internal static class CffSubset
 
     private static void WriteSized(Stream output, int value, int size)
     {
-        for (var b = size - 1; b >= 0; b--) output.WriteByte((byte)(value >> (b * 8)));
+        // Each byte is a slice of the value by design — unchecked serialisation (#266).
+        for (var b = size - 1; b >= 0; b--) output.WriteByte(unchecked((byte)(value >> (b * 8))));
     }
 
     /// <summary>
@@ -921,7 +933,9 @@ internal static class CffSubset
             switch (b0)
             {
                 case 28:
-                    operands.Add((short)((data[position + 1] << 8) | data[position + 2]));
+                    // A signed 16-bit operand — a negative one has its top bit set — read as a
+                    // reinterpretation, so unchecked (#266).
+                    operands.Add(unchecked((short)((data[position + 1] << 8) | data[position + 2])));
                     position += 3;
                     break;
 
