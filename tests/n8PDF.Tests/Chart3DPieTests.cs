@@ -16,8 +16,10 @@ namespace n8PDF.Tests;
 /// to where another family stands, which the two-way coverage catches at ten times these bars'
 /// slack — measured by trying each while the laws were being fitted.
 ///
-/// The ellipse and rim laws are exact at perspective nought and fitted families under
-/// perspective — see <see cref="n8PDF.Layout.Chart3DComposer"/>'s remarks. The absent-scene
+/// The ellipse and rim under perspective are one projected camera now, not two fitted families —
+/// the tilted disc seen through Word's perspective divide — see
+/// <see cref="n8PDF.Layout.Chart3DComposer"/>'s remarks; only the rise off centre stays fitted.
+/// The absent-scene
 /// page — what a real document's 3-D pie almost always is — holds tightest; the stated-scene
 /// pages carry looser bars because every one of them states an <c>hPercent</c>, and a stated
 /// height changes the pie's thickness split in a way not yet modelled (the silhouette holds
@@ -37,27 +39,27 @@ public class Chart3DPieTests(ITestOutputHelper output)
     private readonly ITestOutputHelper _output = output;
 
     [Theory]
-    [InlineData(0, "absent scene", 0.64)]
+    [InlineData(0, "absent scene", 0.9)]
     [InlineData(1, "rotX 10", 0.6)]
-    [InlineData(2, "rotX 25", 0.63)]
-    [InlineData(3, "rotX 40", 0.69)]
-    [InlineData(4, "turn 45", 0.59)]
-    [InlineData(5, "turn 135", 0.59)]
-    [InlineData(6, "turn 225", 0.59)]
-    [InlineData(7, "turn 315", 0.59)]
-    [InlineData(8, "explosion 25", 0.46)]
-    [InlineData(9, "hPercent 150", 0.59)]
-    [InlineData(10, "perspective 60", 0.47)]
-    [InlineData(11, "parallel rotX 10", 0.69)]
-    [InlineData(12, "parallel rotX 15", 0.7)]
-    [InlineData(13, "parallel rotX 25", 0.72)]
-    [InlineData(14, "parallel rotX 40", 0.74)]
-    [InlineData(15, "p15 rotX 15", 0.65)]
-    [InlineData(16, "p15 rotX 25", 0.68)]
-    [InlineData(17, "p45 rotX 15", 0.54)]
-    [InlineData(18, "p60 rotX 40", 0.63)]
-    [InlineData(19, "explosion 10", 0.55)]
-    [InlineData(20, "explosion 25 blue", 0.63)]
+    [InlineData(2, "rotX 25", 0.66)]
+    [InlineData(3, "rotX 40", 0.7)]
+    [InlineData(4, "turn 45", 0.62)]
+    [InlineData(5, "turn 135", 0.62)]
+    [InlineData(6, "turn 225", 0.62)]
+    [InlineData(7, "turn 315", 0.62)]
+    [InlineData(8, "explosion 25", 0.53)]
+    [InlineData(9, "hPercent 150", 0.62)]
+    [InlineData(10, "perspective 60", 0.49)]
+    [InlineData(11, "parallel rotX 10", 0.7)]
+    [InlineData(12, "parallel rotX 15", 0.72)]
+    [InlineData(13, "parallel rotX 25", 0.74)]
+    [InlineData(14, "parallel rotX 40", 0.76)]
+    [InlineData(15, "p15 rotX 15", 0.68)]
+    [InlineData(16, "p15 rotX 25", 0.71)]
+    [InlineData(17, "p45 rotX 15", 0.57)]
+    [InlineData(18, "p60 rotX 40", 0.57)]
+    [InlineData(19, "explosion 10", 0.67)]
+    [InlineData(20, "explosion 25 blue", 0.67)]
     public void The_sectors_and_rim_land_where_words_do(int page, string what, double bar)
     {
         if (TestFonts.SkipForMissingFonts(FixtureName)) return;

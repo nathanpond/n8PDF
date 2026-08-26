@@ -579,13 +579,17 @@ internal static class Chart3DComposer
     /// <item>At perspective nought the top is the exact tilted disc: <c>ry = rx·sin rotX</c>,
     /// and the rim stands <c>0.24·rx·cos rotX</c> tall — the cylinder is 0.24 of its own
     /// radius thick, measured [0.238, 0.242].</item>
-    /// <item>Perspective flattens the top and deepens the rim, symmetrically to the reading
-    /// noise. The flattening fits <c>ry = rx·sinA·(1 − 0.26·tan^1.5 θ / sin²A)</c> over the
-    /// probe's grid (θ the half-angle <c>perspective/4</c>, the camera's own convention), half
-    /// the lost height returning to the rim; and the whole silhouette rises off centre by
-    /// <c>0.0057·rx·tan θ / sin³A</c>. These three are fitted families, not derivations — each
-    /// holds the sixteen-page grid to a point or two — and the follow-up issue holds the grid
-    /// for whoever derives the projective form the way #98 did the camera's.</item>
+    /// <item>Perspective flattens the top and deepens the rim, and both come from one camera
+    /// rather than two fitted families: the tilted disc, a cylinder 0.24 of its radius deep, seen
+    /// through the same perspective divide the boxes use, from an eye that drops as the
+    /// perspective deepens (<see cref="PieSilhouette"/>). Projecting its rims reproduces the
+    /// probe's grid — the top's semi-axis and the whole height together — to about a hundredth of
+    /// the radius across rotX 10–40 and perspective 0–60, the projective form the way #98 derived
+    /// the box camera. A naive fixed-disc projection cannot do this: it magnifies the near edge
+    /// and so <em>grows</em> the silhouette, where Word's shrinks — only the dropped eye flattens
+    /// it (#166). One residual stays fitted: Word lifts the pie a little further off the plot
+    /// centre than the symmetric projection accounts for, largest at a gentle tilt and steep
+    /// perspective — the rise, riding on <c>sinA − ryUnit</c>, the height the flattening took.</item>
     /// <item>Word paints the rim as a cylindrical gradient. It is drawn here flat at 0.65 of
     /// the sector's colour, the middle of the gradient's measured [0.35, 1.0] range; the ink
     /// comparisons read colour families for exactly this reason.</item>
@@ -604,12 +608,12 @@ internal static class Chart3DComposer
         var theta = scene.Perspective / 4 * Math.PI / 180;
         var (sinA, cosA) = (Math.Sin(a), Math.Cos(a));
 
-        // The vertical make-up of the silhouette, per unit of rx.
-        var flatten = sinA > 0.01
-            ? Math.Clamp(1 - 0.26 * Math.Pow(Math.Tan(theta), 1.5) / (sinA * sinA), 0.2, 1)
-            : 1;
-        var ryUnit = sinA * flatten;
-        var rimUnit = 0.24 * cosA + sinA * (1 - flatten);
+        // The vertical make-up of the silhouette, per unit of rx: the tilted disc under Word's
+        // own perspective camera, projected rather than fitted (#166). One camera gives the top
+        // ellipse's flattening and the rim's growth together, in place of the tan^1.5/sin²
+        // families they were; only the rise off centre (below) stays a residual the projection
+        // does not account for.
+        var (ryUnit, rimUnit) = PieSilhouette(sinA, cosA, Math.Tan(theta));
         var height = 2 * ryUnit + rimUnit;
 
         var series = chart.Series.FirstOrDefault();
@@ -664,10 +668,12 @@ internal static class Chart3DComposer
         var ry = rx * ryUnit;
         var rim = rx * rimUnit;
 
-        // The rise off centre ties to the height the flattening takes from the top — most of
-        // it at gentle tilts, less as the tilt steepens. Fitted; the follow-up issue holds the
-        // grid.
-        var rise = rx * sinA * (1 - flatten) * Math.Pow(cosA, 4);
+        // The projected disc sits symmetrically about its axis, but Word lifts the whole pie a
+        // little further off the plot centre than that — a residual the camera does not explain,
+        // largest at a gentle tilt and steep perspective, where the flattening takes the most
+        // from the top. It rides on the height so lost: sinA − ryUnit is what the flattening
+        // removed. Still fitted (#166).
+        var rise = rx * (sinA - ryUnit) * Math.Pow(cosA, 4);
         var cx = plan.Left + plan.Width / 2;
         var cy = plan.Top + plan.Height / 2 - rise - (2 * ry + rim) / 2 + ry;
 
@@ -716,6 +722,68 @@ internal static class Chart3DComposer
 
             yield return new PathOperation(steps, colour, null, DefaultLineWidth, EvenOdd: false);
         }
+    }
+
+    /// <summary>
+    /// The top ellipse's semi-axis and the rim's depth, per unit of the pie's radius, from Word's
+    /// perspective camera (#166).
+    /// </summary>
+    /// <remarks>
+    /// The pie is a flat cylinder — a disc of radius one, 0.24 deep — lying in
+    /// the floor plane, tilted back by rotX and seen through the same perspective divide the boxes
+    /// use. The eye sits at <c>(0, ey, −D)</c>; the frustum's half-height at the disc is
+    /// <c>F = FrustumBase + FrustumSlope·tan θ</c> so that <c>D = F/tan θ</c> stays infinite at
+    /// perspective nought (there the projection is the parallel one and the top is the exact
+    /// tilted disc, <c>ry = sin rotX</c>, rim <c>0.24·cos rotX</c>). As the perspective deepens the
+    /// eye drops by <c>ey = −EyeDrop·tan θ</c>, which flattens the top face and lets the rim grow —
+    /// the two effects that were separate fitted families. Projecting the top and bottom rims and
+    /// reading the silhouette off them reproduces Word's grid — the upper semi-axis and the total
+    /// height together — to about a hundredth of the radius across rotX 10–40 and perspective
+    /// 0–60. The three camera constants were measured from that grid the way #98 measured the
+    /// box camera's; the top face comes out symmetric about its axis, so the drawn ellipse is too.
+    /// </remarks>
+    private static (double RyUnit, double RimUnit) PieSilhouette(double sinA, double cosA, double tan)
+    {
+        // The rim's depth in radii, from the parallel-perspective rim standing 0.24·cosA tall.
+        const double Thickness = 0.24;
+        // The frustum half-height F = FrustumBase + FrustumSlope·tan θ, and the eye's drop.
+        const double FrustumBase = 0.2428, FrustumSlope = 1.0612, EyeDrop = 0.7581;
+
+        var parallel = tan < 1e-9;
+        var d = parallel ? 0 : (FrustumBase + FrustumSlope * tan) / tan;
+        var ey = parallel ? 0 : -EyeDrop * tan;
+
+        double topMin = double.MaxValue, topMax = double.MinValue, botMax = double.MinValue, rxUnit = 0;
+        const int steps = 360;
+        for (var i = 0; i < steps; i++)
+        {
+            var phi = 2 * Math.PI * i / steps;
+            var (sx, sz) = (Math.Sin(phi), Math.Cos(phi));
+
+            // The top face at y = +Thickness/2, the bottom at −Thickness/2; rotX tilts about the
+            // horizontal, then the perspective divide from the eye.
+            for (var top = 0; top < 2; top++)
+            {
+                var y = (top == 0 ? Thickness : -Thickness) / 2;
+                var sy2 = y * cosA + sz * sinA;
+                var sz2 = -y * sinA + sz * cosA;
+                var towards = parallel ? 1 : d / (d + sz2);
+                var screenY = -towards * (sy2 - ey);
+                if (top == 0)
+                {
+                    if (screenY < topMin) topMin = screenY;
+                    if (screenY > topMax) topMax = screenY;
+                    var absX = Math.Abs(towards * sx);
+                    if (absX > rxUnit) rxUnit = absX;
+                }
+                else if (screenY > botMax)
+                {
+                    botMax = screenY;
+                }
+            }
+        }
+
+        return ((topMax - topMin) / 2 / rxUnit, (botMax - topMax) / rxUnit);
     }
 
     /// <summary>
