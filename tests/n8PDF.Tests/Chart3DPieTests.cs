@@ -20,11 +20,12 @@ namespace n8PDF.Tests;
 /// the tilted disc seen through Word's perspective divide — see
 /// <see cref="n8PDF.Layout.Chart3DComposer"/>'s remarks; only the rise off centre stays fitted.
 /// The absent-scene
-/// page — what a real document's 3-D pie almost always is — holds tightest; the stated-scene
-/// pages carry looser bars because every one of them states an <c>hPercent</c>, and a stated
-/// height changes the pie's thickness split in a way not yet modelled (the silhouette holds
-/// still while the rim fattens at the top face's expense — the follow-up issue holds the
-/// measurements). The explosion pages are now derived rather than fitted: the pie shrinks so the
+/// page — what a real document's 3-D pie almost always is — holds tightest. <c>hPercent</c> sets
+/// the cylinder's depth and nothing else: the parallel <c>hPercent</c> pages (50–200) match Word
+/// to a point, the rim growing dead-linearly while the top ellipse and the width hold. Under
+/// perspective that depth still interacts with the flatten in a way the camera does not fully
+/// catch at a steep tilt and a thick pie together (the follow-up owns it), so those pages are not
+/// asserted. The explosion pages are now derived rather than fitted: the pie shrinks so the
 /// exploded arrangement fits, the disc's centre holds, and the front slices land within a point
 /// of Word across the sweep — but the same non-uniform sector mapping the follow-up owns caps
 /// what a single per-page bar can reach, because a small slice at the pie's back reads a third
@@ -60,6 +61,10 @@ public class Chart3DPieTests(ITestOutputHelper output)
     [InlineData(18, "p60 rotX 40", 0.57)]
     [InlineData(19, "explosion 10", 0.67)]
     [InlineData(20, "explosion 25 blue", 0.67)]
+    [InlineData(21, "p0 hPercent 50", 0.74)]
+    [InlineData(22, "p0 hPercent 100", 0.71)]
+    [InlineData(23, "p0 hPercent 150", 0.7)]
+    [InlineData(24, "p0 hPercent 200", 0.68)]
     public void The_sectors_and_rim_land_where_words_do(int page, string what, double bar)
     {
         if (TestFonts.SkipForMissingFonts(FixtureName)) return;
