@@ -1778,11 +1778,18 @@ the eye backed off the scene by a law measured to a tenth of a percent across Wo
 reachable range of angle and fov (#98, #141). The room is built around it: the back and side walls
 and the floor, the gridlines ruled on them, and the depth axis for the series stacked into the page
 (#99, #100). The bars are shaded boxes, three faces to a lightness, drawn back to front so the near
-cover the far (#101, #110); the pie is sectors with a rim (#102); line and area are ribbons in depth
-(#103). What a value's height, and the box's own extent, come to inside all that — from the
+cover the far (#101, #110); the pie is that same tilted disc under that same camera — its top an
+ellipse and its rim a cylinder wall, the two flattening and deepening *together* as the perspective
+bites, projected rather than fitted family by family, deepened by `c:hPercent`, lit from the left,
+and, where a slice is exploded, shrinking the whole disc to hold that slice's tip on the fill edge
+(#102, #166); line and area are ribbons in depth (#103). What a value's height, and the box's own extent, come to inside all that — from the
 categories, series, depth and `c:hPercent` — is each measured against Word rather than guessed
 (#109, #113, #114, #116). Beyond the angles Word's dialog can state the camera clamps to its last
-good law, which is visible only on a hand-edited file (#247).
+good law, which is visible only on a hand-edited file (#247). The pie's one measured-but-unclosed
+part is the perspective pinch of its *sector angles*: its outline is Word's and its slices land in
+the right families, but a slice at the back reads a shade larger than Word draws it, the exact
+redistribution a two-variable surface (angle against fov) that no closed form yet fits — instrumented
+and left affine rather than approximated (#166).
 
 A title or a legend placed by hand is put where the chart asks. A `c:manualLayout` names a corner
 as fractions of the chart's own width and height, and what sits at that corner was measured at two
