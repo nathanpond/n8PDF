@@ -11,19 +11,25 @@ namespace n8PDF.Tests;
 /// </summary>
 /// <remarks>
 /// Skipped: it measures Word's raster to characterise a mapping the converter does not yet
-/// reproduce, so there is nothing of ours to assert against. What it found, at rotX 25:
+/// reproduce, so there is nothing of ours to assert against. This is the dense grid — 35 pages,
+/// a boundary sweep (data 18–162°) at rotX 25 and perspective 15/30/60, plus rotX 15/40 rows.
+/// What it settled:
 /// <list type="bullet">
-/// <item>The outline is still widest at data 90° (Word's B=90 boundary lands at screen sinθ 0.997),
-/// i.e. Word keeps a near-symmetric affine ellipse for the silhouette.</item>
-/// <item>But the sector boundaries are redistributed: at perspective 30 the data→screen angle map
-/// is 29→40, 61→64, 90→90, 119→130, 151→169 — the top/back sectors widen, the front-centre ones
-/// narrow, non-monotonically. A single perspective divide does not fit it (RMS 0.11), and the raw
-/// disc projection had the depth sign backwards, which is why it over-corrected.</item>
-/// <item>The map moves with perspective: the same 61° boundary reads screen sinθ 0.959 / 0.898 /
-/// 0.835 at perspective 15 / 30 / 60.</item>
+/// <item>The outline stays a near-symmetric affine ellipse (Word's 90° boundary lands at screen
+/// sinθ ≈ 1.0 at every perspective), so only the sector angles are redistributed, not the shape.</item>
+/// <item>The boundary's screen sinθ over its affine value falls smoothly and monotonically with the
+/// boundary angle — about 1.8 at data 18° (the back is pushed out), through 1 near 80°, down to 0.5
+/// at 144° (the front is pulled in). But it is not a single perspective divide, nor a Möbius warp
+/// <c>sinB/(1+k cosB)</c>, nor a tan-half warp, nor the projected-direction-on-the-affine-ellipse
+/// model — every closed form tried leaves RMS ≥ 0.07 of the radius, because the shape of the fall
+/// itself changes with perspective (the back's push weakens and the front's pull eases as the
+/// perspective deepens), not merely its amplitude.</item>
+/// <item>So the redistribution is a genuine two-variable surface with no clean law in reach here;
+/// shipping any of the imperfect fits would mis-place sectors much as the raw projection did (which
+/// also had the depth sign backwards), so the converter keeps the affine angles and this records
+/// the target. A faithful fix wants either a cleaner-than-raster boundary read or a model this grid
+/// does not suggest.</item>
 /// </list>
-/// Pinning the redistribution law wants a denser grid (more boundary angles × perspectives × rotX)
-/// on top of what this fixture already renders.
 /// </remarks>
 public class Chart3DPieTwoProbe(ITestOutputHelper output)
 {
@@ -40,8 +46,41 @@ public class Chart3DPieTwoProbe(ITestOutputHelper output)
         // (raster page, rotX, perspective, redPercent -> data boundary B = redPercent·3.6°)
         var pages = new[]
         {
-            (0, 25, 30, 8), (1, 25, 30, 17), (2, 25, 30, 25), (3, 25, 30, 33), (4, 25, 30, 42),
-            (5, 25, 15, 17), (6, 25, 60, 17),
+            (0, 25, 15, 5),
+            (1, 25, 15, 10),
+            (2, 25, 15, 15),
+            (3, 25, 15, 20),
+            (4, 25, 15, 25),
+            (5, 25, 15, 30),
+            (6, 25, 15, 35),
+            (7, 25, 15, 40),
+            (8, 25, 15, 45),
+            (9, 25, 30, 5),
+            (10, 25, 30, 10),
+            (11, 25, 30, 15),
+            (12, 25, 30, 20),
+            (13, 25, 30, 25),
+            (14, 25, 30, 30),
+            (15, 25, 30, 35),
+            (16, 25, 30, 40),
+            (17, 25, 30, 45),
+            (18, 25, 60, 5),
+            (19, 25, 60, 10),
+            (20, 25, 60, 15),
+            (21, 25, 60, 20),
+            (22, 25, 60, 25),
+            (23, 25, 60, 30),
+            (24, 25, 60, 35),
+            (25, 25, 60, 40),
+            (26, 25, 60, 45),
+            (27, 15, 30, 10),
+            (28, 15, 30, 20),
+            (29, 15, 30, 30),
+            (30, 15, 30, 40),
+            (31, 40, 30, 10),
+            (32, 40, 30, 20),
+            (33, 40, 30, 30),
+            (34, 40, 30, 40),
         };
 
         output.WriteLine("rotX persp redP |  B°  | Word sinθ | affine sinB | ratio");
