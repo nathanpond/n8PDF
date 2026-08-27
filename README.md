@@ -10,16 +10,18 @@ Converter.ConvertFile("report.docx", "report.pdf");
 
 ## The API
 
-Six types, and that is the whole of what a version promises:
+Eight types, and that is the whole of what a version promises:
 
 | | |
 |---|---|
-| `Converter` | `Convert(byte[])`, `Convert(Stream, Stream)`, `ConvertFile(string, string)` |
-| `ConversionOptions` | fonts, layout, title, file name, dates, a mail-merge record, and whether to fill in Word's built-in style defaults |
+| `Converter` | `Convert(byte[])`, `Convert(Stream, Stream)`, `ConvertFile(string, string)`, each taking an optional `CancellationToken` |
+| `ConversionOptions` | fonts, layout, limits, title, file name, dates, a mail-merge record, and whether to fill in Word's built-in style defaults |
 | `LayoutOptions` | kerning, and the default tab stop |
+| `PackageLimits` | the decompression-bomb bounds — per-part and total decompressed size, part count, image pixels, embedded-font bytes |
 | `FontLibrary` | registering fonts, and whether to discover the platform's |
 | `MailMergeRecord` | the fields a merge field asks for |
 | `FontFormatException` | what registering something that is not a font throws |
+| `PackageTooLargeException` | what a document that decompresses past its `PackageLimits` throws |
 
 Everything else — the OPC reader, the document model, the style cascade, the font engine, the
 layout engine, the PDF writer — is internal. All of it used to be public, which would have frozen
