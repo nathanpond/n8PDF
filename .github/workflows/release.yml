@@ -7,9 +7,11 @@
 # local builds, and a release overrides it from the tag, so a release cannot disagree with the tag
 # it was cut at.
 #
-# Publishing needs a NUGET_API_KEY secret. Without one the workflow still builds, tests, packs and
-# writes the GitHub release, and says plainly in the log that the push was skipped — so a release
-# can be cut and looked at before anything is sent anywhere.
+# Publishing uses NuGet trusted publishing: the job exchanges its GitHub OIDC token for a
+# short-lived NuGet key (NuGet/login), so there is no long-lived NUGET_API_KEY secret to store,
+# leak or rotate. It needs a trusted-publisher policy on nuget.org naming this repository and this
+# workflow. A rehearsal (workflow_dispatch) builds, tests and packs but publishes nothing, so a
+# release can be exercised before a tag is cut.
 #
 # What this runs is what ci.yml runs, which is everything a machine without Microsoft Word can:
 # the 74 documents set in Word's own faces are compared by full.yml instead. A release is not held
@@ -35,6 +37,8 @@ jobs:
     permissions:
       # For creating the GitHub release.
       contents: write
+      # For the OIDC token NuGet trusted publishing exchanges for a short-lived key.
+      id-token: write
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -110,22 +114,23 @@ jobs:
           retention-days: 90
 
       # Everything past here is for a real tag only: a rehearsal stops with the files built.
+
+      # Trusted publishing: exchange the job's OIDC token for a short-lived NuGet key, scoped to
+      # this repository and workflow by the policy on nuget.org — no stored secret to leak.
+      - name: Mint a short-lived NuGet key
+        if: steps.version.outputs.rehearsal == 'false'
+        id: nuget
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: nathanpond
+
       - name: Publish to NuGet
         if: steps.version.outputs.rehearsal == 'false'
-        env:
-          key: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          if [ -z "$key" ]; then
-            echo "No NUGET_API_KEY secret, so nothing was published."
-            echo "The package is attached to this run and to the release; add the secret and"
-            echo "re-run this job to send it."
-            exit 0
-          fi
-
-          dotnet nuget push "artifacts/package/*.nupkg" \
-            --api-key "$key" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+        run: >
+          dotnet nuget push "artifacts/package/*.nupkg"
+          --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
 
       - name: Write the GitHub release
         if: steps.version.outputs.rehearsal == 'false'

@@ -108,9 +108,12 @@ with both files attached. The tag is the only place a version is written down: t
 package cannot disagree with the tag it was cut at. `LibraryInvariantTests` checks that it does,
 because a workflow that forgot to would publish the wrong number quietly.
 
-Publishing needs a `NUGET_API_KEY` secret. Without one everything else still happens and the log
-says the push was skipped, so a release can be cut and inspected before anything is sent anywhere.
-`workflow_dispatch` takes a version and is a rehearsal: it builds and packs and publishes nothing.
+Publishing uses NuGet **trusted publishing**: the job exchanges its GitHub OIDC token for a
+short-lived key (`NuGet/login`) rather than storing a `NUGET_API_KEY` secret, so there is no
+long-lived credential to leak or rotate — the publish is scoped to this repository and this
+workflow by a trusted-publisher policy on nuget.org. `workflow_dispatch` takes a version and is a
+rehearsal: it builds and packs and publishes nothing, so the path can be exercised before a tag is
+cut.
 
 A release is built on a hosted runner, so it is tested to exactly the standard `ci.yml` sets — the
 74 documents set in Word's own faces are compared by `full.yml`, on a machine that has Word, and a
