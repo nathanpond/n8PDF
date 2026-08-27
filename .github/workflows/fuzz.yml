@@ -15,8 +15,6 @@ on:
       seconds:
         description: 'Seconds to fuzz each target'
         default: '180'
-  push:
-    branches: ['264-continuous-fuzzing-in-ci-self-hosted-oss-fuzz-has-no-net-support']   # TEMP: remove before PR
 
 permissions:
   contents: read
