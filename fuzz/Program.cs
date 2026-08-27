@@ -165,7 +165,7 @@ internal static class Program
             if (failure is not null)
             {
                 Console.Error.WriteLine(
-                    $"ESCAPED: {target} threw {failure.GetType().Name} on {Path.GetFileName(file)}: {failure.Message}");
+                    $"ESCAPED: {target} threw {failure.GetType().Name} on {Path.GetFileName(file)}:\n{failure}");
                 escapers++;
             }
         }
