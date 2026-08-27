@@ -54,6 +54,7 @@
         <Copyright>Copyright (c) 2026 Nathan Pond</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+        <PackageIcon>icon.png</PackageIcon>
         <PackageTags>docx;pdf;word;openxml;wordprocessingml;conversion;typesetting;pdf-generation</PackageTags>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
@@ -78,6 +79,7 @@
 
     <ItemGroup>
         <None Include="PACKAGE.md" Pack="true" PackagePath="/" />
+        <None Include="icon.png" Pack="true" PackagePath="/" Visible="false" />
         <None Include="../../LICENSE" Pack="true" PackagePath="/" Visible="false" />
     </ItemGroup>
 

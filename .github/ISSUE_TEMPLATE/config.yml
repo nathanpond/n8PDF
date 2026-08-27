@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security / hostile-input vulnerability
+    url: https://github.com/nathanpond/n8PDF/security/advisories/new
+    about: A document that exhausts memory, hangs, or crashes the process. Report privately, never as a public issue.
+  - name: Question or discussion
+    url: https://github.com/nathanpond/n8PDF/discussions
+    about: Not sure it's a bug? Ask here first.
+  - name: Documentation (the wiki)
+    url: https://github.com/nathanpond/n8PDF/wiki
+    about: Scope, the API, the fidelity method, the threat model, and how to build from source.
