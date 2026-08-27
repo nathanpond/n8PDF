@@ -83,6 +83,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="n8PDF.Tests" />
+        <InternalsVisibleTo Include="n8PDF.Fuzz" />
     </ItemGroup>
 
 </Project>

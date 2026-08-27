@@ -1,0 +1,9 @@
+# Fuzzing working files — the corpus is regenerated with `dotnet run -- seed`,
+# and libFuzzer writes crashes/artifacts here. None of it belongs in git.
+corpus/
+findings/
+crash-*
+timeout-*
+oom-*
+bin/
+obj/
