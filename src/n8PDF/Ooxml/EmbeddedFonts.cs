@@ -80,7 +80,9 @@ internal static class EmbeddedFonts
     /// Undoes Word's obfuscation in place: the first 32 bytes XORed with the GUID's 16 bytes in
     /// reverse of their written order, applied twice over.
     /// </summary>
-    private static void Deobfuscate(byte[] data, string fontKey)
+    // Internal, not private, so the fuzzing harness can attack the deobfuscate-then-parse
+    // path directly (#263); it is still not part of the public surface.
+    internal static void Deobfuscate(byte[] data, string fontKey)
     {
         Span<char> hex = stackalloc char[32];
         var digits = 0;
