@@ -109,11 +109,18 @@ public sealed class ConversionOptions
 public static class Converter
 {
     /// <summary>Converts a DOCX stream to a PDF stream.</summary>
-    public static void Convert(Stream docx, Stream pdf, ConversionOptions? options = null)
+    /// <param name="cancellationToken">
+    /// Aborts the conversion at the next coarse boundary in layout and rendering, so a pathological
+    /// document cannot hang the caller indefinitely. Surfaces as
+    /// <see cref="OperationCanceledException"/>, distinct from the package and format exceptions.
+    /// </param>
+    public static void Convert(
+        Stream docx, Stream pdf, ConversionOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
         options ??= new ConversionOptions();
 
-        var laidOut = LayoutDocument(docx, options);
+        var laidOut = LayoutDocument(docx, options, cancellationToken);
 
         var builder = new PdfBuilder { Title = options.Title, DropHinting = options.DropFontHinting };
         builder.Document.CreationDate = options.CreationDate;
@@ -121,19 +128,22 @@ public static class Converter
 
         // The font library goes with it: a drawing can hold text that layout never measured,
         // and drawing it needs a font of its own.
-        PdfRenderer.Render(laidOut, builder, options.Fonts);
+        PdfRenderer.Render(laidOut, builder, options.Fonts, cancellationToken);
         builder.Save(pdf);
     }
 
-    public static byte[] Convert(byte[] docx, ConversionOptions? options = null)
+    public static byte[] Convert(
+        byte[] docx, ConversionOptions? options = null, CancellationToken cancellationToken = default)
     {
         using var input = new MemoryStream(docx);
         using var output = new MemoryStream();
-        Convert(input, output, options);
+        Convert(input, output, options, cancellationToken);
         return output.ToArray();
     }
 
-    public static void ConvertFile(string docxPath, string pdfPath, ConversionOptions? options = null)
+    public static void ConvertFile(
+        string docxPath, string pdfPath, ConversionOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
         // The name is what a FILENAME field shows, and this is the one entry point that knows it.
         options ??= new ConversionOptions();
@@ -141,7 +151,7 @@ public static class Converter
 
         using var input = File.OpenRead(docxPath);
         using var output = File.Create(pdfPath);
-        Convert(input, output, options);
+        Convert(input, output, options, cancellationToken);
     }
 
     /// <summary>
@@ -154,7 +164,8 @@ public static class Converter
     /// line, run, resolved format and font the model reaches, none of which is settled enough to
     /// promise. If a caller ever needs something of it, the thing to add is that something.
     /// </remarks>
-    internal static LaidOutDocument LayoutDocument(Stream docx, ConversionOptions? options = null)
+    internal static LaidOutDocument LayoutDocument(
+        Stream docx, ConversionOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= new ConversionOptions();
 
@@ -272,7 +283,7 @@ public static class Converter
         var decodedImages = new Dictionary<string, Images.ImageData?>();
 
         var engine = new LayoutEngine(fonts, resolver, options.Layout, options.Limits, decodedImages)
-            { Fields = environment };
+            { Fields = environment, Cancellation = cancellationToken };
         var laidOut = engine.Layout(document);
 
         // A page number cannot be known while the page it is on is still being filled, so a
@@ -290,7 +301,8 @@ public static class Converter
         var second = new LayoutEngine(fonts, resolver, options.Layout, options.Limits, decodedImages)
         {
             Fields = environment,
-            Pagination = pagination
+            Pagination = pagination,
+            Cancellation = cancellationToken
         };
 
         return second.Layout(document);

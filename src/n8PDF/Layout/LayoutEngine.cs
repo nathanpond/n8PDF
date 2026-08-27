@@ -270,6 +270,13 @@ internal sealed class LayoutEngine(
     public FieldPagination? Pagination { get; set; }
 
     /// <summary>
+    /// The caller's cancellation, checked at coarse boundaries in layout so a pathological document
+    /// cannot hang the conversion. <see cref="CancellationToken.None"/> where the caller passed
+    /// none, which makes the check a no-op (#267).
+    /// </summary>
+    public CancellationToken Cancellation { get; set; }
+
+    /// <summary>
     /// True where a field was met whose value depends on pagination and was not yet known, so
     /// that laying the document out again would say more than this pass could.
     /// </summary>
@@ -992,6 +999,10 @@ internal sealed class LayoutEngine(
     {
         for (var index = 0; index < blocks.Count; index++)
         {
+            // A coarse cancellation point, hit once per block and at every nesting level, so a
+            // hostile document of a great many elements stops promptly rather than at a cap (#267).
+            Cancellation.ThrowIfCancellationRequested();
+
             switch (blocks[index])
             {
                 // A table of contents is not content the document wrote but a field's answer to
@@ -1132,6 +1143,10 @@ internal sealed class LayoutEngine(
 
         while (composer.HasMore)
         {
+            // The same coarse cancellation point per line, so a single enormous paragraph is
+            // interrupted too, not only a document of many (#267).
+            Cancellation.ThrowIfCancellationRequested();
+
             // A break carried over from the previous line is applied before this one is composed,
             // not after: a column break changes the measure, and a line broken against the width
             // it was leaving would be wrapped in the wrong place.
