@@ -45,7 +45,7 @@
           What a local build gets. A release states its own version on the command line, taken
           from the tag it is cut at, so that the tag is the one place a version is written down.
         -->
-        <Version>1.0.0</Version>
+        <Version>0.1.1</Version>
         <Authors>Nathan Pond</Authors>
         <Product>n8PDF</Product>
         <Title>n8PDF — DOCX to PDF, from scratch</Title>
