@@ -10,16 +10,17 @@ it on the web). Open the page you need:
 
 | Wiki page | For |
 |---|---|
-| Functionality / Known Gaps | **what is implemented** — check here before calling something missing |
-| Matching Word | the fidelity method — how closely it matches, and where the tolerances are |
+| Functionality → Current Scope / Known Gaps | **what is implemented** — the Functionality overview links **Current Scope** (the exhaustive itemised list, the place to check before calling something missing); Known Gaps is what is absent |
+| Matching Word → Matching Word in Detail | the fidelity method and how closely it matches (digest); **Matching Word in Detail** is the full per-rule measurements |
 | The API | the eight public types and what a version promises |
 | Architecture | the directory map and the direction data flows |
 | Validation | what the suite proves, and the external checkers |
 | Security / Threat Model | the attack surface and what is defended |
 | Installation / Prerelease Considerations | getting it from NuGet, and what pre-1.0 means |
 
-The wiki pages summarise; the deepest detail (the full fidelity measurements, the exhaustive scope
-list) was in the README's history before it was slimmed and is recoverable from git if needed.
+The overview pages are the digests; the deepest detail (the full fidelity measurements, the
+exhaustive scope list) lives in **Matching Word in Detail** and **Current Scope**, migrated there
+from the README when it was slimmed.
 
 ## Shape
 
