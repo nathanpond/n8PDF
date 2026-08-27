@@ -1,0 +1,91 @@
+# Continuous coverage-guided fuzzing of the untrusted entry points (#264). OSS-Fuzz has no .NET
+# support, so this self-hosts the same idea: the SharpFuzz harnesses in fuzz/ run under libFuzzer on
+# a schedule, the corpus accumulates across runs through the Actions cache, and a crash fails the run
+# and uploads the minimised reproducer. libFuzzer is Linux-only, which is why this never ran on the
+# author's Mac; here it has a Linux runner. SharpFuzz stays confined to fuzz/ (outside n8PDF.sln), so
+# ci.yml and the zero-PackageReference invariant of src/n8PDF are untouched.
+name: Fuzz
+
+on:
+  schedule:
+    # Nightly. A crash shows as a failed scheduled run.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: 'Seconds to fuzz each target'
+        default: '180'
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [image, font, deobfuscate, package, document]
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install SharpFuzz and build the libFuzzer driver
+        run: |
+          dotnet tool install --global SharpFuzz.CommandLine
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+          clang -fsanitize=fuzzer fuzz/libfuzzer-dotnet.cc -o "$HOME/.dotnet/tools/libfuzzer-dotnet"
+
+      - name: Build the harness
+        run: dotnet build fuzz/n8PDF.Fuzz.csproj --configuration Release
+
+      - name: Instrument the library
+        # The copy the harness loads (its own output directory), not the one under src/.
+        run: sharpfuzz fuzz/bin/Release/net10.0/n8PDF.dll
+
+      - name: Restore the corpus
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus/${{ matrix.target }}
+          # A fresh key each run so the grown corpus is always saved; the prefix restores the newest.
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ matrix.target }}-
+
+      - name: Seed the corpus if it is empty
+        run: |
+          dir="fuzz/corpus/${{ matrix.target }}"
+          if [ ! -d "$dir" ] || [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+            FUZZ_TARGET=${{ matrix.target }} dotnet run --project fuzz/n8PDF.Fuzz.csproj \
+              --configuration Release --no-build -- seed
+          fi
+
+      - name: Fuzz
+        run: |
+          mkdir -p fuzz/findings
+          seconds='${{ github.event.inputs.seconds }}'
+          seconds="${seconds:-180}"
+          FUZZ_TARGET=${{ matrix.target }} libfuzzer-dotnet \
+            --target_path="$(command -v dotnet)" \
+            --target_arg="$PWD/fuzz/bin/Release/net10.0/n8PDF.Fuzz.dll" \
+            -max_total_time="$seconds" \
+            -timeout=60 \
+            -rss_limit_mb=4096 \
+            -print_final_stats=1 \
+            -artifact_prefix="$PWD/fuzz/findings/" \
+            "fuzz/corpus/${{ matrix.target }}"
+
+      - name: Upload the reproducer on a crash
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-findings-${{ matrix.target }}
+          path: fuzz/findings/
+          if-no-files-found: ignore
