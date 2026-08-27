@@ -28,7 +28,7 @@ cannot tell from Word's own export — and it gets close.
 
 ## Installation
 
-`n8PDF` is on [NuGet](https://www.nuget.org/packages/n8PDF) — latest **0.1.2**:
+`n8PDF` is on [NuGet](https://www.nuget.org/packages/n8PDF) — latest **0.1.3**:
 
 ```bash
 dotnet add package n8PDF
