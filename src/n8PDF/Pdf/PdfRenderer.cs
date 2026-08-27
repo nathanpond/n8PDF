@@ -27,13 +27,19 @@ internal static class PdfRenderer
     /// </remarks>
     private const double LinkPaddingPoints = 2.16;
 
-    public static void Render(LaidOutDocument document, PdfBuilder builder, FontLibrary? fonts = null)
+    public static void Render(
+        LaidOutDocument document, PdfBuilder builder, FontLibrary? fonts = null,
+        CancellationToken cancellation = default)
     {
         var pages = new List<(LaidOutPage Source, PdfPage Target)>();
         var structure = new StructureWriter(document, builder);
 
         foreach (var page in document.Pages)
         {
+            // A coarse cancellation point per page, bounding the render pass the way the layout
+            // loops bound theirs (#267).
+            cancellation.ThrowIfCancellationRequested();
+
             var target = builder.AddPage(page.WidthPoints, page.HeightPoints);
             var content = target.Content;
             pages.Add((page, target));

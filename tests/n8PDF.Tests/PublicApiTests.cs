@@ -37,9 +37,9 @@ public class PublicApiTests(ITestOutputHelper output)
             String FileName { get; set; }
             String Title { get; set; }
         static class n8PDF.Converter
-            Byte[] Convert(Byte[] docx, ConversionOptions options = ...)
-            Void Convert(Stream docx, Stream pdf, ConversionOptions options = ...)
-            Void ConvertFile(String docxPath, String pdfPath, ConversionOptions options = ...)
+            Byte[] Convert(Byte[] docx, ConversionOptions options = ..., CancellationToken cancellationToken = ...)
+            Void Convert(Stream docx, Stream pdf, ConversionOptions options = ..., CancellationToken cancellationToken = ...)
+            Void ConvertFile(String docxPath, String pdfPath, ConversionOptions options = ..., CancellationToken cancellationToken = ...)
         class n8PDF.Fonts.FontFormatException
             .ctor(String message)
         class n8PDF.Fonts.FontLibrary
