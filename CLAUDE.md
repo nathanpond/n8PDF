@@ -4,19 +4,22 @@ Converts `.docx` to PDF, written from scratch: no third-party DOCX or PDF librar
 Word, LibreOffice, browser engine or sidecar. A consumer adds one assembly reference and calls
 one method.
 
-`README.md` holds the full account. It is 2,830 lines and is not worth reading whole. Open the
-section you need:
+`README.md` is a short landing page — mission, install, security, wiki links, licence. The full
+account lives in the **GitHub wiki** (`nathanpond/n8PDF.wiki`, a separate git repo — clone or read
+it on the web). Open the page you need:
 
-| Section | Line | For |
-|---|---|---|
-| Installation | 11 | installing from NuGet, the version, and verifying provenance |
-| The API | 36 | the eight public types and what a version promises |
-| The constraint | 58 | why `src/n8PDF` has no packages |
-| Layout | 67 | the directory map and the direction data flows |
-| Running | 92 | building, testing, the external checkers |
-| Validation | 196 | what the suite actually proves |
-| Matching Word | 298 | how closely, and where the tolerances are |
-| Current scope | 1693 | **what is implemented** — check here before calling something missing |
+| Wiki page | For |
+|---|---|
+| Functionality / Known Gaps | **what is implemented** — check here before calling something missing |
+| Matching Word | the fidelity method — how closely it matches, and where the tolerances are |
+| The API | the eight public types and what a version promises |
+| Architecture | the directory map and the direction data flows |
+| Validation | what the suite proves, and the external checkers |
+| Security / Threat Model | the attack surface and what is defended |
+| Installation / Prerelease Considerations | getting it from NuGet, and what pre-1.0 means |
+
+The wiki pages summarise; the deepest detail (the full fidelity measurements, the exhaustive scope
+list) was in the README's history before it was slimmed and is recoverable from git if needed.
 
 ## Shape
 
