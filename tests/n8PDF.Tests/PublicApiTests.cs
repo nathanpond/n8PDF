@@ -11,7 +11,7 @@ namespace n8PDF.Tests;
 /// converter's worth of machinery: an OPC reader, a WordprocessingML model, a style cascade, a
 /// font engine, a layout engine and a PDF writer. All of it was public, which would have frozen
 /// 174 types — the shape of a positioned line, the name of a table's border edge — at the first
-/// version anyone installed. What a caller actually needs is six.
+/// version anyone installed. What a caller actually needs is eight.
 ///
 /// So everything else is internal, the tests reach it through <c>InternalsVisibleTo</c>, and what
 /// is left is written out here in full. Adding to it is then a deliberate act with a diff to show

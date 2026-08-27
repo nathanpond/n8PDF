@@ -9,7 +9,7 @@ section you need:
 
 | Section | Line | For |
 |---|---|---|
-| The API | 11 | the six public types and what a version promises |
+| The API | 11 | the eight public types and what a version promises |
 | The constraint | 31 | why `src/n8PDF` has no packages |
 | Layout | 40 | the directory map and the direction data flows |
 | Running | 65 | building, testing, the external checkers |
@@ -50,7 +50,7 @@ These are load-bearing. Do not breach one without being asked to, by name.
   seems to need a package needs a conversation instead. Semgrep, like qpdf and the other checkers,
   is a tool the CI runner installs, not a package the library references — the static-analysis
   workflow leaves this invariant untouched.
-- **The public surface is six types.** `PublicApiTests` writes it out in full and fails on
+- **The public surface is eight types.** `PublicApiTests` writes it out in full and fails on
   anything that grows it. Making a type or member public is a deliberate act with a diff to show
   for it; propose it, do not simply do it.
 - **Warnings are errors**, from `Directory.Build.props`, for every project and every build. While
