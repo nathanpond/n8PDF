@@ -1,0 +1,35 @@
+name: Feature request
+description: A capability n8PDF does not have yet — a Word construct it doesn't render, or an API it doesn't expose.
+labels: ["feature", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A *feature* is a capability that does not exist yet, as against a defect in one that does — use
+        the bug report for the latter. Before filing, it's worth a look at
+        [Known Gaps](https://github.com/nathanpond/n8PDF/wiki/Known-Gaps) and
+        [Current Scope](https://github.com/nathanpond/n8PDF/wiki/Current-Scope): some absences are
+        decisions, and some things you might think are missing are already in.
+  - type: textarea
+    id: capability
+    attributes:
+      label: What should it do
+      description: The Word construct or the API you want, and what it should produce.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: The documents or the use case that need it. What are you converting that this blocks?
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: A document that would prove it
+      description: >
+        Every feature story says which fixture demonstrates it. If you can attach a `.docx` that uses
+        the construct (with Word's own export of it), that becomes the acceptance test.
+    validations:
+      required: false

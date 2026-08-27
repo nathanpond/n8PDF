@@ -1,0 +1,50 @@
+name: Bug report
+description: A defect in something n8PDF already does — wrong output, a crash, a hang, or a divergence from Word.
+labels: ["needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. n8PDF's whole method is measuring against Word, so a good bug report is
+        one that can become a test: **the smallest `.docx` that shows the problem, and what Word does
+        with the same file.**
+
+        If you suspect a *security* issue (a document that exhausts memory, hangs, or crashes the
+        process), do **not** file it here — report it privately via the repository's **Security** tab
+        → **Report a vulnerability**. See [SECURITY.md](https://github.com/nathanpond/n8PDF/blob/main/SECURITY.md).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What n8PDF produced or did, and what you expected instead.
+      placeholder: The second line wraps one word early compared to Word; heading spacing is ~2pt tight; conversion throws X.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest `.docx` that shows it — rebuilt with placeholder text, never a confidential
+        document — plus, where fidelity is the issue, Word's own PDF export of that same file. Attach
+        both by dragging them in. Include the exact call you made, options included.
+      placeholder: |
+        Converter.ConvertFile("repro.docx", "out.pdf", new ConversionOptions { ... });
+        (repro.docx + word-export.pdf attached)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: n8PDF version
+      placeholder: "0.1.2"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, .NET version, and — since fonts drive layout — whether you rely on system fonts or register your own.
+      placeholder: macOS 15 / .NET 10 / system fonts
+    validations:
+      required: false
