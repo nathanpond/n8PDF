@@ -10,7 +10,7 @@ Converter.ConvertFile("report.docx", "report.pdf");
 
 ## Installation
 
-`n8PDF` is on [NuGet](https://www.nuget.org/packages/n8PDF) — latest **0.1.1** ([release notes](https://github.com/nathanpond/n8PDF/releases)):
+`n8PDF` is on [NuGet](https://www.nuget.org/packages/n8PDF) — latest **0.1.2** ([release notes](https://github.com/nathanpond/n8PDF/releases)):
 
 ```bash
 dotnet add package n8PDF
@@ -19,18 +19,21 @@ dotnet add package n8PDF
 or, in a project file:
 
 ```xml
-<PackageReference Include="n8PDF" Version="0.1.1" />
+<PackageReference Include="n8PDF" Version="0.1.2" />
 ```
 
 It targets **.NET 10** (`net10.0`) and ships with its symbols and XML documentation. It is pre-1.0 —
 usable and hardened, but the API is not frozen until `v1.0.0`.
 
 Every release is published through NuGet **trusted publishing** (an OIDC exchange from CI, with no
-stored key) and carries a signed [SLSA build-provenance](https://slsa.dev) attestation, so you can
-prove a package came from this repository's CI and was not tampered with in the pipeline:
+stored key). The copy you install carries nuget.org's own repository signature — `dotnet nuget verify`
+shows it — and each [GitHub release](https://github.com/nathanpond/n8PDF/releases) attaches the same
+package with a signed [SLSA build-provenance](https://slsa.dev) attestation binding it to the commit
+and workflow that built it. nuget.org re-signs its copy, which changes its bytes, so verify the
+**release asset** against this repository rather than the installed one:
 
 ```bash
-gh attestation verify n8PDF.0.1.1.nupkg --repo nathanpond/n8PDF
+gh attestation verify n8PDF.0.1.2.nupkg --repo nathanpond/n8PDF   # the file from the GitHub release
 ```
 
 ## The API
