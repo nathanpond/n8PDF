@@ -4,18 +4,19 @@ Converts `.docx` to PDF, written from scratch: no third-party DOCX or PDF librar
 Word, LibreOffice, browser engine or sidecar. A consumer adds one assembly reference and calls
 one method.
 
-`README.md` holds the full account. It is 2,574 lines and is not worth reading whole. Open the
+`README.md` holds the full account. It is 2,830 lines and is not worth reading whole. Open the
 section you need:
 
 | Section | Line | For |
 |---|---|---|
-| The API | 11 | the eight public types and what a version promises |
-| The constraint | 31 | why `src/n8PDF` has no packages |
-| Layout | 40 | the directory map and the direction data flows |
-| Running | 65 | building, testing, the external checkers |
-| Validation | 156 | what the suite actually proves |
-| Matching Word | 236 | how closely, and where the tolerances are |
-| Current scope | 1623 | **what is implemented** — check here before calling something missing |
+| Installation | 11 | installing from NuGet, the version, and verifying provenance |
+| The API | 36 | the eight public types and what a version promises |
+| The constraint | 58 | why `src/n8PDF` has no packages |
+| Layout | 67 | the directory map and the direction data flows |
+| Running | 92 | building, testing, the external checkers |
+| Validation | 196 | what the suite actually proves |
+| Matching Word | 298 | how closely, and where the tolerances are |
+| Current scope | 1693 | **what is implemented** — check here before calling something missing |
 
 ## Shape
 
