@@ -186,8 +186,22 @@ public sealed class FontLibrary
     /// <summary>Registers every face in the given font file data.</summary>
     public void Register(byte[] data)
     {
-        foreach (var face in TrueTypeFont.LoadAll(data))
-            Add(new Face(face));
+        try
+        {
+            foreach (var face in TrueTypeFont.LoadAll(data))
+                Add(new Face(face));
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException or ArgumentException
+                                      or OverflowException or DivideByZeroException
+                                      or InvalidDataException or InvalidOperationException)
+        {
+            // A crafted font can drive the table parsers past their own checks into a raw runtime
+            // exception — a cmap offset whose top bit is set overflows the (int) cast under the
+            // library's checked arithmetic, for one (#282). Register's contract is to validate a
+            // face and report a malformed one as a FontFormatException, so the net turns those into
+            // it, the same defence in depth the image reader keeps behind its decoders (#48).
+            throw new FontFormatException($"The font data is malformed: {e.Message}");
+        }
     }
 
     public void RegisterFile(string path)

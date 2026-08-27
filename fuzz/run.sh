@@ -8,7 +8,7 @@ shift || true
 
 cd "$(dirname "$0")"
 CONFIG=Release
-LIBRARY="../src/n8PDF/bin/$CONFIG/net10.0/n8PDF.dll"
+LIBRARY="bin/$CONFIG/net10.0/n8PDF.dll"
 HARNESS="bin/$CONFIG/net10.0/n8PDF.Fuzz.dll"
 
 dotnet build -c "$CONFIG" >/dev/null

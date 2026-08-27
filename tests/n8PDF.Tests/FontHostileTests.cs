@@ -14,6 +14,22 @@ public class FontHostileTests(ITestOutputHelper output)
 {
     private readonly ITestOutputHelper _output = output;
 
+    [Fact]
+    public void A_crafted_cmap_offset_makes_Register_report_a_malformed_font_not_a_raw_overflow()   // #282
+    {
+        // A fuzz-found font (fuzz/, #264) whose cmap subtable offset has its top bit set: under the
+        // library's checked arithmetic (#266) the (int) cast overflowed and escaped the public
+        // Register API as a raw OverflowException. Register's net now reports it as the
+        // FontFormatException its contract promises.
+        var data = File.ReadAllBytes(
+            Path.Combine(TestPaths.TestProject, "Fixtures", "Fonts", "cmap-offset-overflow.fuzz"));
+
+        var thrown = Record.Exception(() => new FontLibrary { UseSystemFonts = false }.Register(data));
+
+        _output.WriteLine($"Register threw {thrown?.GetType().Name}");
+        Assert.IsType<FontFormatException>(thrown);
+    }
+
     private static byte[] Be32(uint v) => [(byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v];
 
     private static byte[] Ttcf(uint faceCount, uint offset)

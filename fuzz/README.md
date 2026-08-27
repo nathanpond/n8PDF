@@ -63,11 +63,14 @@ Each prints `replay <target>: N inputs, 0 escaped the oracle`; a non-zero count 
 Prerequisites, once:
 
 ```
-dotnet tool install --global SharpFuzz.CommandLine     # the `sharpfuzz` instrumenter
-# libfuzzer-dotnet: build the loader from SharpFuzz's libfuzzer-dotnet.cc with
-#   clang -fsanitize=fuzzer <libfuzzer-dotnet.cc> -o libfuzzer-dotnet
-# (see https://github.com/Metalnem/sharpfuzz#installation) and put it on PATH.
+dotnet tool install --global SharpFuzz.CommandLine        # the `sharpfuzz` instrumenter
+clang -fsanitize=fuzzer libfuzzer-dotnet.cc -o libfuzzer-dotnet   # the driver, vendored here
+sudo mv libfuzzer-dotnet /usr/local/bin/                  # or anywhere on PATH
 ```
+
+The libFuzzer driver `libfuzzer-dotnet.cc` is vendored from
+[Metalnem/libfuzzer-dotnet](https://github.com/Metalnem/libfuzzer-dotnet) (MIT), pinned to a commit,
+so the build is hermetic.
 
 Then one command per target:
 
@@ -81,6 +84,15 @@ one-minute run. A crash is written to `crash-*` in this directory; reproduce it 
 `FUZZ_TARGET=image dotnet run -c Release --no-build -- replay` after dropping it into
 `corpus/image/`, and — per the backlog rules — commit the input as a seed in `FuzzTests` and file
 the defect.
+
+## Continuous fuzzing (CI)
+
+[`.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) runs all five targets nightly (and on
+manual dispatch, with a `seconds` input) on a Linux runner: it builds the vendored driver, installs
+`sharpfuzz`, instruments the library, and fuzzes each target for a bounded time. The corpus
+**accumulates across runs** through the Actions cache, so coverage grows rather than restarting cold.
+A crash fails the run and uploads the minimised reproducer as an artifact; a clean run is green. This
+is the self-hosted stand-in for OSS-Fuzz, which has no .NET support (#264).
 
 ## When something escapes
 
