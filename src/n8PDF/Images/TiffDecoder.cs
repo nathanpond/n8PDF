@@ -601,9 +601,12 @@ internal static class TiffDecoder
                 output.Write(buffer, 0, read);
             }
         }
-        catch (InvalidDataException)
+        catch (Exception e) when (e is InvalidDataException or IOException)
         {
             // A corrupt Deflate strip is a picture this cannot read, not a fault in the reader (#35).
+            // A strip whose zlib header sets FDICT asks for a preset dictionary instead of being
+            // corrupt, and .NET raises ZLibException for that — the same hole as in PngDecoder,
+            // caught the same way and for the same reasons, which are written out there (#296).
             throw new ImageFormatException("TIFF strip is not a valid Deflate stream.");
         }
 

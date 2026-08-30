@@ -57,7 +57,7 @@ internal static class ImageReader
         }
         catch (Exception e) when (e is ImageFormatException
             or IndexOutOfRangeException or ArgumentException or OverflowException
-            or DivideByZeroException or InvalidDataException)
+            or DivideByZeroException or InvalidDataException or IOException)
         {
             // A malformed image should cost its own placement, not the whole conversion — and
             // that sentence has to hold for the files the decoders did not think to refuse, not
@@ -65,7 +65,13 @@ internal static class ImageReader
             // escaping from crafted files of a few dozen bytes; each hole is filed as its own
             // issue with its own validation fix, tested at the decoder level where this net
             // cannot swallow the evidence, and this is the defence in depth behind those fixes
-            // rather than a substitute for any of them. OutOfMemoryException is deliberately not
+            // rather than a substitute for any of them. IOException joined the list when the fuzz
+            // job found ZLibException escaping a PNG whose zlib header asks for a preset
+            // dictionary (#296): it derives from IOException rather than InvalidDataException, so
+            // it sat outside every clause here, and it cannot be named — it is public in
+            // System.IO.Compression but absent from the net10.0 reference assembly. The width
+            // costs nothing, because every decoder behind this reads a byte array already in
+            // memory and none of them opens a file. OutOfMemoryException is deliberately not
             // here: that one means the process is in trouble, and hiding it helps nobody.
             _ = e;
             return null;

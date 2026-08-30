@@ -36,6 +36,15 @@ public class PngHostileTests(ITestOutputHelper output)
         return raw.ToArray();
     }
 
+    /// <summary>A zlib stream whose header asks for a preset dictionary it cannot be given.</summary>
+    private static byte[] PresetDictionaryZlib()
+    {
+        // CMF 0x78 is deflate over a 32K window; FLG 0x3f sets FDICT (bit 5) and carries an
+        // FCHECK that makes the pair a multiple of 31, so the header passes its own check and
+        // zlib gets as far as asking. What follows stands in for the DICTID and the data.
+        return [0x78, 0x3f, 0x00, 0x00, 0x00, 0x01, 0x63, 0x00, 0x00, 0x00, 0x00];
+    }
+
     [Fact]
     public void A_decompression_bomb_is_refused_against_the_declared_size()
     {
@@ -119,6 +128,39 @@ public class PngHostileTests(ITestOutputHelper output)
         var ex = Record.Exception(() => PngDecoder.Decode(png.ToArray()));
         Assert.IsType<ImageFormatException>(ex);
         Assert.Null(ImageReader.TryRead(png.ToArray()));
+    }
+
+    [Fact]
+    public void An_idat_asking_for_a_preset_dictionary_fails_cleanly()   // #296
+    {
+        // FDICT is the one malformation zlib answers with Z_NEED_DICT rather than a data error,
+        // and .NET raises ZLibException for it — an IOException, outside the family #7's catch
+        // named. Two bytes of a PNG therefore used to take the whole conversion down.
+        var png = new List<byte> { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        var ihdr = new List<byte>();
+        Be32(ihdr, 2); Be32(ihdr, 2);
+        ihdr.Add(8); ihdr.Add(6); ihdr.Add(0); ihdr.Add(0); ihdr.Add(0);
+        Chunk(png, "IHDR", ihdr.ToArray());
+        Chunk(png, "IDAT", PresetDictionaryZlib());
+        Chunk(png, "IEND", []);
+
+        var ex = Record.Exception(() => PngDecoder.Decode(png.ToArray()));
+        Assert.IsType<ImageFormatException>(ex);
+        Assert.Null(ImageReader.TryRead(png.ToArray()));
+    }
+
+    [Fact]
+    public void The_minimised_fuzz_unit_from_the_image_target_is_read_as_null()   // #296
+    {
+        // libFuzzer's own reduction of the crash, kept verbatim: the input the scheduled job
+        // wrote out. The corpus itself is not in git — it lives in the Actions cache and is
+        // rebuilt by `dotnet run -- seed` — so fuzz/Program.cs seeds this same unit, and this
+        // holds the assertion where the suite can see it.
+        var unit = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAECAQAAAgAAAAAAAAADElEQVR4P5xjsmAcAAAARAAB//8dCFMA");
+        _output.WriteLine($"the minimised unit is {unit.Length} bytes");
+
+        Assert.Null(ImageReader.TryRead(unit));
     }
 
     [Fact]

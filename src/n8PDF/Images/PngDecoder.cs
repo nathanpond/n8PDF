@@ -138,9 +138,17 @@ internal static class PngDecoder
                 output.Write(buffer, 0, read);
             }
         }
-        catch (InvalidDataException)
+        catch (Exception e) when (e is InvalidDataException or IOException)
         {
             // A corrupt zlib stream is a picture this cannot read, not a fault in the reader (#7).
+            // IOException is the other half of that sentence: a header whose FDICT bit is set asks
+            // for a preset dictionary, which leaves zlib wanting one rather than calling the
+            // stream corrupt, and .NET raises ZLibException for it — outside
+            // InvalidDataException's family, and so outside the catch this once was (#296).
+            // ZLibException cannot be named: it is public in System.IO.Compression but absent
+            // from the net10.0 reference assembly, so its public base is what a catch can say.
+            // Nothing is lost by the width, because the only stream here is a MemoryStream over a
+            // byte array in hand — it performs no I/O, so an IOException can only be the inflater.
             throw new ImageFormatException("PNG image data is not a valid zlib stream.");
         }
 
