@@ -58,15 +58,15 @@ no bug-bounty programme.
 
 ## Supported versions
 
-n8PDF has not yet had a numbered public release (see
-[#61](https://github.com/nathanpond/n8PDF/issues/61)). Until it does, security fixes land on
-`main`. Once releases begin, this table states which lines receive them:
+Releases began with `0.1.0` ([#61](https://github.com/nathanpond/n8PDF/issues/61)). A security fix
+lands on `main` and ships in the next release cut from it; while the project is pre-1.0 there is a
+single supported line — the latest release — and fixes are not backported to earlier ones.
 
 | Version | Supported |
 |---|---|
-| `main` (unreleased) | ✅ |
-| latest released minor (once releases begin) | ✅ |
-| older releases | ❌ — upgrade to the latest minor |
+| `main` | ✅ |
+| latest release | ✅ |
+| older releases | ❌ — upgrade to the latest |
 
 ## Hardening a deployment
 
