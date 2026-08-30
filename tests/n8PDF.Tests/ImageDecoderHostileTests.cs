@@ -190,6 +190,27 @@ public class ImageDecoderHostileTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Tiff_deflate_strip_asking_for_a_preset_dictionary_fails_cleanly()   // #296
+    {
+        // The same hole as the PNG one: a strip whose zlib header sets FDICT leaves zlib wanting
+        // a dictionary, which .NET reports as ZLibException rather than a data error, and which
+        // #35's catch therefore let past. Asserted at the decoder, where the net cannot hide it.
+        byte[] strip = [0x78, 0x3f, 0x00, 0x00, 0x00, 0x01, 0x63, 0x00, 0x00, 0x00, 0x00];
+        var b = new TiffBuilder().Tags(8);
+        var stripAt = b.Blob(strip);
+        var tiff = b
+            .Tag(256, 3, 1, 8).Tag(257, 3, 1, 8)       // 8x8
+            .Tag(258, 3, 1, 8).Tag(277, 3, 1, 1)
+            .Tag(259, 3, 1, 8)                          // Deflate
+            .Tag(273, 4, 1, stripAt).Tag(279, 4, 1, strip.Length)
+            .Build();
+        _output.WriteLine($"{tiff.Length}-byte TIFF whose Deflate strip asks for a preset dictionary");
+
+        Assert.IsType<ImageFormatException>(Record.Exception(() => TiffDecoder.Decode(tiff)));
+        Assert.Null(ImageReader.TryRead(tiff));
+    }
+
+    [Fact]
     public void Ccitt_zero_run_strip_does_not_spin()   // #46
     {
         // An 8x1 fax image whose Modified-Huffman strip is nothing but white run-length-zero

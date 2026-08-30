@@ -186,6 +186,7 @@ internal static class Program
         File.WriteAllBytes(Path.Combine(image, "minimal.png"), MinimalPng());
         File.WriteAllBytes(Path.Combine(image, "gif-header"), "GIF89a"u8.ToArray());
         File.WriteAllBytes(Path.Combine(image, "bmp-header"), "BM"u8.ToArray());
+        File.WriteAllBytes(Path.Combine(image, "png-preset-dictionary"), PresetDictionaryPng());
         File.WriteAllBytes(Path.Combine(image, "empty"), []);
 
         var font = Path.Combine(fixtures, "Fonts", "n8PDFProbe.ttf");
@@ -251,6 +252,14 @@ internal static class Program
         throw new DirectoryNotFoundException(
             "could not find the repository root (a directory holding tests/n8PDF.Tests/Fixtures)");
     }
+
+    /// <summary>
+    /// libFuzzer's minimised unit for #296, kept as a seed so a fresh corpus carries the
+    /// regression: a PNG whose IDAT sets the zlib header's FDICT bit, which zlib answers by
+    /// asking for a preset dictionary and .NET reports as a ZLibException — once an escaper.
+    /// </summary>
+    private static byte[] PresetDictionaryPng() => Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAECAQAAAgAAAAAAAAADElEQVR4P5xjsmAcAAAARAAB//8dCFMA");
 
     private static byte[] MinimalPng()
     {
